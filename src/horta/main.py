@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 from fastapi import Request
 from fastapi.responses import RedirectResponse
@@ -10,10 +11,18 @@ from starlette.middleware.base import BaseHTTPMiddleware
 RUTAS_PUBLICAS = {"/login"}
 
 
+def _ruta_rexistrada(path: str) -> bool:
+    for template in Client.page_routes.values():
+        patron = re.sub(r"\{[^/]+\}", r"[^/]+", template)
+        if re.fullmatch(patron, path):
+            return True
+    return False
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         usuario_autenticado = app.storage.user.get("usuario_id")
-        ruta_e_paxina_rexistrada = request.url.path in Client.page_routes.values()
+        ruta_e_paxina_rexistrada = _ruta_rexistrada(request.url.path)
         if (
             not usuario_autenticado
             and ruta_e_paxina_rexistrada
