@@ -13,6 +13,13 @@ from horta.services.hortas import comprobar_rol_horta
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
+# Campos que se poden modificar dende actualizar_animal. Quedan fóra id,
+# horta_id e created_at: mover un animal a outra horta saltaría o control
+# de permisos, que se fai coa horta_id actual.
+CAMPOS_EDITABLES_ANIMAL = frozenset(
+    {"especie", "raza", "cantidade", "data_alta", "data_baixa", "estado", "notas"}
+)
+
 
 def crear_animal(
     session: Session,
@@ -38,6 +45,9 @@ def actualizar_animal(
     animal: Animal,
     **cambios: Any,
 ) -> Animal:
+    non_editables = set(cambios) - CAMPOS_EDITABLES_ANIMAL
+    if non_editables:
+        raise ValueError(f"Campos non editables nun animal: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
     for campo, valor in cambios.items():
         setattr(animal, campo, valor)

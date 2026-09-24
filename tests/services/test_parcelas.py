@@ -88,3 +88,20 @@ def test_campos_sigpac_son_opcionais_ao_crear(session):
 
     assert parcela.sigpac_provincia is None
     assert parcela.secano_regadio is None
+
+
+@pytest.mark.parametrize("campo", ["horta_id", "id", "created_at", "campo_inexistente"])
+def test_actualizar_parcela_rexeita_campos_non_editables(session, campo):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    outra_horta = crear_horta(session, ana, "Outra horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    id_orixinal = parcela.id
+
+    with pytest.raises(ValueError):
+        actualizar_parcela(session, ana, parcela, nome="Cambiado", **{campo: outra_horta.id})
+
+    session.refresh(parcela)
+    assert parcela.id == id_orixinal
+    assert parcela.horta_id == horta.id
+    assert parcela.nome == "Parcela Norte"

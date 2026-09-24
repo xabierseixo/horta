@@ -81,3 +81,20 @@ def test_admin_pode_actualizar_e_eliminar_animal(session):
 
     eliminar_animal(session, ana, animal)
     assert listar_animais(session, ana, horta.id) == []
+
+
+@pytest.mark.parametrize("campo", ["horta_id", "id", "created_at", "campo_inexistente"])
+def test_actualizar_animal_rexeita_campos_non_editables(session, campo):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    outra_horta = crear_horta(session, ana, "Outra horta")
+    animal = crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA, cantidade=6)
+    id_orixinal = animal.id
+
+    with pytest.raises(ValueError):
+        actualizar_animal(session, ana, animal, cantidade=99, **{campo: outra_horta.id})
+
+    session.refresh(animal)
+    assert animal.id == id_orixinal
+    assert animal.horta_id == horta.id
+    assert animal.cantidade == 6
