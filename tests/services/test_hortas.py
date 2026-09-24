@@ -180,11 +180,26 @@ def test_admin_pode_eliminar_horta(session):
 def test_editor_e_lector_non_poden_eliminar_horta(session):
     ana = _crear_usuario(session, "ana@example.com")
     bea = _crear_usuario(session, "bea@example.com")
+    carlos = _crear_usuario(session, "carlos@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     engadir_membro(session, ana, horta.id, bea, RolHorta.EDITOR)
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
 
     with pytest.raises(PermisoDenegadoError):
         eliminar_horta(session, bea, horta)
+    with pytest.raises(PermisoDenegadoError):
+        eliminar_horta(session, carlos, horta)
+
+    assert session.get(Horta, horta.id) is not None
+
+
+def test_non_membro_non_pode_eliminar_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    denis = _crear_usuario(session, "denis@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(PermisoDenegadoError):
+        eliminar_horta(session, denis, horta)
 
     assert session.get(Horta, horta.id) is not None
 
@@ -195,8 +210,17 @@ def test_eliminar_horta_elimina_tamen_parcelas_animais_e_membros(session):
     parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
     animal = crear_animal(session, ana, horta.id, "galiñas", datetime.date.today())
 
+    # Unha segunda horta, allea á que se vai eliminar, para comprobar que o
+    # borrado en cascada non lle afecta.
+    outra_horta = crear_horta(session, ana, "Outra horta")
+    outra_parcela = crear_parcela(session, ana, outra_horta.id, "Outra parcela")
+
     eliminar_horta(session, ana, horta)
 
     assert session.get(Parcela, parcela.id) is None
     assert session.get(Animal, animal.id) is None
     assert session.get(HortaMembro, (horta.id, ana.id)) is None
+
+    assert session.get(Horta, outra_horta.id) is not None
+    assert session.get(Parcela, outra_parcela.id) is not None
+    assert session.get(HortaMembro, (outra_horta.id, ana.id)) is not None

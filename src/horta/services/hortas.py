@@ -86,6 +86,11 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
         session.delete(animal)
     for membro in session.query(HortaMembro).filter_by(horta_id=horta.id).all():
         session.delete(membro)
+    # SQLAlchemy non ten relationship() entre estes modelos, así que non hai
+    # información de dependencia para ordenar o DELETE automaticamente. Sen
+    # este flush, os borrados poden enviarse na orde inversa (horta antes dos
+    # seus fillos), o que falla en calquera BD que comprobe as FKs.
+    session.flush()
     session.delete(horta)
     session.commit()
 
