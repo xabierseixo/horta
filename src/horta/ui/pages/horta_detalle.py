@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from loguru import logger
 from nicegui import ui
 
 from horta.db import get_session
@@ -53,7 +54,10 @@ def horta_detalle_page(horta_id: int) -> None:
             ui.label("Non tes acceso a esta horta").classes("text-negative")
             return
         horta = session.get(Horta, horta_id)
-        assert horta is not None
+        if horta is None:
+            cabeceira_paxina()
+            ui.label("Esta horta xa non existe").classes("text-negative")
+            return
         parcelas = listar_parcelas(session, actor, horta_id)
         animais = listar_animais(session, actor, horta_id)
         pode_editar = membro.rol in _ROLES_ESCRITURA
@@ -486,7 +490,13 @@ def _seccion_membros(horta_id: int) -> None:
         filas = []
         for m in membros_bd:
             usuario_membro = session.get(Usuario, m.usuario_id)
-            assert usuario_membro is not None
+            if usuario_membro is None:
+                logger.warning(
+                    "HortaMembro horta_id={} usuario_id={} referencia un usuario inexistente",
+                    horta_id,
+                    m.usuario_id,
+                )
+                continue
             filas.append(
                 {
                     "usuario_id": m.usuario_id,
