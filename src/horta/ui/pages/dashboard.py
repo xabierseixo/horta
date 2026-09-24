@@ -5,6 +5,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.models.usuario import RolGlobal
 from horta.services.hortas import crear_horta, listar_hortas_usuario
+from horta.ui.accions import executar_accion
 from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
 
 
@@ -49,12 +50,17 @@ def dashboard_page() -> None:
                 if actor_actual is None:
                     pechar_sesion()
                     return
-                crear_horta(
+                creada = executar_accion(
                     session,
-                    actor_actual,
-                    nome_input.value,
-                    uso_profesional=profesional_checkbox.value,
+                    lambda: crear_horta(
+                        session,
+                        actor_actual,
+                        nome_input.value,
+                        uso_profesional=profesional_checkbox.value,
+                    ),
                 )
+            if not creada:
+                return
             ui.navigate.reload()
 
         ui.button("Crear horta", on_click=crear)

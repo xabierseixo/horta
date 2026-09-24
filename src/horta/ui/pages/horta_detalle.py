@@ -11,6 +11,7 @@ from horta.services.animais import crear_animal, listar_animais
 from horta.services.errors import PermisoDenegadoError
 from horta.services.hortas import comprobar_rol_horta, engadir_membro
 from horta.services.parcelas import crear_parcela, listar_parcelas
+from horta.ui.accions import executar_accion
 from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -67,13 +68,18 @@ def horta_detalle_page(horta_id: int) -> None:
                     if actor_actual is None:
                         pechar_sesion()
                         return
-                    crear_parcela(
+                    creada = executar_accion(
                         session,
-                        actor_actual,
-                        horta_id,
-                        nome_input.value,
-                        superficie=superficie_input.value,
+                        lambda: crear_parcela(
+                            session,
+                            actor_actual,
+                            horta_id,
+                            nome_input.value,
+                            superficie=superficie_input.value,
+                        ),
                     )
+                if not creada:
+                    return
                 ui.navigate.reload()
 
             ui.button("Crear parcela", on_click=crear)
@@ -116,15 +122,20 @@ def horta_detalle_page(horta_id: int) -> None:
                     if actor_actual is None:
                         pechar_sesion()
                         return
-                    crear_animal(
+                    creado = executar_accion(
                         session,
-                        actor_actual,
-                        horta_id,
-                        especie_input.value,
-                        date.today(),
-                        raza=raza_input.value or None,
-                        cantidade=int(cantidade_input.value or 1),
+                        lambda: crear_animal(
+                            session,
+                            actor_actual,
+                            horta_id,
+                            especie_input.value,
+                            date.today(),
+                            raza=raza_input.value or None,
+                            cantidade=int(cantidade_input.value or 1),
+                        ),
                     )
+                if not creado:
+                    return
                 ui.navigate.reload()
 
             ui.button("Crear animal", on_click=crear_animal_novo)
@@ -175,13 +186,18 @@ def horta_detalle_page(horta_id: int) -> None:
                     if usuario_obxectivo is None:
                         ui.notify("Non existe ningún usuario con ese email", type="negative")
                         return
-                    engadir_membro(
+                    engadido = executar_accion(
                         session,
-                        actor_actual,
-                        horta_id,
-                        usuario_obxectivo,
-                        RolHorta(rol_novo_membro.value),
+                        lambda: engadir_membro(
+                            session,
+                            actor_actual,
+                            horta_id,
+                            usuario_obxectivo,
+                            RolHorta(rol_novo_membro.value),
+                        ),
                     )
+                if not engadido:
+                    return
                 ui.navigate.reload()
 
             ui.button("Engadir membro", on_click=engadir)

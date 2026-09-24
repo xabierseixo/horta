@@ -6,6 +6,7 @@ from horta.db import get_session
 from horta.models.usuario import RolGlobal
 from horta.services.errors import PermisoDenegadoError
 from horta.services.usuarios import crear_usuario, listar_usuarios
+from horta.ui.accions import executar_accion
 from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
 
 
@@ -64,14 +65,19 @@ def admin_usuarios_page() -> None:
                 if actor_actual is None:
                     pechar_sesion()
                     return
-                crear_usuario(
+                creado = executar_accion(
                     session,
-                    actor_actual,
-                    nome_input.value,
-                    email_input.value,
-                    contrasinal_input.value,
-                    rol=RolGlobal(rol_select.value),
+                    lambda: crear_usuario(
+                        session,
+                        actor_actual,
+                        nome_input.value,
+                        email_input.value,
+                        contrasinal_input.value,
+                        rol=RolGlobal(rol_select.value),
+                    ),
                 )
+            if not creado:
+                return
             ui.navigate.reload()
 
         ui.button("Crear usuario", on_click=crear)
