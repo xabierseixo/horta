@@ -1,0 +1,92 @@
+from __future__ import annotations
+
+from sqlalchemy.orm import Session
+
+from horta.models.horta import Horta, HortaMembro, RolHorta
+from horta.models.usuario import Usuario
+from horta.services.errors import PermisoDenegadoError
+
+
+def _obter_membro(session: Session, horta_id: int, usuario_id: int) -> HortaMembro | None:
+    return session.get(HortaMembro, (horta_id, usuario_id))
+
+
+def comprobar_rol_horta(
+    session: Session,
+    horta_id: int,
+    usuario: Usuario,
+    roles_permitidos: set[RolHorta],
+) -> HortaMembro:
+    membro = _obter_membro(session, horta_id, usuario.id)
+    if membro is None or membro.rol not in roles_permitidos:
+        raise PermisoDenegadoError("Non tes permiso suficiente nesta horta")
+    return membro
+
+
+def crear_horta(
+    session: Session,
+    actor: Usuario,
+    nome: str,
+    descricion: str | None = None,
+    uso_profesional: bool = False,
+) -> Horta:
+    horta = Horta(nome=nome, descricion=descricion, uso_profesional=uso_profesional)
+    session.add(horta)
+    session.flush()
+    membro = HortaMembro(horta_id=horta.id, usuario_id=actor.id, rol=RolHorta.ADMIN)
+    session.add(membro)
+    session.commit()
+    return horta
+
+
+def engadir_membro(
+    session: Session,
+    actor: Usuario,
+    horta_id: int,
+    usuario_obxectivo: Usuario,
+    rol: RolHorta,
+) -> HortaMembro:
+    comprobar_rol_horta(session, horta_id, actor, {RolHorta.ADMIN})
+    membro = HortaMembro(horta_id=horta_id, usuario_id=usuario_obxectivo.id, rol=rol)
+    session.add(membro)
+    session.commit()
+    return membro
+
+
+def cambiar_rol_membro(
+    session: Session,
+    actor: Usuario,
+    horta_id: int,
+    usuario_obxectivo_id: int,
+    novo_rol: RolHorta,
+) -> HortaMembro:
+    comprobar_rol_horta(session, horta_id, actor, {RolHorta.ADMIN})
+    membro = _obter_membro(session, horta_id, usuario_obxectivo_id)
+    if membro is None:
+        raise ValueError("Ese usuario non é membro desta horta")
+    membro.rol = novo_rol
+    session.commit()
+    return membro
+
+
+def quitar_membro(
+    session: Session,
+    actor: Usuario,
+    horta_id: int,
+    usuario_obxectivo_id: int,
+) -> None:
+    comprobar_rol_horta(session, horta_id, actor, {RolHorta.ADMIN})
+    membro = _obter_membro(session, horta_id, usuario_obxectivo_id)
+    if membro is not None:
+        session.delete(membro)
+        session.commit()
+
+
+def listar_hortas_usuario(session: Session, usuario: Usuario) -> list[tuple[Horta, RolHorta]]:
+    membros = session.query(HortaMembro).filter_by(usuario_id=usuario.id).all()
+    resultado: list[tuple[Horta, RolHorta]] = []
+    for membro in membros:
+        horta = session.get(Horta, membro.horta_id)
+        assert horta is not None
+        resultado.append((horta, membro.rol))
+    return resultado
