@@ -4,7 +4,7 @@ import os
 
 from fastapi import Request
 from fastapi.responses import RedirectResponse
-from nicegui import app, ui
+from nicegui import Client, app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 
 RUTAS_PUBLICAS = {"/login"}
@@ -13,7 +13,12 @@ RUTAS_PUBLICAS = {"/login"}
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         usuario_autenticado = app.storage.user.get("usuario_id")
-        if not usuario_autenticado and request.url.path not in RUTAS_PUBLICAS:
+        ruta_e_paxina_rexistrada = request.url.path in Client.page_routes.values()
+        if (
+            not usuario_autenticado
+            and ruta_e_paxina_rexistrada
+            and request.url.path not in RUTAS_PUBLICAS
+        ):
             return RedirectResponse("/login")
         return await call_next(request)
 
