@@ -1,5 +1,10 @@
 from horta.models.usuario import RolGlobal, Usuario
-from horta.services.auth import autenticar, hash_password, verify_password
+from horta.services.auth import (
+    autenticar,
+    hash_password,
+    obter_usuario_activo,
+    verify_password,
+)
 
 
 def test_hash_password_non_garda_texto_plano():
@@ -64,3 +69,38 @@ def test_autenticar_usuario_inactivo(session):
 
 def test_autenticar_email_inexistente(session):
     assert autenticar(session, "non-existe@example.com", "calquera") is None
+
+
+def test_obter_usuario_activo_devolve_usuario_activo(session):
+    usuario = Usuario(
+        nome="Ana",
+        email="ana@example.com",
+        password_hash=hash_password("segredo"),
+        rol=RolGlobal.USUARIO,
+        activo=True,
+    )
+    session.add(usuario)
+    session.commit()
+
+    resultado = obter_usuario_activo(session, usuario.id)
+
+    assert resultado is not None
+    assert resultado.id == usuario.id
+
+
+def test_obter_usuario_activo_devolve_none_se_inactivo(session):
+    usuario = Usuario(
+        nome="Ana",
+        email="ana@example.com",
+        password_hash=hash_password("segredo"),
+        rol=RolGlobal.USUARIO,
+        activo=False,
+    )
+    session.add(usuario)
+    session.commit()
+
+    assert obter_usuario_activo(session, usuario.id) is None
+
+
+def test_obter_usuario_activo_devolve_none_se_non_existe(session):
+    assert obter_usuario_activo(session, 9999) is None

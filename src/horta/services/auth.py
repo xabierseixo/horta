@@ -21,3 +21,11 @@ def autenticar(session: Session, email: str, password: str) -> Usuario | None:
     if not verify_password(password, usuario.password_hash):
         return None
     return usuario
+
+
+def obter_usuario_activo(session: Session, usuario_id: int) -> Usuario | None:
+    """Devolve o usuario da sesión só se aínda existe e segue activo."""
+    usuario = session.get(Usuario, usuario_id)
+    if usuario is None or not usuario.activo:
+        return None
+    return usuario

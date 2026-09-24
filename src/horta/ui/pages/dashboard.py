@@ -1,28 +1,27 @@
 from __future__ import annotations
 
-from nicegui import app, ui
-from sqlalchemy.orm import Session
+from nicegui import ui
 
 from horta.db import get_session
-from horta.models.usuario import RolGlobal, Usuario
+from horta.models.usuario import RolGlobal
 from horta.services.hortas import crear_horta, listar_hortas_usuario
-
-
-def _actor(session: Session) -> Usuario:
-    usuario = session.get(Usuario, app.storage.user["usuario_id"])
-    assert usuario is not None
-    return usuario
+from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
 
 
 @ui.page("/")
 def dashboard_page() -> None:
     with get_session() as session:
-        actor = _actor(session)
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return
         hortas = listar_hortas_usuario(session, actor)
         nome = actor.nome
         e_admin_global = actor.rol == RolGlobal.ADMIN
 
-    ui.label(f"Ola, {nome}").classes("text-xl font-bold")
+    with ui.row().classes("items-center"):
+        ui.label(f"Ola, {nome}").classes("text-xl font-bold")
+        boton_pechar_sesion()
 
     if e_admin_global:
         ui.link("Administración de usuarios", "/admin/usuarios")
@@ -46,7 +45,10 @@ def dashboard_page() -> None:
                 ui.notify("O nome é obrigatorio", type="negative")
                 return
             with get_session() as session:
-                actor_actual = _actor(session)
+                actor_actual = usuario_actual(session)
+                if actor_actual is None:
+                    pechar_sesion()
+                    return
                 crear_horta(
                     session,
                     actor_actual,

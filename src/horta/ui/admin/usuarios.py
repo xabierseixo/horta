@@ -1,24 +1,21 @@
 from __future__ import annotations
 
-from nicegui import app, ui
-from sqlalchemy.orm import Session
+from nicegui import ui
 
 from horta.db import get_session
-from horta.models.usuario import RolGlobal, Usuario
+from horta.models.usuario import RolGlobal
 from horta.services.errors import PermisoDenegadoError
 from horta.services.usuarios import crear_usuario, listar_usuarios
-
-
-def _actor(session: Session) -> Usuario:
-    usuario = session.get(Usuario, app.storage.user["usuario_id"])
-    assert usuario is not None
-    return usuario
+from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
 
 
 @ui.page("/admin/usuarios")
 def admin_usuarios_page() -> None:
     with get_session() as session:
-        actor = _actor(session)
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return
         try:
             usuarios = listar_usuarios(session, actor)
         except PermisoDenegadoError:
@@ -34,6 +31,10 @@ def admin_usuarios_page() -> None:
             }
             for u in usuarios
         ]
+
+    with ui.row().classes("items-center"):
+        ui.link("← As miñas hortas", "/")
+        boton_pechar_sesion()
 
     ui.label("Xestión de usuarios").classes("text-xl font-bold")
     ui.table(
@@ -59,7 +60,10 @@ def admin_usuarios_page() -> None:
                 ui.notify("Todos os campos son obrigatorios", type="negative")
                 return
             with get_session() as session:
-                actor_actual = _actor(session)
+                actor_actual = usuario_actual(session)
+                if actor_actual is None:
+                    pechar_sesion()
+                    return
                 crear_usuario(
                     session,
                     actor_actual,

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from nicegui import app, ui
-from sqlalchemy.orm import Session
+from nicegui import ui
 
 from horta.db import get_session
 from horta.models.horta import HortaMembro, RolHorta
@@ -12,21 +11,19 @@ from horta.services.animais import crear_animal, listar_animais
 from horta.services.errors import PermisoDenegadoError
 from horta.services.hortas import comprobar_rol_horta, engadir_membro
 from horta.services.parcelas import crear_parcela, listar_parcelas
+from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 
-def _actor(session: Session) -> Usuario:
-    usuario = session.get(Usuario, app.storage.user["usuario_id"])
-    assert usuario is not None
-    return usuario
-
-
 @ui.page("/hortas/{horta_id}")
 def horta_detalle_page(horta_id: int) -> None:
     with get_session() as session:
-        actor = _actor(session)
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return
         try:
             membro = comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
         except PermisoDenegadoError:
@@ -35,6 +32,10 @@ def horta_detalle_page(horta_id: int) -> None:
         parcelas = listar_parcelas(session, actor, horta_id)
         animais = listar_animais(session, actor, horta_id)
         pode_editar = membro.rol in _ROLES_ESCRITURA
+
+    with ui.row().classes("items-center"):
+        ui.link("← As miñas hortas", "/")
+        boton_pechar_sesion()
 
     ui.label("Parcelas").classes("text-xl font-bold")
     rows = [
@@ -62,7 +63,10 @@ def horta_detalle_page(horta_id: int) -> None:
                     ui.notify("O nome é obrigatorio", type="negative")
                     return
                 with get_session() as session:
-                    actor_actual = _actor(session)
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
                     crear_parcela(
                         session,
                         actor_actual,
@@ -108,7 +112,10 @@ def horta_detalle_page(horta_id: int) -> None:
                     ui.notify("A especie é obrigatoria", type="negative")
                     return
                 with get_session() as session:
-                    actor_actual = _actor(session)
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
                     crear_animal(
                         session,
                         actor_actual,
@@ -156,7 +163,10 @@ def horta_detalle_page(horta_id: int) -> None:
 
             def engadir() -> None:
                 with get_session() as session:
-                    actor_actual = _actor(session)
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
                     usuario_obxectivo = (
                         session.query(Usuario)
                         .filter_by(email=email_novo_membro.value)
