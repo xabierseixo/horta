@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy.orm import Session
 
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
+
+# Campos que se poden modificar dende actualizar_horta. Queda fóra id e
+# created_at, que non teñen sentido editar.
+CAMPOS_EDITABLES_HORTA = frozenset({"nome", "descricion", "uso_profesional"})
 
 
 def _obter_membro(session: Session, horta_id: int, usuario_id: int) -> HortaMembro | None:
@@ -44,6 +50,22 @@ def crear_horta(
     session.flush()
     membro = HortaMembro(horta_id=horta.id, usuario_id=actor.id, rol=RolHorta.ADMIN)
     session.add(membro)
+    session.commit()
+    return horta
+
+
+def actualizar_horta(
+    session: Session,
+    actor: Usuario,
+    horta: Horta,
+    **cambios: Any,
+) -> Horta:
+    non_editables = set(cambios) - CAMPOS_EDITABLES_HORTA
+    if non_editables:
+        raise ValueError(f"Campos non editables nunha horta: {', '.join(sorted(non_editables))}")
+    comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
+    for campo, valor in cambios.items():
+        setattr(horta, campo, valor)
     session.commit()
     return horta
 

@@ -4,6 +4,7 @@ from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import (
+    actualizar_horta,
     cambiar_rol_membro,
     crear_horta,
     engadir_membro,
@@ -118,3 +119,42 @@ def test_cambiar_rol_a_non_membro_falla(session):
 
     with pytest.raises(OperacionNonPermitidaError):
         cambiar_rol_membro(session, ana, horta.id, bea.id, RolHorta.EDITOR)
+
+
+def test_admin_da_horta_pode_actualizar_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    actualizada = actualizar_horta(
+        session, ana, horta, nome="Horta Nova", descricion="Preto do río", uso_profesional=True
+    )
+
+    assert actualizada.nome == "Horta Nova"
+    assert actualizada.descricion == "Preto do río"
+    assert actualizada.uso_profesional is True
+
+
+def test_editor_e_lector_non_poden_actualizar_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    bea = _crear_usuario(session, "bea@example.com")
+    carlos = _crear_usuario(session, "carlos@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    engadir_membro(session, ana, horta.id, bea, RolHorta.EDITOR)
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
+
+    with pytest.raises(PermisoDenegadoError):
+        actualizar_horta(session, bea, horta, nome="Outro nome")
+    with pytest.raises(PermisoDenegadoError):
+        actualizar_horta(session, carlos, horta, nome="Outro nome")
+
+
+def test_actualizar_horta_rexeita_campos_non_editables(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    id_orixinal = horta.id
+
+    with pytest.raises(ValueError):
+        actualizar_horta(session, ana, horta, id=999)
+
+    assert horta.id == id_orixinal
+    assert horta.nome == "A miña horta"
