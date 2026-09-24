@@ -6,11 +6,11 @@ from nicegui import app, ui
 from sqlalchemy.orm import Session
 
 from horta.db import get_session
-from horta.models.horta import RolHorta
+from horta.models.horta import HortaMembro, RolHorta
 from horta.models.usuario import Usuario
 from horta.services.animais import crear_animal, listar_animais
 from horta.services.errors import PermisoDenegadoError
-from horta.services.hortas import comprobar_rol_horta
+from horta.services.hortas import comprobar_rol_horta, engadir_membro
 from horta.services.parcelas import crear_parcela, listar_parcelas
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -121,3 +121,57 @@ def horta_detalle_page(horta_id: int) -> None:
                 ui.navigate.reload()
 
             ui.button("Crear animal", on_click=crear_animal_novo)
+
+    if membro.rol == RolHorta.ADMIN:
+        with ui.card().classes("q-mt-md"):
+            ui.label("Membros da horta").classes("text-md font-bold")
+
+            with get_session() as session:
+                membros_bd = session.query(HortaMembro).filter_by(horta_id=horta_id).all()
+                filas_membros = []
+                for m in membros_bd:
+                    usuario_membro = session.get(Usuario, m.usuario_id)
+                    assert usuario_membro is not None
+                    filas_membros.append(
+                        {
+                            "usuario_id": m.usuario_id,
+                            "nome": usuario_membro.nome,
+                            "email": usuario_membro.email,
+                            "rol": m.rol.value,
+                        }
+                    )
+
+            ui.table(
+                columns=[
+                    {"name": "nome", "label": "Nome", "field": "nome"},
+                    {"name": "email", "label": "Email", "field": "email"},
+                    {"name": "rol", "label": "Rol", "field": "rol"},
+                ],
+                rows=filas_membros,
+                row_key="usuario_id",
+            )
+
+            email_novo_membro = ui.input("Email do usuario a engadir")
+            rol_novo_membro = ui.select(["admin", "editor", "lector"], value="lector")
+
+            def engadir() -> None:
+                with get_session() as session:
+                    actor_actual = _actor(session)
+                    usuario_obxectivo = (
+                        session.query(Usuario)
+                        .filter_by(email=email_novo_membro.value)
+                        .one_or_none()
+                    )
+                    if usuario_obxectivo is None:
+                        ui.notify("Non existe ningún usuario con ese email", type="negative")
+                        return
+                    engadir_membro(
+                        session,
+                        actor_actual,
+                        horta_id,
+                        usuario_obxectivo,
+                        RolHorta(rol_novo_membro.value),
+                    )
+                ui.navigate.reload()
+
+            ui.button("Engadir membro", on_click=engadir)
