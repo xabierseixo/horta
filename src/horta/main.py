@@ -26,6 +26,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 app.add_middleware(AuthMiddleware)
 
 import horta.ui.pages.login  # noqa: E402,F401
+import horta.ui.pages.dashboard  # noqa: E402,F401
 
 
 def main() -> None:
