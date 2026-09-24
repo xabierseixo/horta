@@ -16,3 +16,6 @@ horta.db
 *.swp
 *.swo
 *~
+
+# NiceGUI runtime directory
+.nicegui/
