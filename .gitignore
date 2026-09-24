@@ -11,3 +11,8 @@ wheels/
 
 # SQLite database
 horta.db
+
+# Editor swap/backup files
+*.swp
+*.swo
+*~
