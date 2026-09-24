@@ -24,9 +24,7 @@ class Parcela(Base):
     superficie: Mapped[float | None] = mapped_column(Float, default=None)
     posicion: Mapped[str | None] = mapped_column(String(120), default=None)
     uso_aproveitamento: Mapped[str | None] = mapped_column(String(120), default=None)
-    secano_regadio: Mapped[SecanoRegadio | None] = mapped_column(
-        Enum(SecanoRegadio), default=None
-    )
+    secano_regadio: Mapped[SecanoRegadio | None] = mapped_column(Enum(SecanoRegadio), default=None)
     sigpac_provincia: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_concello: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_poligono: Mapped[str | None] = mapped_column(String(10), default=None)

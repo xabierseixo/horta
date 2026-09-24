@@ -4,11 +4,13 @@ from nicegui import app, ui
 
 from horta.db import get_session
 from horta.services.auth import autenticar
+from horta.ui.nav import aplicar_paleta
 from horta.ui.sesion import usuario_actual
 
 
 @ui.page("/login")
 def login_page() -> None:
+    aplicar_paleta()
     if app.storage.user.get("usuario_id"):
         with get_session() as session:
             sesion_valida = usuario_actual(session) is not None

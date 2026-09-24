@@ -63,6 +63,4 @@ def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
 
 def listar_animais(session: Session, actor: Usuario, horta_id: int) -> list[Animal]:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
-    return list(
-        session.query(Animal).filter_by(horta_id=horta_id).order_by(Animal.especie).all()
-    )
+    return list(session.query(Animal).filter_by(horta_id=horta_id).order_by(Animal.especie).all())

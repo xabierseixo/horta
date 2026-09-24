@@ -23,18 +23,8 @@ def dashboard_page() -> None:
 
     cabeceira_paxina(mostrar_admin=e_admin_global)
 
-    ui.label(f"Ola, {nome}").classes("text-xl font-bold")
-    ui.label("As túas hortas").classes("text-lg font-bold").classes("q-mt-md")
-
-    if not hortas:
-        ui.label("Aínda non tes ningunha horta.")
-    for horta, rol in hortas:
-        with ui.row().classes("items-center"):
-            ui.link(horta.nome, f"/hortas/{horta.id}")
-            ui.label(f"({rol.value})")
-
-    with ui.card().classes("q-mt-md"):
-        ui.label("Crear nova horta").classes("text-md font-bold")
+    with ui.dialog() as dialog_nova_horta, ui.card():
+        ui.label("Nova horta").classes("text-md font-bold")
         nome_input = ui.input("Nome")
         profesional_checkbox = ui.checkbox("Uso profesional")
 
@@ -60,4 +50,23 @@ def dashboard_page() -> None:
                 return
             ui.navigate.reload()
 
-        ui.button("Crear horta", on_click=crear)
+        with ui.row():
+            ui.button("Crear", on_click=crear)
+            ui.button("Cancelar", on_click=dialog_nova_horta.close).props("flat")
+
+    with ui.row().classes("w-full items-center justify-between q-mb-md"):
+        ui.label(f"Ola, {nome}").classes("text-xl font-bold")
+        ui.button("+ Nova horta", on_click=dialog_nova_horta.open)
+
+    if not hortas:
+        ui.label("Aínda non tes ningunha horta.").classes("text-body2")
+
+    with ui.row().classes("w-full"):
+        for horta, rol in hortas:
+            with (
+                ui.card()
+                .classes("cursor-pointer")
+                .on("click", lambda _, horta_id=horta.id: ui.navigate.to(f"/hortas/{horta_id}"))
+            ):
+                ui.label(horta.nome).classes("text-md font-bold")
+                ui.label(rol.value).classes("text-caption text-grey")
