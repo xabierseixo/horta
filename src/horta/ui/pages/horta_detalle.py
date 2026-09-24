@@ -28,8 +28,11 @@ from horta.services.parcelas import (
     listar_parcelas,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual
+
+_PROPS_TABOA = 'dense no-data-label="Non hai rexistros"'
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -97,7 +100,7 @@ def horta_detalle_page(horta_id: int) -> None:
                 ui.navigate.reload()
 
             with ui.row():
-                ui.button("Gardar", on_click=gardar_horta)
+                ui.button("Gardar", icon="check", on_click=gardar_horta)
                 ui.button("Cancelar", on_click=dialog_config_horta.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
@@ -106,7 +109,9 @@ def horta_detalle_page(horta_id: int) -> None:
             if horta_descricion:
                 ui.label(horta_descricion).classes("text-body2 text-grey")
         if e_horta_admin:
-            ui.button("Configurar horta", on_click=dialog_config_horta.open).props("outline")
+            ui.button("Configurar horta", icon="settings", on_click=dialog_config_horta.open).props(
+                "outline"
+            )
 
     with ui.tabs().classes("w-full q-mt-md") as pestanas:
         pestana_parcelas = ui.tab("Parcelas")
@@ -155,37 +160,46 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
             with ui.row():
-                ui.button("Crear", on_click=crear)
+                ui.button("Crear", icon="check", on_click=crear)
                 ui.button("Cancelar", on_click=dialog_nova_parcela.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
         ui.label("Parcelas").classes("text-lg font-bold")
         if pode_editar:
-            ui.button("+ Nova parcela", on_click=dialog_nova_parcela.open)
+            ui.button("Nova parcela", icon="add", on_click=dialog_nova_parcela.open)
 
     rows = [
         {"id": p.id, "nome": p.nome, "superficie": p.superficie, "estado": p.estado}
         for p in parcelas
     ]
-    taboa = ui.table(
-        columns=[
-            {"name": "nome", "label": "Nome", "field": "nome"},
-            {"name": "superficie", "label": "Superficie", "field": "superficie"},
-            {"name": "estado", "label": "Estado", "field": "estado"},
-        ],
-        rows=rows,
-        row_key="id",
-        selection="single" if pode_editar else None,
-    ).classes("w-full")
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "nome", "label": "Nome", "field": "nome"},
+                {"name": "superficie", "label": "Superficie", "field": "superficie"},
+                {"name": "estado", "label": "Estado", "field": "estado"},
+            ],
+            rows=rows,
+            row_key="id",
+            selection="single" if pode_editar else None,
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
+    )
 
     if not pode_editar:
         return
 
     with ui.row().classes("q-mt-sm") as fila_accions:
-        ui.button("Editar", on_click=lambda: abrir_editar())
-        ui.button("Eliminar", on_click=lambda: eliminar_seleccionada()).props(
-            "outline color=negative"
-        )
+        ui.button("Editar", icon="edit", on_click=lambda: abrir_editar())
+        ui.button(
+            "Eliminar",
+            icon="delete",
+            on_click=lambda: confirmar_eliminacion(
+                f"Eliminar a parcela «{taboa.selected[0]['nome']}»? Non se pode desfacer.",
+                eliminar_seleccionada,
+            ),
+        ).props("outline color=negative")
     fila_accions.set_visibility(False)
     taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
 
@@ -234,7 +248,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
             ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", on_click=gardar)
+            ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialog_editar.close).props("flat")
 
     def abrir_editar() -> None:
@@ -304,13 +318,13 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
             with ui.row():
-                ui.button("Crear", on_click=crear)
+                ui.button("Crear", icon="check", on_click=crear)
                 ui.button("Cancelar", on_click=dialog_novo_animal.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
         ui.label("Animais").classes("text-lg font-bold")
         if pode_editar:
-            ui.button("+ Novo animal", on_click=dialog_novo_animal.open)
+            ui.button("Novo animal", icon="add", on_click=dialog_novo_animal.open)
 
     rows = [
         {
@@ -322,26 +336,35 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
         }
         for a in animais
     ]
-    taboa = ui.table(
-        columns=[
-            {"name": "especie", "label": "Especie", "field": "especie"},
-            {"name": "raza", "label": "Raza", "field": "raza"},
-            {"name": "cantidade", "label": "Cantidade", "field": "cantidade"},
-            {"name": "estado", "label": "Estado", "field": "estado"},
-        ],
-        rows=rows,
-        row_key="id",
-        selection="single" if pode_editar else None,
-    ).classes("w-full")
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "especie", "label": "Especie", "field": "especie"},
+                {"name": "raza", "label": "Raza", "field": "raza"},
+                {"name": "cantidade", "label": "Cantidade", "field": "cantidade"},
+                {"name": "estado", "label": "Estado", "field": "estado"},
+            ],
+            rows=rows,
+            row_key="id",
+            selection="single" if pode_editar else None,
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
+    )
 
     if not pode_editar:
         return
 
     with ui.row().classes("q-mt-sm") as fila_accions:
-        ui.button("Editar", on_click=lambda: abrir_editar())
-        ui.button("Eliminar", on_click=lambda: eliminar_seleccionado()).props(
-            "outline color=negative"
-        )
+        ui.button("Editar", icon="edit", on_click=lambda: abrir_editar())
+        ui.button(
+            "Eliminar",
+            icon="delete",
+            on_click=lambda: confirmar_eliminacion(
+                f'Eliminar "{taboa.selected[0]["especie"]}"? Esta acción non se pode desfacer.',
+                eliminar_seleccionado,
+            ),
+        ).props("outline color=negative")
     fila_accions.set_visibility(False)
     taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
 
@@ -392,7 +415,7 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
             ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", on_click=gardar)
+            ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialog_editar.close).props("flat")
 
     def abrir_editar() -> None:
@@ -477,27 +500,38 @@ def _seccion_membros(horta_id: int) -> None:
             ui.navigate.reload()
 
         with ui.row():
-            ui.button("Engadir", on_click=engadir)
+            ui.button("Engadir", icon="check", on_click=engadir)
             ui.button("Cancelar", on_click=dialog_engadir.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
         ui.label("Membros").classes("text-lg font-bold")
-        ui.button("+ Engadir membro", on_click=dialog_engadir.open)
+        ui.button("Engadir membro", icon="person_add", on_click=dialog_engadir.open)
 
-    taboa = ui.table(
-        columns=[
-            {"name": "nome", "label": "Nome", "field": "nome"},
-            {"name": "email", "label": "Email", "field": "email"},
-            {"name": "rol", "label": "Rol", "field": "rol"},
-        ],
-        rows=filas,
-        row_key="usuario_id",
-        selection="single",
-    ).classes("w-full")
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "nome", "label": "Nome", "field": "nome"},
+                {"name": "email", "label": "Email", "field": "email"},
+                {"name": "rol", "label": "Rol", "field": "rol"},
+            ],
+            rows=filas,
+            row_key="usuario_id",
+            selection="single",
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
+    )
 
     with ui.row().classes("q-mt-sm") as fila_accions:
-        ui.button("Cambiar rol", on_click=lambda: abrir_cambiar_rol())
-        ui.button("Quitar da horta", on_click=lambda: quitar()).props("outline color=negative")
+        ui.button("Cambiar rol", icon="edit", on_click=lambda: abrir_cambiar_rol())
+        ui.button(
+            "Quitar da horta",
+            icon="person_remove",
+            on_click=lambda: confirmar_eliminacion(
+                f'Quitar a "{taboa.selected[0]["nome"]}" desta horta?',
+                quitar,
+            ),
+        ).props("outline color=negative")
     fila_accions.set_visibility(False)
     taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
 
@@ -529,7 +563,7 @@ def _seccion_membros(horta_id: int) -> None:
             ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", on_click=cambiar_rol)
+            ui.button("Gardar", icon="check", on_click=cambiar_rol)
             ui.button("Cancelar", on_click=dialog_cambiar_rol.close).props("flat")
 
     def abrir_cambiar_rol() -> None:

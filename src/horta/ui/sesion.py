@@ -26,4 +26,4 @@ def pechar_sesion() -> None:
 
 
 def boton_pechar_sesion() -> None:
-    ui.button("Pechar sesión", on_click=pechar_sesion).props("flat")
+    ui.button("Pechar sesión", icon="logout", on_click=pechar_sesion).props("flat")

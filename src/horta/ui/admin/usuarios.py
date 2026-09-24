@@ -16,6 +16,8 @@ from horta.ui.accions import executar_accion
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
+_PROPS_TABOA = 'dense no-data-label="Non hai usuarios"'
+
 
 @ui.page("/admin/usuarios")
 def admin_usuarios_page() -> None:
@@ -27,6 +29,7 @@ def admin_usuarios_page() -> None:
         try:
             usuarios = listar_usuarios(session, actor)
         except PermisoDenegadoError:
+            cabeceira_paxina()
             ui.label("Non tes acceso a esta páxina").classes("text-negative")
             return
         rows = [
@@ -42,21 +45,63 @@ def admin_usuarios_page() -> None:
 
     cabeceira_paxina(mostrar_admin=True)
 
-    ui.label("Xestión de usuarios").classes("text-xl font-bold")
+    with ui.dialog() as dialog_crear, ui.card():
+        ui.label("Crear usuario").classes("text-md font-bold")
+        nome_input = ui.input("Nome")
+        email_input = ui.input("Email")
+        contrasinal_input = ui.input("Contrasinal", password=True)
+        rol_select = ui.select(["admin", "usuario"], value="usuario")
+
+        def crear() -> None:
+            if not (nome_input.value and email_input.value and contrasinal_input.value):
+                ui.notify("Todos os campos son obrigatorios", type="negative")
+                return
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                if actor_actual is None:
+                    pechar_sesion()
+                    return
+                creado = executar_accion(
+                    session,
+                    lambda: crear_usuario(
+                        session,
+                        actor_actual,
+                        nome_input.value,
+                        email_input.value,
+                        contrasinal_input.value,
+                        rol=RolGlobal(rol_select.value),
+                    ),
+                )
+            if not creado:
+                return
+            ui.navigate.reload()
+
+        with ui.row():
+            ui.button("Crear", icon="check", on_click=crear)
+            ui.button("Cancelar", on_click=dialog_crear.close).props("flat")
+
+    with ui.row().classes("w-full items-center justify-between"):
+        ui.label("Xestión de usuarios").classes("text-xl font-bold")
+        ui.button("Crear usuario", icon="person_add", on_click=dialog_crear.open)
+
     ui.label("Selecciona un usuario na táboa para editalo.").classes("text-caption")
-    taboa = ui.table(
-        columns=[
-            {"name": "nome", "label": "Nome", "field": "nome"},
-            {"name": "email", "label": "Email", "field": "email"},
-            {"name": "rol", "label": "Rol", "field": "rol"},
-            {"name": "activo", "label": "Activo", "field": "activo"},
-        ],
-        rows=rows,
-        row_key="id",
-        selection="single",
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "nome", "label": "Nome", "field": "nome"},
+                {"name": "email", "label": "Email", "field": "email"},
+                {"name": "rol", "label": "Rol", "field": "rol"},
+                {"name": "activo", "label": "Activo", "field": "activo"},
+            ],
+            rows=rows,
+            row_key="id",
+            selection="single",
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
     )
 
-    with ui.card().classes("q-mt-md") as tarxeta_edicion:
+    with ui.dialog() as dialog_editar, ui.card():
         titulo_edicion = ui.label("").classes("text-md font-bold")
         nome_edit = ui.input("Nome")
         rol_edit = ui.select(["admin", "usuario"], value="usuario")
@@ -114,52 +159,22 @@ def admin_usuarios_page() -> None:
             ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar cambios", on_click=gardar)
+            ui.button("Gardar cambios", icon="check", on_click=gardar)
             boton_activo = ui.button("", on_click=alternar_activo).props("outline")
+            ui.button("Cerrar", on_click=dialog_editar.close).props("flat")
 
-    def mostrar_edicion() -> None:
+    def abrir_edicion() -> None:
         if not taboa.selected:
-            tarxeta_edicion.set_visibility(False)
             return
         fila = taboa.selected[0]
         titulo_edicion.text = f"Editar usuario: {fila['email']}"
         nome_edit.value = fila["nome"]
         rol_edit.value = fila["rol"]
         boton_activo.text = "Desactivar" if fila["activo"] == "si" else "Activar"
-        tarxeta_edicion.set_visibility(True)
+        boton_activo.props(f"icon={'block' if fila['activo'] == 'si' else 'check_circle'}")
+        dialog_editar.open()
 
-    taboa.on_select(mostrar_edicion)
-    tarxeta_edicion.set_visibility(False)
-
-    with ui.card().classes("q-mt-md"):
-        ui.label("Crear usuario").classes("text-md font-bold")
-        nome_input = ui.input("Nome")
-        email_input = ui.input("Email")
-        contrasinal_input = ui.input("Contrasinal", password=True)
-        rol_select = ui.select(["admin", "usuario"], value="usuario")
-
-        def crear() -> None:
-            if not (nome_input.value and email_input.value and contrasinal_input.value):
-                ui.notify("Todos os campos son obrigatorios", type="negative")
-                return
-            with get_session() as session:
-                actor_actual = usuario_actual(session)
-                if actor_actual is None:
-                    pechar_sesion()
-                    return
-                creado = executar_accion(
-                    session,
-                    lambda: crear_usuario(
-                        session,
-                        actor_actual,
-                        nome_input.value,
-                        email_input.value,
-                        contrasinal_input.value,
-                        rol=RolGlobal(rol_select.value),
-                    ),
-                )
-            if not creado:
-                return
-            ui.navigate.reload()
-
-        ui.button("Crear usuario", on_click=crear)
+    with ui.row().classes("q-mt-sm") as fila_accions:
+        ui.button("Editar", icon="edit", on_click=abrir_edicion)
+    fila_accions.set_visibility(False)
+    taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
