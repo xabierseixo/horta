@@ -1,11 +1,10 @@
-from pathlib import Path
 from typing import Iterator
 
 import pytest
 from loguru import logger
 
-from horta.log import configurar_rexistro
 from horta import log as log_module
+from horta.log import configurar_rexistro
 
 
 @pytest.fixture()
