@@ -235,7 +235,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         ui.label("Editar parcela").classes("text-md font-bold")
         nome_edit = ui.input("Nome")
         superficie_edit = ui.number("Superficie (m²)")
-        estado_edit = ui.input("Estado")
+        estado_edit = ui.select(["activa", "inactiva"], label="Estado", value="activa")
 
         def gardar() -> None:
             if not taboa.selected:
@@ -401,7 +401,7 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
         especie_edit = ui.input("Especie")
         raza_edit = ui.input("Raza")
         cantidade_edit = ui.number("Cantidade")
-        estado_edit = ui.input("Estado")
+        estado_edit = ui.select(["activo", "baixa"], label="Estado", value="activo")
 
         def gardar() -> None:
             if not taboa.selected:
