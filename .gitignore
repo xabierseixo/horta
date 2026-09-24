@@ -20,3 +20,6 @@ horta.db
 # NiceGUI runtime directory
 .nicegui/
 
+
+# Rexistros da app
+logs/

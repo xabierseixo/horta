@@ -9,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 
 import horta.models  # noqa: F401  (rexistra todos os modelos en Base.metadata)
 from horta.db import Base, activar_fk_sqlite
+from horta import log as log_module
 
 
 @pytest.fixture()
@@ -22,3 +23,11 @@ def session() -> Iterator[Session]:
     Base.metadata.create_all(engine)
     with Session(engine) as db_session:
         yield db_session
+
+
+@pytest.fixture(autouse=True)
+def reset_log_state() -> Iterator[None]:
+    """Reinicia o estado global de configuración de loguru entre tests."""
+    log_module._xa_configurado = False
+    yield
+    log_module._xa_configurado = False
