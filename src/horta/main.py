@@ -1,46 +1,36 @@
-from nicegui import ui
+from __future__ import annotations
 
-# Título
-ui.label('🌱 A miña horta').classes('text-3xl font-bold')
+import os
 
-ui.separator()
+from fastapi import Request
+from fastapi.responses import RedirectResponse
+from nicegui import app, ui
+from starlette.middleware.base import BaseHTTPMiddleware
 
-# Datos básicos
-with ui.card():
-    ui.label('Estado da horta').classes('text-xl font-bold')
+RUTAS_PUBLICAS = {"/login"}
 
-    ui.label('Parcelas: 3')
-    ui.label('Cultivos activos: 7')
-    ui.label('Tarefas pendentes: 4')
 
-# Cultivos
-with ui.card():
-    ui.label('Cultivos').classes('text-xl font-bold')
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        usuario_autenticado = app.storage.user.get("usuario_id")
+        if not usuario_autenticado and request.url.path not in RUTAS_PUBLICAS:
+            return RedirectResponse("/login")
+        return await call_next(request)
 
-    ui.table(
-        columns=[
-            {'name': 'cultivo', 'label': 'Cultivo', 'field': 'cultivo'},
-            {'name': 'parcela', 'label': 'Parcela', 'field': 'parcela'},
-            {'name': 'estado', 'label': 'Estado', 'field': 'estado'},
-        ],
-        rows=[
-            {'cultivo': 'Tomate', 'parcela': 'Parcela 1', 'estado': 'En crecemento'},
-            {'cultivo': 'Faba', 'parcela': 'Parcela 2', 'estado': 'En crecemento'},
-            {'cultivo': 'Repolos', 'parcela': 'Parcela 3', 'estado': 'Plantado'},
-        ],
+
+app.add_middleware(AuthMiddleware)
+
+import horta.ui.pages.login  # noqa: E402,F401
+
+
+def main() -> None:
+    ui.run(
+        port=8081,
+        title="Horta",
+        storage_secret=os.environ.get("HORTA_STORAGE_SECRET", "dev-secret-cambiar-en-produccion"),
+        reload=False,
     )
 
-# Nova tarefa
-with ui.card():
-    ui.label('Nova tarefa').classes('text-xl font-bold')
 
-    tarefa = ui.input('Que hai que facer?')
-
-    ui.button(
-        'Engadir tarefa',
-        on_click=lambda: ui.notify(
-            f'Tarefa engadida: {tarefa.value}'
-        ),
-    )
-
-ui.run(port=8081)
+if __name__ in {"__main__", "__mp_main__"}:
+    main()
