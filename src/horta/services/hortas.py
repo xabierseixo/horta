@@ -4,7 +4,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.models.animal import Animal
 from horta.models.horta import Horta, HortaMembro, RolHorta
+from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 
@@ -68,6 +70,24 @@ def actualizar_horta(
         setattr(horta, campo, valor)
     session.commit()
     return horta
+
+
+def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
+    """Elimina a horta e todo o que dependa dela (parcelas, animais, membros).
+
+    Non hai borrado en cascada a nivel de base de datos (sen relacións
+    SQLAlchemy nin FKs ON DELETE CASCADE), así que hai que borrar
+    explicitamente os rexistros dependentes antes da propia horta.
+    """
+    comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
+    for parcela in session.query(Parcela).filter_by(horta_id=horta.id).all():
+        session.delete(parcela)
+    for animal in session.query(Animal).filter_by(horta_id=horta.id).all():
+        session.delete(animal)
+    for membro in session.query(HortaMembro).filter_by(horta_id=horta.id).all():
+        session.delete(membro)
+    session.delete(horta)
+    session.commit()
 
 
 def engadir_membro(

@@ -1,16 +1,23 @@
+import datetime
+
 import pytest
 
-from horta.models.horta import RolHorta
+from horta.models.animal import Animal
+from horta.models.horta import Horta, HortaMembro, RolHorta
+from horta.models.parcela import Parcela
 from horta.models.usuario import RolGlobal, Usuario
+from horta.services.animais import crear_animal
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import (
     actualizar_horta,
     cambiar_rol_membro,
     crear_horta,
+    eliminar_horta,
     engadir_membro,
     listar_hortas_usuario,
     quitar_membro,
 )
+from horta.services.parcelas import crear_parcela
 
 
 def _crear_usuario(session, email: str) -> Usuario:
@@ -158,3 +165,38 @@ def test_actualizar_horta_rexeita_campos_non_editables(session):
 
     assert horta.id == id_orixinal
     assert horta.nome == "A miña horta"
+
+
+def test_admin_pode_eliminar_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    eliminar_horta(session, ana, horta)
+
+    assert listar_hortas_usuario(session, ana) == []
+    assert session.get(Horta, horta.id) is None
+
+
+def test_editor_e_lector_non_poden_eliminar_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    bea = _crear_usuario(session, "bea@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    engadir_membro(session, ana, horta.id, bea, RolHorta.EDITOR)
+
+    with pytest.raises(PermisoDenegadoError):
+        eliminar_horta(session, bea, horta)
+
+    assert session.get(Horta, horta.id) is not None
+
+
+def test_eliminar_horta_elimina_tamen_parcelas_animais_e_membros(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    animal = crear_animal(session, ana, horta.id, "galiñas", datetime.date.today())
+
+    eliminar_horta(session, ana, horta)
+
+    assert session.get(Parcela, parcela.id) is None
+    assert session.get(Animal, animal.id) is None
+    assert session.get(HortaMembro, (horta.id, ana.id)) is None

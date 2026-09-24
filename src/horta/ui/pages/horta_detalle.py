@@ -18,6 +18,7 @@ from horta.services.hortas import (
     actualizar_horta,
     cambiar_rol_membro,
     comprobar_rol_horta,
+    eliminar_horta,
     engadir_membro,
     quitar_membro,
 )
@@ -99,9 +100,36 @@ def horta_detalle_page(horta_id: int) -> None:
                     return
                 ui.navigate.reload()
 
-            with ui.row():
-                ui.button("Gardar", icon="check", on_click=gardar_horta)
-                ui.button("Cancelar", on_click=dialog_config_horta.close).props("flat")
+            def eliminar_horta_actual() -> None:
+                with get_session() as session:
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
+                    horta_obxectivo = session.get(Horta, horta_id)
+                    if horta_obxectivo is None:
+                        ui.notify("Esta horta xa non existe", type="negative")
+                        return
+                    eliminada = executar_accion(
+                        session, lambda: eliminar_horta(session, actor_actual, horta_obxectivo)
+                    )
+                if not eliminada:
+                    return
+                ui.navigate.to("/")
+
+            with ui.row().classes("w-full items-center justify-between"):
+                with ui.row():
+                    ui.button("Gardar", icon="check", on_click=gardar_horta)
+                    ui.button("Cancelar", on_click=dialog_config_horta.close).props("flat")
+                ui.button(
+                    "Eliminar horta",
+                    icon="delete",
+                    on_click=lambda: confirmar_eliminacion(
+                        f"Eliminar «{horta_nome}» e TODAS as súas parcelas, animais e "
+                        "membros? Esta acción non se pode desfacer.",
+                        eliminar_horta_actual,
+                    ),
+                ).props("flat color=negative")
 
     with ui.row().classes("w-full items-center justify-between"):
         with ui.column().classes("gap-0"):
