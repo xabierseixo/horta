@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+from datetime import date
+from typing import Any
+
+from sqlalchemy.orm import Session
+
+from horta.models.animal import Animal
+from horta.models.horta import RolHorta
+from horta.models.usuario import Usuario
+from horta.services.hortas import comprobar_rol_horta
+
+_ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
+_ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
+
+
+def crear_animal(
+    session: Session,
+    actor: Usuario,
+    horta_id: int,
+    especie: str,
+    data_alta: date,
+    **campos: Any,
+) -> Animal:
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    estado = campos.pop("estado", "activo")
+    animal = Animal(
+        horta_id=horta_id, especie=especie, data_alta=data_alta, estado=estado, **campos
+    )
+    session.add(animal)
+    session.commit()
+    return animal
+
+
+def actualizar_animal(
+    session: Session,
+    actor: Usuario,
+    animal: Animal,
+    **cambios: Any,
+) -> Animal:
+    comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
+    for campo, valor in cambios.items():
+        setattr(animal, campo, valor)
+    session.commit()
+    return animal
+
+
+def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
+    comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
+    session.delete(animal)
+    session.commit()
+
+
+def listar_animais(session: Session, actor: Usuario, horta_id: int) -> list[Animal]:
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
+    return list(
+        session.query(Animal).filter_by(horta_id=horta_id).order_by(Animal.especie).all()
+    )
