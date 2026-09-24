@@ -7,9 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from horta.db import Base
-
 import horta.models  # noqa: F401  (rexistra todos os modelos en Base.metadata)
+from horta.db import Base
 
 
 @pytest.fixture()
