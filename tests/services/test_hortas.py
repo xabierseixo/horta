@@ -2,7 +2,7 @@ import pytest
 
 from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
-from horta.services.errors import PermisoDenegadoError
+from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import (
     cambiar_rol_membro,
     crear_horta,
@@ -76,3 +76,45 @@ def test_usuario_sen_relacion_non_ve_a_horta(session):
     crear_horta(session, ana, "A miña horta")
 
     assert listar_hortas_usuario(session, carlos) == []
+
+
+def test_non_se_pode_quitar_ao_unico_admin_da_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(OperacionNonPermitidaError):
+        quitar_membro(session, ana, horta.id, ana.id)
+
+    assert listar_hortas_usuario(session, ana) == [(horta, RolHorta.ADMIN)]
+
+
+def test_non_se_pode_degradar_ao_unico_admin_da_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(OperacionNonPermitidaError):
+        cambiar_rol_membro(session, ana, horta.id, ana.id, RolHorta.EDITOR)
+
+    assert listar_hortas_usuario(session, ana) == [(horta, RolHorta.ADMIN)]
+
+
+def test_admin_pode_deixar_de_selo_se_queda_outro_admin(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    bea = _crear_usuario(session, "bea@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    engadir_membro(session, ana, horta.id, bea, RolHorta.ADMIN)
+
+    cambiar_rol_membro(session, ana, horta.id, ana.id, RolHorta.LECTOR)
+    assert listar_hortas_usuario(session, ana) == [(horta, RolHorta.LECTOR)]
+
+    quitar_membro(session, bea, horta.id, ana.id)
+    assert listar_hortas_usuario(session, ana) == []
+
+
+def test_cambiar_rol_a_non_membro_falla(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    bea = _crear_usuario(session, "bea@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(OperacionNonPermitidaError):
+        cambiar_rol_membro(session, ana, horta.id, bea.id, RolHorta.EDITOR)

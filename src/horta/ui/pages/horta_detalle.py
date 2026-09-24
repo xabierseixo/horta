@@ -9,7 +9,12 @@ from horta.models.horta import HortaMembro, RolHorta
 from horta.models.usuario import Usuario
 from horta.services.animais import crear_animal, listar_animais
 from horta.services.errors import PermisoDenegadoError
-from horta.services.hortas import comprobar_rol_horta, engadir_membro
+from horta.services.hortas import (
+    cambiar_rol_membro,
+    comprobar_rol_horta,
+    engadir_membro,
+    quitar_membro,
+)
 from horta.services.parcelas import crear_parcela, listar_parcelas
 from horta.ui.accions import executar_accion
 from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
@@ -159,7 +164,10 @@ def horta_detalle_page(horta_id: int) -> None:
                         }
                     )
 
-            ui.table(
+            ui.label("Selecciona un membro para cambiar o seu rol ou quitalo.").classes(
+                "text-caption"
+            )
+            taboa_membros = ui.table(
                 columns=[
                     {"name": "nome", "label": "Nome", "field": "nome"},
                     {"name": "email", "label": "Email", "field": "email"},
@@ -167,8 +175,80 @@ def horta_detalle_page(horta_id: int) -> None:
                 ],
                 rows=filas_membros,
                 row_key="usuario_id",
+                selection="single",
             )
 
+            with ui.row().classes("items-center") as fila_edicion_membro:
+                titulo_membro = ui.label("")
+                rol_membro_edit = ui.select(["admin", "editor", "lector"], value="lector")
+
+                def _membro_seleccionado_id() -> int | None:
+                    if not taboa_membros.selected:
+                        return None
+                    return taboa_membros.selected[0]["usuario_id"]
+
+                def cambiar_rol() -> None:
+                    usuario_obxectivo_id = _membro_seleccionado_id()
+                    if usuario_obxectivo_id is None:
+                        return
+                    with get_session() as session:
+                        actor_actual = usuario_actual(session)
+                        if actor_actual is None:
+                            pechar_sesion()
+                            return
+                        cambiado = executar_accion(
+                            session,
+                            lambda: cambiar_rol_membro(
+                                session,
+                                actor_actual,
+                                horta_id,
+                                usuario_obxectivo_id,
+                                RolHorta(rol_membro_edit.value),
+                            ),
+                        )
+                    if not cambiado:
+                        return
+                    ui.navigate.reload()
+
+                def quitar() -> None:
+                    usuario_obxectivo_id = _membro_seleccionado_id()
+                    if usuario_obxectivo_id is None:
+                        return
+                    with get_session() as session:
+                        actor_actual = usuario_actual(session)
+                        if actor_actual is None:
+                            pechar_sesion()
+                            return
+                        quitouse_a_si_mesmo = usuario_obxectivo_id == actor_actual.id
+                        quitado = executar_accion(
+                            session,
+                            lambda: quitar_membro(
+                                session, actor_actual, horta_id, usuario_obxectivo_id
+                            ),
+                        )
+                    if not quitado:
+                        return
+                    if quitouse_a_si_mesmo:
+                        ui.navigate.to("/")
+                    else:
+                        ui.navigate.reload()
+
+                ui.button("Cambiar rol", on_click=cambiar_rol)
+                ui.button("Quitar da horta", on_click=quitar).props("outline color=negative")
+
+            def mostrar_edicion_membro() -> None:
+                if not taboa_membros.selected:
+                    fila_edicion_membro.set_visibility(False)
+                    return
+                fila = taboa_membros.selected[0]
+                titulo_membro.text = f"{fila['nome']} ({fila['email']})"
+                rol_membro_edit.value = fila["rol"]
+                fila_edicion_membro.set_visibility(True)
+
+            taboa_membros.on_select(mostrar_edicion_membro)
+            fila_edicion_membro.set_visibility(False)
+
+            ui.separator()
             email_novo_membro = ui.input("Email do usuario a engadir")
             rol_novo_membro = ui.select(["admin", "editor", "lector"], value="lector")
 

@@ -4,11 +4,20 @@ from sqlalchemy.orm import Session
 
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.usuario import Usuario
-from horta.services.errors import PermisoDenegadoError
+from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 
 
 def _obter_membro(session: Session, horta_id: int, usuario_id: int) -> HortaMembro | None:
     return session.get(HortaMembro, (horta_id, usuario_id))
+
+
+def _e_ultimo_admin_da_horta(session: Session, membro: HortaMembro) -> bool:
+    if membro.rol != RolHorta.ADMIN:
+        return False
+    admins = (
+        session.query(HortaMembro).filter_by(horta_id=membro.horta_id, rol=RolHorta.ADMIN).count()
+    )
+    return admins <= 1
 
 
 def comprobar_rol_horta(
@@ -63,7 +72,9 @@ def cambiar_rol_membro(
     comprobar_rol_horta(session, horta_id, actor, {RolHorta.ADMIN})
     membro = _obter_membro(session, horta_id, usuario_obxectivo_id)
     if membro is None:
-        raise ValueError("Ese usuario non é membro desta horta")
+        raise OperacionNonPermitidaError("Ese usuario non é membro desta horta")
+    if novo_rol != RolHorta.ADMIN and _e_ultimo_admin_da_horta(session, membro):
+        raise OperacionNonPermitidaError("A horta ten que ter polo menos un administrador")
     membro.rol = novo_rol
     session.commit()
     return membro
@@ -78,6 +89,8 @@ def quitar_membro(
     comprobar_rol_horta(session, horta_id, actor, {RolHorta.ADMIN})
     membro = _obter_membro(session, horta_id, usuario_obxectivo_id)
     if membro is not None:
+        if _e_ultimo_admin_da_horta(session, membro):
+            raise OperacionNonPermitidaError("A horta ten que ter polo menos un administrador")
         session.delete(membro)
         session.commit()
 
