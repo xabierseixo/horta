@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from loguru import logger
 from nicegui import ui
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -29,5 +30,10 @@ def executar_accion(session: Session, accion: Callable[[], object]) -> bool:
     except IntegrityError:
         session.rollback()
         ui.notify("Xa existe un rexistro con eses datos", type="negative")
+        return False
+    except Exception as erro:  # noqa: BLE001 — límite deliberado da capa de UI
+        session.rollback()
+        logger.exception("Erro non previsto en executar_accion: {}", erro)
+        ui.notify("Ocorreu un erro inesperado. Téntao de novo.", type="negative")
         return False
     return True

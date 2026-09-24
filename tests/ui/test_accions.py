@@ -56,3 +56,13 @@ def test_executar_accion_notifica_duplicado_e_fai_rollback(session, notificacion
     assert notificacions == [("Xa existe un rexistro con eses datos", "negative")]
     # A sesión segue usable despois do rollback.
     assert session.query(Usuario).count() == 1
+
+
+def test_executar_accion_captura_erro_inesperado_e_fai_rollback(session, notificacions):
+    def accion() -> None:
+        raise RuntimeError("fallo inesperado non prantexado")
+
+    resultado = accions.executar_accion(session, accion)
+
+    assert resultado is False
+    assert notificacions == [("Ocorreu un erro inesperado. Téntao de novo.", "negative")]
