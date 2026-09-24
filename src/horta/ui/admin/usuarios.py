@@ -13,7 +13,8 @@ from horta.services.usuarios import (
     listar_usuarios,
 )
 from horta.ui.accions import executar_accion
-from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
+from horta.ui.nav import cabeceira_paxina
+from horta.ui.sesion import pechar_sesion, usuario_actual
 
 
 @ui.page("/admin/usuarios")
@@ -39,9 +40,7 @@ def admin_usuarios_page() -> None:
             for u in usuarios
         ]
 
-    with ui.row().classes("items-center"):
-        ui.link("← As miñas hortas", "/")
-        boton_pechar_sesion()
+    cabeceira_paxina(mostrar_admin=True)
 
     ui.label("Xestión de usuarios").classes("text-xl font-bold")
     ui.label("Selecciona un usuario na táboa para editalo.").classes("text-caption")

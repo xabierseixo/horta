@@ -6,7 +6,8 @@ from horta.db import get_session
 from horta.models.usuario import RolGlobal
 from horta.services.hortas import crear_horta, listar_hortas_usuario
 from horta.ui.accions import executar_accion
-from horta.ui.sesion import boton_pechar_sesion, pechar_sesion, usuario_actual
+from horta.ui.nav import cabeceira_paxina
+from horta.ui.sesion import pechar_sesion, usuario_actual
 
 
 @ui.page("/")
@@ -20,13 +21,9 @@ def dashboard_page() -> None:
         nome = actor.nome
         e_admin_global = actor.rol == RolGlobal.ADMIN
 
-    with ui.row().classes("items-center"):
-        ui.label(f"Ola, {nome}").classes("text-xl font-bold")
-        boton_pechar_sesion()
+    cabeceira_paxina(mostrar_admin=e_admin_global)
 
-    if e_admin_global:
-        ui.link("Administración de usuarios", "/admin/usuarios")
-
+    ui.label(f"Ola, {nome}").classes("text-xl font-bold")
     ui.label("As túas hortas").classes("text-lg font-bold").classes("q-mt-md")
 
     if not hortas:
