@@ -556,7 +556,7 @@ def _seccion_membros(horta_id: int) -> None:
     with ui.dialog() as dialog_engadir, ui.card():
         ui.label("Engadir membro").classes("text-md font-bold")
         email_input = ui.input("Email do usuario")
-        rol_input = ui.select(["admin", "editor", "lector"], value="lector")
+        rol_input = ui.select(list(_ROLES_HORTA), value="lector")
 
         def engadir() -> None:
             with get_session() as session:
@@ -592,6 +592,12 @@ def _seccion_membros(horta_id: int) -> None:
         ui.label("Membros").classes("text-lg font-bold")
         ui.button("Engadir membro", icon="person_add", on_click=dialog_engadir.open)
 
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+        rol_select = ui.select(
+            ["Todos", *_ROLES_HORTA], label="Rol", value="Todos"
+        ).props("dense")
+
     taboa = (
         ui.table(
             columns=[
@@ -602,10 +608,24 @@ def _seccion_membros(horta_id: int) -> None:
             rows=filas,
             row_key="usuario_id",
             selection="single",
+            pagination=10,
         )
         .classes("w-full")
         .props(_PROPS_TABOA)
     )
+
+    def refrescar_taboa() -> None:
+        rol_filtro = None if rol_select.value == "Todos" else rol_select.value
+        taboa.rows = filtrar_filas(
+            filas,
+            busca_input.value or "",
+            ["nome", "email", "rol"],
+            {"rol": rol_filtro},
+        )
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+    rol_select.on_value_change(refrescar_taboa)
 
     with ui.row().classes("q-mt-sm") as fila_accions:
         ui.button("Cambiar rol", icon="edit", on_click=lambda: abrir_cambiar_rol())
@@ -622,7 +642,7 @@ def _seccion_membros(horta_id: int) -> None:
 
     with ui.dialog() as dialog_cambiar_rol, ui.card():
         ui.label("Cambiar rol do membro").classes("text-md font-bold")
-        rol_edit = ui.select(["admin", "editor", "lector"], value="lector")
+        rol_edit = ui.select(list(_ROLES_HORTA), value="lector")
 
         def cambiar_rol() -> None:
             if not taboa.selected:
