@@ -124,6 +124,9 @@ def admin_usuarios_page() -> None:
             ["nome", "email", "rol", "activo"],
             {"rol": rol_filtro, "activo": activo_filtro},
         )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            fila_accions.set_visibility(False)
         taboa.update()
 
     busca_input.on_value_change(refrescar_taboa)

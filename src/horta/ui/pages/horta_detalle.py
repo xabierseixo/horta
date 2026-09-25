@@ -240,6 +240,10 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
             ["nome", "superficie", "estado"],
             {"estado": estado_filtro},
         )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            if pode_editar:
+                fila_accions.set_visibility(False)
         taboa.update()
 
     busca_input.on_value_change(refrescar_taboa)
@@ -426,6 +430,10 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
             ["especie", "raza", "cantidade", "estado"],
             {"estado": estado_filtro},
         )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            if pode_editar:
+                fila_accions.set_visibility(False)
         taboa.update()
 
     busca_input.on_value_change(refrescar_taboa)
@@ -622,6 +630,9 @@ def _seccion_membros(horta_id: int) -> None:
             ["nome", "email", "rol"],
             {"rol": rol_filtro},
         )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            fila_accions.set_visibility(False)
         taboa.update()
 
     busca_input.on_value_change(refrescar_taboa)

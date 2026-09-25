@@ -38,3 +38,16 @@ def test_filtrar_filas_sentinela_todos_non_filtra():
 def test_filtrar_filas_non_normaliza_acentos():
     # Límite coñecido e aceptado: buscar sen til non atopa "Río".
     assert filtrar_filas(_FILAS, "rio", ["nome"]) == []
+
+
+def test_filtrar_filas_lista_baleira_devolve_baleira():
+    assert filtrar_filas([], "alto", ["nome"]) == []
+
+
+def test_filtrar_filas_sen_campos_busca_non_atopa_nada():
+    assert filtrar_filas(_FILAS, "alto", []) == []
+
+
+def test_filtrar_filas_fila_sen_campo_buscado_non_falla():
+    filas = [{"nome": "Parcela do Alto", "estado": "activa"}, {"estado": "activa"}]
+    assert filtrar_filas(filas, "alto", ["nome"]) == [filas[0]]
