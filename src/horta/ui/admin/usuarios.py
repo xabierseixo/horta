@@ -13,10 +13,13 @@ from horta.services.usuarios import (
     listar_usuarios,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.filtros import filtrar_filas
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 _PROPS_TABOA = 'dense no-data-label="Non hai usuarios"'
+
+_ROLES_USUARIO = ("admin", "usuario")
 
 
 @ui.page("/admin/usuarios")
@@ -50,7 +53,7 @@ def admin_usuarios_page() -> None:
         nome_input = ui.input("Nome")
         email_input = ui.input("Email")
         contrasinal_input = ui.input("Contrasinal", password=True)
-        rol_select = ui.select(["admin", "usuario"], value="usuario")
+        rol_select = ui.select(list(_ROLES_USUARIO), value="usuario")
 
         def crear() -> None:
             if not (nome_input.value and email_input.value and contrasinal_input.value):
@@ -85,6 +88,16 @@ def admin_usuarios_page() -> None:
         ui.button("Crear usuario", icon="person_add", on_click=dialog_crear.open)
 
     ui.label("Selecciona un usuario na táboa para editalo.").classes("text-caption")
+
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+        rol_filtro_select = ui.select(
+            ["Todos", *_ROLES_USUARIO], label="Rol", value="Todos"
+        ).props("dense")
+        activo_select = ui.select(
+            ["Todos", "si", "non"], label="Activo", value="Todos"
+        ).props("dense")
+
     taboa = (
         ui.table(
             columns=[
@@ -96,15 +109,31 @@ def admin_usuarios_page() -> None:
             rows=rows,
             row_key="id",
             selection="single",
+            pagination=10,
         )
         .classes("w-full")
         .props(_PROPS_TABOA)
     )
 
+    def refrescar_taboa() -> None:
+        rol_filtro = None if rol_filtro_select.value == "Todos" else rol_filtro_select.value
+        activo_filtro = None if activo_select.value == "Todos" else activo_select.value
+        taboa.rows = filtrar_filas(
+            rows,
+            busca_input.value or "",
+            ["nome", "email", "rol", "activo"],
+            {"rol": rol_filtro, "activo": activo_filtro},
+        )
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+    rol_filtro_select.on_value_change(refrescar_taboa)
+    activo_select.on_value_change(refrescar_taboa)
+
     with ui.dialog() as dialog_editar, ui.card():
         titulo_edicion = ui.label("").classes("text-md font-bold")
         nome_edit = ui.input("Nome")
-        rol_edit = ui.select(["admin", "usuario"], value="usuario")
+        rol_edit = ui.select(list(_ROLES_USUARIO), value="usuario")
 
         def _usuario_seleccionado_id() -> int | None:
             return taboa.selected[0]["id"] if taboa.selected else None
