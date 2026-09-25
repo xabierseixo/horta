@@ -22,6 +22,12 @@ from horta.services.cultivos import (
     listar_cultivos,
 )
 from horta.services.errors import PermisoDenegadoError
+from horta.services.fertilizacions import (
+    actualizar_fertilizacion,
+    crear_fertilizacion,
+    eliminar_fertilizacion,
+    listar_fertilizacions,
+)
 from horta.services.hortas import (
     actualizar_horta,
     cambiar_rol_membro,
@@ -83,6 +89,7 @@ def horta_detalle_page(horta_id: int) -> None:
         animais = listar_animais(session, actor, horta_id)
         cultivos = listar_cultivos(session, actor, horta_id)
         tratamentos = listar_tratamentos(session, actor, horta_id)
+        fertilizacions = listar_fertilizacions(session, actor, horta_id)
         pode_editar = membro.rol in _ROLES_ESCRITURA
         e_horta_admin = membro.rol == RolHorta.ADMIN
         e_admin_global = actor.rol == RolGlobal.ADMIN
@@ -172,6 +179,7 @@ def horta_detalle_page(horta_id: int) -> None:
         pestana_parcelas = ui.tab("Parcelas")
         pestana_cultivos = ui.tab("Cultivos")
         pestana_tratamentos = ui.tab("Tratamentos")
+        pestana_fertilizacion = ui.tab("Fertilización")
         pestana_animais = ui.tab("Animais")
         if e_horta_admin:
             pestana_membros = ui.tab("Membros")
@@ -183,6 +191,8 @@ def horta_detalle_page(horta_id: int) -> None:
             _seccion_cultivos(horta_id, cultivos, parcelas, pode_editar)
         with ui.tab_panel(pestana_tratamentos):
             _seccion_tratamentos(horta_id, tratamentos, cultivos, parcelas, pode_editar)
+        with ui.tab_panel(pestana_fertilizacion):
+            _seccion_fertilizacion(horta_id, fertilizacions, cultivos, parcelas, pode_editar)
         with ui.tab_panel(pestana_animais):
             _seccion_animais(horta_id, animais, pode_editar)
         if e_horta_admin:
@@ -857,6 +867,265 @@ def _seccion_tratamentos(
                 return
             eliminado = executar_accion(
                 session, lambda: eliminar_tratamento(session, actor_actual, obxectivo)
+            )
+        if not eliminado:
+            return
+        ui.navigate.reload()
+
+
+def _seccion_fertilizacion(
+    horta_id: int, fertilizacions: list, cultivos: list, parcelas: list, pode_editar: bool
+) -> None:
+    parcelas_por_id = {p.id: p.nome for p in parcelas}
+    etiquetas_cultivo = {
+        c.id: f"{c.especie} — {parcelas_por_id.get(c.parcela_id, '?')}" for c in cultivos
+    }
+
+    def _parsear_data(texto: str) -> Any:
+        if not texto:
+            raise ValueError("A data é obrigatoria")
+        try:
+            return date.fromisoformat(texto)
+        except ValueError as erro:
+            raise ValueError(f"Data non válida: {texto!r} (usa o formato AAAA-MM-DD)") from erro
+
+    if pode_editar:
+        with ui.dialog() as dialog_nova_fertilizacion, ui.card():
+            ui.label("Nova fertilización").classes("text-md font-bold")
+            cultivo_select = ui.select(etiquetas_cultivo, label="Cultivo")
+            data_input = ui.input("Data (AAAA-MM-DD)")
+            tipo_select = ui.select(
+                ["emenda", "abonado_fondo", "cobertoira"], label="Tipo"
+            )
+            produto_input = ui.input("Produto")
+
+            def crear() -> None:
+                if not (
+                    cultivo_select.value
+                    and data_input.value
+                    and tipo_select.value
+                    and produto_input.value
+                ):
+                    ui.notify("Cultivo, data, tipo e produto son obrigatorios", type="negative")
+                    return
+                try:
+                    data_valor = _parsear_data(data_input.value)
+                except ValueError as erro:
+                    ui.notify(str(erro), type="negative")
+                    return
+                with get_session() as session:
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
+                    creada = executar_accion(
+                        session,
+                        lambda: crear_fertilizacion(
+                            session,
+                            actor_actual,
+                            cultivo_select.value,
+                            data_valor,
+                            tipo_select.value,
+                            produto_input.value,
+                        ),
+                    )
+                if not creada:
+                    return
+                ui.navigate.reload()
+
+            with ui.row():
+                ui.button("Crear", icon="check", on_click=crear)
+                ui.button("Cancelar", on_click=dialog_nova_fertilizacion.close).props("flat")
+
+    with ui.row().classes("w-full items-center justify-between"):
+        ui.label("Fertilización").classes("text-lg font-bold")
+        if pode_editar:
+            ui.button("Nova fertilización", icon="add", on_click=dialog_nova_fertilizacion.open)
+
+    todas_as_filas = [
+        {
+            "id": f.id,
+            "cultivo": etiquetas_cultivo.get(f.cultivo_id, "?"),
+            "data": f.data.isoformat(),
+            "tipo": f.tipo,
+            "produto": f.produto,
+        }
+        for f in fertilizacions
+    ]
+
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+        tipo_filtro_select = ui.select(
+            ["Todos", "emenda", "abonado_fondo", "cobertoira"], label="Tipo", value="Todos"
+        ).props("dense")
+
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "cultivo", "label": "Cultivo", "field": "cultivo"},
+                {"name": "data", "label": "Data", "field": "data"},
+                {"name": "tipo", "label": "Tipo", "field": "tipo"},
+                {"name": "produto", "label": "Produto", "field": "produto"},
+            ],
+            rows=todas_as_filas,
+            row_key="id",
+            selection="single" if pode_editar else None,
+            pagination=10,
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
+    )
+
+    def refrescar_taboa() -> None:
+        tipo_filtro = None if tipo_filtro_select.value == "Todos" else tipo_filtro_select.value
+        taboa.rows = filtrar_filas(
+            todas_as_filas,
+            busca_input.value or "",
+            ["cultivo", "data", "tipo", "produto"],
+            {"tipo": tipo_filtro},
+        )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            if pode_editar:
+                fila_accions.set_visibility(False)
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+    tipo_filtro_select.on_value_change(refrescar_taboa)
+
+    if not pode_editar:
+        return
+
+    with ui.row().classes("q-mt-sm") as fila_accions:
+        ui.button("Editar", icon="edit", on_click=lambda: abrir_editar())
+        ui.button(
+            "Eliminar",
+            icon="delete",
+            on_click=lambda: confirmar_eliminacion(
+                f"Eliminar a fertilización de «{taboa.selected[0]['produto']}»? "
+                "Esta acción non se pode desfacer.",
+                eliminar_seleccionada,
+            ),
+        ).props("outline color=negative")
+    fila_accions.set_visibility(False)
+    taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
+
+    with ui.dialog() as dialog_editar, ui.card():
+        ui.label("Editar fertilización").classes("text-md font-bold")
+        data_edit = ui.input("Data (AAAA-MM-DD)")
+        tipo_edit = ui.select(["emenda", "abonado_fondo", "cobertoira"], label="Tipo")
+        produto_edit = ui.input("Produto")
+        dose_edit = ui.input("Dose")
+        superficie_edit = ui.number("Superficie (m²)")
+        n_edit = ui.number("N (%)")
+        p_edit = ui.number("P (%)")
+        k_edit = ui.number("K (%)")
+        carbono_organico_edit = ui.number("Carbono orgánico (%)")
+        micronutrientes_edit = ui.input("Micronutrientes")
+        asesoramento_edit = ui.input("Asesoramento recibido")
+        notas_edit = ui.textarea("Notas")
+
+        def gardar() -> None:
+            if not taboa.selected:
+                return
+            fertilizacion_id = taboa.selected[0]["id"]
+            if not (tipo_edit.value and produto_edit.value):
+                ui.notify("Tipo e produto son obrigatorios", type="negative")
+                return
+            try:
+                data_valor = _parsear_data(data_edit.value)
+            except ValueError as erro:
+                ui.notify(str(erro), type="negative")
+                return
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                if actor_actual is None:
+                    pechar_sesion()
+                    return
+                obxectivo = next(
+                    (
+                        f
+                        for f in listar_fertilizacions(session, actor_actual, horta_id)
+                        if f.id == fertilizacion_id
+                    ),
+                    None,
+                )
+                if obxectivo is None:
+                    ui.notify("Esa fertilización xa non existe", type="negative")
+                    return
+                gardado = executar_accion(
+                    session,
+                    lambda: actualizar_fertilizacion(
+                        session,
+                        actor_actual,
+                        obxectivo,
+                        data=data_valor,
+                        tipo=tipo_edit.value,
+                        produto=produto_edit.value,
+                        dose=dose_edit.value or None,
+                        superficie=superficie_edit.value,
+                        n=n_edit.value,
+                        p=p_edit.value,
+                        k=k_edit.value,
+                        carbono_organico=carbono_organico_edit.value,
+                        micronutrientes=micronutrientes_edit.value or None,
+                        asesoramento_recibido=asesoramento_edit.value or None,
+                        notas=notas_edit.value or None,
+                    ),
+                )
+            if not gardado:
+                return
+            ui.navigate.reload()
+
+        with ui.row():
+            ui.button("Gardar", icon="check", on_click=gardar)
+            ui.button("Cancelar", on_click=dialog_editar.close).props("flat")
+
+    def abrir_editar() -> None:
+        if not taboa.selected:
+            return
+        fertilizacion_id = taboa.selected[0]["id"]
+        fertilizacion_completa = next(
+            (f for f in fertilizacions if f.id == fertilizacion_id), None
+        )
+        if fertilizacion_completa is None:
+            return
+        data_edit.value = fertilizacion_completa.data.isoformat()
+        tipo_edit.value = fertilizacion_completa.tipo
+        produto_edit.value = fertilizacion_completa.produto
+        dose_edit.value = fertilizacion_completa.dose or ""
+        superficie_edit.value = fertilizacion_completa.superficie
+        n_edit.value = fertilizacion_completa.n
+        p_edit.value = fertilizacion_completa.p
+        k_edit.value = fertilizacion_completa.k
+        carbono_organico_edit.value = fertilizacion_completa.carbono_organico
+        micronutrientes_edit.value = fertilizacion_completa.micronutrientes or ""
+        asesoramento_edit.value = fertilizacion_completa.asesoramento_recibido or ""
+        notas_edit.value = fertilizacion_completa.notas or ""
+        dialog_editar.open()
+
+    def eliminar_seleccionada() -> None:
+        if not taboa.selected:
+            return
+        fertilizacion_id = taboa.selected[0]["id"]
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            if actor_actual is None:
+                pechar_sesion()
+                return
+            obxectivo = next(
+                (
+                    f
+                    for f in listar_fertilizacions(session, actor_actual, horta_id)
+                    if f.id == fertilizacion_id
+                ),
+                None,
+            )
+            if obxectivo is None:
+                ui.notify("Esa fertilización xa non existe", type="negative")
+                return
+            eliminado = executar_accion(
+                session, lambda: eliminar_fertilizacion(session, actor_actual, obxectivo)
             )
         if not eliminado:
             return
