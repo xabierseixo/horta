@@ -384,7 +384,7 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
         if pode_editar:
             ui.button("Novo animal", icon="add", on_click=dialog_novo_animal.open)
 
-    rows = [
+    todas_as_filas = [
         {
             "id": a.id,
             "especie": a.especie,
@@ -394,6 +394,13 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
         }
         for a in animais
     ]
+
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+        estado_select = ui.select(
+            ["Todos", *_ESTADOS_ANIMAL], label="Estado", value="Todos"
+        ).props("dense")
+
     taboa = (
         ui.table(
             columns=[
@@ -402,13 +409,27 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
                 {"name": "cantidade", "label": "Cantidade", "field": "cantidade"},
                 {"name": "estado", "label": "Estado", "field": "estado"},
             ],
-            rows=rows,
+            rows=todas_as_filas,
             row_key="id",
             selection="single" if pode_editar else None,
+            pagination=10,
         )
         .classes("w-full")
         .props(_PROPS_TABOA)
     )
+
+    def refrescar_taboa() -> None:
+        estado_filtro = None if estado_select.value == "Todos" else estado_select.value
+        taboa.rows = filtrar_filas(
+            todas_as_filas,
+            busca_input.value or "",
+            ["especie", "raza", "cantidade", "estado"],
+            {"estado": estado_filtro},
+        )
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+    estado_select.on_value_change(refrescar_taboa)
 
     if not pode_editar:
         return
@@ -431,7 +452,7 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
         especie_edit = ui.input("Especie")
         raza_edit = ui.input("Raza")
         cantidade_edit = ui.number("Cantidade")
-        estado_edit = ui.select(["activo", "baixa"], label="Estado", value="activo")
+        estado_edit = ui.select(list(_ESTADOS_ANIMAL), label="Estado", value="activo")
 
         def gardar() -> None:
             if not taboa.selected:
