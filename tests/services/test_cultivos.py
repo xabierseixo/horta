@@ -1,0 +1,122 @@
+import pytest
+
+from horta.models.horta import RolHorta
+from horta.models.usuario import RolGlobal, Usuario
+from horta.services.cultivos import (
+    actualizar_cultivo,
+    crear_cultivo,
+    eliminar_cultivo,
+    listar_cultivos,
+)
+from horta.services.errors import PermisoDenegadoError
+from horta.services.hortas import crear_horta, engadir_membro
+from horta.services.parcelas import crear_parcela
+
+
+def _crear_usuario(session, email: str) -> Usuario:
+    usuario = Usuario(
+        nome=email.split("@")[0],
+        email=email,
+        password_hash="hash-falso",
+        rol=RolGlobal.USUARIO,
+        activo=True,
+    )
+    session.add(usuario)
+    session.commit()
+    return usuario
+
+
+def test_admin_pode_crear_cultivo(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate", variedade="Negro de Santiago")
+
+    assert cultivo.id is not None
+    assert cultivo.parcela_id == parcela.id
+    assert cultivo.estado == "planificado"
+    assert cultivo.variedade == "Negro de Santiago"
+
+
+def test_editor_pode_crear_cultivo_pero_lector_non(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    bea = _crear_usuario(session, "bea@example.com")
+    carlos = _crear_usuario(session, "carlos@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    engadir_membro(session, ana, horta.id, bea, RolHorta.EDITOR)
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
+
+    crear_cultivo(session, bea, parcela.id, "Tomate")
+
+    with pytest.raises(PermisoDenegadoError):
+        crear_cultivo(session, carlos, parcela.id, "Repolo")
+
+
+def test_crear_cultivo_en_parcela_inexistente_falla(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(ValueError):
+        crear_cultivo(session, ana, 9999, "Tomate")
+
+
+def test_listar_cultivos_devolve_os_da_horta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    outra_horta = crear_horta(session, ana, "Outra horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    outra_parcela = crear_parcela(session, ana, outra_horta.id, "Parcela de outra horta")
+    crear_cultivo(session, ana, parcela.id, "Tomate")
+    crear_cultivo(session, ana, outra_parcela.id, "Repolo")
+
+    cultivos = listar_cultivos(session, ana, horta.id)
+
+    assert [c.especie for c in cultivos] == ["Tomate"]
+
+
+def test_admin_pode_actualizar_e_eliminar_cultivo(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
+
+    actualizado = actualizar_cultivo(session, ana, cultivo, estado="sementado")
+    assert actualizado.estado == "sementado"
+
+    eliminar_cultivo(session, ana, cultivo)
+    assert listar_cultivos(session, ana, horta.id) == []
+
+
+def test_lector_non_pode_actualizar_nin_eliminar_cultivo(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    carlos = _crear_usuario(session, "carlos@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
+
+    with pytest.raises(PermisoDenegadoError):
+        actualizar_cultivo(session, carlos, cultivo, estado="sementado")
+
+    with pytest.raises(PermisoDenegadoError):
+        eliminar_cultivo(session, carlos, cultivo)
+
+
+@pytest.mark.parametrize("campo", ["parcela_id", "id", "created_at", "campo_inexistente"])
+def test_actualizar_cultivo_rexeita_campos_non_editables(session, campo):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    outra_parcela = crear_parcela(session, ana, horta.id, "Outra parcela")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
+    id_orixinal = cultivo.id
+
+    with pytest.raises(ValueError):
+        actualizar_cultivo(session, ana, cultivo, especie="Cambiado", **{campo: outra_parcela.id})
+
+    session.refresh(cultivo)
+    assert cultivo.id == id_orixinal
+    assert cultivo.parcela_id == parcela.id
+    assert cultivo.especie == "Tomate"
