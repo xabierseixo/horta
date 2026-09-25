@@ -36,6 +36,12 @@ from horta.services.parcelas import (
     eliminar_parcela,
     listar_parcelas,
 )
+from horta.services.tratamentos import (
+    actualizar_tratamento,
+    crear_tratamento,
+    eliminar_tratamento,
+    listar_tratamentos,
+)
 from horta.ui.accions import executar_accion
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.filtros import filtrar_filas
@@ -76,6 +82,7 @@ def horta_detalle_page(horta_id: int) -> None:
         parcelas = listar_parcelas(session, actor, horta_id)
         animais = listar_animais(session, actor, horta_id)
         cultivos = listar_cultivos(session, actor, horta_id)
+        tratamentos = listar_tratamentos(session, actor, horta_id)
         pode_editar = membro.rol in _ROLES_ESCRITURA
         e_horta_admin = membro.rol == RolHorta.ADMIN
         e_admin_global = actor.rol == RolGlobal.ADMIN
@@ -164,6 +171,7 @@ def horta_detalle_page(horta_id: int) -> None:
     with ui.tabs().classes("w-full q-mt-md") as pestanas:
         pestana_parcelas = ui.tab("Parcelas")
         pestana_cultivos = ui.tab("Cultivos")
+        pestana_tratamentos = ui.tab("Tratamentos")
         pestana_animais = ui.tab("Animais")
         if e_horta_admin:
             pestana_membros = ui.tab("Membros")
@@ -173,6 +181,8 @@ def horta_detalle_page(horta_id: int) -> None:
             _seccion_parcelas(horta_id, parcelas, pode_editar)
         with ui.tab_panel(pestana_cultivos):
             _seccion_cultivos(horta_id, cultivos, parcelas, pode_editar)
+        with ui.tab_panel(pestana_tratamentos):
+            _seccion_tratamentos(horta_id, tratamentos, cultivos, parcelas, pode_editar)
         with ui.tab_panel(pestana_animais):
             _seccion_animais(horta_id, animais, pode_editar)
         if e_horta_admin:
@@ -593,6 +603,260 @@ def _seccion_cultivos(
                 return
             eliminado = executar_accion(
                 session, lambda: eliminar_cultivo(session, actor_actual, obxectivo)
+            )
+        if not eliminado:
+            return
+        ui.navigate.reload()
+
+
+def _seccion_tratamentos(
+    horta_id: int, tratamentos: list, cultivos: list, parcelas: list, pode_editar: bool
+) -> None:
+    parcelas_por_id = {p.id: p.nome for p in parcelas}
+    etiquetas_cultivo = {
+        c.id: f"{c.especie} — {parcelas_por_id.get(c.parcela_id, '?')}" for c in cultivos
+    }
+
+    def _parsear_data(texto: str) -> Any:
+        if not texto:
+            raise ValueError("A data é obrigatoria")
+        try:
+            return date.fromisoformat(texto)
+        except ValueError as erro:
+            raise ValueError(f"Data non válida: {texto!r} (usa o formato AAAA-MM-DD)") from erro
+
+    if pode_editar:
+        with ui.dialog() as dialog_novo_tratamento, ui.card():
+            ui.label("Novo tratamento").classes("text-md font-bold")
+            cultivo_select = ui.select(etiquetas_cultivo, label="Cultivo")
+            data_input = ui.input("Data (AAAA-MM-DD)")
+            praga_input = ui.input("Praga")
+            produto_input = ui.input("Produto")
+            aplicador_input = ui.input("Aplicador")
+
+            def crear() -> None:
+                if not (
+                    cultivo_select.value
+                    and data_input.value
+                    and praga_input.value
+                    and produto_input.value
+                    and aplicador_input.value
+                ):
+                    ui.notify(
+                        "Cultivo, data, praga, produto e aplicador son obrigatorios",
+                        type="negative",
+                    )
+                    return
+                try:
+                    data_valor = _parsear_data(data_input.value)
+                except ValueError as erro:
+                    ui.notify(str(erro), type="negative")
+                    return
+                with get_session() as session:
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
+                    creado = executar_accion(
+                        session,
+                        lambda: crear_tratamento(
+                            session,
+                            actor_actual,
+                            cultivo_select.value,
+                            data_valor,
+                            praga_input.value,
+                            produto_input.value,
+                            aplicador_input.value,
+                        ),
+                    )
+                if not creado:
+                    return
+                ui.navigate.reload()
+
+            with ui.row():
+                ui.button("Crear", icon="check", on_click=crear)
+                ui.button("Cancelar", on_click=dialog_novo_tratamento.close).props("flat")
+
+    with ui.row().classes("w-full items-center justify-between"):
+        ui.label("Tratamentos").classes("text-lg font-bold")
+        if pode_editar:
+            ui.button("Novo tratamento", icon="add", on_click=dialog_novo_tratamento.open)
+
+    todas_as_filas = [
+        {
+            "id": t.id,
+            "cultivo": etiquetas_cultivo.get(t.cultivo_id, "?"),
+            "data": t.data.isoformat(),
+            "praga": t.praga,
+            "produto": t.produto,
+            "aplicador": t.aplicador,
+        }
+        for t in tratamentos
+    ]
+
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "cultivo", "label": "Cultivo", "field": "cultivo"},
+                {"name": "data", "label": "Data", "field": "data"},
+                {"name": "praga", "label": "Praga", "field": "praga"},
+                {"name": "produto", "label": "Produto", "field": "produto"},
+                {"name": "aplicador", "label": "Aplicador", "field": "aplicador"},
+            ],
+            rows=todas_as_filas,
+            row_key="id",
+            selection="single" if pode_editar else None,
+            pagination=10,
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
+    )
+
+    def refrescar_taboa() -> None:
+        taboa.rows = filtrar_filas(
+            todas_as_filas,
+            busca_input.value or "",
+            ["cultivo", "data", "praga", "produto", "aplicador"],
+        )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            if pode_editar:
+                fila_accions.set_visibility(False)
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+
+    if not pode_editar:
+        return
+
+    with ui.row().classes("q-mt-sm") as fila_accions:
+        ui.button("Editar", icon="edit", on_click=lambda: abrir_editar())
+        ui.button(
+            "Eliminar",
+            icon="delete",
+            on_click=lambda: confirmar_eliminacion(
+                f"Eliminar o tratamento de «{taboa.selected[0]['praga']}»? "
+                "Esta acción non se pode desfacer.",
+                eliminar_seleccionado,
+            ),
+        ).props("outline color=negative")
+    fila_accions.set_visibility(False)
+    taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
+
+    with ui.dialog() as dialog_editar, ui.card():
+        ui.label("Editar tratamento").classes("text-md font-bold")
+        data_edit = ui.input("Data (AAAA-MM-DD)")
+        praga_edit = ui.input("Praga")
+        produto_edit = ui.input("Produto")
+        numero_rexistro_edit = ui.input("Nº de rexistro do produto")
+        dose_edit = ui.input("Dose")
+        superficie_edit = ui.number("Superficie tratada (m²)")
+        eficacia_edit = ui.input("Valoración da eficacia")
+        aplicador_edit = ui.input("Aplicador")
+        equipo_aplicador_edit = ui.input("Equipo aplicador")
+        persoas_asesoramento_edit = ui.input("Persoas de asesoramento")
+        notas_edit = ui.textarea("Notas")
+
+        def gardar() -> None:
+            if not taboa.selected:
+                return
+            tratamento_id = taboa.selected[0]["id"]
+            if not (praga_edit.value and produto_edit.value and aplicador_edit.value):
+                ui.notify("Praga, produto e aplicador son obrigatorios", type="negative")
+                return
+            try:
+                data_valor = _parsear_data(data_edit.value)
+            except ValueError as erro:
+                ui.notify(str(erro), type="negative")
+                return
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                if actor_actual is None:
+                    pechar_sesion()
+                    return
+                obxectivo = next(
+                    (
+                        t
+                        for t in listar_tratamentos(session, actor_actual, horta_id)
+                        if t.id == tratamento_id
+                    ),
+                    None,
+                )
+                if obxectivo is None:
+                    ui.notify("Ese tratamento xa non existe", type="negative")
+                    return
+                gardado = executar_accion(
+                    session,
+                    lambda: actualizar_tratamento(
+                        session,
+                        actor_actual,
+                        obxectivo,
+                        data=data_valor,
+                        praga=praga_edit.value,
+                        produto=produto_edit.value,
+                        numero_rexistro_produto=numero_rexistro_edit.value or None,
+                        dose=dose_edit.value or None,
+                        superficie_tratada=superficie_edit.value,
+                        eficacia=eficacia_edit.value or None,
+                        aplicador=aplicador_edit.value,
+                        equipo_aplicador=equipo_aplicador_edit.value or None,
+                        persoas_asesoramento=persoas_asesoramento_edit.value or None,
+                        notas=notas_edit.value or None,
+                    ),
+                )
+            if not gardado:
+                return
+            ui.navigate.reload()
+
+        with ui.row():
+            ui.button("Gardar", icon="check", on_click=gardar)
+            ui.button("Cancelar", on_click=dialog_editar.close).props("flat")
+
+    def abrir_editar() -> None:
+        if not taboa.selected:
+            return
+        tratamento_id = taboa.selected[0]["id"]
+        tratamento_completo = next((t for t in tratamentos if t.id == tratamento_id), None)
+        if tratamento_completo is None:
+            return
+        data_edit.value = tratamento_completo.data.isoformat()
+        praga_edit.value = tratamento_completo.praga
+        produto_edit.value = tratamento_completo.produto
+        numero_rexistro_edit.value = tratamento_completo.numero_rexistro_produto or ""
+        dose_edit.value = tratamento_completo.dose or ""
+        superficie_edit.value = tratamento_completo.superficie_tratada
+        eficacia_edit.value = tratamento_completo.eficacia or ""
+        aplicador_edit.value = tratamento_completo.aplicador
+        equipo_aplicador_edit.value = tratamento_completo.equipo_aplicador or ""
+        persoas_asesoramento_edit.value = tratamento_completo.persoas_asesoramento or ""
+        notas_edit.value = tratamento_completo.notas or ""
+        dialog_editar.open()
+
+    def eliminar_seleccionado() -> None:
+        if not taboa.selected:
+            return
+        tratamento_id = taboa.selected[0]["id"]
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            if actor_actual is None:
+                pechar_sesion()
+                return
+            obxectivo = next(
+                (
+                    t
+                    for t in listar_tratamentos(session, actor_actual, horta_id)
+                    if t.id == tratamento_id
+                ),
+                None,
+            )
+            if obxectivo is None:
+                ui.notify("Ese tratamento xa non existe", type="negative")
+                return
+            eliminado = executar_accion(
+                session, lambda: eliminar_tratamento(session, actor_actual, obxectivo)
             )
         if not eliminado:
             return
