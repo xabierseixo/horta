@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 from loguru import logger
 from nicegui import ui
@@ -13,6 +14,12 @@ from horta.services.animais import (
     crear_animal,
     eliminar_animal,
     listar_animais,
+)
+from horta.services.cultivos import (
+    actualizar_cultivo,
+    crear_cultivo,
+    eliminar_cultivo,
+    listar_cultivos,
 )
 from horta.services.errors import PermisoDenegadoError
 from horta.services.hortas import (
@@ -44,6 +51,9 @@ _ESTADOS_PARCELA = ("activa", "inactiva")
 _ESTADOS_ANIMAL = ("activo", "baixa")
 _ROLES_HORTA = ("admin", "editor", "lector")
 
+_ESTADOS_CULTIVO = ("planificado", "sementado", "plantado", "colleitado", "finalizado")
+_UNIDADES_CULTIVO = ("kg", "unidades", "ducias", "mazos")
+
 
 @ui.page("/hortas/{horta_id}")
 def horta_detalle_page(horta_id: int) -> None:
@@ -65,6 +75,7 @@ def horta_detalle_page(horta_id: int) -> None:
             return
         parcelas = listar_parcelas(session, actor, horta_id)
         animais = listar_animais(session, actor, horta_id)
+        cultivos = listar_cultivos(session, actor, horta_id)
         pode_editar = membro.rol in _ROLES_ESCRITURA
         e_horta_admin = membro.rol == RolHorta.ADMIN
         e_admin_global = actor.rol == RolGlobal.ADMIN
@@ -152,6 +163,7 @@ def horta_detalle_page(horta_id: int) -> None:
 
     with ui.tabs().classes("w-full q-mt-md") as pestanas:
         pestana_parcelas = ui.tab("Parcelas")
+        pestana_cultivos = ui.tab("Cultivos")
         pestana_animais = ui.tab("Animais")
         if e_horta_admin:
             pestana_membros = ui.tab("Membros")
@@ -159,6 +171,8 @@ def horta_detalle_page(horta_id: int) -> None:
     with ui.tab_panels(pestanas, value=pestana_parcelas).classes("w-full"):
         with ui.tab_panel(pestana_parcelas):
             _seccion_parcelas(horta_id, parcelas, pode_editar)
+        with ui.tab_panel(pestana_cultivos):
+            _seccion_cultivos(horta_id, cultivos, parcelas, pode_editar)
         with ui.tab_panel(pestana_animais):
             _seccion_animais(horta_id, animais, pode_editar)
         if e_horta_admin:
@@ -340,6 +354,245 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                 return
             eliminado = executar_accion(
                 session, lambda: eliminar_parcela(session, actor_actual, obxectivo)
+            )
+        if not eliminado:
+            return
+        ui.navigate.reload()
+
+
+def _seccion_cultivos(
+    horta_id: int, cultivos: list, parcelas: list, pode_editar: bool
+) -> None:
+    parcelas_por_id = {p.id: p.nome for p in parcelas}
+
+    if pode_editar:
+        with ui.dialog() as dialog_novo_cultivo, ui.card():
+            ui.label("Novo cultivo").classes("text-md font-bold")
+            parcela_select = ui.select({p.id: p.nome for p in parcelas}, label="Parcela")
+            especie_input = ui.input("Especie")
+            variedade_input = ui.input("Variedade (opcional)")
+
+            def crear() -> None:
+                if not (parcela_select.value and especie_input.value):
+                    ui.notify("Parcela e especie son obrigatorias", type="negative")
+                    return
+                with get_session() as session:
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
+                    creado = executar_accion(
+                        session,
+                        lambda: crear_cultivo(
+                            session,
+                            actor_actual,
+                            parcela_select.value,
+                            especie_input.value,
+                            variedade=variedade_input.value or None,
+                        ),
+                    )
+                if not creado:
+                    return
+                ui.navigate.reload()
+
+            with ui.row():
+                ui.button("Crear", icon="check", on_click=crear)
+                ui.button("Cancelar", on_click=dialog_novo_cultivo.close).props("flat")
+
+    with ui.row().classes("w-full items-center justify-between"):
+        ui.label("Cultivos").classes("text-lg font-bold")
+        if pode_editar:
+            ui.button("Novo cultivo", icon="add", on_click=dialog_novo_cultivo.open)
+
+    todas_as_filas = [
+        {
+            "id": c.id,
+            "parcela": parcelas_por_id.get(c.parcela_id, "?"),
+            "especie": c.especie,
+            "variedade": c.variedade or "",
+            "estado": c.estado,
+        }
+        for c in cultivos
+    ]
+
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+        estado_select = ui.select(
+            ["Todos", *_ESTADOS_CULTIVO], label="Estado", value="Todos"
+        ).props("dense")
+
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "parcela", "label": "Parcela", "field": "parcela"},
+                {"name": "especie", "label": "Especie", "field": "especie"},
+                {"name": "variedade", "label": "Variedade", "field": "variedade"},
+                {"name": "estado", "label": "Estado", "field": "estado"},
+            ],
+            rows=todas_as_filas,
+            row_key="id",
+            selection="single" if pode_editar else None,
+            pagination=10,
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
+    )
+
+    def refrescar_taboa() -> None:
+        estado_filtro = None if estado_select.value == "Todos" else estado_select.value
+        taboa.rows = filtrar_filas(
+            todas_as_filas,
+            busca_input.value or "",
+            ["parcela", "especie", "variedade", "estado"],
+            {"estado": estado_filtro},
+        )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            if pode_editar:
+                fila_accions.set_visibility(False)
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+    estado_select.on_value_change(refrescar_taboa)
+
+    if not pode_editar:
+        return
+
+    with ui.row().classes("q-mt-sm") as fila_accions:
+        ui.button("Editar", icon="edit", on_click=lambda: abrir_editar())
+        ui.button(
+            "Eliminar",
+            icon="delete",
+            on_click=lambda: confirmar_eliminacion(
+                f"Eliminar o cultivo «{taboa.selected[0]['especie']}»? "
+                "Esta acción non se pode desfacer.",
+                eliminar_seleccionado,
+            ),
+        ).props("outline color=negative")
+    fila_accions.set_visibility(False)
+    taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
+
+    with ui.dialog() as dialog_editar, ui.card():
+        ui.label("Editar cultivo").classes("text-md font-bold")
+        especie_edit = ui.input("Especie")
+        variedade_edit = ui.input("Variedade")
+        cantidade_edit = ui.number("Cantidade")
+        unidade_edit = ui.select(list(_UNIDADES_CULTIVO), label="Unidade")
+        data_sementeira_edit = ui.input("Data sementeira (AAAA-MM-DD)")
+        data_plantacion_edit = ui.input("Data plantación (AAAA-MM-DD)")
+        data_colleita_prevista_edit = ui.input("Data colleita prevista (AAAA-MM-DD)")
+        data_colleita_real_edit = ui.input("Data colleita real (AAAA-MM-DD)")
+        notas_edit = ui.textarea("Notas")
+        estado_edit = ui.select(list(_ESTADOS_CULTIVO), label="Estado", value="planificado")
+
+        def _parsear_data(texto: str) -> Any:
+            if not texto:
+                return None
+            try:
+                return date.fromisoformat(texto)
+            except ValueError as erro:
+                raise ValueError(f"Data non válida: {texto!r} (usa o formato AAAA-MM-DD)") from erro
+
+        def gardar() -> None:
+            if not taboa.selected:
+                return
+            cultivo_id = taboa.selected[0]["id"]
+            if not especie_edit.value:
+                ui.notify("A especie é obrigatoria", type="negative")
+                return
+            try:
+                cambios = dict(
+                    especie=especie_edit.value,
+                    variedade=variedade_edit.value or None,
+                    cantidade=cantidade_edit.value,
+                    unidade=unidade_edit.value,
+                    data_sementeira=_parsear_data(data_sementeira_edit.value),
+                    data_plantacion=_parsear_data(data_plantacion_edit.value),
+                    data_colleita_prevista=_parsear_data(data_colleita_prevista_edit.value),
+                    data_colleita_real=_parsear_data(data_colleita_real_edit.value),
+                    notas=notas_edit.value or None,
+                    estado=estado_edit.value,
+                )
+            except ValueError as erro:
+                ui.notify(str(erro), type="negative")
+                return
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                if actor_actual is None:
+                    pechar_sesion()
+                    return
+                obxectivo = next(
+                    (
+                        c
+                        for c in listar_cultivos(session, actor_actual, horta_id)
+                        if c.id == cultivo_id
+                    ),
+                    None,
+                )
+                if obxectivo is None:
+                    ui.notify("Ese cultivo xa non existe", type="negative")
+                    return
+                gardado = executar_accion(
+                    session, lambda: actualizar_cultivo(session, actor_actual, obxectivo, **cambios)
+                )
+            if not gardado:
+                return
+            ui.navigate.reload()
+
+        with ui.row():
+            ui.button("Gardar", icon="check", on_click=gardar)
+            ui.button("Cancelar", on_click=dialog_editar.close).props("flat")
+
+    def abrir_editar() -> None:
+        if not taboa.selected:
+            return
+        fila = taboa.selected[0]
+        cultivo_id = fila["id"]
+        cultivo_completo = next((c for c in cultivos if c.id == cultivo_id), None)
+        if cultivo_completo is None:
+            return
+        especie_edit.value = cultivo_completo.especie
+        variedade_edit.value = cultivo_completo.variedade or ""
+        cantidade_edit.value = cultivo_completo.cantidade
+        unidade_edit.value = cultivo_completo.unidade
+        data_sementeira_edit.value = (
+            cultivo_completo.data_sementeira.isoformat() if cultivo_completo.data_sementeira else ""
+        )
+        data_plantacion_edit.value = (
+            cultivo_completo.data_plantacion.isoformat() if cultivo_completo.data_plantacion else ""
+        )
+        data_colleita_prevista_edit.value = (
+            cultivo_completo.data_colleita_prevista.isoformat()
+            if cultivo_completo.data_colleita_prevista
+            else ""
+        )
+        data_colleita_real_edit.value = (
+            cultivo_completo.data_colleita_real.isoformat()
+            if cultivo_completo.data_colleita_real
+            else ""
+        )
+        notas_edit.value = cultivo_completo.notas or ""
+        estado_edit.value = cultivo_completo.estado
+        dialog_editar.open()
+
+    def eliminar_seleccionado() -> None:
+        if not taboa.selected:
+            return
+        cultivo_id = taboa.selected[0]["id"]
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            if actor_actual is None:
+                pechar_sesion()
+                return
+            obxectivo = next(
+                (c for c in listar_cultivos(session, actor_actual, horta_id) if c.id == cultivo_id),
+                None,
+            )
+            if obxectivo is None:
+                ui.notify("Ese cultivo xa non existe", type="negative")
+                return
+            eliminado = executar_accion(
+                session, lambda: eliminar_cultivo(session, actor_actual, obxectivo)
             )
         if not eliminado:
             return
