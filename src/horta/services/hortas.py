@@ -98,8 +98,12 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
             session.query(Fertilizacion).filter(Fertilizacion.cultivo_id.in_(cultivo_ids)).all()
         ):
             session.delete(fertilizacion)
+        # Igual que en eliminar_parcela: sen relationship(), forzar estes
+        # borrados á BD antes de borrar os seus Cultivo pai.
+        session.flush()
     for cultivo in cultivos:
         session.delete(cultivo)
+    session.flush()
     for parcela in parcelas:
         session.delete(parcela)
     for animal in session.query(Animal).filter_by(horta_id=horta.id).all():

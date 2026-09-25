@@ -3,13 +3,14 @@ import datetime
 import pytest
 
 from horta.models.animal import Animal
-from horta.models.cultivo import Cultivo, Tratamento
+from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.animais import crear_animal
 from horta.services.cultivos import crear_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
+from horta.services.fertilizacions import crear_fertilizacion
 from horta.services.hortas import (
     actualizar_horta,
     cambiar_rol_membro,
@@ -243,3 +244,19 @@ def test_eliminar_horta_borra_en_cascada_cultivos_e_tratamentos(session):
 
     assert session.get(Cultivo, cultivo_id) is None
     assert session.get(Tratamento, tratamento_id) is None
+
+
+def test_eliminar_horta_borra_en_cascada_fertilizacions(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
+    fertilizacion = crear_fertilizacion(
+        session, ana, cultivo.id, datetime.date(2026, 4, 1), "abonado_fondo", "Compost"
+    )
+    cultivo_id, fertilizacion_id = cultivo.id, fertilizacion.id
+
+    eliminar_horta(session, ana, horta)
+
+    assert session.get(Cultivo, cultivo_id) is None
+    assert session.get(Fertilizacion, fertilizacion_id) is None
