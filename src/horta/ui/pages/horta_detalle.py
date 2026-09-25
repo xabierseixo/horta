@@ -31,6 +31,7 @@ from horta.services.parcelas import (
 )
 from horta.ui.accions import executar_accion
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.filtros import filtrar_filas
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
@@ -38,6 +39,10 @@ _PROPS_TABOA = 'dense no-data-label="Non hai rexistros"'
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
+
+_ESTADOS_PARCELA = ("activa", "inactiva")
+_ESTADOS_ANIMAL = ("activo", "baixa")
+_ROLES_HORTA = ("admin", "editor", "lector")
 
 
 @ui.page("/hortas/{horta_id}")
@@ -200,10 +205,17 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         if pode_editar:
             ui.button("Nova parcela", icon="add", on_click=dialog_nova_parcela.open)
 
-    rows = [
+    todas_as_filas = [
         {"id": p.id, "nome": p.nome, "superficie": p.superficie, "estado": p.estado}
         for p in parcelas
     ]
+
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+        estado_select = ui.select(
+            ["Todos", *_ESTADOS_PARCELA], label="Estado", value="Todos"
+        ).props("dense")
+
     taboa = (
         ui.table(
             columns=[
@@ -211,13 +223,27 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                 {"name": "superficie", "label": "Superficie", "field": "superficie"},
                 {"name": "estado", "label": "Estado", "field": "estado"},
             ],
-            rows=rows,
+            rows=todas_as_filas,
             row_key="id",
             selection="single" if pode_editar else None,
+            pagination=10,
         )
         .classes("w-full")
         .props(_PROPS_TABOA)
     )
+
+    def refrescar_taboa() -> None:
+        estado_filtro = None if estado_select.value == "Todos" else estado_select.value
+        taboa.rows = filtrar_filas(
+            todas_as_filas,
+            busca_input.value or "",
+            ["nome", "superficie", "estado"],
+            {"estado": estado_filtro},
+        )
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+    estado_select.on_value_change(refrescar_taboa)
 
     if not pode_editar:
         return
@@ -239,7 +265,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         ui.label("Editar parcela").classes("text-md font-bold")
         nome_edit = ui.input("Nome")
         superficie_edit = ui.number("Superficie (m²)")
-        estado_edit = ui.select(["activa", "inactiva"], label="Estado", value="activa")
+        estado_edit = ui.select(list(_ESTADOS_PARCELA), label="Estado", value="activa")
 
         def gardar() -> None:
             if not taboa.selected:
