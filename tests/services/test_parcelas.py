@@ -1,7 +1,11 @@
+from datetime import date
+
 import pytest
 
+from horta.models.cultivo import Cultivo, Tratamento
 from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
+from horta.services.cultivos import crear_cultivo
 from horta.services.errors import PermisoDenegadoError
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.parcelas import (
@@ -10,6 +14,7 @@ from horta.services.parcelas import (
     eliminar_parcela,
     listar_parcelas,
 )
+from horta.services.tratamentos import crear_tratamento
 
 
 def _crear_usuario(session, email: str) -> Usuario:
@@ -105,3 +110,19 @@ def test_actualizar_parcela_rexeita_campos_non_editables(session, campo):
     assert parcela.id == id_orixinal
     assert parcela.horta_id == horta.id
     assert parcela.nome == "Parcela Norte"
+
+
+def test_eliminar_parcela_borra_en_cascada_cultivos_e_tratamentos(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
+    tratamento = crear_tratamento(
+        session, ana, cultivo.id, date(2026, 5, 1), "Mildeu", "Cobre", "Xabier"
+    )
+    cultivo_id, tratamento_id = cultivo.id, tratamento.id
+
+    eliminar_parcela(session, ana, parcela)
+
+    assert session.get(Cultivo, cultivo_id) is None
+    assert session.get(Tratamento, tratamento_id) is None

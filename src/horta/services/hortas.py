@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from horta.models.animal import Animal
+from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
@@ -80,7 +81,26 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     explicitamente os rexistros dependentes antes da propia horta.
     """
     comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
-    for parcela in session.query(Parcela).filter_by(horta_id=horta.id).all():
+    parcelas = session.query(Parcela).filter_by(horta_id=horta.id).all()
+    parcela_ids = [p.id for p in parcelas]
+    cultivos = (
+        session.query(Cultivo).filter(Cultivo.parcela_id.in_(parcela_ids)).all()
+        if parcela_ids
+        else []
+    )
+    cultivo_ids = [c.id for c in cultivos]
+    if cultivo_ids:
+        for tratamento in (
+            session.query(Tratamento).filter(Tratamento.cultivo_id.in_(cultivo_ids)).all()
+        ):
+            session.delete(tratamento)
+        for fertilizacion in (
+            session.query(Fertilizacion).filter(Fertilizacion.cultivo_id.in_(cultivo_ids)).all()
+        ):
+            session.delete(fertilizacion)
+    for cultivo in cultivos:
+        session.delete(cultivo)
+    for parcela in parcelas:
         session.delete(parcela)
     for animal in session.query(Animal).filter_by(horta_id=horta.id).all():
         session.delete(animal)
