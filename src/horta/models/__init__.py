@@ -2,6 +2,7 @@ from horta.models.animal import Animal
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela, SecanoRegadio
+from horta.models.tarefa import Tarefa
 from horta.models.usuario import RolGlobal, Usuario
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "Cultivo",
     "Tratamento",
     "Fertilizacion",
+    "Tarefa",
 ]
