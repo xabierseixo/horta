@@ -6,6 +6,7 @@ from horta.models.animal import Animal
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.animais import crear_animal
 from horta.services.cultivos import crear_cultivo
@@ -21,6 +22,7 @@ from horta.services.hortas import (
     quitar_membro,
 )
 from horta.services.parcelas import crear_parcela
+from horta.services.tarefas import crear_tarefa
 from horta.services.tratamentos import crear_tratamento
 
 
@@ -296,3 +298,14 @@ def test_eliminar_horta_borra_en_cascada_cultivo_con_tratamento_e_fertilizacion(
         assert session.get(Tratamento, tratamento_id) is None
     for fertilizacion_id in ids_fertilizacions:
         assert session.get(Fertilizacion, fertilizacion_id) is None
+
+
+def test_eliminar_horta_borra_tarefas(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    tarefa = crear_tarefa(session, ana, horta.id, "Regar")
+    tarefa_id = tarefa.id
+
+    eliminar_horta(session, ana, horta)
+
+    assert session.get(Tarefa, tarefa_id) is None

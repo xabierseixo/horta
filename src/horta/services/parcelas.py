@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
 
@@ -68,6 +69,7 @@ def actualizar_parcela(
 
 def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None:
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
+    session.query(Tarefa).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
     cultivos = session.query(Cultivo).filter_by(parcela_id=parcela.id).all()
     for cultivo in cultivos:
         for tratamento in session.query(Tratamento).filter_by(cultivo_id=cultivo.id).all():

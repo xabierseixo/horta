@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
 
@@ -84,6 +85,7 @@ def eliminar_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> None
     if horta_id is None:
         raise ValueError("A parcela deste cultivo xa non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    session.query(Tarefa).filter_by(cultivo_id=cultivo.id).update({"cultivo_id": None})
     for tratamento in session.query(Tratamento).filter_by(cultivo_id=cultivo.id).all():
         session.delete(tratamento)
     for fertilizacion in session.query(Fertilizacion).filter_by(cultivo_id=cultivo.id).all():

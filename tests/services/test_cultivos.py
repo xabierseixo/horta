@@ -15,6 +15,7 @@ from horta.services.errors import PermisoDenegadoError
 from horta.services.fertilizacions import crear_fertilizacion
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.parcelas import crear_parcela
+from horta.services.tarefas import crear_tarefa
 from horta.services.tratamentos import crear_tratamento, eliminar_tratamento
 
 
@@ -153,3 +154,16 @@ def test_actualizar_cultivo_rexeita_campos_non_editables(session, campo):
     assert cultivo.id == id_orixinal
     assert cultivo.parcela_id == parcela.id
     assert cultivo.especie == "Tomate"
+
+
+def test_eliminar_cultivo_desliga_tarefas_sen_borralas(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
+    tarefa = crear_tarefa(session, ana, horta.id, "Tratar", cultivo_id=cultivo.id)
+
+    eliminar_cultivo(session, ana, cultivo)
+
+    session.refresh(tarefa)
+    assert tarefa.cultivo_id is None

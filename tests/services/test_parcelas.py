@@ -15,6 +15,7 @@ from horta.services.parcelas import (
     eliminar_parcela,
     listar_parcelas,
 )
+from horta.services.tarefas import crear_tarefa
 from horta.services.tratamentos import crear_tratamento
 
 
@@ -111,6 +112,18 @@ def test_actualizar_parcela_rexeita_campos_non_editables(session, campo):
     assert parcela.id == id_orixinal
     assert parcela.horta_id == horta.id
     assert parcela.nome == "Parcela Norte"
+
+
+def test_eliminar_parcela_desliga_tarefas_sen_borralas(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    tarefa = crear_tarefa(session, ana, horta.id, "Regar", parcela_id=parcela.id)
+
+    eliminar_parcela(session, ana, parcela)
+
+    session.refresh(tarefa)
+    assert tarefa.parcela_id is None
 
 
 def test_eliminar_parcela_borra_en_cascada_cultivos_e_tratamentos(session):

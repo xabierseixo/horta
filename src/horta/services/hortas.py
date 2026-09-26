@@ -8,6 +8,7 @@ from horta.models.animal import Animal
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 
@@ -81,6 +82,12 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     explicitamente os rexistros dependentes antes da propia horta.
     """
     comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
+    for tarefa in session.query(Tarefa).filter_by(horta_id=horta.id).all():
+        session.delete(tarefa)
+    # As Tarefas poden referenciar Parcela/Cultivo (FK opcionais) — hai que
+    # borralas e facer flush ANTES de tocar Parcela/Cultivo, senón o borrado
+    # dunha Tarefa violaría a FK se o seu Cultivo/Parcela xa se borrou antes.
+    session.flush()
     parcelas = session.query(Parcela).filter_by(horta_id=horta.id).all()
     parcela_ids = [p.id for p in parcelas]
     cultivos = (
