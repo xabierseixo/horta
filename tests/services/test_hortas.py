@@ -260,3 +260,39 @@ def test_eliminar_horta_borra_en_cascada_fertilizacions(session):
 
     assert session.get(Cultivo, cultivo_id) is None
     assert session.get(Fertilizacion, fertilizacion_id) is None
+
+
+def test_eliminar_horta_borra_en_cascada_cultivo_con_tratamento_e_fertilizacion(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    parcela_1 = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    parcela_2 = crear_parcela(session, ana, horta.id, "Parcela Sur")
+    cultivo_1 = crear_cultivo(session, ana, parcela_1.id, "Tomate")
+    cultivo_2 = crear_cultivo(session, ana, parcela_2.id, "Pataca")
+
+    tratamento_1 = crear_tratamento(
+        session, ana, cultivo_1.id, datetime.date(2026, 5, 1), "Mildeu", "Cobre", "Xabier"
+    )
+    fertilizacion_1 = crear_fertilizacion(
+        session, ana, cultivo_1.id, datetime.date(2026, 4, 1), "abonado_fondo", "Compost"
+    )
+    tratamento_2 = crear_tratamento(
+        session, ana, cultivo_2.id, datetime.date(2026, 5, 2), "Escaravello", "Piretrina", "Xabier"
+    )
+    fertilizacion_2 = crear_fertilizacion(
+        session, ana, cultivo_2.id, datetime.date(2026, 4, 2), "cobertoira", "Xurro"
+    )
+
+    ids_cultivos = [cultivo_1.id, cultivo_2.id]
+    ids_tratamentos = [tratamento_1.id, tratamento_2.id]
+    ids_fertilizacions = [fertilizacion_1.id, fertilizacion_2.id]
+
+    eliminar_horta(session, ana, horta)
+
+    for cultivo_id in ids_cultivos:
+        assert session.get(Cultivo, cultivo_id) is None
+    for tratamento_id in ids_tratamentos:
+        assert session.get(Tratamento, tratamento_id) is None
+    for fertilizacion_id in ids_fertilizacions:
+        assert session.get(Fertilizacion, fertilizacion_id) is None

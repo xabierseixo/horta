@@ -292,7 +292,9 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
             "Eliminar",
             icon="delete",
             on_click=lambda: confirmar_eliminacion(
-                f"Eliminar a parcela «{taboa.selected[0]['nome']}»? Non se pode desfacer.",
+                f"Eliminar a parcela «{taboa.selected[0]['nome']}»? Isto tamén eliminará os "
+                "cultivos, tratamentos e fertilizacións rexistrados nela. "
+                "Non se pode desfacer.",
                 eliminar_seleccionada,
             ),
         ).props("outline color=negative")
@@ -484,7 +486,8 @@ def _seccion_cultivos(
             "Eliminar",
             icon="delete",
             on_click=lambda: confirmar_eliminacion(
-                f"Eliminar o cultivo «{taboa.selected[0]['especie']}»? "
+                f"Eliminar o cultivo «{taboa.selected[0]['especie']}»? Isto tamén eliminará os "
+                "seus tratamentos e fertilizacións rexistrados. "
                 "Esta acción non se pode desfacer.",
                 eliminar_seleccionado,
             ),
