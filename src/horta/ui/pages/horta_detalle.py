@@ -42,6 +42,18 @@ from horta.services.parcelas import (
     eliminar_parcela,
     listar_parcelas,
 )
+from horta.services.tarefas import (
+    actualizar_tarefa,
+    contar_tarefas_pendentes,
+    crear_tarefa,
+    eliminar_tarefa,
+    listar_tarefas,
+    listar_tarefas_atrasadas,
+    listar_tarefas_pendentes_hoxe,
+    listar_tarefas_proximas,
+    marcar_feita,
+    marcar_pendente,
+)
 from horta.services.tratamentos import (
     actualizar_tratamento,
     crear_tratamento,
@@ -65,6 +77,8 @@ _ROLES_HORTA = ("admin", "editor", "lector")
 
 _ESTADOS_CULTIVO = ("planificado", "sementado", "plantado", "colleitado", "finalizado")
 _UNIDADES_CULTIVO = ("kg", "unidades", "ducias", "mazos")
+
+_PRIORIDADES_TAREFA = ("baixa", "media", "alta")
 
 
 @ui.page("/hortas/{horta_id}")
@@ -90,6 +104,11 @@ def horta_detalle_page(horta_id: int) -> None:
         cultivos = listar_cultivos(session, actor, horta_id)
         tratamentos = listar_tratamentos(session, actor, horta_id)
         fertilizacions = listar_fertilizacions(session, actor, horta_id)
+        tarefas = listar_tarefas(session, actor, horta_id)
+        tarefas_pendentes_hoxe = listar_tarefas_pendentes_hoxe(session, actor, horta_id)
+        tarefas_proximas = listar_tarefas_proximas(session, actor, horta_id)
+        tarefas_atrasadas = listar_tarefas_atrasadas(session, actor, horta_id)
+        n_tarefas_pendentes = contar_tarefas_pendentes(session, actor, horta_id)
         pode_editar = membro.rol in _ROLES_ESCRITURA
         e_horta_admin = membro.rol == RolHorta.ADMIN
         e_admin_global = actor.rol == RolGlobal.ADMIN
@@ -176,15 +195,27 @@ def horta_detalle_page(horta_id: int) -> None:
             )
 
     with ui.tabs().classes("w-full q-mt-md") as pestanas:
+        pestana_dashboard = ui.tab("Dashboard")
         pestana_parcelas = ui.tab("Parcelas")
         pestana_cultivos = ui.tab("Cultivos")
         pestana_tratamentos = ui.tab("Tratamentos")
         pestana_fertilizacion = ui.tab("Fertilización")
+        pestana_tarefas = ui.tab("Tarefas")
         pestana_animais = ui.tab("Animais")
         if e_horta_admin:
             pestana_membros = ui.tab("Membros")
 
-    with ui.tab_panels(pestanas, value=pestana_parcelas).classes("w-full"):
+    with ui.tab_panels(pestanas, value=pestana_dashboard).classes("w-full"):
+        with ui.tab_panel(pestana_dashboard):
+            _seccion_dashboard(
+                len(parcelas),
+                len(cultivos),
+                len(animais),
+                n_tarefas_pendentes,
+                tarefas_pendentes_hoxe,
+                tarefas_proximas,
+                tarefas_atrasadas,
+            )
         with ui.tab_panel(pestana_parcelas):
             _seccion_parcelas(horta_id, parcelas, pode_editar)
         with ui.tab_panel(pestana_cultivos):
@@ -193,6 +224,8 @@ def horta_detalle_page(horta_id: int) -> None:
             _seccion_tratamentos(horta_id, tratamentos, cultivos, parcelas, pode_editar)
         with ui.tab_panel(pestana_fertilizacion):
             _seccion_fertilizacion(horta_id, fertilizacions, cultivos, parcelas, pode_editar)
+        with ui.tab_panel(pestana_tarefas):
+            _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
         with ui.tab_panel(pestana_animais):
             _seccion_animais(horta_id, animais, pode_editar)
         if e_horta_admin:
@@ -1497,3 +1530,324 @@ def _seccion_membros(horta_id: int) -> None:
             ui.navigate.to("/")
         else:
             ui.navigate.reload()
+
+
+def _seccion_dashboard(
+    n_parcelas: int,
+    n_cultivos: int,
+    n_animais: int,
+    n_tarefas_pendentes: int,
+    tarefas_hoxe: list,
+    tarefas_proximas: list,
+    tarefas_atrasadas: list,
+) -> None:
+    with ui.row().classes("w-full q-gutter-md q-mb-md"):
+        with ui.card().classes("items-center"):
+            ui.label(str(n_parcelas)).classes("text-h4 font-bold")
+            ui.label("Parcelas").classes("text-caption text-grey")
+        with ui.card().classes("items-center"):
+            ui.label(str(n_cultivos)).classes("text-h4 font-bold")
+            ui.label("Cultivos").classes("text-caption text-grey")
+        with ui.card().classes("items-center"):
+            ui.label(str(n_animais)).classes("text-h4 font-bold")
+            ui.label("Animais").classes("text-caption text-grey")
+        with ui.card().classes("items-center"):
+            ui.label(str(n_tarefas_pendentes)).classes("text-h4 font-bold")
+            ui.label("Tarefas pendentes").classes("text-caption text-grey")
+
+    if tarefas_atrasadas:
+        ui.label(f"⚠ Tes {len(tarefas_atrasadas)} tarefa(s) atrasada(s)").classes(
+            "text-negative text-bold q-mb-md"
+        )
+
+    with ui.row().classes("w-full q-gutter-md"):
+        with ui.column().classes("col"):
+            ui.label("Tarefas de hoxe").classes("text-md font-bold")
+            if tarefas_hoxe:
+                for tarefa in tarefas_hoxe:
+                    ui.label(f"☐ {tarefa.descricion}").classes("text-body2")
+            else:
+                ui.label("Non hai tarefas para hoxe.").classes("text-caption text-grey")
+        with ui.column().classes("col"):
+            ui.label("Próximas actividades").classes("text-md font-bold")
+            if tarefas_proximas:
+                for tarefa in tarefas_proximas:
+                    data_texto = tarefa.data.isoformat() if tarefa.data else "?"
+                    ui.label(f"{data_texto} — {tarefa.descricion}").classes("text-body2")
+            else:
+                ui.label("Non hai próximas actividades.").classes("text-caption text-grey")
+
+
+def _seccion_tarefas(
+    horta_id: int, tarefas: list, parcelas: list, cultivos: list, pode_editar: bool
+) -> None:
+    parcelas_por_id = {p.id: p.nome for p in parcelas}
+    cultivos_por_id = {c.id: c.especie for c in cultivos}
+    opcions_parcela = {"": "(sen parcela)", **{p.id: p.nome for p in parcelas}}
+    opcions_cultivo = {"": "(sen cultivo)", **{c.id: c.especie for c in cultivos}}
+
+    def _parsear_data(texto: str) -> Any:
+        if not texto:
+            return None
+        try:
+            return date.fromisoformat(texto)
+        except ValueError as erro:
+            raise ValueError(f"Data non válida: {texto!r} (usa o formato AAAA-MM-DD)") from erro
+
+    if pode_editar:
+        with ui.dialog() as dialog_nova_tarefa, ui.card():
+            ui.label("Nova tarefa").classes("text-md font-bold")
+            descricion_input = ui.input("Descrición")
+            parcela_select = ui.select(opcions_parcela, label="Parcela", value="")
+            cultivo_select = ui.select(opcions_cultivo, label="Cultivo", value="")
+            data_input = ui.input("Data (AAAA-MM-DD, opcional)")
+            prioridade_select = ui.select(
+                list(_PRIORIDADES_TAREFA), label="Prioridade", value="media"
+            )
+
+            def crear() -> None:
+                if not descricion_input.value:
+                    ui.notify("A descrición é obrigatoria", type="negative")
+                    return
+                try:
+                    data_valor = _parsear_data(data_input.value)
+                except ValueError as erro:
+                    ui.notify(str(erro), type="negative")
+                    return
+                with get_session() as session:
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        pechar_sesion()
+                        return
+                    creada = executar_accion(
+                        session,
+                        lambda: crear_tarefa(
+                            session,
+                            actor_actual,
+                            horta_id,
+                            descricion_input.value,
+                            parcela_id=parcela_select.value or None,
+                            cultivo_id=cultivo_select.value or None,
+                            data=data_valor,
+                            prioridade=prioridade_select.value,
+                        ),
+                    )
+                if not creada:
+                    return
+                ui.navigate.reload()
+
+            with ui.row():
+                ui.button("Crear", icon="check", on_click=crear)
+                ui.button("Cancelar", on_click=dialog_nova_tarefa.close).props("flat")
+
+    with ui.row().classes("w-full items-center justify-between"):
+        ui.label("Tarefas").classes("text-lg font-bold")
+        if pode_editar:
+            ui.button("Nova tarefa", icon="add", on_click=dialog_nova_tarefa.open)
+
+    todas_as_filas = [
+        {
+            "id": t.id,
+            "descricion": t.descricion,
+            "parcela": parcelas_por_id.get(t.parcela_id, "") if t.parcela_id else "",
+            "cultivo": cultivos_por_id.get(t.cultivo_id, "") if t.cultivo_id else "",
+            "data": t.data.isoformat() if t.data else "",
+            "data_limite": t.data_limite.isoformat() if t.data_limite else "",
+            "prioridade": t.prioridade,
+            "estado": t.estado,
+        }
+        for t in tarefas
+    ]
+
+    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
+        busca_input = ui.input("Buscar").props("dense clearable")
+        estado_select = ui.select(
+            ["Todos", "pendente", "feito"], label="Estado", value="Todos"
+        ).props("dense")
+
+    taboa = (
+        ui.table(
+            columns=[
+                {"name": "descricion", "label": "Descrición", "field": "descricion"},
+                {"name": "parcela", "label": "Parcela", "field": "parcela"},
+                {"name": "cultivo", "label": "Cultivo", "field": "cultivo"},
+                {"name": "data", "label": "Data", "field": "data"},
+                {"name": "data_limite", "label": "Data límite", "field": "data_limite"},
+                {"name": "prioridade", "label": "Prioridade", "field": "prioridade"},
+                {"name": "estado", "label": "Estado", "field": "estado"},
+            ],
+            rows=todas_as_filas,
+            row_key="id",
+            selection="single" if pode_editar else None,
+            pagination=10,
+        )
+        .classes("w-full")
+        .props(_PROPS_TABOA)
+    )
+
+    def refrescar_taboa() -> None:
+        estado_filtro = None if estado_select.value == "Todos" else estado_select.value
+        taboa.rows = filtrar_filas(
+            todas_as_filas,
+            busca_input.value or "",
+            ["descricion", "parcela", "cultivo", "prioridade"],
+            {"estado": estado_filtro},
+        )
+        if taboa.selected and taboa.selected[0] not in taboa.rows:
+            taboa.selected = []
+            if pode_editar:
+                fila_accions.set_visibility(False)
+        taboa.update()
+
+    busca_input.on_value_change(refrescar_taboa)
+    estado_select.on_value_change(refrescar_taboa)
+
+    if not pode_editar:
+        return
+
+    with ui.row().classes("q-mt-sm") as fila_accions:
+        ui.button("Editar", icon="edit", on_click=lambda: abrir_editar())
+        ui.button(
+            "Marcar feita/pendente",
+            icon="check_circle",
+            on_click=lambda: alternar_estado(),
+        ).props("outline")
+        ui.button(
+            "Eliminar",
+            icon="delete",
+            on_click=lambda: confirmar_eliminacion(
+                f"Eliminar a tarefa «{taboa.selected[0]['descricion']}»? "
+                "Esta acción non se pode desfacer.",
+                eliminar_seleccionada,
+            ),
+        ).props("outline color=negative")
+    fila_accions.set_visibility(False)
+    taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
+
+    with ui.dialog() as dialog_editar, ui.card():
+        ui.label("Editar tarefa").classes("text-md font-bold")
+        descricion_edit = ui.input("Descrición")
+        parcela_edit = ui.select(opcions_parcela, label="Parcela")
+        cultivo_edit = ui.select(opcions_cultivo, label="Cultivo")
+        data_edit = ui.input("Data (AAAA-MM-DD, opcional)")
+        data_limite_edit = ui.input("Data límite (AAAA-MM-DD, opcional)")
+        prioridade_edit = ui.select(list(_PRIORIDADES_TAREFA), label="Prioridade")
+        notas_edit = ui.textarea("Notas")
+
+        def gardar() -> None:
+            if not taboa.selected:
+                return
+            tarefa_id = taboa.selected[0]["id"]
+            if not descricion_edit.value:
+                ui.notify("A descrición é obrigatoria", type="negative")
+                return
+            try:
+                data_valor = _parsear_data(data_edit.value)
+                data_limite_valor = _parsear_data(data_limite_edit.value)
+            except ValueError as erro:
+                ui.notify(str(erro), type="negative")
+                return
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                if actor_actual is None:
+                    pechar_sesion()
+                    return
+                obxectivo = next(
+                    (
+                        t
+                        for t in listar_tarefas(session, actor_actual, horta_id)
+                        if t.id == tarefa_id
+                    ),
+                    None,
+                )
+                if obxectivo is None:
+                    ui.notify("Esa tarefa xa non existe", type="negative")
+                    return
+                gardado = executar_accion(
+                    session,
+                    lambda: actualizar_tarefa(
+                        session,
+                        actor_actual,
+                        obxectivo,
+                        descricion=descricion_edit.value,
+                        parcela_id=parcela_edit.value or None,
+                        cultivo_id=cultivo_edit.value or None,
+                        data=data_valor,
+                        data_limite=data_limite_valor,
+                        prioridade=prioridade_edit.value,
+                        notas=notas_edit.value or None,
+                    ),
+                )
+            if not gardado:
+                return
+            ui.navigate.reload()
+
+        with ui.row():
+            ui.button("Gardar", icon="check", on_click=gardar)
+            ui.button("Cancelar", on_click=dialog_editar.close).props("flat")
+
+    def abrir_editar() -> None:
+        if not taboa.selected:
+            return
+        tarefa_id = taboa.selected[0]["id"]
+        tarefa_completa = next((t for t in tarefas if t.id == tarefa_id), None)
+        if tarefa_completa is None:
+            return
+        descricion_edit.value = tarefa_completa.descricion
+        parcela_edit.value = tarefa_completa.parcela_id or ""
+        cultivo_edit.value = tarefa_completa.cultivo_id or ""
+        data_edit.value = tarefa_completa.data.isoformat() if tarefa_completa.data else ""
+        data_limite_edit.value = (
+            tarefa_completa.data_limite.isoformat() if tarefa_completa.data_limite else ""
+        )
+        prioridade_edit.value = tarefa_completa.prioridade
+        notas_edit.value = tarefa_completa.notas or ""
+        dialog_editar.open()
+
+    def alternar_estado() -> None:
+        if not taboa.selected:
+            return
+        tarefa_id = taboa.selected[0]["id"]
+        tarefa_completa = next((t for t in tarefas if t.id == tarefa_id), None)
+        if tarefa_completa is None:
+            return
+        accion = marcar_pendente if tarefa_completa.estado == "feito" else marcar_feita
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            if actor_actual is None:
+                pechar_sesion()
+                return
+            obxectivo = next(
+                (t for t in listar_tarefas(session, actor_actual, horta_id) if t.id == tarefa_id),
+                None,
+            )
+            if obxectivo is None:
+                ui.notify("Esa tarefa xa non existe", type="negative")
+                return
+            feito = executar_accion(session, lambda: accion(session, actor_actual, obxectivo))
+        if not feito:
+            return
+        ui.navigate.reload()
+
+    def eliminar_seleccionada() -> None:
+        if not taboa.selected:
+            return
+        tarefa_id = taboa.selected[0]["id"]
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            if actor_actual is None:
+                pechar_sesion()
+                return
+            obxectivo = next(
+                (t for t in listar_tarefas(session, actor_actual, horta_id) if t.id == tarefa_id),
+                None,
+            )
+            if obxectivo is None:
+                ui.notify("Esa tarefa xa non existe", type="negative")
+                return
+            eliminado = executar_accion(
+                session, lambda: eliminar_tarefa(session, actor_actual, obxectivo)
+            )
+        if not eliminado:
+            return
+        ui.navigate.reload()
