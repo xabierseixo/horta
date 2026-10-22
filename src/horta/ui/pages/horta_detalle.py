@@ -64,6 +64,8 @@ from horta.ui.accions import executar_accion
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.filtros import filtrar_filas
 from horta.ui.nav import cabeceira_paxina
+from horta.ui.pages.maquinaria import seccion_maquinaria
+from horta.ui.pages.persoas import seccion_persoas
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 _PROPS_TABOA = 'dense no-data-label="Non hai rexistros"'
@@ -202,6 +204,8 @@ def horta_detalle_page(horta_id: int) -> None:
         pestana_fertilizacion = ui.tab("Fertilización")
         pestana_tarefas = ui.tab("Tarefas")
         pestana_animais = ui.tab("Animais")
+        pestana_persoas = ui.tab("Persoas")
+        pestana_maquinaria = ui.tab("Maquinaria")
         if e_horta_admin:
             pestana_membros = ui.tab("Membros")
 
@@ -226,6 +230,10 @@ def horta_detalle_page(horta_id: int) -> None:
             _seccion_fertilizacion(horta_id, fertilizacions, cultivos, parcelas, pode_editar)
         with ui.tab_panel(pestana_tarefas):
             _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
+        with ui.tab_panel(pestana_persoas):
+            seccion_persoas(horta_id, pode_editar)
+        with ui.tab_panel(pestana_maquinaria):
+            seccion_maquinaria(horta_id, pode_editar)
         with ui.tab_panel(pestana_animais):
             _seccion_animais(horta_id, animais, pode_editar)
         if e_horta_admin:
