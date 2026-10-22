@@ -9,6 +9,7 @@ from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
+from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -37,6 +38,12 @@ def _horta_id_da_parcela(session: Session, parcela_id: int) -> int | None:
     return session.query(Parcela.horta_id).filter_by(id=parcela_id).scalar()
 
 
+def _validar_cantidade(campos: dict[str, Any]) -> None:
+    if "cantidade" in campos and campos["cantidade"] is not None:
+        if campos["cantidade"] < 0:
+            raise OperacionNonPermitidaError("A cantidade non pode ser negativa")
+
+
 def crear_cultivo(
     session: Session,
     actor: Usuario,
@@ -48,6 +55,7 @@ def crear_cultivo(
     if horta_id is None:
         raise ValueError("Esa parcela non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_cantidade(campos)
     estado = campos.pop("estado", "planificado")
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, estado=estado, **campos)
     session.add(cultivo)
@@ -68,6 +76,7 @@ def actualizar_cultivo(
     if horta_id is None:
         raise ValueError("A parcela deste cultivo xa non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_cantidade(cambios)
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
     session.commit()

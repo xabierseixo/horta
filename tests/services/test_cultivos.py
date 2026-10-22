@@ -167,3 +167,25 @@ def test_eliminar_cultivo_desliga_tarefas_sen_borralas(session):
 
     session.refresh(tarefa)
     assert tarefa.cultivo_id is None
+
+
+def test_cantidade_negativa_ao_crear_cultivo(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+
+    with pytest.raises(ValueError, match="A cantidade non pode ser negativa"):
+        crear_cultivo(session, ana, parcela.id, "Tomate", cantidade=-1.0)
+
+
+def test_cantidade_negativa_ao_actualizar_cultivo(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate", cantidade=12.0)
+
+    with pytest.raises(ValueError, match="A cantidade non pode ser negativa"):
+        actualizar_cultivo(session, ana, cultivo, cantidade=-3.0)
+
+    session.refresh(cultivo)
+    assert cultivo.cantidade == 12.0
