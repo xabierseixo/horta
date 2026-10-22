@@ -1,4 +1,12 @@
 from horta.models.animal import Animal
+from horta.models.catalogo import (
+    CatalogoValor,
+    CatalogoVersion,
+    CultivoSiex,
+    NomeGalego,
+    VariedadeLocal,
+    VariedadeSiex,
+)
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela, SecanoRegadio
@@ -18,4 +26,10 @@ __all__ = [
     "Tratamento",
     "Fertilizacion",
     "Tarefa",
+    "CatalogoVersion",
+    "CatalogoValor",
+    "CultivoSiex",
+    "VariedadeSiex",
+    "NomeGalego",
+    "VariedadeLocal",
 ]
