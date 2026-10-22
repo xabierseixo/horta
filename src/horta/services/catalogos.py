@@ -1,4 +1,3 @@
-# src/horta/services/catalogos.py
 from __future__ import annotations
 
 import csv

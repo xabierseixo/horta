@@ -1,4 +1,3 @@
-# src/horta/services/catalogos_importar.py
 """Importación dos catálogos oficiais do FEGA (portal público SIEX, XLSX).
 
 Idempotente: o mesmo ficheiro (mesmo sha256) non se reimporta. Nunca borra

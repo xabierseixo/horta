@@ -1,4 +1,3 @@
-# src/horta/models/catalogo.py
 from __future__ import annotations
 
 from datetime import date, datetime, timezone

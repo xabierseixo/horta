@@ -1,4 +1,3 @@
-# tests/services/test_catalogos.py
 from datetime import date
 from pathlib import Path
 

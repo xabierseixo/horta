@@ -1,4 +1,3 @@
-# tests/models/test_catalogo.py
 from datetime import date
 
 import pytest
