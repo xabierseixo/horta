@@ -71,7 +71,7 @@ from horta.ui.pages.persoas import seccion_persoas
 from horta.ui.pages.tratamentos_fito import seccion_tratamentos_fito
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
-_PROPS_TABOA = 'dense no-data-label="Non hai rexistros"'
+_PROPS_TABOA = 'flat bordered no-data-label="Aínda non hai rexistros"'
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -282,7 +282,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                 ui.button("Cancelar", on_click=dialog_nova_parcela.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Parcelas").classes("text-lg font-bold")
+        ui.space()
         if pode_editar:
             ui.button("Nova parcela", icon="add", on_click=dialog_nova_parcela.open)
 
@@ -480,7 +480,7 @@ def _seccion_cultivos(horta_id: int, cultivos: list, parcelas: list, pode_editar
                 ui.button("Cancelar", on_click=dialog_novo_cultivo.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Cultivos").classes("text-lg font-bold")
+        ui.space()
         if pode_editar:
             ui.button("Novo cultivo", icon="add", on_click=dialog_novo_cultivo.open)
 
@@ -743,7 +743,7 @@ def _seccion_fertilizacion(
                 ui.button("Cancelar", on_click=dialog_nova_fertilizacion.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Fertilización").classes("text-lg font-bold")
+        ui.space()
         if pode_editar:
             ui.button("Nova fertilización", icon="add", on_click=dialog_nova_fertilizacion.open)
 
@@ -973,7 +973,7 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
                 ui.button("Cancelar", on_click=dialog_novo_animal.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Animais").classes("text-lg font-bold")
+        ui.space()
         if pode_editar:
             ui.button("Novo animal", icon="add", on_click=dialog_novo_animal.open)
 
@@ -1186,7 +1186,7 @@ def _seccion_membros(horta_id: int) -> None:
             ui.button("Cancelar", on_click=dialog_engadir.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Membros").classes("text-lg font-bold")
+        ui.space()
         ui.button("Engadir membro", icon="person_add", on_click=dialog_engadir.open)
 
     with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
@@ -1406,7 +1406,7 @@ def _seccion_tarefas(
                 ui.button("Cancelar", on_click=dialog_nova_tarefa.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Tarefas").classes("text-lg font-bold")
+        ui.space()
         if pode_editar:
             ui.button("Nova tarefa", icon="add", on_click=dialog_nova_tarefa.open)
 

@@ -72,8 +72,10 @@ body { font-family: Inter, system-ui, sans-serif; background: var(--cor-fondo);
 .aviso { background: var(--cor-aviso-fondo); border: 1px solid var(--cor-aviso-bordo);
          color: var(--cor-aviso-texto); border-radius: 10px; padding: 12px 16px;
          font-size: 14px; }
-.taboa { border-radius: 12px; border: 1px solid var(--cor-bordo); }
-.taboa thead th { color: var(--cor-texto-suave); font-size: 12px; font-weight: 600;
+.taboa, .q-table__container { border-radius: 12px; border: 1px solid var(--cor-bordo);
+                               box-shadow: none; }
+.taboa thead th, .q-table thead th { color: var(--cor-texto-suave); font-size: 12px;
+                                      font-weight: 600;
                   text-transform: uppercase; letter-spacing: .05em; }
 .texto-suave { color: var(--cor-texto-suave); }
 </style>
