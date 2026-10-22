@@ -17,6 +17,7 @@ from openpyxl import load_workbook
 from sqlalchemy.orm import Session
 
 from horta.models.catalogo import CatalogoValor, CatalogoVersion, CultivoSiex, VariedadeSiex
+from horta.services.errors import OperacionNonPermitidaError
 
 # clave interna -> (ficheiro no portal FEGA, columna do código, columna da descrición;
 # None = 2ª columna). Verificado contra os ficheiros descargados o 2026-10-22.
@@ -84,6 +85,12 @@ def _codigo(valor: Any) -> str:
     return texto[:-2] if texto.endswith(".0") else texto
 
 
+def _xa_importado(session: Session, catalogo: str, ruta: Path) -> bool:
+    sha = _sha256(ruta)
+    existente = session.query(CatalogoVersion).filter_by(catalogo=catalogo, sha256=sha).first()
+    return existente is not None
+
+
 def _nova_version(
     session: Session, catalogo: str, ruta: Path, filas: int
 ) -> CatalogoVersion | None:
@@ -103,6 +110,8 @@ def importar_catalogo(
         raise ValueError(f"Catálogo descoñecido: {catalogo}")
     hoxe = hoxe or date.today()
     _, columna_codigo, columna_descricion = CATALOGOS_XERAIS[catalogo]
+    if _xa_importado(session, catalogo, ruta):
+        return InformeImportacion(catalogo=catalogo, xa_importado=True)
     cabeceira, filas = _ler_xlsx(ruta)
     informe = InformeImportacion(catalogo=catalogo)
     version = _nova_version(session, catalogo, ruta, len(filas))
@@ -144,6 +153,8 @@ def importar_cultivos(
     session: Session, ruta: Path, hoxe: date | None = None
 ) -> InformeImportacion:
     hoxe = hoxe or date.today()
+    if _xa_importado(session, "cultivo", ruta):
+        return InformeImportacion(catalogo="cultivo", xa_importado=True)
     _, filas = _ler_xlsx(ruta)
     informe = InformeImportacion(catalogo="cultivo")
     version = _nova_version(session, "cultivo", ruta, len(filas))
@@ -186,6 +197,12 @@ def importar_variedades(
     session: Session, ruta: Path, hoxe: date | None = None
 ) -> InformeImportacion:
     hoxe = hoxe or date.today()
+    if _xa_importado(session, "variedade", ruta):
+        return InformeImportacion(catalogo="variedade", xa_importado=True)
+    if session.query(CultivoSiex.codigo).first() is None:
+        raise OperacionNonPermitidaError(
+            "Importa primeiro os cultivos (PRODUCTOS.xlsx) e despois as variedades"
+        )
     _, filas = _ler_xlsx(ruta)
     informe = InformeImportacion(catalogo="variedade")
     version = _nova_version(session, "variedade", ruta, len(filas))

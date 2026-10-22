@@ -109,3 +109,17 @@ def test_importa_cultivos_e_variedades(session, tmp_path):
     assert informe.altas == 2
     assert session.query(VariedadeSiex).filter_by(cultivo_codigo=99, codigo=12).one() \
         .nome_oficial == "KENNEBEC"
+
+
+def test_variedades_sen_cultivos_non_queda_marcado_como_importado(session, tmp_path):
+    import pytest
+
+    from horta.services.errors import OperacionNonPermitidaError
+
+    fv = _xlsx(tmp_path / "VARIEDAD_ESPECIE_TIPO.xlsx",
+               ["Código cultivo", "Código Variedad/ Especie/ Tipo", "Variedad/ Especie/ Tipo",
+                "Fecha de baja"],
+               [["99", "12", "KENNEBEC", None]])
+    with pytest.raises(OperacionNonPermitidaError, match="Importa primeiro os cultivos"):
+        importar_variedades(session, fv)
+    assert session.query(CatalogoVersion).count() == 0

@@ -14,6 +14,7 @@ from horta.services.catalogos_importar import (
     importar_cultivos,
     importar_variedades,
 )
+from horta.services.errors import OperacionNonPermitidaError
 
 _NOMES_GALEGOS = Path(__file__).parent / "data" / "nomes_galegos.csv"
 
@@ -33,7 +34,10 @@ def _importar(directorio: Path) -> int:
             _imprimir(importar_cultivos(session, cultivos))
         variedades = directorio / "VARIEDAD_ESPECIE_TIPO.xlsx"
         if variedades.exists():
-            _imprimir(importar_variedades(session, variedades))
+            try:
+                _imprimir(importar_variedades(session, variedades))
+            except OperacionNonPermitidaError as erro:
+                print(f"variedade: {erro}")
         for clave, (ficheiro, _, _) in CATALOGOS_XERAIS.items():
             ruta = directorio / f"{ficheiro}.xlsx"
             if ruta.exists():
