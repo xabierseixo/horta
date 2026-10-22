@@ -10,6 +10,7 @@ from horta.models.catalogo import (
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela, SecanoRegadio
+from horta.models.persoa import Persoa, TipoCarne
 from horta.models.tarefa import Tarefa
 from horta.models.usuario import RolGlobal, Usuario
 
@@ -32,4 +33,6 @@ __all__ = [
     "VariedadeSiex",
     "NomeGalego",
     "VariedadeLocal",
+    "Persoa",
+    "TipoCarne",
 ]
