@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from horta.models.animal import Animal
 from horta.models.horta import RolHorta
 from horta.models.usuario import Usuario
+from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -21,6 +22,12 @@ CAMPOS_EDITABLES_ANIMAL = frozenset(
 )
 
 
+def _validar_cantidade(campos: dict[str, Any]) -> None:
+    if "cantidade" in campos and campos["cantidade"] is not None:
+        if campos["cantidade"] < 1:
+            raise OperacionNonPermitidaError("A cantidade ten que ser polo menos 1")
+
+
 def crear_animal(
     session: Session,
     actor: Usuario,
@@ -30,6 +37,7 @@ def crear_animal(
     **campos: Any,
 ) -> Animal:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_cantidade(campos)
     estado = campos.pop("estado", "activo")
     animal = Animal(
         horta_id=horta_id, especie=especie, data_alta=data_alta, estado=estado, **campos
@@ -49,6 +57,7 @@ def actualizar_animal(
     if non_editables:
         raise ValueError(f"Campos non editables nun animal: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
+    _validar_cantidade(cambios)
     for campo, valor in cambios.items():
         setattr(animal, campo, valor)
     session.commit()

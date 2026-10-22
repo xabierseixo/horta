@@ -98,3 +98,24 @@ def test_actualizar_animal_rexeita_campos_non_editables(session, campo):
     assert animal.id == id_orixinal
     assert animal.horta_id == horta.id
     assert animal.cantidade == 6
+
+
+@pytest.mark.parametrize("cantidade", [0, -2])
+def test_cantidade_menor_que_un_ao_crear(session, cantidade):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(ValueError, match="A cantidade ten que ser polo menos 1"):
+        crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA, cantidade=cantidade)
+
+
+def test_cantidade_menor_que_un_ao_actualizar(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    animal = crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA, cantidade=6)
+
+    with pytest.raises(ValueError, match="A cantidade ten que ser polo menos 1"):
+        actualizar_animal(session, ana, animal, cantidade=0)
+
+    session.refresh(animal)
+    assert animal.cantidade == 6
