@@ -161,6 +161,7 @@ def test_eliminar_parcela_borra_en_cascada_cultivo_con_tratamento_e_fertilizacio
     assert session.get(Tratamento, tratamento_id) is None
     assert session.get(Fertilizacion, fertilizacion_id) is None
 
+
 def test_crear_parcela_con_coordenadas(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
