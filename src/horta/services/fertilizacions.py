@@ -8,6 +8,7 @@ from horta.models.cultivo import Cultivo, Fertilizacion
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
+from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -42,6 +43,15 @@ def _horta_id_do_cultivo(session: Session, cultivo_id: int) -> int | None:
     )
 
 
+_CAMPOS_NON_NEGATIVOS = ("superficie", "n", "p", "k", "carbono_organico")
+
+
+def _validar_non_negativos(campos: dict[str, Any]) -> None:
+    for campo in _CAMPOS_NON_NEGATIVOS:
+        if campo in campos and campos[campo] is not None and campos[campo] < 0:
+            raise OperacionNonPermitidaError(f"O campo {campo} non pode ser negativo")
+
+
 def crear_fertilizacion(
     session: Session,
     actor: Usuario,
@@ -55,6 +65,7 @@ def crear_fertilizacion(
     if horta_id is None:
         raise ValueError("Ese cultivo non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_non_negativos(campos)
     fertilizacion = Fertilizacion(
         cultivo_id=cultivo_id,
         data=data,
@@ -82,6 +93,7 @@ def actualizar_fertilizacion(
     if horta_id is None:
         raise ValueError("O cultivo desta fertilización xa non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_non_negativos(cambios)
     for campo, valor in cambios.items():
         setattr(fertilizacion, campo, valor)
     session.commit()

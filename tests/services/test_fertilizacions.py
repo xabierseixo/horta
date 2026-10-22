@@ -48,6 +48,39 @@ def test_admin_pode_crear_fertilizacion(session):
     assert fertilizacion.baixa is False
 
 
+@pytest.mark.parametrize("campo", ["superficie", "n", "p", "k", "carbono_organico"])
+def test_valor_negativo_ao_crear_fertilizacion(session, campo):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    cultivo = _crear_cultivo(session, ana, horta.id)
+
+    with pytest.raises(ValueError, match=f"O campo {campo} non pode ser negativo"):
+        crear_fertilizacion(
+            session,
+            ana,
+            cultivo.id,
+            date(2026, 4, 1),
+            "abonado_fondo",
+            "Compost",
+            **{campo: -1.0},
+        )
+
+
+def test_valor_negativo_ao_actualizar_fertilizacion(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    cultivo = _crear_cultivo(session, ana, horta.id)
+    fertilizacion = crear_fertilizacion(
+        session, ana, cultivo.id, date(2026, 4, 1), "abonado_fondo", "Compost", n=10.0
+    )
+
+    with pytest.raises(ValueError, match="O campo n non pode ser negativo"):
+        actualizar_fertilizacion(session, ana, fertilizacion, n=-3.0)
+
+    session.refresh(fertilizacion)
+    assert fertilizacion.n == 10.0
+
+
 def test_editor_pode_crear_fertilizacion_pero_lector_non(session):
     ana = _crear_usuario(session, "ana@example.com")
     bea = _crear_usuario(session, "bea@example.com")
