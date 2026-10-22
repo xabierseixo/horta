@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, String
+from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -22,6 +22,13 @@ class Horta(Base):
     nome: Mapped[str] = mapped_column(String(120))
     descricion: Mapped[str | None] = mapped_column(String(500), default=None)
     uso_profesional: Mapped[bool] = mapped_column(Boolean, default=False)
+    lat: Mapped[float | None] = mapped_column(Float, default=None)
+    lon: Mapped[float | None] = mapped_column(Float, default=None)
+    telefono: Mapped[str | None] = mapped_column(String(30), default=None)
+    foto_perfil: Mapped[str | None] = mapped_column(String(500), default=None)
+    ultima_conexion: Mapped[datetime | None] = mapped_column(
+        DateTime, default=None
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )

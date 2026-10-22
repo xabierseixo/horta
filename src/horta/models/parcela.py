@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -23,6 +23,8 @@ class Parcela(Base):
     descricion: Mapped[str | None] = mapped_column(String(500), default=None)
     superficie: Mapped[float | None] = mapped_column(Float, default=None)
     posicion: Mapped[str | None] = mapped_column(String(120), default=None)
+    lat: Mapped[float | None] = mapped_column(Float, default=None)
+    lon: Mapped[float | None] = mapped_column(Float, default=None)
     uso_aproveitamento: Mapped[str | None] = mapped_column(String(120), default=None)
     secano_regadio: Mapped[SecanoRegadio | None] = mapped_column(Enum(SecanoRegadio), default=None)
     sigpac_provincia: Mapped[str | None] = mapped_column(String(10), default=None)
@@ -30,6 +32,8 @@ class Parcela(Base):
     sigpac_poligono: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_parcela: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_subparcela: Mapped[str | None] = mapped_column(String(10), default=None)
+    geometria: Mapped[str | None] = mapped_column(Text, default=None)
+    imaxe: Mapped[str | None] = mapped_column(String(500), default=None)
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
     estado: Mapped[str] = mapped_column(String(50), default="activa")
     created_at: Mapped[datetime] = mapped_column(
