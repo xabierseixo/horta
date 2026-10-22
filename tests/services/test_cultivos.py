@@ -189,3 +189,47 @@ def test_cantidade_negativa_ao_actualizar_cultivo(session):
 
     session.refresh(cultivo)
     assert cultivo.cantidade == 12.0
+
+
+def test_colleita_anterior_a_sementeira_ao_crear(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+
+    with pytest.raises(ValueError, match="A data de colleita non pode ser anterior"):
+        crear_cultivo(
+            session,
+            ana,
+            parcela.id,
+            "Tomate",
+            data_sementeira=date(2026, 4, 1),
+            data_colleita_real=date(2026, 3, 1),
+        )
+
+
+def test_colleita_anterior_a_sementeira_existente_ao_actualizar(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(
+        session, ana, parcela.id, "Tomate", data_sementeira=date(2026, 4, 1)
+    )
+
+    with pytest.raises(ValueError, match="A data de colleita non pode ser anterior"):
+        actualizar_cultivo(session, ana, cultivo, data_colleita_real=date(2026, 3, 1))
+
+    session.refresh(cultivo)
+    assert cultivo.data_colleita_real is None
+
+
+def test_colleita_posterior_a_sementeira_acepta(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(
+        session, ana, parcela.id, "Tomate", data_sementeira=date(2026, 4, 1)
+    )
+
+    actualizar_cultivo(session, ana, cultivo, data_colleita_real=date(2026, 8, 15))
+
+    assert cultivo.data_colleita_real == date(2026, 8, 15)

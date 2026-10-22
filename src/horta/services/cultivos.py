@@ -44,6 +44,13 @@ def _validar_cantidade(campos: dict[str, Any]) -> None:
             raise OperacionNonPermitidaError("A cantidade non pode ser negativa")
 
 
+def _validar_datas(sementeira: Any, colleita: Any) -> None:
+    if sementeira is not None and colleita is not None and colleita < sementeira:
+        raise OperacionNonPermitidaError(
+            "A data de colleita non pode ser anterior á de sementeira"
+        )
+
+
 def crear_cultivo(
     session: Session,
     actor: Usuario,
@@ -56,6 +63,7 @@ def crear_cultivo(
         raise ValueError("Esa parcela non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_cantidade(campos)
+    _validar_datas(campos.get("data_sementeira"), campos.get("data_colleita_real"))
     estado = campos.pop("estado", "planificado")
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, estado=estado, **campos)
     session.add(cultivo)
@@ -77,6 +85,10 @@ def actualizar_cultivo(
         raise ValueError("A parcela deste cultivo xa non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_cantidade(cambios)
+    _validar_datas(
+        cambios.get("data_sementeira", cultivo.data_sementeira),
+        cambios.get("data_colleita_real", cultivo.data_colleita_real),
+    )
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
     session.commit()
