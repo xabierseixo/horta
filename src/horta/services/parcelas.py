@@ -9,6 +9,7 @@ from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
+from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -43,10 +44,10 @@ CAMPOS_EDITABLES_PARCELA = frozenset(
 def _validar_coordenadas(campos: dict[str, Any]) -> None:
     if "lat" in campos and campos["lat"] is not None:
         if not (-90 <= campos["lat"] <= 90):
-            raise ValueError("A latitude debe estar entre -90 e 90")
+            raise OperacionNonPermitidaError("A latitude debe estar entre -90 e 90")
     if "lon" in campos and campos["lon"] is not None:
         if not (-180 <= campos["lon"] <= 180):
-            raise ValueError("A lonxitude debe estar entre -180 e 180")
+            raise OperacionNonPermitidaError("A lonxitude debe estar entre -180 e 180")
 
 
 def crear_parcela(

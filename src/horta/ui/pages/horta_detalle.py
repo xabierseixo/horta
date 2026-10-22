@@ -273,7 +273,14 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
             ui.button("Nova parcela", icon="add", on_click=dialog_nova_parcela.open)
 
     todas_as_filas = [
-        {"id": p.id, "nome": p.nome, "superficie": p.superficie, "estado": p.estado}
+        {
+            "id": p.id,
+            "nome": p.nome,
+            "superficie": p.superficie,
+            "estado": p.estado,
+            "lat": p.lat,
+            "lon": p.lon,
+        }
         for p in parcelas
     ]
 
@@ -339,6 +346,8 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         nome_edit = ui.input("Nome")
         superficie_edit = ui.number("Superficie (m²)")
         estado_edit = ui.select(list(_ESTADOS_PARCELA), label="Estado", value="activa")
+        lat_edit = ui.number("Latitude", format="%.6f")
+        lon_edit = ui.number("Lonxitude", format="%.6f")
 
         def gardar() -> None:
             if not taboa.selected:
@@ -372,6 +381,8 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                         nome=nome_edit.value,
                         superficie=superficie_edit.value,
                         estado=estado_edit.value,
+                        lat=lat_edit.value,
+                        lon=lon_edit.value,
                     ),
                 )
             if not gardado:
@@ -389,6 +400,8 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         nome_edit.value = fila["nome"]
         superficie_edit.value = fila["superficie"]
         estado_edit.value = fila["estado"]
+        lat_edit.value = fila["lat"]
+        lon_edit.value = fila["lon"]
         dialog_editar.open()
 
     def eliminar_seleccionada() -> None:
@@ -415,9 +428,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         ui.navigate.reload()
 
 
-def _seccion_cultivos(
-    horta_id: int, cultivos: list, parcelas: list, pode_editar: bool
-) -> None:
+def _seccion_cultivos(horta_id: int, cultivos: list, parcelas: list, pode_editar: bool) -> None:
     parcelas_por_id = {p.id: p.nome for p in parcelas}
 
     if pode_editar:
@@ -930,9 +941,7 @@ def _seccion_fertilizacion(
             ui.label("Nova fertilización").classes("text-md font-bold")
             cultivo_select = ui.select(etiquetas_cultivo, label="Cultivo")
             data_input = ui.input("Data (AAAA-MM-DD)")
-            tipo_select = ui.select(
-                ["emenda", "abonado_fondo", "cobertoira"], label="Tipo"
-            )
+            tipo_select = ui.select(["emenda", "abonado_fondo", "cobertoira"], label="Tipo")
             produto_input = ui.input("Produto")
 
             def crear() -> None:
@@ -1121,9 +1130,7 @@ def _seccion_fertilizacion(
         if not taboa.selected:
             return
         fertilizacion_id = taboa.selected[0]["id"]
-        fertilizacion_completa = next(
-            (f for f in fertilizacions if f.id == fertilizacion_id), None
-        )
+        fertilizacion_completa = next((f for f in fertilizacions if f.id == fertilizacion_id), None)
         if fertilizacion_completa is None:
             return
         data_edit.value = fertilizacion_completa.data.isoformat()
@@ -1223,9 +1230,9 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
 
     with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
         busca_input = ui.input("Buscar").props("dense clearable")
-        estado_select = ui.select(
-            ["Todos", *_ESTADOS_ANIMAL], label="Estado", value="Todos"
-        ).props("dense")
+        estado_select = ui.select(["Todos", *_ESTADOS_ANIMAL], label="Estado", value="Todos").props(
+            "dense"
+        )
 
     taboa = (
         ui.table(
@@ -1424,9 +1431,7 @@ def _seccion_membros(horta_id: int) -> None:
 
     with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
         busca_input = ui.input("Buscar").props("dense clearable")
-        rol_select = ui.select(
-            ["Todos", *_ROLES_HORTA], label="Rol", value="Todos"
-        ).props("dense")
+        rol_select = ui.select(["Todos", *_ROLES_HORTA], label="Rol", value="Todos").props("dense")
 
     taboa = (
         ui.table(
