@@ -309,3 +309,42 @@ def test_eliminar_horta_borra_tarefas(session):
     eliminar_horta(session, ana, horta)
 
     assert session.get(Tarefa, tarefa_id) is None
+
+
+def test_eliminar_horta_con_persoas_e_maquinas(session):
+    from horta.models.maquina import Maquina
+    from horta.models.persoa import Persoa
+    from horta.services.maquinaria import crear_maquina
+    from horta.services.persoas import crear_persoa
+
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    crear_persoa(session, ana, horta.id, "Xan")
+    crear_maquina(session, ana, horta.id, "Mochila")
+
+    eliminar_horta(session, ana, horta)
+
+    assert session.get(Horta, horta.id) is None
+    assert session.query(Persoa).count() == 0
+    assert session.query(Maquina).count() == 0
+
+
+def test_non_se_pode_eliminar_horta_con_tratamentos_fito(session):
+    from horta.models.tratamento_fito import TratamentoCultivo, TratamentoFito
+
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "P1")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Pataca")
+    tratamento = TratamentoFito(
+        horta_id=horta.id,
+        data_inicio=datetime.date(2026, 5, 1),
+        data_fin=datetime.date(2026, 5, 1),
+    )
+    tratamento.cultivos.append(TratamentoCultivo(cultivo_id=cultivo.id, superficie_ha=0.1))
+    session.add(tratamento)
+    session.commit()
+
+    with pytest.raises(OperacionNonPermitidaError, match="tratamentos fitosanitarios"):
+        eliminar_horta(session, ana, horta)
+    assert session.get(Horta, horta.id) is not None

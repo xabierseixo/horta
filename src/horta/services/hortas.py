@@ -7,8 +7,11 @@ from sqlalchemy.orm import Session
 from horta.models.animal import Animal
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import Horta, HortaMembro, RolHorta
+from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela
+from horta.models.persoa import Persoa
 from horta.models.tarefa import Tarefa
+from horta.models.tratamento_fito import TratamentoFito
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 
@@ -82,6 +85,11 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     explicitamente os rexistros dependentes antes da propia horta.
     """
     comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
+    if session.query(TratamentoFito).filter_by(horta_id=horta.id).first():
+        raise OperacionNonPermitidaError(
+            "Esta horta ten tratamentos fitosanitarios rexistrados e debe conservarse "
+            "(obriga legal)."
+        )
     for tarefa in session.query(Tarefa).filter_by(horta_id=horta.id).all():
         session.delete(tarefa)
     # As Tarefas poden referenciar Parcela/Cultivo (FK opcionais) — hai que
@@ -117,6 +125,10 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
         session.delete(animal)
     for membro in session.query(HortaMembro).filter_by(horta_id=horta.id).all():
         session.delete(membro)
+    for persoa in session.query(Persoa).filter_by(horta_id=horta.id).all():
+        session.delete(persoa)
+    for maquina in session.query(Maquina).filter_by(horta_id=horta.id).all():
+        session.delete(maquina)
     # SQLAlchemy non ten relationship() entre estes modelos, así que non hai
     # información de dependencia para ordenar o DELETE automaticamente. Sen
     # este flush, os borrados poden enviarse na orde inversa (horta antes dos
