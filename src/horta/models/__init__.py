@@ -13,6 +13,16 @@ from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa, TipoCarne
 from horta.models.tarefa import Tarefa
+from horta.models.tratamento_fito import (
+    TratamentoAplicador,
+    TratamentoAsesor,
+    TratamentoCultivo,
+    TratamentoFito,
+    TratamentoMedida,
+    TratamentoProblema,
+    TratamentoProduto,
+    TratamentoXustificacion,
+)
 from horta.models.usuario import RolGlobal, Usuario
 
 __all__ = [
@@ -37,4 +47,12 @@ __all__ = [
     "Persoa",
     "TipoCarne",
     "Maquina",
+    "TratamentoFito",
+    "TratamentoCultivo",
+    "TratamentoProblema",
+    "TratamentoXustificacion",
+    "TratamentoProduto",
+    "TratamentoMedida",
+    "TratamentoAplicador",
+    "TratamentoAsesor",
 ]
