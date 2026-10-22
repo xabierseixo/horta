@@ -65,7 +65,8 @@ def buscar_cultivos(
         nome_gl, prioridade = nomes.get(cultivo.codigo, (None, 0))
         nome = nome_gl or cultivo.nome_oficial.capitalize()
         candidatos = [normalizar(nome), normalizar(cultivo.nome_oficial)]
-        if not buscado or any(buscado in c for c in candidatos):
+        palabras = [p for c in candidatos for p in c.split()]
+        if not buscado or any(c.startswith(buscado) for c in candidatos + palabras):
             resultado.append((-prioridade, normalizar(nome), cultivo))
     resultado.sort(key=lambda r: (r[0], r[1]))
     return [(c, nomes.get(c.codigo, (None, 0))[0] or c.nome_oficial.capitalize())

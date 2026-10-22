@@ -7,6 +7,7 @@ códigos: os que desaparecen quedan con data_baixa (conservación legal).
 from __future__ import annotations
 
 import hashlib
+import warnings
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -51,7 +52,10 @@ def _sha256(ruta: Path) -> str:
 
 
 def _ler_xlsx(ruta: Path) -> tuple[list[str], list[dict[str, Any]]]:
-    wb = load_workbook(ruta, read_only=False, data_only=True)
+    with warnings.catch_warnings():
+        # Os ficheiros do FEGA non levan estilo por defecto; o aviso non afecta aos datos.
+        warnings.simplefilter("ignore", UserWarning)
+        wb = load_workbook(ruta, read_only=False, data_only=True)
     ws = wb.active
     filas = [f for f in ws.iter_rows(values_only=True) if any(c is not None for c in f)]
     cabeceira = [str(c).strip() if c is not None else "" for c in filas[0]]

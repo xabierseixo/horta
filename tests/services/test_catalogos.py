@@ -70,3 +70,16 @@ def test_cargar_nomes_galegos(session, tmp_path: Path):
     ruta.write_text("codigo;nome_gl;prioridade\n484;Grelos;9\n", encoding="utf-8")
     assert cargar_nomes_galegos(session, ruta) == 1
     assert session.query(NomeGalego).filter_by(codigo="484").one().prioridade == 9
+
+
+def test_buscar_cultivos_por_comezo_de_palabra(session):
+    _preparar(session)
+    v = session.query(CatalogoVersion).first()
+    session.add_all([
+        CultivoSiex(codigo=519, nome_oficial="FESTUCA OVINA", version_id=v.id),
+        CultivoSiex(codigo=102, nome_oficial="VIÑA", version_id=v.id),
+        CultivoSiex(codigo=884, nome_oficial="IMPATIENS", version_id=v.id),
+    ])
+    session.commit()
+    assert [c.codigo for c, _ in buscar_cultivos(session, "viña")] == [102]
+    assert 884 not in [c.codigo for c, _ in buscar_cultivos(session, "pat")]
