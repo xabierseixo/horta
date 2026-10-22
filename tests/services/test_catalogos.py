@@ -83,3 +83,14 @@ def test_buscar_cultivos_por_comezo_de_palabra(session):
     session.commit()
     assert [c.codigo for c, _ in buscar_cultivos(session, "viña")] == [102]
     assert 884 not in [c.codigo for c, _ in buscar_cultivos(session, "pat")]
+
+
+def test_codigo_non_vale_antes_da_data_de_alta(session):
+    _preparar(session)
+    v = session.query(CatalogoVersion).first()
+    session.add(CatalogoValor(catalogo="praga", codigo="3", descricion="Nova",
+                              version_id=v.id, data_alta=date(2026, 6, 1)))
+    session.commit()
+    with pytest.raises(OperacionNonPermitidaError, match="non existe ou está de baixa"):
+        validar_codigo(session, "praga", "3", date(2026, 5, 1))
+    assert validar_codigo(session, "praga", "3", date(2026, 6, 1)).descricion == "Nova"

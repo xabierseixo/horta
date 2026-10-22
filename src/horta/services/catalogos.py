@@ -37,7 +37,8 @@ def validar_codigo(session: Session, catalogo: str, codigo: str, na_data: date) 
     valor = (
         session.query(CatalogoValor)
         .filter(CatalogoValor.catalogo == catalogo, CatalogoValor.codigo == codigo,
-                _vixente(na_data))
+                _vixente(na_data),
+                or_(CatalogoValor.data_alta.is_(None), CatalogoValor.data_alta <= na_data))
         .first()
     )
     if valor is None:
