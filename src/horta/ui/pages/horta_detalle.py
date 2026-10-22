@@ -239,6 +239,8 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
             ui.label("Nova parcela").classes("text-md font-bold")
             nome_input = ui.input("Nome")
             superficie_input = ui.number("Superficie (m²)")
+            lat_input = ui.number("Latitude", format="%.6f")
+            lon_input = ui.number("Lonxitude", format="%.6f")
 
             def crear() -> None:
                 if not nome_input.value:
@@ -257,6 +259,8 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                             horta_id,
                             nome_input.value,
                             superficie=superficie_input.value,
+                            lat=lat_input.value,
+                            lon=lon_input.value,
                         ),
                     )
                 if not creada:
