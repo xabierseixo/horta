@@ -8,6 +8,7 @@ from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
+from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
@@ -93,6 +94,14 @@ def actualizar_parcela(
 
 def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None:
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
+    ids_cultivos = [c.id for c in session.query(Cultivo).filter_by(parcela_id=parcela.id)]
+    if ids_cultivos and session.query(TratamentoCultivo).filter(
+        TratamentoCultivo.cultivo_id.in_(ids_cultivos)
+    ).first():
+        raise OperacionNonPermitidaError(
+            "Esta parcela ten tratamentos fitosanitarios rexistrados e debe conservarse "
+            "(obriga legal)."
+        )
     session.query(Tarefa).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
     cultivos = session.query(Cultivo).filter_by(parcela_id=parcela.id).all()
     for cultivo in cultivos:

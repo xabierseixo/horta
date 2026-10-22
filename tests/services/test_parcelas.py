@@ -232,3 +232,21 @@ def test_superficie_negativa_ao_actualizar(session):
 
     session.refresh(parcela)
     assert parcela.superficie == 500.0
+
+
+def test_non_se_pode_eliminar_parcela_con_tratamentos_fito(session):
+    from horta.models.tratamento_fito import TratamentoCultivo, TratamentoFito
+
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Pataca")
+    tratamento = TratamentoFito(
+        horta_id=horta.id, data_inicio=date(2026, 5, 1), data_fin=date(2026, 5, 1)
+    )
+    tratamento.cultivos.append(TratamentoCultivo(cultivo_id=cultivo.id, superficie_ha=0.1))
+    session.add(tratamento)
+    session.commit()
+
+    with pytest.raises(ValueError, match="tratamentos fitosanitarios"):
+        eliminar_parcela(session, ana, parcela)
