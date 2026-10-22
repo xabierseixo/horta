@@ -145,6 +145,8 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
     if not datos.produtos and not datos.medidas:
         raise _erro("Indica polo menos un produto ou unha medida non química")
     for produto in datos.produtos:
+        if not produto.unidade:
+            raise _erro("Indica a unidade da dose ou cantidade do produto")
         if (produto.dose is None) == (produto.cantidade is None):
             raise _erro("Indica a dose ou a cantidade do produto (só unha das dúas)")
         valor = produto.dose if produto.dose is not None else produto.cantidade

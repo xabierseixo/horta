@@ -193,3 +193,23 @@ def test_non_se_pode_eliminar_cultivo_con_tratamentos(session):
     crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina))
     with pytest.raises(OperacionNonPermitidaError, match="tratamentos fitosanitarios"):
         eliminar_cultivo(session, ana, cultivo)
+
+
+def test_produto_sen_unidade_mensaxe_clara(session):
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    produto = LinhaProduto(tipo_produto="1", unidade="", num_rexistro="ES-1", dose=1.0)
+    with pytest.raises(OperacionNonPermitidaError, match="Indica a unidade"):
+        crear_tratamento_fito(session, ana, horta.id,
+                              _datos(cultivo, xan, maquina, produtos=[produto]))
+
+
+def test_renovar_ropo_permite_rexistrar(session):
+    from horta.services.persoas import actualizar_persoa
+
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    datos = _datos(cultivo, xan, maquina, data_inicio=date(2026, 6, 1),
+                   data_fin=date(2026, 6, 1))
+    with pytest.raises(OperacionNonPermitidaError, match="caducou"):
+        crear_tratamento_fito(session, ana, horta.id, datos)
+    actualizar_persoa(session, ana, xan, ropo_caducidade=date(2030, 1, 1))
+    assert crear_tratamento_fito(session, ana, horta.id, datos).id is not None

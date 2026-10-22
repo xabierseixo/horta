@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from datetime import date
-
 from nicegui import ui
 
 from horta.db import get_session
 from horta.services.maquinaria import crear_maquina, listar_maquinas
 from horta.ui.accions import executar_accion
-from horta.ui.numeros import parsear_decimal
+from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 
@@ -62,8 +60,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
                 ok = executar_accion(session, lambda: crear_maquina(
                     session, actor, horta_id, alias.value, marca_modelo=marca.value or None,
                     propia=propia.value, potencia=parsear_decimal(potencia.value),
-                    data_ultima_inspeccion=date.fromisoformat(inspeccion.value)
-                    if inspeccion.value else None,
+                    data_ultima_inspeccion=parsear_data(inspeccion.value),
                     **({campo: ident.value} if ident.value else {})))
             if ok:
                 ui.navigate.reload()

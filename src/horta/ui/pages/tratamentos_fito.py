@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date
 
 from nicegui import ui
 
 from horta.db import get_session
 from horta.models.cultivo import Cultivo
 from horta.models.parcela import Parcela
-from horta.models.tratamento_fito import TIPOS_PROBLEMA
+from horta.models.tratamento_fito import TIPOS_PROBLEMA, TratamentoFito
 from horta.services.catalogos import describir, valores_vixentes
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
@@ -20,31 +20,23 @@ from horta.services.tratamentos_fito import (
     LinhaProduto,
     Problema,
     crear_tratamento_fito,
+    dar_de_baixa_tratamento_fito,
     faltas_para_cue,
     listar_tratamentos_fito,
 )
 from horta.ui.accions import executar_accion
-from horta.ui.numeros import parsear_decimal
+from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.numeros import parsear_data, parsear_decimal, parsear_hora
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 _ETIQUETA_PROBLEMA = {"enfermidade": "Enfermidade", "praga": "Praga (artrópodos/gasterópodos)",
                       "mala_herba": "Mala herba", "regulador": "Regulador / outros"}
 
 
-def _data(texto: str | None) -> date:
-    try:
-        return date.fromisoformat((texto or "").strip())
-    except ValueError:
-        raise OperacionNonPermitidaError("Data non válida: usa AAAA-MM-DD") from None
-
-
-def _hora(texto: str | None) -> time | None:
-    if not texto or not texto.strip():
-        return None
-    try:
-        return time.fromisoformat(texto.strip())
-    except ValueError:
-        raise OperacionNonPermitidaError("Hora non válida: usa HH:MM") from None
+def _obrigatoria(valor: date | None) -> date:
+    if valor is None:
+        raise OperacionNonPermitidaError("Indica as datas de inicio e fin")
+    return valor
 
 
 def _opcions(session, catalogo: str) -> dict[str, str]:
@@ -87,11 +79,12 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                        if p.e_aplicador}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
-    ui.table(
+    taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivos", "Cultivos"), ("problemas", "Problema"),
             ("produtos", "Produtos"), ("cue", "CUE"))],
         rows=filas, row_key="id",
+        selection="single" if pode_editar else None,
     ).classes("w-full").props('no-data-label="Aínda non hai tratamentos rexistrados"')
 
     if not pode_editar:
@@ -162,9 +155,9 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
 
                         def crear() -> None:
                             datos = DatosTratamento(
-                                data_inicio=_data(data_inicio.value),
-                                data_fin=_data(data_fin.value),
-                                hora=_hora(hora.value),
+                                data_inicio=_obrigatoria(parsear_data(data_inicio.value)),
+                                data_fin=_obrigatoria(parsear_data(data_fin.value)),
+                                hora=parsear_hora(hora.value),
                                 cultivos=[LinhaCultivo(cultivo.value,
                                                        parsear_decimal(superficie.value),
                                                        estado.value)],
@@ -195,4 +188,33 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
         ui.button("Pechar", on_click=dialogo.close).props("flat")
 
-    ui.button("Novo tratamento", icon="add", on_click=dialogo.open)
+    def dar_de_baixa() -> None:
+        if not taboa.selected:
+            ui.notify("Selecciona un tratamento na táboa", type="warning")
+            return
+        tratamento_id = taboa.selected[0]["id"]
+
+        def confirmar() -> None:
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                tratamento = session.get(TratamentoFito, tratamento_id)
+                if actor_actual is None or tratamento is None:
+                    return
+                ok = executar_accion(
+                    session,
+                    lambda: dar_de_baixa_tratamento_fito(session, actor_actual, tratamento),
+                )
+            if ok:
+                ui.navigate.reload()
+
+        confirmar_eliminacion(
+            "Dar de baixa este tratamento? Non se borra: consérvase no histórico "
+            "(obriga legal), pero deixa de aparecer na lista.",
+            confirmar,
+        )
+
+    with ui.row():
+        ui.button("Novo tratamento", icon="add", on_click=dialogo.open)
+        ui.button("Dar de baixa o seleccionado", icon="archive", on_click=dar_de_baixa).props(
+            "outline"
+        )
