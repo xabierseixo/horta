@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from fastapi.responses import HTMLResponse
 
-from horta.ui.nav import COR_FONDO, COR_NEGATIVA, COR_PRIMARIA, COR_TEXTO
+from horta.ui.tema import COR_ERRO as COR_NEGATIVA
+from horta.ui.tema import COR_FONDO, COR_PRIMARIA, COR_TEXTO
 
 
 def pagina_erro_html(titulo: str, mensaxe: str, codigo: int) -> HTMLResponse:

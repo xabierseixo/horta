@@ -34,6 +34,7 @@ from horta.services.hortas import (
     comprobar_rol_horta,
     eliminar_horta,
     engadir_membro,
+    listar_hortas_usuario,
     quitar_membro,
 )
 from horta.services.parcelas import (
@@ -57,6 +58,13 @@ from horta.services.tarefas import (
 from horta.ui.accions import executar_accion
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.filtros import filtrar_filas
+from horta.ui.layout import (
+    SECCIONS,
+    cabeceira_seccion,
+    marco_horta,
+    normalizar_seccion,
+    url_seccion,
+)
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.pages.maquinaria import seccion_maquinaria
 from horta.ui.pages.persoas import seccion_persoas
@@ -79,7 +87,13 @@ _PRIORIDADES_TAREFA = ("baixa", "media", "alta")
 
 
 @ui.page("/hortas/{horta_id}")
-def horta_detalle_page(horta_id: int) -> None:
+def horta_detalle_redirixir(horta_id: int) -> None:
+    ui.navigate.to(url_seccion(horta_id, "resumo"))
+
+
+@ui.page("/hortas/{horta_id}/{seccion}")
+def horta_detalle_page(horta_id: int, seccion: str) -> None:
+    seccion = normalizar_seccion(seccion)
     with get_session() as session:
         actor = usuario_actual(session)
         if actor is None:
@@ -111,8 +125,17 @@ def horta_detalle_page(horta_id: int) -> None:
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
+        hortas_usuario = {h.id: h.nome for h, _ in listar_hortas_usuario(session, actor)}
+        nome_usuario = actor.nome
 
-    cabeceira_paxina(titulo_horta=horta_nome, mostrar_admin=e_admin_global)
+    marco_horta(
+        horta_id=horta_id,
+        seccion=seccion,
+        hortas=hortas_usuario,
+        nome_usuario=nome_usuario,
+        e_horta_admin=e_horta_admin,
+        e_admin_global=e_admin_global,
+    )
 
     if e_horta_admin:
         with ui.dialog() as dialog_config_horta, ui.card():
@@ -180,60 +203,45 @@ def horta_detalle_page(horta_id: int) -> None:
                     ),
                 ).props("flat color=negative")
 
-    with ui.row().classes("w-full items-center justify-between"):
-        with ui.column().classes("gap-0"):
-            ui.label(horta_nome).classes("text-2xl font-bold")
-            if horta_descricion:
-                ui.label(horta_descricion).classes("text-body2 text-grey")
+    if seccion == "membros" and not e_horta_admin:
+        seccion = "resumo"
+    etiquetas = {s.clave: s.etiqueta for s in SECCIONS}
+    if seccion == "resumo":
+        accions = cabeceira_seccion(horta_nome, horta_descricion or "Resumo da explotación")
         if e_horta_admin:
-            ui.button("Configurar horta", icon="settings", on_click=dialog_config_horta.open).props(
-                "outline"
-            )
-
-    with ui.tabs().classes("w-full q-mt-md") as pestanas:
-        pestana_dashboard = ui.tab("Dashboard")
-        pestana_parcelas = ui.tab("Parcelas")
-        pestana_cultivos = ui.tab("Cultivos")
-        pestana_tratamentos = ui.tab("Tratamentos")
-        pestana_fertilizacion = ui.tab("Fertilización")
-        pestana_tarefas = ui.tab("Tarefas")
-        pestana_animais = ui.tab("Animais")
-        pestana_persoas = ui.tab("Persoas")
-        pestana_maquinaria = ui.tab("Maquinaria")
-        if e_horta_admin:
-            pestana_membros = ui.tab("Membros")
-
-    with ui.tab_panels(pestanas, value=pestana_dashboard).classes("w-full"):
-        with ui.tab_panel(pestana_dashboard):
-            _seccion_dashboard(
-                len(parcelas),
-                len(cultivos),
-                len(animais),
-                n_tarefas_pendentes,
-                tarefas_pendentes_hoxe,
-                tarefas_proximas,
-                tarefas_atrasadas,
-            )
-        with ui.tab_panel(pestana_parcelas):
-            _seccion_parcelas(horta_id, parcelas, pode_editar)
-        with ui.tab_panel(pestana_cultivos):
-            _seccion_cultivos(horta_id, cultivos, parcelas, pode_editar)
-        with ui.tab_panel(pestana_tratamentos):
-            seccion_tratamentos_fito(horta_id, pode_editar)
-        with ui.tab_panel(pestana_fertilizacion):
-            _seccion_fertilizacion(horta_id, fertilizacions, cultivos, parcelas, pode_editar)
-        with ui.tab_panel(pestana_tarefas):
-            _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
-        with ui.tab_panel(pestana_persoas):
-            seccion_persoas(horta_id, pode_editar)
-        with ui.tab_panel(pestana_maquinaria):
-            seccion_maquinaria(horta_id, pode_editar)
-        with ui.tab_panel(pestana_animais):
-            _seccion_animais(horta_id, animais, pode_editar)
-        if e_horta_admin:
-            with ui.tab_panel(pestana_membros):
-                _seccion_membros(horta_id)
-
+            with accions:
+                ui.button(
+                    "Configurar horta", icon="settings", on_click=dialog_config_horta.open
+                ).props("outline")
+        _seccion_dashboard(
+            len(parcelas),
+            len(cultivos),
+            len(animais),
+            n_tarefas_pendentes,
+            tarefas_pendentes_hoxe,
+            tarefas_proximas,
+            tarefas_atrasadas,
+        )
+        return
+    cabeceira_seccion(etiquetas[seccion], horta_nome)
+    if seccion == "parcelas":
+        _seccion_parcelas(horta_id, parcelas, pode_editar)
+    elif seccion == "cultivos":
+        _seccion_cultivos(horta_id, cultivos, parcelas, pode_editar)
+    elif seccion == "tratamentos":
+        seccion_tratamentos_fito(horta_id, pode_editar)
+    elif seccion == "fertilizacion":
+        _seccion_fertilizacion(horta_id, fertilizacions, cultivos, parcelas, pode_editar)
+    elif seccion == "tarefas":
+        _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
+    elif seccion == "animais":
+        _seccion_animais(horta_id, animais, pode_editar)
+    elif seccion == "persoas":
+        seccion_persoas(horta_id, pode_editar)
+    elif seccion == "maquinaria":
+        seccion_maquinaria(horta_id, pode_editar)
+    elif seccion == "membros":
+        _seccion_membros(horta_id)
 
 def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
     if pode_editar:

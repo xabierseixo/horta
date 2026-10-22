@@ -3,18 +3,12 @@ from __future__ import annotations
 from nicegui import ui
 
 from horta.ui.sesion import boton_pechar_sesion
-
-# Paleta propia da app (verde-horta / terra), en vez do azul xenérico de Quasar.
-COR_PRIMARIA = "#4A7856"  # verde folla — accións principais
-COR_TEXTO = "#26332B"  # verde moi escuro — texto e "secondary"
-COR_NEGATIVA = "#9C4A2E"  # terra/rubio — accións destrutivas (eliminar)
-COR_FONDO = "#FAF8F3"  # branco morno
+from horta.ui.tema import aplicar_tema
 
 
 def aplicar_paleta() -> None:
-    """Cores da app para o cliente actual. Chamar unha vez por páxina."""
-    ui.colors(primary=COR_PRIMARIA, secondary=COR_TEXTO, negative=COR_NEGATIVA, dark=COR_TEXTO)
-    ui.query("body").style(f"background-color: {COR_FONDO}")
+    """Tema da app para o cliente actual (ver horta.ui.tema). Chamar unha vez por páxina."""
+    aplicar_tema()
 
 
 def cabeceira_paxina(*, titulo_horta: str | None = None, mostrar_admin: bool = False) -> None:
