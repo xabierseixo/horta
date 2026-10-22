@@ -212,3 +212,23 @@ def test_lonxitude_fora_de_rango(session):
 
     session.refresh(parcela)
     assert parcela.lon == lon_orixinal
+
+
+def test_superficie_negativa_ao_crear(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(ValueError, match="A superficie non pode ser negativa"):
+        crear_parcela(session, ana, horta.id, "Parcela Norte", superficie=-1.0)
+
+
+def test_superficie_negativa_ao_actualizar(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte", superficie=500.0)
+
+    with pytest.raises(ValueError, match="A superficie non pode ser negativa"):
+        actualizar_parcela(session, ana, parcela, superficie=-10.0)
+
+    session.refresh(parcela)
+    assert parcela.superficie == 500.0

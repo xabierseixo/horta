@@ -50,6 +50,12 @@ def _validar_coordenadas(campos: dict[str, Any]) -> None:
             raise OperacionNonPermitidaError("A lonxitude debe estar entre -180 e 180")
 
 
+def _validar_superficie(campos: dict[str, Any]) -> None:
+    if "superficie" in campos and campos["superficie"] is not None:
+        if campos["superficie"] < 0:
+            raise OperacionNonPermitidaError("A superficie non pode ser negativa")
+
+
 def crear_parcela(
     session: Session,
     actor: Usuario,
@@ -59,6 +65,7 @@ def crear_parcela(
 ) -> Parcela:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_coordenadas(campos)
+    _validar_superficie(campos)
     estado = campos.pop("estado", "activa")
     parcela = Parcela(horta_id=horta_id, nome=nome, estado=estado, **campos)
     session.add(parcela)
@@ -77,6 +84,7 @@ def actualizar_parcela(
         raise ValueError(f"Campos non editables nunha parcela: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
     _validar_coordenadas(cambios)
+    _validar_superficie(cambios)
     for campo, valor in cambios.items():
         setattr(parcela, campo, valor)
     session.commit()
