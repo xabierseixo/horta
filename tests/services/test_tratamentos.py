@@ -137,3 +137,43 @@ def test_actualizar_tratamento_rexeita_campos_non_editables(session, campo):
     assert tratamento.cultivo_id == cultivo.id
     assert tratamento.praga == "Mildeu"
     assert tratamento.baixa is False
+
+
+def test_superficie_tratada_negativa_ao_crear(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    cultivo = _crear_cultivo(session, ana, horta.id)
+
+    with pytest.raises(ValueError, match="A superficie tratada non pode ser negativa"):
+        crear_tratamento(
+            session,
+            ana,
+            cultivo.id,
+            date(2026, 5, 1),
+            "Mildeu",
+            "Cobre",
+            "Xabier",
+            superficie_tratada=-1.0,
+        )
+
+
+def test_superficie_tratada_negativa_ao_actualizar(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    cultivo = _crear_cultivo(session, ana, horta.id)
+    tratamento = crear_tratamento(
+        session,
+        ana,
+        cultivo.id,
+        date(2026, 5, 1),
+        "Mildeu",
+        "Cobre",
+        "Xabier",
+        superficie_tratada=100.0,
+    )
+
+    with pytest.raises(ValueError, match="A superficie tratada non pode ser negativa"):
+        actualizar_tratamento(session, ana, tratamento, superficie_tratada=-5.0)
+
+    session.refresh(tratamento)
+    assert tratamento.superficie_tratada == 100.0

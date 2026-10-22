@@ -8,6 +8,7 @@ from horta.models.cultivo import Cultivo, Tratamento
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
+from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -41,6 +42,12 @@ def _horta_id_do_cultivo(session: Session, cultivo_id: int) -> int | None:
     )
 
 
+def _validar_superficie_tratada(campos: dict[str, Any]) -> None:
+    if "superficie_tratada" in campos and campos["superficie_tratada"] is not None:
+        if campos["superficie_tratada"] < 0:
+            raise OperacionNonPermitidaError("A superficie tratada non pode ser negativa")
+
+
 def crear_tratamento(
     session: Session,
     actor: Usuario,
@@ -55,6 +62,7 @@ def crear_tratamento(
     if horta_id is None:
         raise ValueError("Ese cultivo non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_superficie_tratada(campos)
     tratamento = Tratamento(
         cultivo_id=cultivo_id,
         data=data,
@@ -81,6 +89,7 @@ def actualizar_tratamento(
     if horta_id is None:
         raise ValueError("O cultivo deste tratamento xa non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_superficie_tratada(cambios)
     for campo, valor in cambios.items():
         setattr(tratamento, campo, valor)
     session.commit()
