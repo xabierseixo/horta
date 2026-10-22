@@ -160,3 +160,54 @@ def test_eliminar_parcela_borra_en_cascada_cultivo_con_tratamento_e_fertilizacio
     assert session.get(Cultivo, cultivo_id) is None
     assert session.get(Tratamento, tratamento_id) is None
     assert session.get(Fertilizacion, fertilizacion_id) is None
+
+def test_crear_parcela_con_coordenadas(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte", lat=42.88, lon=-8.54)
+
+    assert parcela.lat == 42.88
+    assert parcela.lon == -8.54
+
+
+def test_actualizar_campos_xeograficos(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+
+    actualizada = actualizar_parcela(
+        session,
+        ana,
+        parcela,
+        lat=42.88,
+        lon=-8.54,
+        geometria='{"type": "Polygon", "coordinates": []}',
+        imaxe="parcelas/norte.jpg",
+    )
+
+    assert actualizada.lat == 42.88
+    assert actualizada.lon == -8.54
+    assert actualizada.geometria == '{"type": "Polygon", "coordinates": []}'
+    assert actualizada.imaxe == "parcelas/norte.jpg"
+
+
+def test_latitude_fora_de_rango(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(ValueError, match="A latitude debe estar entre -90 e 90"):
+        crear_parcela(session, ana, horta.id, "Parcela Norte", lat=91)
+
+
+def test_lonxitude_fora_de_rango(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    lon_orixinal = -180
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte", lon=lon_orixinal)
+
+    with pytest.raises(ValueError, match="A lonxitude debe estar entre -180 e 180"):
+        actualizar_parcela(session, ana, parcela, lon=-181)
+
+    session.refresh(parcela)
+    assert parcela.lon == lon_orixinal

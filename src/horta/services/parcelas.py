@@ -32,8 +32,21 @@ CAMPOS_EDITABLES_PARCELA = frozenset(
         "sigpac_subparcela",
         "notas",
         "estado",
+        "lat",
+        "lon",
+        "geometria",
+        "imaxe",
     }
 )
+
+
+def _validar_coordenadas(campos: dict[str, Any]) -> None:
+    if "lat" in campos and campos["lat"] is not None:
+        if not (-90 <= campos["lat"] <= 90):
+            raise ValueError("A latitude debe estar entre -90 e 90")
+    if "lon" in campos and campos["lon"] is not None:
+        if not (-180 <= campos["lon"] <= 180):
+            raise ValueError("A lonxitude debe estar entre -180 e 180")
 
 
 def crear_parcela(
@@ -44,6 +57,7 @@ def crear_parcela(
     **campos: Any,
 ) -> Parcela:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_coordenadas(campos)
     estado = campos.pop("estado", "activa")
     parcela = Parcela(horta_id=horta_id, nome=nome, estado=estado, **campos)
     session.add(parcela)
@@ -61,6 +75,7 @@ def actualizar_parcela(
     if non_editables:
         raise ValueError(f"Campos non editables nunha parcela: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
+    _validar_coordenadas(cambios)
     for campo, valor in cambios.items():
         setattr(parcela, campo, valor)
     session.commit()
