@@ -233,3 +233,20 @@ def test_colleita_posterior_a_sementeira_acepta(session):
     actualizar_cultivo(session, ana, cultivo, data_colleita_real=date(2026, 8, 15))
 
     assert cultivo.data_colleita_real == date(2026, 8, 15)
+
+
+def test_cultivo_ligado_ao_codigo_siex(session):
+    from horta.models.catalogo import CatalogoVersion, CultivoSiex
+
+    v = CatalogoVersion(catalogo="cultivo", nome_ficheiro="x", sha256="d" * 64, filas=1)
+    session.add(v)
+    session.flush()
+    session.add(CultivoSiex(codigo=99, nome_oficial="PATATA", version_id=v.id))
+    session.commit()
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Pataca", cultivo_siex_codigo=99)
+    assert cultivo.cultivo_siex_codigo == 99
+    actualizar_cultivo(session, ana, cultivo, cultivo_siex_codigo=None)
+    assert cultivo.cultivo_siex_codigo is None

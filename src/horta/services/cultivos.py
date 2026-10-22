@@ -30,6 +30,9 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "unidade",
         "notas",
         "estado",
+        "cultivo_siex_codigo",
+        "variedade_siex_id",
+        "variedade_local_id",
     }
 )
 

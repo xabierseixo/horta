@@ -15,6 +15,15 @@ class Cultivo(Base):
     parcela_id: Mapped[int] = mapped_column(ForeignKey("parcela.id"))
     especie: Mapped[str] = mapped_column(String(120))
     variedade: Mapped[str | None] = mapped_column(String(120), default=None)
+    cultivo_siex_codigo: Mapped[int | None] = mapped_column(
+        ForeignKey("cultivo_siex.codigo"), default=None
+    )
+    variedade_siex_id: Mapped[int | None] = mapped_column(
+        ForeignKey("variedade_siex.id"), default=None
+    )
+    variedade_local_id: Mapped[int | None] = mapped_column(
+        ForeignKey("variedade_local.id"), default=None
+    )
     data_sementeira: Mapped[date | None] = mapped_column(Date, default=None)
     data_plantacion: Mapped[date | None] = mapped_column(Date, default=None)
     data_colleita_prevista: Mapped[date | None] = mapped_column(Date, default=None)
