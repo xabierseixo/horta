@@ -28,6 +28,11 @@ def _validar_cantidade(campos: dict[str, Any]) -> None:
             raise OperacionNonPermitidaError("A cantidade ten que ser polo menos 1")
 
 
+def _validar_datas(data_alta: date | None, data_baixa: date | None) -> None:
+    if data_alta is not None and data_baixa is not None and data_baixa < data_alta:
+        raise OperacionNonPermitidaError("A data de baixa non pode ser anterior á de alta")
+
+
 def crear_animal(
     session: Session,
     actor: Usuario,
@@ -38,6 +43,7 @@ def crear_animal(
 ) -> Animal:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_cantidade(campos)
+    _validar_datas(data_alta, campos.get("data_baixa"))
     estado = campos.pop("estado", "activo")
     animal = Animal(
         horta_id=horta_id, especie=especie, data_alta=data_alta, estado=estado, **campos
@@ -58,6 +64,10 @@ def actualizar_animal(
         raise ValueError(f"Campos non editables nun animal: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
     _validar_cantidade(cambios)
+    _validar_datas(
+        cambios.get("data_alta", animal.data_alta),
+        cambios.get("data_baixa", animal.data_baixa),
+    )
     for campo, valor in cambios.items():
         setattr(animal, campo, valor)
     session.commit()

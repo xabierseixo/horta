@@ -119,3 +119,30 @@ def test_cantidade_menor_que_un_ao_actualizar(session):
 
     session.refresh(animal)
     assert animal.cantidade == 6
+
+
+def test_baixa_anterior_a_alta_ao_crear(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(ValueError, match="A data de baixa non pode ser anterior"):
+        crear_animal(
+            session,
+            ana,
+            horta.id,
+            "galiñas",
+            _DATA_ALTA,
+            data_baixa=datetime.date(2026, 1, 1),
+        )
+
+
+def test_baixa_anterior_a_alta_ao_actualizar(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    animal = crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA)
+
+    with pytest.raises(ValueError, match="A data de baixa non pode ser anterior"):
+        actualizar_animal(session, ana, animal, data_baixa=datetime.date(2026, 1, 1))
+
+    session.refresh(animal)
+    assert animal.data_baixa is None
