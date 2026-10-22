@@ -164,6 +164,8 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
         persoa = session.get(Persoa, linha_aplicador.persoa_id)
         if persoa is None or persoa.horta_id != horta.id or not persoa.e_aplicador:
             raise _erro("O aplicador indicado non é un aplicador desta horta")
+        if not persoa.activa:
+            raise _erro(f"{persoa.nome} está desactivado/a e non pode figurar como aplicador")
         if profesional and not ropo_vixente(persoa, d):
             raise _erro(
                 f"O carné ROPO de {persoa.nome} caducou o "
@@ -174,6 +176,8 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
             maquina = session.get(Maquina, linha_aplicador.maquina_id)
             if maquina is None or maquina.horta_id != horta.id:
                 raise _erro("A máquina indicada non é desta horta")
+            if not maquina.activa:
+                raise _erro(f"A máquina {maquina.alias} está desactivada")
     if datos.asesor is not None:
         asesor = session.get(Persoa, datos.asesor.persoa_id)
         if asesor is None or asesor.horta_id != horta.id or not asesor.e_asesor:

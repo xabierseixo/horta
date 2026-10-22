@@ -213,3 +213,22 @@ def test_renovar_ropo_permite_rexistrar(session):
         crear_tratamento_fito(session, ana, horta.id, datos)
     actualizar_persoa(session, ana, xan, ropo_caducidade=date(2030, 1, 1))
     assert crear_tratamento_fito(session, ana, horta.id, datos).id is not None
+
+
+def test_aplicador_desactivado_rexeitase(session):
+    from horta.services.persoas import actualizar_persoa
+
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    actualizar_persoa(session, ana, xan, activa=False)
+    with pytest.raises(OperacionNonPermitidaError, match="está desactivado"):
+        crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina))
+
+
+
+def test_maquina_desactivada_rexeitase(session):
+    from horta.services.maquinaria import actualizar_maquina
+
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    actualizar_maquina(session, ana, maquina, activa=False)
+    with pytest.raises(OperacionNonPermitidaError, match="está desactivada"):
+        crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina))
