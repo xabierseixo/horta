@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from horta.models.horta import RolHorta
 from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
+from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -29,6 +30,11 @@ CAMPOS_EDITABLES_TAREFA = frozenset(
 )
 
 
+def _validar_datas(data: date | None, data_limite: date | None) -> None:
+    if data is not None and data_limite is not None and data_limite < data:
+        raise OperacionNonPermitidaError("A data límite non pode ser anterior á data prevista")
+
+
 def crear_tarefa(
     session: Session,
     actor: Usuario,
@@ -37,6 +43,7 @@ def crear_tarefa(
     **campos: Any,
 ) -> Tarefa:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar_datas(campos.get("data"), campos.get("data_limite"))
     prioridade = campos.pop("prioridade", "media")
     tarefa = Tarefa(horta_id=horta_id, descricion=descricion, prioridade=prioridade, **campos)
     session.add(tarefa)
@@ -54,6 +61,10 @@ def actualizar_tarefa(
     if non_editables:
         raise ValueError(f"Campos non editables nunha tarefa: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, tarefa.horta_id, actor, _ROLES_ESCRITURA)
+    _validar_datas(
+        cambios.get("data", tarefa.data),
+        cambios.get("data_limite", tarefa.data_limite),
+    )
     for campo, valor in cambios.items():
         setattr(tarefa, campo, valor)
     session.commit()

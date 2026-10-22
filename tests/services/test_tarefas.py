@@ -178,3 +178,30 @@ def test_contar_tarefas_pendentes(session):
     marcar_feita(session, ana, feita)
 
     assert contar_tarefas_pendentes(session, ana, horta.id) == 1
+
+
+def test_data_limite_anterior_ao_crear_tarefa(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+
+    with pytest.raises(ValueError, match="A data límite non pode ser anterior"):
+        crear_tarefa(
+            session,
+            ana,
+            horta.id,
+            "Regar",
+            data=date(2026, 5, 10),
+            data_limite=date(2026, 5, 1),
+        )
+
+
+def test_data_limite_anterior_ao_actualizar_tarefa(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    tarefa = crear_tarefa(session, ana, horta.id, "Regar", data=date(2026, 5, 10))
+
+    with pytest.raises(ValueError, match="A data límite non pode ser anterior"):
+        actualizar_tarefa(session, ana, tarefa, data_limite=date(2026, 5, 1))
+
+    session.refresh(tarefa)
+    assert tarefa.data_limite is None
