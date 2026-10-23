@@ -15,6 +15,7 @@ from horta.services.animais import (
     eliminar_animal,
     listar_animais,
 )
+from horta.services.auth import normalizar_email
 from horta.services.cultivos import (
     actualizar_cultivo,
     crear_cultivo,
@@ -1215,7 +1216,9 @@ def _seccion_membros(horta_id: int) -> None:
                     pechar_sesion()
                     return
                 usuario_obxectivo = (
-                    session.query(Usuario).filter_by(email=email_input.value).one_or_none()
+                    session.query(Usuario)
+                    .filter_by(email=normalizar_email(email_input.value or ""))
+                    .one_or_none()
                 )
                 if usuario_obxectivo is None:
                     ui.notify("Non existe ningún usuario con ese email", type="negative")

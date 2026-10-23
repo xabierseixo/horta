@@ -14,7 +14,13 @@ def verify_password(password: str, password_hash: str) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
 
 
+def normalizar_email(email: str) -> str:
+    """Os emails gárdanse e compáranse en minúsculas e sen espazos."""
+    return email.strip().lower()
+
+
 def autenticar(session: Session, email: str, password: str) -> Usuario | None:
+    email = normalizar_email(email)
     usuario = session.query(Usuario).filter_by(email=email).one_or_none()
     if usuario is None or not usuario.activo:
         return None

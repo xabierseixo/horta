@@ -104,3 +104,16 @@ def test_obter_usuario_activo_devolve_none_se_inactivo(session):
 
 def test_obter_usuario_activo_devolve_none_se_non_existe(session):
     assert obter_usuario_activo(session, 9999) is None
+
+def test_autenticar_ignora_maiusculas_e_espazos(session):
+    usuario = Usuario(
+        nome="Ana",
+        email="ana@example.com",
+        password_hash=hash_password("segredo"),
+        rol=RolGlobal.USUARIO,
+        activo=True,
+    )
+    session.add(usuario)
+    session.commit()
+
+    assert autenticar(session, "  Ana@Example.COM ", "segredo") is not None

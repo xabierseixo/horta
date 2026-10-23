@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from horta.models.usuario import RolGlobal, Usuario
-from horta.services.auth import hash_password
+from horta.services.auth import hash_password, normalizar_email
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 
 
@@ -30,7 +30,7 @@ def crear_usuario(
     _esixir_admin(actor)
     usuario = Usuario(
         nome=nome,
-        email=email,
+        email=normalizar_email(email),
         password_hash=hash_password(password),
         rol=rol,
         activo=True,

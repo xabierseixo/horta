@@ -149,3 +149,8 @@ def test_un_admin_inactivo_non_conta_como_admin_restante(session):
 
     with pytest.raises(OperacionNonPermitidaError):
         actualizar_usuario(session, admin, admin, rol=RolGlobal.USUARIO)
+
+def test_crear_usuario_garda_email_en_minusculas(session):
+    admin = _crear_admin(session)
+    usuario = crear_usuario(session, admin, "Ana", "  Ana@Example.COM ", "segredo")
+    assert usuario.email == "ana@example.com"
