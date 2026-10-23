@@ -216,8 +216,12 @@ def actualizar_cultivo(
         cambios.get("data_sementeira", cultivo.data_sementeira),
         cambios.get("data_colleita_real", cultivo.data_colleita_real),
     )
+    parcela = session.get(Parcela, cultivo.parcela_id)
+    _validar_rea(session, _valores_rea(cultivo, cambios), parcela)
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
+    if "estado" not in cambios and {"data_inicio", "data_fin"} & set(cambios):
+        cultivo.estado = calcular_estado(cultivo)
     session.commit()
     return cultivo
 
