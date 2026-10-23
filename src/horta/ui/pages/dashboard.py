@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from nicegui import ui
+from nicegui import app, ui
 
 from horta.db import get_session
 from horta.models.usuario import RolGlobal
@@ -31,6 +31,13 @@ def dashboard_page() -> None:
         ]
         nome = actor.nome
         e_admin_global = actor.rol == RolGlobal.ADMIN
+
+    if hortas:
+        ids = [h.id for h, _ in hortas]
+        ultima = app.storage.user.get("ultima_horta")
+        destino = ultima if ultima in ids else ids[0]
+        ui.navigate.to(f"/hortas/{destino}/resumo")
+        return
 
     cabeceira_paxina(mostrar_admin=e_admin_global)
 

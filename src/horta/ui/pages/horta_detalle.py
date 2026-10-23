@@ -4,7 +4,7 @@ from datetime import date
 from typing import Any
 
 from loguru import logger
-from nicegui import ui
+from nicegui import app, ui
 
 from horta.db import get_session
 from horta.models.horta import Horta, HortaMembro, RolHorta
@@ -101,6 +101,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             return
         try:
             membro = comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
+            app.storage.user["ultima_horta"] = horta_id
         except PermisoDenegadoError:
             cabeceira_paxina()
             ui.label("Non tes acceso a esta horta").classes("text-negative")
