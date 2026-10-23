@@ -181,6 +181,20 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
 
         cultivo_oficial.on_value_change(cargar_variedades)
 
+        def propor_da_parcela() -> None:
+            if editando["id"] is not None or parcela.value is None:
+                return
+            p = next(x for x in parcelas if x.id == parcela.value)
+            if p.secano_regadio is not None:
+                secano.value = "R" if p.secano_regadio.value == "regadio" else "S"
+            if superficie.ha is None and p.superficie:
+                ocupada = sum(c.superficie_ha or 0 for c in cultivos
+                              if c.parcela_id == p.id and c.estado != "rematado")
+                if p.superficie - ocupada > 0:
+                    superficie.establecer(round(p.superficie - ocupada, 4))
+
+        parcela.on_value_change(propor_da_parcela)
+
         def gardar() -> None:
             if not parcela.value or cultivo_oficial.value is None:
                 ui.notify("Parcela e cultivo son obrigatorios", type="negative")
@@ -216,6 +230,7 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
                 cultivo_anterior_codigo=anterior.value,
                 obxectivo_colleita_kg_ha=parsear_decimal(obxectivo.value),
                 causa_baixa=causa_baixa.value,
+                actividade_agraria="1",
                 notas=notas.value or None,
                 tipo_cobertura_solo=cobertura.value,
                 data_fin_sementeira=parsear_data(data_fin_sementeira.value),

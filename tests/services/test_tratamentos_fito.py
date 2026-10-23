@@ -5,7 +5,7 @@ import pytest
 from horta.models.catalogo import CatalogoValor, CatalogoVersion
 from horta.models.horta import Horta, RolHorta
 from horta.models.usuario import RolGlobal, Usuario
-from horta.services.cultivos import crear_cultivo, eliminar_cultivo
+from horta.services.cultivos import actualizar_cultivo, crear_cultivo, eliminar_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.maquinaria import crear_maquina
@@ -232,3 +232,12 @@ def test_maquina_desactivada_rexeitase(session):
     actualizar_maquina(session, ana, maquina, activa=False)
     with pytest.raises(OperacionNonPermitidaError, match="está desactivada"):
         crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina))
+
+
+def test_superficie_maior_ca_cultivo_rexeitase(session):
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    actualizar_cultivo(session, ana, cultivo, superficie_ha=0.1)
+    linhas = [LinhaCultivo(cultivo.id, 0.15)]
+    with pytest.raises(OperacionNonPermitidaError, match="maior ca do cultivo"):
+        crear_tratamento_fito(session, ana, horta.id,
+                              _datos(cultivo, xan, maquina, cultivos=linhas))
