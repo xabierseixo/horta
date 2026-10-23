@@ -126,6 +126,10 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
+        horta_titular_nome = horta.titular_nome or ""
+        horta_titular_nif = horta.titular_nif or ""
+        horta_codigo_reaga = horta.codigo_reaga or ""
+        horta_codigo_rega = horta.codigo_rega or ""
         hortas_usuario = {h.id: h.nome for h, _ in listar_hortas_usuario(session, actor)}
         nome_usuario = actor.nome
 
@@ -140,10 +144,28 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
 
     if e_horta_admin:
         with ui.dialog() as dialog_config_horta, ui.card():
-            ui.label("Configurar horta").classes("text-md font-bold")
-            nome_horta_input = ui.input("Nome", value=horta_nome)
-            descricion_horta_input = ui.input("Descrición", value=horta_descricion or "")
-            uso_profesional_checkbox = ui.checkbox("Uso profesional", value=horta_uso_profesional)
+            ui.label("Configurar explotación").classes("text-md font-bold")
+            nome_horta_input = ui.input("Nome", value=horta_nome).classes("w-full")
+            descricion_horta_input = ui.input(
+                "Descrición", value=horta_descricion or ""
+            ).classes("w-full")
+            ui.label("Tipo de explotación").classes("text-caption texto-suave")
+            tipo_radio = ui.radio(
+                {True: "Profesional", False: "Non profesional"}, value=horta_uso_profesional
+            ).props("inline")
+            with ui.column().classes("w-full gap-1").bind_visibility_from(tipo_radio, "value"):
+                titular_nome_input = ui.input(
+                    "Titular (nome ou razón social)", value=horta_titular_nome
+                ).classes("w-full")
+                titular_nif_input = ui.input(
+                    "NIF do titular", value=horta_titular_nif
+                ).classes("w-full")
+                reaga_input = ui.input(
+                    "Nº REAGA (ES + 12 díxitos)", value=horta_codigo_reaga
+                ).classes("w-full")
+                rega_input = ui.input(
+                    "Nº REGA, se ten gando (ES + 12 díxitos)", value=horta_codigo_rega
+                ).classes("w-full")
 
             def gardar_horta() -> None:
                 if not nome_horta_input.value:
@@ -166,7 +188,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                             horta_obxectivo,
                             nome=nome_horta_input.value,
                             descricion=descricion_horta_input.value or None,
-                            uso_profesional=uso_profesional_checkbox.value,
+                            uso_profesional=tipo_radio.value,
+                            titular_nome=titular_nome_input.value or None,
+                            titular_nif=titular_nif_input.value or None,
+                            codigo_reaga=reaga_input.value or None,
+                            codigo_rega=rega_input.value or None,
                         ),
                     )
                 if not gardado:
