@@ -130,7 +130,7 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
     if session.query(TratamentoFito).filter_by(horta_id=horta.id).first():
         raise OperacionNonPermitidaError(
-            "Esta horta ten tratamentos fitosanitarios rexistrados e debe conservarse "
+            "Esta explotación ten tratamentos fitosanitarios rexistrados e debe conservarse "
             "(obriga legal)."
         )
     for tarefa in session.query(Tarefa).filter_by(horta_id=horta.id).all():
