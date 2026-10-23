@@ -150,9 +150,9 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         with ui.dialog() as dialog_config_horta, ui.card():
             ui.label("Configurar explotación").classes("text-md font-bold")
             nome_horta_input = ui.input("Nome", value=horta_nome).classes("w-full")
-            descricion_horta_input = ui.input(
-                "Descrición", value=horta_descricion or ""
-            ).classes("w-full")
+            descricion_horta_input = ui.input("Descrición", value=horta_descricion or "").classes(
+                "w-full"
+            )
             ui.label("Tipo de explotación").classes("text-caption texto-suave")
             tipo_radio = ui.radio(
                 {True: "Profesional", False: "Non profesional"}, value=horta_uso_profesional
@@ -161,15 +161,15 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 titular_nome_input = ui.input(
                     "Titular (nome ou razón social)", value=horta_titular_nome
                 ).classes("w-full")
-                titular_nif_input = ui.input(
-                    "NIF do titular", value=horta_titular_nif
-                ).classes("w-full")
+                titular_nif_input = ui.input("NIF do titular", value=horta_titular_nif).classes(
+                    "w-full"
+                )
                 reaga_input = ui.input(
                     "Nº REAGA (ES + 12 díxitos)", value=horta_codigo_reaga
                 ).classes("w-full")
-                rega_input = ui.input(
-                    "Nº REGA, se ten gando (ES + 12 díxitos)", value=horta_codigo_rega
-                ).classes("w-full")
+            rega_input = ui.input(
+                "Nº REGA, se ten animais (ES + 12 díxitos)", value=horta_codigo_rega
+            ).classes("w-full")
 
             def gardar_horta() -> None:
                 if not nome_horta_input.value:
@@ -291,6 +291,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_maquinaria(horta_id, pode_editar)
     elif seccion == "membros":
         _seccion_membros(horta_id)
+
 
 def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
     if pode_editar:
