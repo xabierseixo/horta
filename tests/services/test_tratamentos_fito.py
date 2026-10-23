@@ -152,7 +152,7 @@ def test_cultivo_doutra_horta_rexeitase(session):
     outra = crear_horta(session, ana, "Outra")
     p2 = crear_parcela(session, ana, outra.id, "P2")
     c2 = crear_cultivo(session, ana, p2.id, "Pataca")
-    with pytest.raises(OperacionNonPermitidaError, match="non pertence a esta horta"):
+    with pytest.raises(OperacionNonPermitidaError, match="non pertence a esta explotación"):
         crear_tratamento_fito(session, ana, horta.id,
                               _datos(cultivo, xan, maquina,
                                      cultivos=[LinhaCultivo(c2.id, 0.1)]))

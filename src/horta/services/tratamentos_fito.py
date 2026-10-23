@@ -117,7 +117,7 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
         cultivo = session.get(Cultivo, linha.cultivo_id)
         parcela = session.get(Parcela, cultivo.parcela_id) if cultivo else None
         if cultivo is None or parcela is None or parcela.horta_id != horta.id:
-            raise _erro("O cultivo indicado non pertence a esta horta")
+            raise _erro("O cultivo indicado non pertence a esta explotación")
         if cultivo.cultivo_siex_codigo is not None:
             especies.add((str(cultivo.cultivo_siex_codigo), str(cultivo.variedade_siex_id)))
         else:
@@ -163,7 +163,7 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
     for linha_aplicador in datos.aplicadores:
         persoa = session.get(Persoa, linha_aplicador.persoa_id)
         if persoa is None or persoa.horta_id != horta.id or not persoa.e_aplicador:
-            raise _erro("O aplicador indicado non é un aplicador desta horta")
+            raise _erro("O aplicador indicado non é un aplicador desta explotación")
         if not persoa.activa:
             raise _erro(f"{persoa.nome} está desactivado/a e non pode figurar como aplicador")
         if profesional and not ropo_vixente(persoa, d):
@@ -175,13 +175,13 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
         if linha_aplicador.maquina_id is not None:
             maquina = session.get(Maquina, linha_aplicador.maquina_id)
             if maquina is None or maquina.horta_id != horta.id:
-                raise _erro("A máquina indicada non é desta horta")
+                raise _erro("A máquina indicada non é desta explotación")
             if not maquina.activa:
                 raise _erro(f"A máquina {maquina.alias} está desactivada")
     if datos.asesor is not None:
         asesor = session.get(Persoa, datos.asesor.persoa_id)
         if asesor is None or asesor.horta_id != horta.id or not asesor.e_asesor:
-            raise _erro("O asesor indicado non é un asesor desta horta")
+            raise _erro("O asesor indicado non é un asesor desta explotación")
     if datos.eficacia:
         validar_codigo(session, "eficacia", datos.eficacia, d)
 

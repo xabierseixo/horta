@@ -106,12 +106,12 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             app.storage.user["ultima_horta"] = horta_id
         except PermisoDenegadoError:
             cabeceira_paxina()
-            ui.label("Non tes acceso a esta horta").classes("text-negative")
+            ui.label("Non tes acceso a esta explotación").classes("text-negative")
             return
         horta = session.get(Horta, horta_id)
         if horta is None:
             cabeceira_paxina()
-            ui.label("Esta horta xa non existe").classes("text-negative")
+            ui.label("Esta explotación xa non existe").classes("text-negative")
             return
         parcelas = listar_parcelas(session, actor, horta_id)
         animais = listar_animais(session, actor, horta_id)
@@ -182,7 +182,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                         return
                     horta_obxectivo = session.get(Horta, horta_id)
                     if horta_obxectivo is None:
-                        ui.notify("Esta horta xa non existe", type="negative")
+                        ui.notify("Esta explotación xa non existe", type="negative")
                         return
                     gardado = executar_accion(
                         session,
@@ -211,7 +211,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                         return
                     horta_obxectivo = session.get(Horta, horta_id)
                     if horta_obxectivo is None:
-                        ui.notify("Esta horta xa non existe", type="negative")
+                        ui.notify("Esta explotación xa non existe", type="negative")
                         return
                     eliminada = executar_accion(
                         session, lambda: eliminar_horta(session, actor_actual, horta_obxectivo)
@@ -225,7 +225,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                     ui.button("Gardar", icon="check", on_click=gardar_horta)
                     ui.button("Cancelar", on_click=dialog_config_horta.close).props("flat")
                 ui.button(
-                    "Eliminar horta",
+                    "Eliminar explotación",
                     icon="delete",
                     on_click=lambda: confirmar_eliminacion(
                         f"Eliminar «{horta_nome}» e TODAS as súas parcelas, animais e "
@@ -242,7 +242,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         if e_horta_admin:
             with accions:
                 ui.button(
-                    "Configurar horta", icon="settings", on_click=dialog_config_horta.open
+                    "Configurar explotación", icon="settings", on_click=dialog_config_horta.open
                 ).props("outline")
         texto_estado, clase_estado = {
             "rexistrada": ("Explotación rexistrada", "etiqueta-ok"),
@@ -1277,7 +1277,7 @@ def _seccion_membros(horta_id: int) -> None:
     with ui.row().classes("q-mt-sm") as fila_accions:
         ui.button("Cambiar rol", icon="edit", on_click=lambda: abrir_cambiar_rol())
         ui.button(
-            "Quitar da horta",
+            "Quitar da explotación",
             icon="person_remove",
             on_click=lambda: confirmar_eliminacion(
                 f'Quitar a "{taboa.selected[0]["nome"]}" desta horta?',

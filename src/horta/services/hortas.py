@@ -83,7 +83,7 @@ def comprobar_rol_horta(
 ) -> HortaMembro:
     membro = _obter_membro(session, horta_id, usuario.id)
     if membro is None or membro.rol not in roles_permitidos:
-        raise PermisoDenegadoError("Non tes permiso suficiente nesta horta")
+        raise PermisoDenegadoError("Non tes permiso suficiente nesta explotación")
     return membro
 
 
@@ -205,9 +205,9 @@ def cambiar_rol_membro(
     comprobar_rol_horta(session, horta_id, actor, {RolHorta.ADMIN})
     membro = _obter_membro(session, horta_id, usuario_obxectivo_id)
     if membro is None:
-        raise OperacionNonPermitidaError("Ese usuario non é membro desta horta")
+        raise OperacionNonPermitidaError("Ese usuario non é membro desta explotación")
     if novo_rol != RolHorta.ADMIN and _e_ultimo_admin_da_horta(session, membro):
-        raise OperacionNonPermitidaError("A horta ten que ter polo menos un administrador")
+        raise OperacionNonPermitidaError("A explotación debe ter polo menos un administrador")
     membro.rol = novo_rol
     session.commit()
     return membro
@@ -223,7 +223,7 @@ def quitar_membro(
     membro = _obter_membro(session, horta_id, usuario_obxectivo_id)
     if membro is not None:
         if _e_ultimo_admin_da_horta(session, membro):
-            raise OperacionNonPermitidaError("A horta ten que ter polo menos un administrador")
+            raise OperacionNonPermitidaError("A explotación debe ter polo menos un administrador")
         session.delete(membro)
         session.commit()
 

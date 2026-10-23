@@ -42,7 +42,7 @@ def dashboard_page(nova: bool = False) -> None:
     cabeceira_paxina(mostrar_admin=e_admin_global)
 
     with ui.dialog() as dialog_nova_horta, ui.card():
-        ui.label("Nova horta").classes("text-md font-bold")
+        ui.label("Nova explotación").classes("text-md font-bold")
         nome_input = ui.input("Nome")
         profesional_checkbox = ui.checkbox("Uso profesional")
 
@@ -77,10 +77,10 @@ def dashboard_page(nova: bool = False) -> None:
 
     with ui.row().classes("w-full items-center justify-between q-mb-md"):
         ui.label(f"Ola, {nome}").classes("text-xl font-bold")
-        ui.button("Nova horta", icon="add", on_click=dialog_nova_horta.open)
+        ui.button("Nova explotación", icon="add", on_click=dialog_nova_horta.open)
 
     if not hortas:
-        ui.label("Aínda non tes ningunha horta.").classes("text-body2")
+        ui.label("Aínda non tes ningunha explotación.").classes("text-body2")
 
     with ui.row().classes("w-full"):
         for horta, rol, n_parcelas, n_animais in resumo_hortas:
