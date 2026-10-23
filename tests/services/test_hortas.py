@@ -348,3 +348,33 @@ def test_non_se_pode_eliminar_horta_con_tratamentos_fito(session):
     with pytest.raises(OperacionNonPermitidaError, match="tratamentos fitosanitarios"):
         eliminar_horta(session, ana, horta)
     assert session.get(Horta, horta.id) is not None
+
+
+def test_estado_rexistro_segundo_os_datos(session):
+    from horta.services.hortas import estado_rexistro
+
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña explotación")
+    assert estado_rexistro(horta) == "non_profesional"
+    actualizar_horta(session, ana, horta, uso_profesional=True)
+    assert estado_rexistro(horta) == "en_preparacion"
+    actualizar_horta(
+        session, ana, horta, titular_nif="12345678z", codigo_reaga="es 150010000001"
+    )
+    assert horta.titular_nif == "12345678Z"
+    assert horta.codigo_reaga == "ES150010000001"
+    assert estado_rexistro(horta) == "rexistrada"
+
+
+def test_codigo_reaga_mal_formado(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña explotación")
+    with pytest.raises(OperacionNonPermitidaError, match="formato ES"):
+        actualizar_horta(session, ana, horta, codigo_reaga="123")
+
+
+def test_nif_titular_mal_formado(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña explotación")
+    with pytest.raises(OperacionNonPermitidaError, match="NIF do titular"):
+        actualizar_horta(session, ana, horta, titular_nif="ABC")

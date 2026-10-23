@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -17,7 +18,48 @@ from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoErr
 
 # Campos que se poden modificar dende actualizar_horta. Queda fóra id e
 # created_at, que non teñen sentido editar.
-CAMPOS_EDITABLES_HORTA = frozenset({"nome", "descricion", "uso_profesional"})
+CAMPOS_EDITABLES_HORTA = frozenset(
+    {
+        "nome",
+        "descricion",
+        "uso_profesional",
+        "titular_nome",
+        "titular_nif",
+        "codigo_reaga",
+        "codigo_rega",
+    }
+)
+
+# Patróns do descritor SIEX (Anexo VI): NIF/NIE de persoa física e CIF; código de
+# explotación ES + 12 díxitos (codigoREA). O REGA segue o mesmo formato.
+_PATRON_NIF = re.compile(
+    r"^([KLMXYZ0-9]\d{7}[TRWAGMYFPDXBNJZSQVHLCKE]|[A-HJ-NP-SUVW]\d{7}[0-9A-J])$"
+)
+_PATRON_CODIGO = re.compile(r"^ES\d{12}$")
+
+
+def _normalizar_e_validar_codigos(cambios: dict[str, Any]) -> None:
+    for campo in ("titular_nif", "codigo_reaga", "codigo_rega"):
+        if cambios.get(campo):
+            cambios[campo] = cambios[campo].strip().upper().replace(" ", "")
+        elif campo in cambios:
+            cambios[campo] = None
+    if cambios.get("titular_nif") and not _PATRON_NIF.match(cambios["titular_nif"]):
+        raise OperacionNonPermitidaError("O NIF do titular non é válido")
+    for campo, nome in (("codigo_reaga", "REAGA"), ("codigo_rega", "REGA")):
+        if cambios.get(campo) and not _PATRON_CODIGO.match(cambios[campo]):
+            raise OperacionNonPermitidaError(
+                f"O código {nome} debe ter o formato ES seguido de 12 díxitos"
+            )
+
+
+def estado_rexistro(horta: Horta) -> str:
+    """non_profesional | en_preparacion | rexistrada (calculado, non gardado)."""
+    if not horta.uso_profesional:
+        return "non_profesional"
+    if horta.titular_nif and horta.codigo_reaga:
+        return "rexistrada"
+    return "en_preparacion"
 
 
 def _obter_membro(session: Session, horta_id: int, usuario_id: int) -> HortaMembro | None:
@@ -71,6 +113,7 @@ def actualizar_horta(
     if non_editables:
         raise ValueError(f"Campos non editables nunha horta: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
+    _normalizar_e_validar_codigos(cambios)
     for campo, valor in cambios.items():
         setattr(horta, campo, valor)
     session.commit()
