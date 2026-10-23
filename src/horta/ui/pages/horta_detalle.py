@@ -21,6 +21,7 @@ from horta.services.cultivos import (
     eliminar_cultivo,
     listar_cultivos,
 )
+from horta.services.en_regra import requisitos_en_regra
 from horta.services.errors import PermisoDenegadoError
 from horta.services.fertilizacions import (
     actualizar_fertilizacion,
@@ -34,6 +35,7 @@ from horta.services.hortas import (
     comprobar_rol_horta,
     eliminar_horta,
     engadir_membro,
+    estado_rexistro,
     listar_hortas_usuario,
     quitar_membro,
 )
@@ -130,6 +132,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         horta_titular_nif = horta.titular_nif or ""
         horta_codigo_reaga = horta.codigo_reaga or ""
         horta_codigo_rega = horta.codigo_rega or ""
+        estado = estado_rexistro(horta)
+        requisitos = requisitos_en_regra(session, actor, horta)
         hortas_usuario = {h.id: h.nome for h, _ in listar_hortas_usuario(session, actor)}
         nome_usuario = actor.nome
 
@@ -240,6 +244,24 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.button(
                     "Configurar horta", icon="settings", on_click=dialog_config_horta.open
                 ).props("outline")
+        texto_estado, clase_estado = {
+            "rexistrada": ("Explotación rexistrada", "etiqueta-ok"),
+            "en_preparacion": ("En preparación", "etiqueta-aviso"),
+            "non_profesional": ("Non profesional", "etiqueta-ok"),
+        }[estado]
+        ui.label(texto_estado).classes(clase_estado)
+        if requisitos:
+            with ui.column().classes("tarxeta w-full gap-2 q-my-md"):
+                ui.label("Para estar en regra").classes("text-subtitle1 text-weight-bold")
+                for requisito in requisitos:
+                    with ui.row().classes("items-center gap-2"):
+                        if requisito.cumprido:
+                            ui.icon("check_circle").classes("text-positive")
+                        else:
+                            ui.icon("radio_button_unchecked").classes("texto-suave")
+                        ui.label(requisito.texto)
+                        if not requisito.cumprido:
+                            ui.label(requisito.axuda).classes("texto-suave text-caption")
         _seccion_dashboard(
             len(parcelas),
             len(cultivos),
