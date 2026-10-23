@@ -64,3 +64,42 @@ def test_migracion_copia_os_tratamentos_antigos(tmp_path):
     assert fito["tratamento_antigo_id"] == 7
     assert cultivo["cultivo_id"] == 1
     assert cultivo["superficie_ha"] == 0.15
+
+
+def test_migracion_cultivo_pasa_datas_e_crea_colleita(tmp_path):
+    url = f"sqlite:///{tmp_path / 'proba.db'}"
+    _alembic(url, "upgrade", "e5c9f3b7d2a4")
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        conn.execute(text(
+            "INSERT INTO horta (id, nome, uso_profesional, created_at) "
+            "VALUES (1, 'Horta', 0, '2026-01-01')"
+        ))
+        conn.execute(text(
+            "INSERT INTO parcela (id, horta_id, nome, estado, created_at) "
+            "VALUES (1, 1, 'P1', 'activa', '2026-01-01')"
+        ))
+        conn.execute(text(
+            "INSERT INTO cultivo (id, parcela_id, especie, estado, data_sementeira, "
+            "data_colleita_real, cantidade, unidade, created_at) VALUES (1, 1, 'Pataca', "
+            "'colleitado', '2026-03-01', '2026-07-15', 120, 'kg', '2026-01-01')"
+        ))
+        conn.execute(text(
+            "INSERT INTO cultivo (id, parcela_id, especie, estado, data_plantacion, "
+            "created_at) VALUES (2, 1, 'Leituga', 'plantado', '2026-04-01', '2026-01-01')"
+        ))
+    _alembic(url, "upgrade", "head")
+    with engine.connect() as conn:
+        cultivos = conn.execute(text(
+            "SELECT id, tipo_inicio, data_inicio, data_fin FROM cultivo ORDER BY id"
+        )).all()
+        colleitas = conn.execute(text(
+            "SELECT cultivo_id, data, cantidade, unidade, lote FROM colleita"
+        )).all()
+    assert [tuple(map(str, c)) for c in cultivos] == [
+        ("1", "sementeira", "2026-03-01", "2026-07-15"),
+        ("2", "plantacion", "2026-04-01", "None"),
+    ]
+    assert [tuple(map(str, c)) for c in colleitas] == [
+        ("1", "2026-07-15", "120.0", "kg", "MIGRADO-1"),
+    ]
