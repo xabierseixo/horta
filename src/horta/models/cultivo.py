@@ -65,7 +65,7 @@ class Fertilizacion(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     cultivo_id: Mapped[int] = mapped_column(ForeignKey("cultivo.id"))
     data: Mapped[date] = mapped_column(Date)
-    superficie: Mapped[float | None] = mapped_column(Float, default=None)
+    superficie: Mapped[float | None] = mapped_column(Float, default=None)  # hectáreas
     tipo: Mapped[str] = mapped_column(String(50))
     produto: Mapped[str] = mapped_column(String(200))
     dose: Mapped[str | None] = mapped_column(String(100), default=None)

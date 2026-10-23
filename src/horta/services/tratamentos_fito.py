@@ -126,7 +126,7 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
         if linha.superficie_ha is not None:
             if linha.superficie_ha <= 0:
                 raise _erro("A superficie tratada ten que ser maior que 0")
-            if parcela.superficie and linha.superficie_ha > parcela.superficie / 10000:
+            if parcela.superficie and linha.superficie_ha > parcela.superficie:
                 raise _erro(f"A superficie tratada é maior ca da parcela {parcela.nome}")
         if linha.estado_fenoloxico:
             validar_codigo(session, "estado_fenoloxico", linha.estado_fenoloxico, d)

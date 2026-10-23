@@ -53,7 +53,7 @@ def _escenario(session, profesional=True):
     horta = crear_horta(session, ana, "Horta")
     session.get(Horta, horta.id).uso_profesional = profesional
     session.commit()
-    parcela = crear_parcela(session, ana, horta.id, "P1", superficie=2000.0)
+    parcela = crear_parcela(session, ana, horta.id, "P1", superficie=0.2)
     cultivo = crear_cultivo(session, ana, parcela.id, "Pataca")
     xan = crear_persoa(session, ana, horta.id, "Xan", e_aplicador=True, ropo_numero="1",
                        ropo_caducidade=D)
@@ -140,7 +140,7 @@ def test_cultivos_distintos_rexeitanse(session):
 
 
 def test_superficie_maior_ca_parcela_rexeitase(session):
-    ana, horta, _, cultivo, xan, maquina = _escenario(session)  # parcela de 2000 m² = 0,2 ha
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)  # parcela de 0,2 ha
     linhas = [LinhaCultivo(cultivo.id, 0.5)]
     with pytest.raises(OperacionNonPermitidaError, match="maior ca da parcela"):
         crear_tratamento_fito(session, ana, horta.id,

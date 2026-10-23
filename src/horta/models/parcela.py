@@ -21,7 +21,7 @@ class Parcela(Base):
     horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"))
     nome: Mapped[str] = mapped_column(String(120))
     descricion: Mapped[str | None] = mapped_column(String(500), default=None)
-    superficie: Mapped[float | None] = mapped_column(Float, default=None)
+    superficie: Mapped[float | None] = mapped_column(Float, default=None)  # hectáreas
     posicion: Mapped[str | None] = mapped_column(String(120), default=None)
     lat: Mapped[float | None] = mapped_column(Float, default=None)
     lon: Mapped[float | None] = mapped_column(Float, default=None)
