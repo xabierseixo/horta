@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Enum, ForeignKey, String
+from sqlalchemy import Boolean, Date, Enum, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -33,3 +33,15 @@ class Persoa(Base):
     ropo_caducidade: Mapped[date | None] = mapped_column(Date, default=None)
     regfer_numero: Mapped[str | None] = mapped_column(String(20), default=None)
     activa: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Equipo (deseño 2026-10-23-equipo): conta, funcións e datos de emprego (UTA, AGADER)
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
+    e_titular: Mapped[bool] = mapped_column(Boolean, default=False)
+    e_traballador: Mapped[bool] = mapped_column(Boolean, default=False)
+    telefono: Mapped[str | None] = mapped_column(String(30), default=None)
+    email: Mapped[str | None] = mapped_column(String(255), default=None)
+    vinculo: Mapped[str | None] = mapped_column(String(20), default=None)
+    horas_ano: Mapped[float | None] = mapped_column(Float, default=None)
+    formacion_agraria: Mapped[str | None] = mapped_column(String(200), default=None)
+    xenero: Mapped[str | None] = mapped_column(String(10), default=None)
+    data_nacemento: Mapped[date | None] = mapped_column(Date, default=None)
+    discapacidade: Mapped[bool] = mapped_column(Boolean, default=False)

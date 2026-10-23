@@ -20,8 +20,14 @@ _PATRON_NIF = re.compile(r"^[KLMXYZ0-9]\d{7}[TRWAGMYFPDXBNJZSQVHLCKE]$")
 
 CAMPOS_EDITABLES_PERSOA = frozenset(
     {"nome", "apelidos", "nif", "e_aplicador", "e_asesor", "ropo_numero", "ropo_tipo_carne",
-     "ropo_caducidade", "regfer_numero", "activa"}
+     "ropo_caducidade", "regfer_numero", "activa", "e_titular", "e_traballador", "telefono",
+     "email", "vinculo", "horas_ano", "formacion_agraria", "xenero", "data_nacemento",
+     "discapacidade"}
 )
+
+
+VINCULOS = ("titular", "familiar", "asalariado", "socio", "externo")
+XENEROS = ("muller", "home", "outro")
 
 
 def _normalizar_e_validar(datos: dict[str, Any]) -> None:
@@ -35,6 +41,14 @@ def _normalizar_e_validar(datos: dict[str, Any]) -> None:
         )
     if datos.get("e_asesor") and not datos.get("ropo_numero"):
         raise OperacionNonPermitidaError("Un asesor precisa o nº ROPO")
+    if datos.get("vinculo") not in (None, *VINCULOS):
+        raise OperacionNonPermitidaError(f"Vínculo non válido: {datos['vinculo']}")
+    if datos.get("horas_ano") is not None and not 0 <= datos["horas_ano"] <= 4000:
+        raise OperacionNonPermitidaError("As horas ao ano teñen que estar entre 0 e 4.000")
+    if datos.get("xenero") not in (None, *XENEROS):
+        raise OperacionNonPermitidaError(f"Xénero non válido: {datos['xenero']}")
+    if datos.get("data_nacemento") is not None and datos["data_nacemento"] > date.today():
+        raise OperacionNonPermitidaError("A data de nacemento non pode ser futura")
 
 
 def crear_persoa(
