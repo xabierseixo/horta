@@ -70,6 +70,7 @@ from horta.ui.layout import (
     url_seccion,
 )
 from horta.ui.nav import cabeceira_paxina
+from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
 from horta.ui.pages.maquinaria import seccion_maquinaria
 from horta.ui.pages.persoas import seccion_persoas
@@ -281,6 +282,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         _seccion_parcelas(horta_id, parcelas, pode_editar)
     elif seccion == "cultivos":
         seccion_cultivos(horta_id, pode_editar)
+    elif seccion == "colleitas":
+        seccion_colleitas(horta_id, pode_editar)
     elif seccion == "tratamentos":
         seccion_tratamentos_fito(horta_id, pode_editar)
     elif seccion == "fertilizacion":
