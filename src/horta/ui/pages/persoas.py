@@ -28,10 +28,10 @@ def seccion_persoas(horta_id: int, pode_editar: bool) -> None:
             dias = (p.ropo_caducidade - hoxe).days
             if dias < 0:
                 ui.label(f"⚠ O carné ROPO de {p.nome} caducou o {p.ropo_caducidade:%d/%m/%Y}") \
-                    .classes("text-negative")
+                    .classes("aviso w-full")
             elif dias <= _AVISO_DIAS:
                 ui.label(f"⚠ O carné ROPO de {p.nome} caduca en {dias} días").classes(
-                    "text-warning"
+                    "aviso w-full"
                 )
 
     filas = [
@@ -49,7 +49,9 @@ def seccion_persoas(horta_id: int, pode_editar: bool) -> None:
             ("caducidade", "Caducidade ROPO"), ("activa", "Activa"))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
-    ).classes("w-full").props('no-data-label="Aínda non hai persoas rexistradas"')
+    ).classes("w-full taboa").props(
+        'flat bordered no-data-label="Aínda non hai persoas rexistradas"'
+    )
 
     if not pode_editar:
         return

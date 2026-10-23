@@ -29,7 +29,9 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
             ("alias", "Nome"), ("marca", "Marca e modelo"), ("ident", "ROMA / REGANIP / ID"),
             ("inspeccion", "Última inspección"), ("propia", "Propia"))],
         rows=filas, row_key="id",
-    ).classes("w-full")
+    ).classes("w-full taboa").props(
+        'flat bordered no-data-label="Aínda non hai máquinas rexistradas"'
+    )
 
     if not pode_editar:
         return

@@ -85,7 +85,9 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
             ("produtos", "Produtos"), ("cue", "CUE"))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
-    ).classes("w-full").props('no-data-label="Aínda non hai tratamentos rexistrados"')
+    ).classes("w-full taboa").props(
+        'flat bordered no-data-label="Aínda non hai tratamentos rexistrados"'
+    )
 
     if not pode_editar:
         return
