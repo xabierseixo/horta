@@ -32,6 +32,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("membros", "Membros", "group", "Equipo", so_admin_horta=True),
 )
 _CLAVES = {s.clave for s in SECCIONS}
+NOVA_EXPLOTACION = -1  # valor especial do selector de explotación
 
 
 def url_seccion(horta_id: int, clave: str) -> str:
@@ -73,10 +74,12 @@ def marco_horta(
                 ui.icon("eco", color="green-3").classes("text-h5")
                 ui.label("Horta")
             ui.select(
-                hortas,
+                {**hortas, NOVA_EXPLOTACION: "+ Nova explotación"},
                 value=horta_id,
                 label="Explotación",
-                on_change=lambda e: ui.navigate.to(url_seccion(e.value, seccion)),
+                on_change=lambda e: ui.navigate.to(
+                    "/?nova=1" if e.value == NOVA_EXPLOTACION else url_seccion(e.value, seccion)
+                ),
             ).props("dense outlined dark").classes("menu-selector w-full q-mb-sm")
 
             grupo_actual: str | None = None

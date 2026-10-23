@@ -13,7 +13,7 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 
 
 @ui.page("/")
-def dashboard_page() -> None:
+def dashboard_page(nova: bool = False) -> None:
     with get_session() as session:
         actor = usuario_actual(session)
         if actor is None:
@@ -32,7 +32,7 @@ def dashboard_page() -> None:
         nome = actor.nome
         e_admin_global = actor.rol == RolGlobal.ADMIN
 
-    if hortas:
+    if hortas and not nova:
         ids = [h.id for h, _ in hortas]
         ultima = app.storage.user.get("ultima_horta")
         destino = ultima if ultima in ids else ids[0]
@@ -71,6 +71,9 @@ def dashboard_page() -> None:
         with ui.row():
             ui.button("Crear", icon="check", on_click=crear)
             ui.button("Cancelar", on_click=dialog_nova_horta.close).props("flat")
+
+    if nova:
+        dialog_nova_horta.open()
 
     with ui.row().classes("w-full items-center justify-between q-mb-md"):
         ui.label(f"Ola, {nome}").classes("text-xl font-bold")
