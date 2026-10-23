@@ -1203,7 +1203,7 @@ def _seccion_membros(horta_id: int) -> None:
     with ui.dialog() as dialog_engadir, ui.card():
         ui.label("Engadir membro").classes("text-md font-bold")
         email_input = ui.input("Email do usuario")
-        rol_input = ui.select(list(_ROLES_HORTA), value="lector")
+        rol_input = ui.select(list(_ROLES_HORTA), value="lector", label="Rol")
 
         def engadir() -> None:
             with get_session() as session:
@@ -1290,7 +1290,7 @@ def _seccion_membros(horta_id: int) -> None:
 
     with ui.dialog() as dialog_cambiar_rol, ui.card():
         ui.label("Cambiar rol do membro").classes("text-md font-bold")
-        rol_edit = ui.select(list(_ROLES_HORTA), value="lector")
+        rol_edit = ui.select(list(_ROLES_HORTA), value="lector", label="Rol")
 
         def cambiar_rol() -> None:
             if not taboa.selected:

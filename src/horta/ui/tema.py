@@ -78,6 +78,10 @@ body { font-family: Inter, system-ui, sans-serif; background: var(--cor-fondo);
                                       font-weight: 600;
                   text-transform: uppercase; letter-spacing: .05em; }
 .texto-suave { color: var(--cor-texto-suave); }
+
+/* Diálogos: ancho mínimo e campos a todo o ancho (só os fillos directos da tarxeta) */
+.q-dialog .q-card { min-width: min(400px, 92vw); }
+.q-dialog .q-card > .q-field { width: 100%; }
 </style>
 """
 

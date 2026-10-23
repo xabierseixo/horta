@@ -53,7 +53,7 @@ def admin_usuarios_page() -> None:
         nome_input = ui.input("Nome")
         email_input = ui.input("Email")
         contrasinal_input = ui.input("Contrasinal", password=True)
-        rol_select = ui.select(list(_ROLES_USUARIO), value="usuario")
+        rol_select = ui.select(list(_ROLES_USUARIO), value="usuario", label="Rol")
 
         def crear() -> None:
             if not (nome_input.value and email_input.value and contrasinal_input.value):
@@ -136,7 +136,7 @@ def admin_usuarios_page() -> None:
     with ui.dialog() as dialog_editar, ui.card():
         titulo_edicion = ui.label("").classes("text-md font-bold")
         nome_edit = ui.input("Nome")
-        rol_edit = ui.select(list(_ROLES_USUARIO), value="usuario")
+        rol_edit = ui.select(list(_ROLES_USUARIO), value="usuario", label="Rol")
 
         def _usuario_seleccionado_id() -> int | None:
             return taboa.selected[0]["id"] if taboa.selected else None
