@@ -73,6 +73,7 @@ from horta.ui.pages.maquinaria import seccion_maquinaria
 from horta.ui.pages.persoas import seccion_persoas
 from horta.ui.pages.tratamentos_fito import seccion_tratamentos_fito
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.superficie import CampoSuperficie, formatar_superficie
 
 _PROPS_TABOA = 'flat bordered no-data-label="Aínda non hai rexistros"'
 
@@ -299,7 +300,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         with ui.dialog() as dialog_nova_parcela, ui.card():
             ui.label("Nova parcela").classes("text-md font-bold")
             nome_input = ui.input("Nome")
-            superficie_input = ui.number("Superficie (m²)")
+            superficie_input = CampoSuperficie("Superficie")
             lat_input = ui.number("Latitude", format="%.6f")
             lon_input = ui.number("Lonxitude", format="%.6f")
 
@@ -319,7 +320,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                             actor_actual,
                             horta_id,
                             nome_input.value,
-                            superficie=superficie_input.value,
+                            superficie=superficie_input.ha,
                             lat=lat_input.value,
                             lon=lon_input.value,
                         ),
@@ -341,7 +342,8 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
         {
             "id": p.id,
             "nome": p.nome,
-            "superficie": p.superficie,
+            "superficie": formatar_superficie(p.superficie),
+            "superficie_ha": p.superficie,
             "estado": p.estado,
             "lat": p.lat,
             "lon": p.lon,
@@ -409,7 +411,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
     with ui.dialog() as dialog_editar, ui.card():
         ui.label("Editar parcela").classes("text-md font-bold")
         nome_edit = ui.input("Nome")
-        superficie_edit = ui.number("Superficie (m²)")
+        superficie_edit = CampoSuperficie("Superficie")
         estado_edit = ui.select(list(_ESTADOS_PARCELA), label="Estado", value="activa")
         lat_edit = ui.number("Latitude", format="%.6f")
         lon_edit = ui.number("Lonxitude", format="%.6f")
@@ -444,7 +446,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
                         actor_actual,
                         obxectivo,
                         nome=nome_edit.value,
-                        superficie=superficie_edit.value,
+                        superficie=superficie_edit.ha,
                         estado=estado_edit.value,
                         lat=lat_edit.value,
                         lon=lon_edit.value,
@@ -463,7 +465,7 @@ def _seccion_parcelas(horta_id: int, parcelas: list, pode_editar: bool) -> None:
             return
         fila = taboa.selected[0]
         nome_edit.value = fila["nome"]
-        superficie_edit.value = fila["superficie"]
+        superficie_edit.establecer(fila["superficie_ha"])
         estado_edit.value = fila["estado"]
         lat_edit.value = fila["lat"]
         lon_edit.value = fila["lon"]
@@ -872,7 +874,7 @@ def _seccion_fertilizacion(
         tipo_edit = ui.select(["emenda", "abonado_fondo", "cobertoira"], label="Tipo")
         produto_edit = ui.input("Produto")
         dose_edit = ui.input("Dose")
-        superficie_edit = ui.number("Superficie (m²)")
+        superficie_edit = CampoSuperficie("Superficie")
         n_edit = ui.number("N (%)")
         p_edit = ui.number("P (%)")
         k_edit = ui.number("K (%)")
@@ -919,7 +921,7 @@ def _seccion_fertilizacion(
                         tipo=tipo_edit.value,
                         produto=produto_edit.value,
                         dose=dose_edit.value or None,
-                        superficie=superficie_edit.value,
+                        superficie=superficie_edit.ha,
                         n=n_edit.value,
                         p=p_edit.value,
                         k=k_edit.value,
@@ -948,7 +950,7 @@ def _seccion_fertilizacion(
         tipo_edit.value = fertilizacion_completa.tipo
         produto_edit.value = fertilizacion_completa.produto
         dose_edit.value = fertilizacion_completa.dose or ""
-        superficie_edit.value = fertilizacion_completa.superficie
+        superficie_edit.establecer(fertilizacion_completa.superficie)
         n_edit.value = fertilizacion_completa.n
         p_edit.value = fertilizacion_completa.p
         k_edit.value = fertilizacion_completa.k
