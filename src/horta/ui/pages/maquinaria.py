@@ -5,6 +5,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.services.maquinaria import crear_maquina, listar_maquinas
 from horta.ui.accions import executar_accion
+from horta.ui.campos import campo_data
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
@@ -46,7 +47,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
         ident = ui.input("Número / identificador")
         propia = ui.checkbox("Propia", value=True)
         potencia = ui.input("Potencia")
-        inspeccion = ui.input("Data última inspección (AAAA-MM-DD)")
+        inspeccion = campo_data("Data última inspección")
 
         def gardar() -> None:
             if not alias.value:

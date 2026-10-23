@@ -8,6 +8,7 @@ from horta.db import get_session
 from horta.models.persoa import Persoa, TipoCarne
 from horta.services.persoas import actualizar_persoa, crear_persoa, listar_persoas
 from horta.ui.accions import executar_accion
+from horta.ui.campos import campo_data
 from horta.ui.numeros import parsear_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
@@ -68,7 +69,7 @@ def seccion_persoas(horta_id: int, pode_editar: bool) -> None:
         ropo = ui.input("Nº ROPO").classes("w-full")
         tipo = ui.select({t.value: t.value.replace("_", " ") for t in TipoCarne},
                          label="Tipo de carné").classes("w-full")
-        caducidade = ui.input("Caducidade do carné (AAAA-MM-DD)").classes("w-full")
+        caducidade = campo_data("Caducidade do carné")
         regfer = ui.input("Nº REGFER").classes("w-full")
         activa = ui.checkbox("Activa", value=True)
 

@@ -25,6 +25,7 @@ from horta.services.tratamentos_fito import (
     listar_tratamentos_fito,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal, parsear_hora
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -99,11 +100,8 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
     with ui.dialog() as dialogo, ui.card().style("min-width: 40rem"):
         with ui.stepper().props("vertical").classes("w-full") as pasos:
             with ui.step("1. Que e onde"):
-                data_inicio = ui.input("Data de inicio (AAAA-MM-DD)",
-                                       value=date.today().isoformat()).classes("w-full")
-                data_fin = ui.input(
-                    "Data de fin (AAAA-MM-DD)", value=date.today().isoformat()
-                ).classes("w-full")
+                data_inicio = campo_data("Data de inicio", date.today().isoformat())
+                data_fin = campo_data("Data de fin", date.today().isoformat())
                 hora = ui.input("Hora de inicio (HH:MM, opcional)").classes("w-full")
                 cultivo = ui.select(opcions_cultivo, label="Cultivo e parcela",
                                     with_input=True).classes("w-full")

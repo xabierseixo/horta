@@ -58,6 +58,7 @@ from horta.services.tarefas import (
     marcar_pendente,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import (
@@ -609,10 +610,10 @@ def _seccion_cultivos(horta_id: int, cultivos: list, parcelas: list, pode_editar
         variedade_edit = ui.input("Variedade")
         cantidade_edit = ui.number("Cantidade")
         unidade_edit = ui.select(list(_UNIDADES_CULTIVO), label="Unidade")
-        data_sementeira_edit = ui.input("Data sementeira (AAAA-MM-DD)")
-        data_plantacion_edit = ui.input("Data plantación (AAAA-MM-DD)")
-        data_colleita_prevista_edit = ui.input("Data colleita prevista (AAAA-MM-DD)")
-        data_colleita_real_edit = ui.input("Data colleita real (AAAA-MM-DD)")
+        data_sementeira_edit = campo_data("Data sementeira")
+        data_plantacion_edit = campo_data("Data plantación")
+        data_colleita_prevista_edit = campo_data("Data colleita prevista")
+        data_colleita_real_edit = campo_data("Data colleita real")
         notas_edit = ui.textarea("Notas")
         estado_edit = ui.select(list(_ESTADOS_CULTIVO), label="Estado", value="planificado")
 
@@ -750,7 +751,7 @@ def _seccion_fertilizacion(
         with ui.dialog() as dialog_nova_fertilizacion, ui.card():
             ui.label("Nova fertilización").classes("text-md font-bold")
             cultivo_select = ui.select(etiquetas_cultivo, label="Cultivo")
-            data_input = ui.input("Data (AAAA-MM-DD)")
+            data_input = campo_data("Data")
             tipo_select = ui.select(["emenda", "abonado_fondo", "cobertoira"], label="Tipo")
             produto_input = ui.input("Produto")
 
@@ -867,7 +868,7 @@ def _seccion_fertilizacion(
 
     with ui.dialog() as dialog_editar, ui.card():
         ui.label("Editar fertilización").classes("text-md font-bold")
-        data_edit = ui.input("Data (AAAA-MM-DD)")
+        data_edit = campo_data("Data")
         tipo_edit = ui.select(["emenda", "abonado_fondo", "cobertoira"], label="Tipo")
         produto_edit = ui.input("Produto")
         dose_edit = ui.input("Dose")
@@ -1415,7 +1416,7 @@ def _seccion_tarefas(
             descricion_input = ui.input("Descrición")
             parcela_select = ui.select(opcions_parcela, label="Parcela", value="")
             cultivo_select = ui.select(opcions_cultivo, label="Cultivo", value="")
-            data_input = ui.input("Data (AAAA-MM-DD, opcional)")
+            data_input = campo_data("Data (opcional)")
             prioridade_select = ui.select(
                 list(_PRIORIDADES_TAREFA), label="Prioridade", value="media"
             )
@@ -1544,8 +1545,8 @@ def _seccion_tarefas(
         descricion_edit = ui.input("Descrición")
         parcela_edit = ui.select(opcions_parcela, label="Parcela")
         cultivo_edit = ui.select(opcions_cultivo, label="Cultivo")
-        data_edit = ui.input("Data (AAAA-MM-DD, opcional)")
-        data_limite_edit = ui.input("Data límite (AAAA-MM-DD, opcional)")
+        data_edit = campo_data("Data (opcional)")
+        data_limite_edit = campo_data("Data límite (opcional)")
         prioridade_edit = ui.select(list(_PRIORIDADES_TAREFA), label="Prioridade")
         notas_edit = ui.textarea("Notas")
 
