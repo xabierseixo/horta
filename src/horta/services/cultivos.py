@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
@@ -34,6 +35,48 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "cultivo_siex_codigo",
         "variedade_siex_id",
         "variedade_local_id",
+        "superficie_ha",
+        "tipo_inicio",
+        "data_inicio",
+        "data_fin",
+        "causa_baixa",
+        "sistema_cultivo",
+        "sistema_explotacion",
+        "destino",
+        "actividade_agraria",
+        "certificacion_ecoloxica",
+        "data_inicio_conversion",
+        "producion_integrada",
+        "procedencia_material",
+        "provedor_material",
+        "lote_material",
+        "pasaporte_fitosanitario",
+        "ropveg",
+        "num_arbores",
+        "marco_plantacion",
+        "ano_plantacion",
+        "unidades_produtivas",
+        "ciclos_ano",
+        "duracion_ciclo_dias",
+        "cultivo_anterior_codigo",
+        "obxectivo_colleita_kg_ha",
+        "tipo_mvr",
+        "detalle_mvr",
+        "empresa_semente",
+        "sementeira_directa",
+        "tipo_cobertura_solo",
+        "num_castineiros",
+        "num_abeleiras",
+        "num_nogueiras",
+        "num_amendoeiras",
+        "num_outros_froitos_casca",
+        "data_fin_sementeira",
+        "cantidade_semente_kg",
+        "dose_sementeira_kg_ha",
+        "densidade_plantas_ha",
+        "material_tratado",
+        "material_adquirido",
+        "data_adquisicion_material",
     }
 )
 
@@ -114,6 +157,11 @@ def eliminar_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> None
         raise OperacionNonPermitidaError(
             "Este cultivo ten tratamentos fitosanitarios rexistrados e debe conservarse "
             "(obriga legal). Podes marcalo como rematado."
+        )
+    if session.query(Colleita).filter_by(cultivo_id=cultivo.id).first():
+        raise OperacionNonPermitidaError(
+            "Este cultivo ten colleitas rexistradas e debe conservarse. "
+            "Podes marcalo como rematado."
         )
     session.query(Tarefa).filter_by(cultivo_id=cultivo.id).update({"cultivo_id": None})
     for tratamento in session.query(Tratamento).filter_by(cultivo_id=cultivo.id).all():
