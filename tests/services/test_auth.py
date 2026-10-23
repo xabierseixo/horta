@@ -105,6 +105,7 @@ def test_obter_usuario_activo_devolve_none_se_inactivo(session):
 def test_obter_usuario_activo_devolve_none_se_non_existe(session):
     assert obter_usuario_activo(session, 9999) is None
 
+
 def test_autenticar_ignora_maiusculas_e_espazos(session):
     usuario = Usuario(
         nome="Ana",
