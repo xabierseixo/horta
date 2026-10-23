@@ -123,3 +123,23 @@ def test_variedades_sen_cultivos_non_queda_marcado_como_importado(session, tmp_p
     with pytest.raises(OperacionNonPermitidaError, match="Importa primeiro os cultivos"):
         importar_variedades(session, fv)
     assert session.query(CatalogoVersion).count() == 0
+
+
+
+def test_importa_sistema_de_cultivo(session, tmp_path):
+    f = _xlsx(tmp_path / "SIST_CULTIVO.xlsx",
+              ["Código SIEX", "Sistema de cultivo", "Observaciones", "Fecha de alta",
+               "Fecha de modificación", "Fecha de baja"],
+              [["1", "Aire libre", None, "30/06/2023", None, None],
+               ["9", "Bodega Sacos", "Setas/champiñones", "30/06/2023", None, None]])
+    importar_catalogo(session, "sistema_cultivo", f)
+    valores = {v.codigo: v.descricion for v in session.query(CatalogoValor)}
+    assert valores == {"1": "Aire libre", "9": "Bodega Sacos"}
+
+
+def test_importa_razas_coa_columna_codigo(session, tmp_path):
+    f = _xlsx(tmp_path / "RAZAS.xlsx",
+              ["Código", "Raza", "Especie", "Clasificación", "Grado de amenaza"],
+              [["1", "Galiña de Mos", "Gallinas", "Autóctona", "En peligro"]])
+    importar_catalogo(session, "raza", f)
+    assert session.query(CatalogoValor).one().descricion == "Galiña de Mos"

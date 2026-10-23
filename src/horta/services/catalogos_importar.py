@@ -36,6 +36,32 @@ CATALOGOS_XERAIS: dict[str, tuple[str, str, str | None]] = {
     "tipo_maquinaria_une": ("TIPO_MAQUINA_UNE", "Código UNE", None),
     "tipo_enerxia": ("TIPENERGIA", "Código", None),
     "boas_practicas": ("BUENAS_PRACTICAS_AMBITOS", "Código SIEX", None),
+    # Cultivos e parcelas (REA)
+    "sistema_cultivo": ("SIST_CULTIVO", "Código SIEX", None),
+    "destino_cultivo": ("DESTINO_CULTIVO", "Código SIEX", None),
+    "certificacion_ecoloxica": ("TIPO_CERTIFICACION_ECOLOGICA", "Código SIEX", None),
+    "sistema_explotacion": ("SIST_EXPLOTACION", "Código SIEX", None),
+    "actividade_agraria": ("ACTIVIDAD_AGRARIA", "Código SIEX", None),
+    "causa_baixa": ("CAUSA_BAJA", "Código SIEX", None),
+    "procedencia_material_vexetal": ("PROC_VEGETAL", "Código SIEX", None),
+    "tipo_cobertura_solo": ("TIPO_COBERTURA_SUELO", "Código SIEX", None),
+    "rexime_tenencia": ("REGIMEN_TENENCIA", "Código SIEX", None),
+    # Colleita
+    "destino_colleita": ("DEST_COSECHA", "Código SIEX", None),
+    "destino_restos": ("DEST_RES_VEG", "Código SIEX", None),
+    # Fertilización, análises e rega
+    "material_fertilizante": ("MAT_FERTI", "Código SIEX", None),
+    "tipo_fertilizacion": ("TIPO_FERITILIZACION", "Código SIEX", None),
+    "metodo_fertilizacion": ("METODO_APLICACION_FERTILIZANTE", "Código SIEX", None),
+    "tratamento_estercos": ("TRAT_ESTIERCOLES", "Código SIEX", None),
+    "material_analizado": ("MATERIAL_ANALIZADO", "Código SIEX", None),
+    "tipo_analise": ("TIPO_ANALISIS", "Código SIEX", None),
+    "orixe_auga": ("ORIGEN_AGUA_RIEGO", "Código SIEX", None),
+    "sistema_rega": ("SIST_RIEGO", "Código SIEX", None),
+    # Labores e animais
+    "tipo_labor": ("TIPO_LABOR", "Código SIEX", None),
+    "especie_animal": ("ESPECIE_ANIMAL", "Código SIEX", None),
+    "raza": ("RAZAS", "Código", None),
 }
 
 
