@@ -113,7 +113,6 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         parcelas = listar_parcelas(session, actor, horta_id)
         animais = listar_animais(session, actor, horta_id)
         cultivos = listar_cultivos(session, actor, horta_id)
-
         tarefas = listar_tarefas(session, actor, horta_id)
         tarefas_pendentes_hoxe = listar_tarefas_pendentes_hoxe(session, actor, horta_id)
         tarefas_proximas = listar_tarefas_proximas(session, actor, horta_id)
