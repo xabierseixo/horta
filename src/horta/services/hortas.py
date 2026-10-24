@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from horta.models.abonado import Abonado, Fertilizante
 from horta.models.animal import Animal
-from horta.models.cultivo import Cultivo, Fertilizacion
+from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela
@@ -154,15 +154,6 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
         if parcela_ids
         else []
     )
-    cultivo_ids = [c.id for c in cultivos]
-    if cultivo_ids:
-        for fertilizacion in (
-            session.query(Fertilizacion).filter(Fertilizacion.cultivo_id.in_(cultivo_ids)).all()
-        ):
-            session.delete(fertilizacion)
-        # Igual que en eliminar_parcela: sen relationship(), forzar estes
-        # borrados á BD antes de borrar os seus Cultivo pai.
-        session.flush()
     for cultivo in cultivos:
         session.delete(cultivo)
     session.flush()

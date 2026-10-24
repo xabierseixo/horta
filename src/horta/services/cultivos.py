@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from horta.models.abonado import Abonado
 from horta.models.colleita import Colleita
-from horta.models.cultivo import Cultivo, Fertilizacion
+from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
@@ -254,8 +254,6 @@ def eliminar_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> None
             "Podes marcalo como rematado."
         )
     session.query(Tarefa).filter_by(cultivo_id=cultivo.id).update({"cultivo_id": None})
-    for fertilizacion in session.query(Fertilizacion).filter_by(cultivo_id=cultivo.id).all():
-        session.delete(fertilizacion)
     session.flush()
     session.delete(cultivo)
     session.commit()
