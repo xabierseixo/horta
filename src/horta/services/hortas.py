@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.models.abonado import Abonado, Fertilizante
 from horta.models.animal import Animal
 from horta.models.cultivo import Cultivo, Fertilizacion
 from horta.models.horta import Horta, HortaMembro, RolHorta
@@ -135,6 +136,11 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
             "Esta explotación ten tratamentos fitosanitarios rexistrados e debe conservarse "
             "(obriga legal)."
         )
+    if session.query(Abonado).filter_by(horta_id=horta.id).first():
+        raise OperacionNonPermitidaError(
+            "Esta explotación ten abonados rexistrados e debe conservarse (obriga legal)."
+        )
+    session.query(Fertilizante).filter_by(horta_id=horta.id).delete()
     for tarefa in session.query(Tarefa).filter_by(horta_id=horta.id).all():
         session.delete(tarefa)
     # As Tarefas poden referenciar Parcela/Cultivo (FK opcionais) — hai que
