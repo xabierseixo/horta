@@ -59,6 +59,7 @@ from horta.ui.layout import (
     url_seccion,
 )
 from horta.ui.nav import cabeceira_paxina
+from horta.ui.pages.abonados import seccion_abonados
 from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
 from horta.ui.pages.equipo import seccion_equipo
@@ -112,7 +113,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         parcelas = listar_parcelas(session, actor, horta_id)
         animais = listar_animais(session, actor, horta_id)
         cultivos = listar_cultivos(session, actor, horta_id)
-        fertilizacions = listar_fertilizacions(session, actor, horta_id)
+
         tarefas = listar_tarefas(session, actor, horta_id)
         tarefas_pendentes_hoxe = listar_tarefas_pendentes_hoxe(session, actor, horta_id)
         tarefas_proximas = listar_tarefas_proximas(session, actor, horta_id)
@@ -276,7 +277,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     elif seccion == "tratamentos":
         seccion_tratamentos_fito(horta_id, pode_editar)
     elif seccion == "fertilizacion":
-        _seccion_fertilizacion(horta_id, fertilizacions, cultivos, parcelas, pode_editar)
+        seccion_abonados(horta_id, pode_editar)
     elif seccion == "tarefas":
         _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
     elif seccion == "animais":
