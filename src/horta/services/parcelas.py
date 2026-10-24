@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -10,8 +11,9 @@ from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
+from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
-from horta.services.hortas import comprobar_rol_horta
+from horta.services.hortas import _PATRON_NIF, comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
