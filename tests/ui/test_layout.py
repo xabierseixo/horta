@@ -10,11 +10,10 @@ def test_seccion_descoñecida_vai_ao_resumo():
     assert normalizar_seccion("parcelas") == "parcelas"
 
 
-def test_membros_so_para_admin_da_horta():
-    claves_admin = [s.clave for s in seccions_visibles(e_horta_admin=True)]
+def test_equipo_substitue_persoas_e_membros():
     claves_editor = [s.clave for s in seccions_visibles(e_horta_admin=False)]
-    assert "membros" in claves_admin
-    assert "membros" not in claves_editor
+    assert "equipo" in claves_editor
+    assert "persoas" not in claves_editor and "membros" not in claves_editor
     assert claves_editor[0] == "resumo"
 
 

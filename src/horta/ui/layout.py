@@ -28,9 +28,8 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("colleitas", "Colleitas", "inventory_2", "Caderno"),
     Seccion("tarefas", "Tarefas", "task_alt", "Caderno"),
     Seccion("animais", "Animais", "pets", "Gandaría"),
-    Seccion("persoas", "Persoas", "badge", "Equipo"),
+    Seccion("equipo", "Equipo", "groups", "Equipo"),
     Seccion("maquinaria", "Maquinaria", "agriculture", "Equipo"),
-    Seccion("membros", "Membros", "group", "Equipo", so_admin_horta=True),
 )
 _CLAVES = {s.clave for s in SECCIONS}
 NOVA_EXPLOTACION = -1  # valor especial do selector de explotación
