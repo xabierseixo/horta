@@ -79,26 +79,3 @@ class Cultivo(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
-
-
-class Fertilizacion(Base):
-    __tablename__ = "fertilizacion"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    cultivo_id: Mapped[int] = mapped_column(ForeignKey("cultivo.id"))
-    data: Mapped[date] = mapped_column(Date)
-    superficie: Mapped[float | None] = mapped_column(Float, default=None)  # hectáreas
-    tipo: Mapped[str] = mapped_column(String(50))
-    produto: Mapped[str] = mapped_column(String(200))
-    dose: Mapped[str | None] = mapped_column(String(100), default=None)
-    n: Mapped[float | None] = mapped_column(Float, default=None)
-    p: Mapped[float | None] = mapped_column(Float, default=None)
-    k: Mapped[float | None] = mapped_column(Float, default=None)
-    carbono_organico: Mapped[float | None] = mapped_column(Float, default=None)
-    micronutrientes: Mapped[str | None] = mapped_column(String(300), default=None)
-    asesoramento_recibido: Mapped[str | None] = mapped_column(String(300), default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
