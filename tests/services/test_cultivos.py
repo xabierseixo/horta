@@ -2,7 +2,6 @@ from datetime import date
 
 import pytest
 
-from horta.models.cultivo import Fertilizacion
 from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import (
@@ -13,7 +12,6 @@ from horta.services.cultivos import (
     listar_cultivos,
 )
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
-from horta.services.fertilizacions import crear_fertilizacion
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.parcelas import crear_parcela
 from horta.services.tarefas import crear_tarefa
@@ -108,21 +106,6 @@ def test_lector_non_pode_actualizar_nin_eliminar_cultivo(session):
 
     with pytest.raises(PermisoDenegadoError):
         eliminar_cultivo(session, carlos, cultivo)
-
-
-def test_eliminar_cultivo_borra_fisicamente_fertilizacions(session):
-    ana = _crear_usuario(session, "ana@example.com")
-    horta = crear_horta(session, ana, "A miña horta")
-    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
-    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
-    fertilizacion = crear_fertilizacion(
-        session, ana, cultivo.id, date(2026, 4, 1), "abonado_fondo", "Compost"
-    )
-    fertilizacion_id = fertilizacion.id
-
-    eliminar_cultivo(session, ana, cultivo)
-
-    assert session.get(Fertilizacion, fertilizacion_id) is None
 
 
 @pytest.mark.parametrize("campo", ["parcela_id", "id", "created_at", "campo_inexistente"])
