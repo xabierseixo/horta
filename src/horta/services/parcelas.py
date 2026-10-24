@@ -69,6 +69,25 @@ def _validar_superficie(campos: dict[str, Any]) -> None:
             raise OperacionNonPermitidaError("A superficie non pode ser negativa")
 
 
+_CATALOGOS_PARCELA = {
+    "rexime_tenencia": "rexime_tenencia",
+    "causa_baixa": "causa_baixa",
+    "orixe_auga": "orixe_auga",
+}
+
+
+def _validar_rea(session: Session, valores: dict[str, Any]) -> None:
+    nif = valores.get("nif_arrendador")
+    if nif and not _PATRON_NIF.match(nif):
+        raise OperacionNonPermitidaError("O NIF do arrendador non é válido")
+    alta, baixa = valores.get("data_alta"), valores.get("data_baixa")
+    if alta is not None and baixa is not None and baixa < alta:
+        raise OperacionNonPermitidaError("A data de baixa non pode ser anterior á de alta")
+    for campo, catalogo in _CATALOGOS_PARCELA.items():
+        if valores.get(campo):
+            validar_codigo(session, catalogo, str(valores[campo]), alta or date.today())
+
+
 def crear_parcela(
     session: Session,
     actor: Usuario,
@@ -79,6 +98,7 @@ def crear_parcela(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_coordenadas(campos)
     _validar_superficie(campos)
+    _validar_rea(session, campos)
     estado = campos.pop("estado", "activa")
     parcela = Parcela(horta_id=horta_id, nome=nome, estado=estado, **campos)
     session.add(parcela)
@@ -98,6 +118,8 @@ def actualizar_parcela(
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
     _validar_coordenadas(cambios)
     _validar_superficie(cambios)
+    _validar_rea(session, {c: cambios.get(c, getattr(parcela, c)) for c in
+                           ("nif_arrendador", "data_alta", "data_baixa", *_CATALOGOS_PARCELA)})
     for campo, valor in cambios.items():
         setattr(parcela, campo, valor)
     session.commit()
