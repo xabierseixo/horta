@@ -9,6 +9,7 @@ from horta.models.catalogo import (
 )
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo, Fertilizacion
+from horta.models.fertilizante import FertilizanteSiex
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
@@ -43,6 +44,7 @@ __all__ = [
     "CatalogoValor",
     "CultivoSiex",
     "VariedadeSiex",
+    "FertilizanteSiex",
     "NomeGalego",
     "VariedadeLocal",
     "Persoa",
