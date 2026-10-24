@@ -1,3 +1,4 @@
+from horta.models.abonado import Abonado, AbonadoBoaPractica, Fertilizante
 from horta.models.animal import Animal
 from horta.models.catalogo import (
     CatalogoValor,
@@ -45,6 +46,9 @@ __all__ = [
     "CultivoSiex",
     "VariedadeSiex",
     "FertilizanteSiex",
+    "Fertilizante",
+    "Abonado",
+    "AbonadoBoaPractica",
     "NomeGalego",
     "VariedadeLocal",
     "Persoa",
