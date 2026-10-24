@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.models.abonado import Abonado
 from horta.models.cultivo import Cultivo, Fertilizacion
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
@@ -135,6 +136,12 @@ def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None
         raise OperacionNonPermitidaError(
             "Esta parcela ten tratamentos fitosanitarios rexistrados e debe conservarse "
             "(obriga legal)."
+        )
+    if ids_cultivos and session.query(Abonado).filter(
+        Abonado.cultivo_id.in_(ids_cultivos)
+    ).first():
+        raise OperacionNonPermitidaError(
+            "Esta parcela ten abonados rexistrados e debe conservarse (obriga legal)."
         )
     session.query(Tarefa).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
     cultivos = session.query(Cultivo).filter_by(parcela_id=parcela.id).all()

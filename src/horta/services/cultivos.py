@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.models.abonado import Abonado
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo, Fertilizacion
 from horta.models.horta import RolHorta
@@ -240,6 +241,11 @@ def eliminar_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> None
     if session.query(TratamentoCultivo).filter_by(cultivo_id=cultivo.id).first():
         raise OperacionNonPermitidaError(
             "Este cultivo ten tratamentos fitosanitarios rexistrados e debe conservarse "
+            "(obriga legal). Podes marcalo como rematado."
+        )
+    if session.query(Abonado).filter_by(cultivo_id=cultivo.id).first():
+        raise OperacionNonPermitidaError(
+            "Este cultivo ten abonados rexistrados e debe conservarse "
             "(obriga legal). Podes marcalo como rematado."
         )
     if session.query(Colleita).filter_by(cultivo_id=cultivo.id).first():
