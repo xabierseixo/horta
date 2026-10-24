@@ -74,6 +74,7 @@ from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
 from horta.ui.pages.equipo import seccion_equipo
 from horta.ui.pages.maquinaria import seccion_maquinaria
+from horta.ui.pages.parcelas import seccion_parcelas
 from horta.ui.pages.tratamentos_fito import seccion_tratamentos_fito
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
@@ -279,7 +280,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         return
     cabeceira_seccion(etiquetas[seccion], horta_nome)
     if seccion == "parcelas":
-        _seccion_parcelas(horta_id, parcelas, pode_editar)
+        seccion_parcelas(horta_id, pode_editar)
     elif seccion == "cultivos":
         seccion_cultivos(horta_id, pode_editar)
     elif seccion == "colleitas":
