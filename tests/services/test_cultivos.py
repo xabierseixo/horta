@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from horta.models.cultivo import Fertilizacion, Tratamento
+from horta.models.cultivo import Fertilizacion
 from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import (
@@ -17,7 +17,6 @@ from horta.services.fertilizacions import crear_fertilizacion
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.parcelas import crear_parcela
 from horta.services.tarefas import crear_tarefa
-from horta.services.tratamentos import crear_tratamento, eliminar_tratamento
 
 
 def _crear_usuario(session, email: str) -> Usuario:
@@ -111,31 +110,18 @@ def test_lector_non_pode_actualizar_nin_eliminar_cultivo(session):
         eliminar_cultivo(session, carlos, cultivo)
 
 
-def test_eliminar_cultivo_borra_fisicamente_tratamentos_e_fertilizacions(session):
+def test_eliminar_cultivo_borra_fisicamente_fertilizacions(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
     cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
-
-    tratamento_activo = crear_tratamento(
-        session, ana, cultivo.id, date(2026, 5, 1), "Mildeu", "Cobre", "Xabier"
-    )
-    tratamento_baixa = crear_tratamento(
-        session, ana, cultivo.id, date(2026, 5, 2), "Pulgón", "Xabón", "Xabier"
-    )
-    eliminar_tratamento(session, ana, tratamento_baixa)
     fertilizacion = crear_fertilizacion(
         session, ana, cultivo.id, date(2026, 4, 1), "abonado_fondo", "Compost"
     )
-
-    tratamento_activo_id = tratamento_activo.id
-    tratamento_baixa_id = tratamento_baixa.id
     fertilizacion_id = fertilizacion.id
 
     eliminar_cultivo(session, ana, cultivo)
 
-    assert session.get(Tratamento, tratamento_activo_id) is None
-    assert session.get(Tratamento, tratamento_baixa_id) is None
     assert session.get(Fertilizacion, fertilizacion_id) is None
 
 

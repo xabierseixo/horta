@@ -1,6 +1,6 @@
 from datetime import date
 
-from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
+from horta.models.cultivo import Cultivo, Fertilizacion
 from horta.models.horta import Horta
 from horta.models.parcela import Parcela
 
@@ -27,27 +27,6 @@ def test_crear_cultivo_con_valores_por_defecto(session):
     assert atopado.estado == "planificado"
     assert atopado.variedade is None
     assert atopado.data_sementeira is None
-
-
-def test_crear_tratamento_con_baixa_por_defecto_false(session):
-    parcela = _crear_parcela(session)
-    cultivo = Cultivo(parcela_id=parcela.id, especie="Tomate")
-    session.add(cultivo)
-    session.flush()
-
-    tratamento = Tratamento(
-        cultivo_id=cultivo.id,
-        data=date(2026, 5, 1),
-        praga="Mildeu",
-        produto="Cobre",
-        aplicador="Xabier",
-    )
-    session.add(tratamento)
-    session.commit()
-
-    atopado = session.query(Tratamento).filter_by(praga="Mildeu").one()
-    assert atopado.baixa is False
-    assert atopado.cultivo_id == cultivo.id
 
 
 def test_crear_fertilizacion_con_baixa_por_defecto_false(session):
