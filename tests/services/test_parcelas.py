@@ -145,11 +145,11 @@ def test_eliminar_parcela_borra_en_cascada_cultivo_con_fertilizacion(session):
     fertilizacion = crear_fertilizacion(
         session, ana, cultivo.id, date(2026, 4, 1), "Orgánica", "Esterco"
     )
-    fertilizacion_id = fertilizacion.id
+    cultivo_id, fertilizacion_id = cultivo.id, fertilizacion.id
 
     eliminar_parcela(session, ana, parcela)
 
-    assert session.get(Cultivo, cultivo.id) is None
+    assert session.get(Cultivo, cultivo_id) is None
     assert session.get(Fertilizacion, fertilizacion_id) is None
 
 
