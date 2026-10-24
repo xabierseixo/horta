@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 from dataclasses import dataclass
 from datetime import date
 
@@ -189,11 +191,18 @@ def listar_colleitas(
     return list(consulta.order_by(Colleita.data.desc(), Colleita.id.desc()))
 
 
+def nome_para_lote(especie: str) -> str:
+    """'Pemento de Padrón' -> 'PEMENTO': primeira palabra, sen acentos, ata 10 letras."""
+    sen_acentos = unicodedata.normalize("NFKD", especie).encode("ascii", "ignore").decode()
+    palabras = "".join(c if c.isalnum() else " " for c in sen_acentos).split()
+    return palabras[0].upper()[:10] if palabras else "CULTIVO"
+
+
 def propor_lote(session: Session, actor: Usuario, cultivo_id: int, data: date) -> str:
     """Primeiro lote libre do tipo AAAA-CULTIVO-NNN (p.ex. 2026-PATACA-001)."""
     cultivo, horta_id = _cultivo_e_horta(session, cultivo_id)
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
-    nome = str(cultivo.cultivo_siex_codigo or cultivo.especie).upper().replace(" ", "-")
+    nome = nome_para_lote(cultivo.especie)
     existentes = _lotes_da_horta(session, horta_id)
     numero = 1
     while f"{data.year}-{nome}-{numero:03d}" in existentes:
