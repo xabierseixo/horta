@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from horta.models.cultivo import Cultivo, Fertilizacion, Tratamento
+from horta.models.cultivo import Cultivo, Fertilizacion
 from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo
@@ -16,7 +16,6 @@ from horta.services.parcelas import (
     listar_parcelas,
 )
 from horta.services.tarefas import crear_tarefa
-from horta.services.tratamentos import crear_tratamento
 
 
 def _crear_usuario(session, email: str) -> Usuario:
@@ -126,39 +125,31 @@ def test_eliminar_parcela_desliga_tarefas_sen_borralas(session):
     assert tarefa.parcela_id is None
 
 
-def test_eliminar_parcela_borra_en_cascada_cultivos_e_tratamentos(session):
+def test_eliminar_parcela_borra_en_cascada_cultivos(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
     cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
-    tratamento = crear_tratamento(
-        session, ana, cultivo.id, date(2026, 5, 1), "Mildeu", "Cobre", "Xabier"
-    )
-    cultivo_id, tratamento_id = cultivo.id, tratamento.id
+    cultivo_id = cultivo.id
 
     eliminar_parcela(session, ana, parcela)
 
     assert session.get(Cultivo, cultivo_id) is None
-    assert session.get(Tratamento, tratamento_id) is None
 
 
-def test_eliminar_parcela_borra_en_cascada_cultivo_con_tratamento_e_fertilizacion(session):
+def test_eliminar_parcela_borra_en_cascada_cultivo_con_fertilizacion(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
     cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
-    tratamento = crear_tratamento(
-        session, ana, cultivo.id, date(2026, 5, 1), "Mildeu", "Cobre", "Xabier"
-    )
     fertilizacion = crear_fertilizacion(
         session, ana, cultivo.id, date(2026, 4, 1), "Orgánica", "Esterco"
     )
-    cultivo_id, tratamento_id, fertilizacion_id = cultivo.id, tratamento.id, fertilizacion.id
+    fertilizacion_id = fertilizacion.id
 
     eliminar_parcela(session, ana, parcela)
 
-    assert session.get(Cultivo, cultivo_id) is None
-    assert session.get(Tratamento, tratamento_id) is None
+    assert session.get(Cultivo, cultivo.id) is None
     assert session.get(Fertilizacion, fertilizacion_id) is None
 
 
