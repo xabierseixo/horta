@@ -16,8 +16,9 @@ from horta.ui.accions import executar_accion
 from horta.ui.filtros import filtrar_filas
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.taboas import TEXTOS_TABOA
 
-_PROPS_TABOA = 'dense no-data-label="Non hai usuarios"'
+_PROPS_TABOA = f'dense no-data-label="Non hai usuarios" {TEXTOS_TABOA}'
 
 _ROLES_USUARIO = ("admin", "usuario")
 
@@ -193,7 +194,7 @@ def admin_usuarios_page() -> None:
         with ui.row():
             ui.button("Gardar cambios", icon="check", on_click=gardar)
             boton_activo = ui.button("", on_click=alternar_activo).props("outline")
-            ui.button("Cerrar", on_click=dialog_editar.close).props("flat")
+            ui.button("Pechar", on_click=dialog_editar.close).props("flat")
 
     def abrir_edicion() -> None:
         if not taboa.selected:
