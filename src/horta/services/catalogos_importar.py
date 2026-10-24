@@ -106,6 +106,13 @@ def _texto(valor: Any) -> str | None:
     return texto or None
 
 
+def _ambitos(fila: dict[str, Any]) -> str:
+    """Boas prácticas: 'fito,fertilizacion,rega' segundo as columnas de ámbito do FEGA."""
+    columnas = {"fito": "Ámbito Fitosanitario", "fertilizacion": "Ámbito Fertilización",
+                "rega": "Ámbito Riego"}
+    return ",".join(k for k, c in columnas.items() if _texto(fila.get(c)) == "SI")
+
+
 def _codigo(valor: Any) -> str:
     texto = str(valor).strip()
     return texto[:-2] if texto.endswith(".0") else texto
@@ -153,7 +160,8 @@ def importar_catalogo(
         datos = {
             "descricion": _texto(fila.get(columna)) or "",
             "codigo_eppo": _texto(fila.get("EPPO cd")),
-            "categoria": _texto(fila.get("Categoría")),
+            "categoria": (_ambitos(fila) if catalogo == "boas_practicas"
+                          else _texto(fila.get("Categoría"))),
             "data_alta": _data(fila.get("Fecha de alta")),
             "data_baixa": _data(fila.get("Fecha de baja")),
         }
