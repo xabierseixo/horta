@@ -25,6 +25,7 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
+from horta.ui.taboas import TEXTOS_TABOA
 
 _ESTADOS = {"planificado": "Planificado", "en_curso": "En curso", "rematado": "Rematado"}
 _CATALOGOS = {
@@ -86,7 +87,7 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
-        'flat bordered no-data-label="Aínda non hai cultivos"'
+        f'flat bordered no-data-label="Aínda non hai cultivos" {TEXTOS_TABOA}'
     )
 
     if not pode_editar:

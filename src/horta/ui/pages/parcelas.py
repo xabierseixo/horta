@@ -21,6 +21,7 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
+from horta.ui.taboas import TEXTOS_TABOA
 
 _CATALOGOS = {
     "rexime_tenencia": "rexime_tenencia",
@@ -64,7 +65,8 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             ("rega", "Secano/regadío"), ("estado", "Estado"))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props('flat bordered no-data-label="Aínda non hai parcelas"')
+    ).classes("w-full taboa").props(
+        f'flat bordered no-data-label="Aínda non hai parcelas" {TEXTOS_TABOA}')
 
     if not pode_editar:
         return

@@ -58,7 +58,7 @@ def marco_horta(
 ) -> None:
     """Debuxa o menú lateral e a cabeceira móbil. O contido da páxina vai despois."""
     aplicar_tema()
-    menu = ui.left_drawer(value=True, fixed=True).props(
+    menu = ui.left_drawer(value=False, fixed=True).props(
         'show-if-above :width="248" :breakpoint="1024"'
     ).classes("menu-lateral q-pa-md")
 
