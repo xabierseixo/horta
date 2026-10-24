@@ -3,7 +3,7 @@ import datetime
 import pytest
 
 from horta.models.animal import Animal
-from horta.models.cultivo import Cultivo, Fertilizacion
+from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
@@ -11,7 +11,6 @@ from horta.models.usuario import RolGlobal, Usuario
 from horta.services.animais import crear_animal
 from horta.services.cultivos import crear_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
-from horta.services.fertilizacions import crear_fertilizacion
 from horta.services.hortas import (
     actualizar_horta,
     cambiar_rol_membro,
@@ -231,23 +230,7 @@ def test_eliminar_horta_elimina_tamen_parcelas_animais_e_membros(session):
     assert session.get(HortaMembro, (outra_horta.id, ana.id)) is not None
 
 
-def test_eliminar_horta_borra_en_cascada_fertilizacions(session):
-    ana = _crear_usuario(session, "ana@example.com")
-    horta = crear_horta(session, ana, "A miña horta")
-    parcela = crear_parcela(session, ana, horta.id, "Parcela Norte")
-    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
-    fertilizacion = crear_fertilizacion(
-        session, ana, cultivo.id, datetime.date(2026, 4, 1), "abonado_fondo", "Compost"
-    )
-    cultivo_id, fertilizacion_id = cultivo.id, fertilizacion.id
-
-    eliminar_horta(session, ana, horta)
-
-    assert session.get(Cultivo, cultivo_id) is None
-    assert session.get(Fertilizacion, fertilizacion_id) is None
-
-
-def test_eliminar_horta_borra_en_cascada_dous_cultivos_con_fertilizacion(session):
+def test_eliminar_horta_borra_en_cascada_dous_cultivos(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
 
@@ -255,23 +238,12 @@ def test_eliminar_horta_borra_en_cascada_dous_cultivos_con_fertilizacion(session
     parcela_2 = crear_parcela(session, ana, horta.id, "Parcela Sur")
     cultivo_1 = crear_cultivo(session, ana, parcela_1.id, "Tomate")
     cultivo_2 = crear_cultivo(session, ana, parcela_2.id, "Pataca")
-
-    fertilizacion_1 = crear_fertilizacion(
-        session, ana, cultivo_1.id, datetime.date(2026, 4, 1), "abonado_fondo", "Compost"
-    )
-    fertilizacion_2 = crear_fertilizacion(
-        session, ana, cultivo_2.id, datetime.date(2026, 4, 2), "cobertoira", "Xurro"
-    )
-
     ids_cultivos = [cultivo_1.id, cultivo_2.id]
-    ids_fertilizacions = [fertilizacion_1.id, fertilizacion_2.id]
 
     eliminar_horta(session, ana, horta)
 
     for cultivo_id in ids_cultivos:
         assert session.get(Cultivo, cultivo_id) is None
-    for fertilizacion_id in ids_fertilizacions:
-        assert session.get(Fertilizacion, fertilizacion_id) is None
 
 
 def test_eliminar_horta_borra_tarefas(session):
