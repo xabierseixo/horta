@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -31,7 +31,18 @@ class Parcela(Base):
     sigpac_concello: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_poligono: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_parcela: Mapped[str | None] = mapped_column(String(10), default=None)
-    sigpac_subparcela: Mapped[str | None] = mapped_column(String(10), default=None)
+    sigpac_subparcela: Mapped[str | None] = mapped_column(String(10), default=None)  # recinto
+    # REA bloque 12 (DGC): resto da referencia SIGPAC, catastro, tenencia, alta e baixa
+    sigpac_agregado: Mapped[str | None] = mapped_column(String(10), default=None)
+    sigpac_zona: Mapped[str | None] = mapped_column(String(10), default=None)
+    referencia_catastral: Mapped[str | None] = mapped_column(String(20), default=None)
+    rexime_tenencia: Mapped[str | None] = mapped_column(String(20), default=None)
+    nif_arrendador: Mapped[str | None] = mapped_column(String(9), default=None)
+    pequena_superficie: Mapped[bool] = mapped_column(Boolean, default=False)
+    data_alta: Mapped[date | None] = mapped_column(Date, default=None)
+    data_baixa: Mapped[date | None] = mapped_column(Date, default=None)
+    causa_baixa: Mapped[str | None] = mapped_column(String(20), default=None)
+    orixe_auga: Mapped[str | None] = mapped_column(String(20), default=None)
     geometria: Mapped[str | None] = mapped_column(Text, default=None)
     imaxe: Mapped[str | None] = mapped_column(String(500), default=None)
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
