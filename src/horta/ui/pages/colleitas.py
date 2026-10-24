@@ -26,6 +26,7 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
+from horta.ui.taboas import TEXTOS_TABOA
 
 
 def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
@@ -65,7 +66,7 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
-        'flat bordered no-data-label="Aínda non hai colleitas"'
+        f'flat bordered no-data-label="Aínda non hai colleitas" {TEXTOS_TABOA}'
     )
 
     if not pode_editar:

@@ -30,6 +30,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.taboas import TEXTOS_TABOA
 
 _AVISO_DIAS = 30
 _ACCESOS = {"": "Sen acceso", "lector": "Só mirar", "editor": "Editar", "admin": "Administrador"}
@@ -85,7 +86,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
-        'flat bordered no-data-label="Aínda non hai ninguén no equipo"'
+        f'flat bordered no-data-label="Aínda non hai ninguén no equipo" {TEXTOS_TABOA}'
     )
 
     if not pode_editar:

@@ -9,6 +9,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.taboas import TEXTOS_TABOA
 
 
 def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
@@ -32,7 +33,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
             ("inspeccion", "Última inspección"), ("propia", "Propia"), ("activa", "Activa"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
-        'flat bordered no-data-label="Aínda non hai máquinas rexistradas"'
+        f'flat bordered no-data-label="Aínda non hai máquinas rexistradas" {TEXTOS_TABOA}'
     )
 
     if not pode_editar:
