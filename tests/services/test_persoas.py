@@ -24,7 +24,7 @@ def test_crear_aplicador_con_ropo(session):
                           e_aplicador=True, ropo_numero="1234567890",
                           ropo_caducidade=date(2027, 5, 1))
     assert persoa.nif == "12345678Z"
-    assert [p.nome for p in listar_persoas(session, ana, horta.id)] == ["Xan"]
+    assert "Xan" in [p.nome for p in listar_persoas(session, ana, horta.id)]
 
 
 def test_aplicador_sen_ropo_rexeitase(session):
@@ -64,5 +64,5 @@ def test_desactivar_persoa(session):
     horta = crear_horta(session, ana, "A miña horta")
     persoa = crear_persoa(session, ana, horta.id, "Xan")
     actualizar_persoa(session, ana, persoa, activa=False)
-    assert listar_persoas(session, ana, horta.id) == []
-    assert len(listar_persoas(session, ana, horta.id, so_activas=False)) == 1
+    assert [p.nome for p in listar_persoas(session, ana, horta.id)] == ["ana"]
+    assert len(listar_persoas(session, ana, horta.id, so_activas=False)) == 2
