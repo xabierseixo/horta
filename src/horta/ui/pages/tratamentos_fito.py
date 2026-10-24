@@ -19,6 +19,8 @@ from horta.services.tratamentos_fito import (
     LinhaCultivo,
     LinhaProduto,
     Problema,
+    actualizar_tratamento_fito,
+    cabe_no_formulario,
     crear_tratamento_fito,
     dar_de_baixa_tratamento_fito,
     faltas_para_cue,
@@ -42,6 +44,10 @@ def _obrigatoria(valor: date | None) -> date:
 
 def _opcions(session, catalogo: str) -> dict[str, str]:
     return {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
+
+
+def _escoller(campo: ui.select, valor: object) -> None:
+    campo.value = valor if valor in campo.options else None
 
 
 def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
@@ -97,7 +103,9 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                  "`horta-catalogos importar`.").classes("text-negative")
         return
 
-    with ui.dialog() as dialogo, ui.card().style("min-width: 40rem"):
+    editando: dict[str, int | None] = {"id": None}
+
+    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         with ui.stepper().props("vertical").classes("w-full") as pasos:
             with ui.step("1. Que e onde"):
                 data_inicio = campo_data("Data de inicio", date.today().isoformat())
@@ -177,7 +185,13 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                                 eficacia=eficacia.value,
                                 observacions=observacions.value or None,
                             )
-                            crear_tratamento_fito(session, actor_actual, horta_id, datos)
+                            tratamento = (session.get(TratamentoFito, editando["id"])
+                                          if editando["id"] else None)
+                            if tratamento is None:
+                                crear_tratamento_fito(session, actor_actual, horta_id, datos)
+                            else:
+                                actualizar_tratamento_fito(session, actor_actual, tratamento,
+                                                           datos)
 
                         ok = executar_accion(session, crear)
                     if ok:
@@ -213,8 +227,53 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
             confirmar,
         )
 
+    def abrir(t: TratamentoFito | None) -> None:
+        c = t.cultivos[0] if t and t.cultivos else None
+        p = t.problemas[0] if t and t.problemas else None
+        pr = t.produtos[0] if t and t.produtos else None
+        a = t.aplicadores[0] if t and t.aplicadores else None
+        editando["id"] = t.id if t else None
+        hoxe = date.today().isoformat()
+        data_inicio.value = t.data_inicio.isoformat() if t else hoxe
+        data_fin.value = t.data_fin.isoformat() if t else hoxe
+        hora.value = t.hora.strftime("%H:%M") if t and t.hora else ""
+        _escoller(cultivo, c.cultivo_id if c else None)
+        superficie.value = f"{c.superficie_ha:g}" if c and c.superficie_ha is not None else ""
+        _escoller(estado, c.estado_fenoloxico if c else None)
+        tipo_problema.value = p.tipo if p else "enfermidade"
+        _escoller(problema, p.codigo if p else None)
+        _escoller(xustificacion, t.xustificacions[0].codigo if t and t.xustificacions else None)
+        if pr:
+            _escoller(tipo_produto, pr.tipo_produto)
+        nome_comercial.value = (pr.nome_comercial or "") if pr else ""
+        num_rexistro.value = (pr.num_rexistro or "") if pr else ""
+        materia_activa.value = (pr.materia_activa or "") if pr else ""
+        dose.value = f"{pr.dose:g}" if pr and pr.dose is not None else ""
+        _escoller(unidade, pr.unidade if pr else None)
+        _escoller(aplicador, a.persoa_id if a else None)
+        _escoller(maquina, a.maquina_id if a else None)
+        _escoller(eficacia, t.eficacia if t else None)
+        observacions.value = (t.observacions or "") if t else ""
+        pasos.set_value("1. Que e onde")
+        dialogo.open()
+
+    def editar() -> None:
+        if not taboa.selected:
+            ui.notify("Selecciona un tratamento na táboa", type="warning")
+            return
+        with get_session() as session:
+            t = session.get(TratamentoFito, taboa.selected[0]["id"])
+            if t is None:
+                return
+            if not cabe_no_formulario(t):
+                ui.notify("Este tratamento ten máis datos dos que mostra o formulario: "
+                          "dáo de baixa e apúntao de novo", type="warning")
+                return
+            abrir(t)
+
     with ui.row():
-        ui.button("Novo tratamento", icon="add", on_click=dialogo.open)
+        ui.button("Novo tratamento", icon="add", on_click=lambda: abrir(None))
+        ui.button("Editar", icon="edit", on_click=editar).props("outline")
         ui.button("Dar de baixa o seleccionado", icon="archive", on_click=dar_de_baixa).props(
             "outline"
         )
