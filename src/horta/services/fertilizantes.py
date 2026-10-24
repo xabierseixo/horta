@@ -101,6 +101,12 @@ def datos_desde_siex(session: Session, codigo: int) -> DatosFertilizante:
     )
 
 
+def opcions_siex(session: Session) -> dict[int, str]:
+    """Produtos do catálogo oficial vixentes, para escoller ao crear un abono."""
+    consulta = session.query(FertilizanteSiex).filter(FertilizanteSiex.data_baixa.is_(None))
+    return {f.codigo: f.nome for f in consulta.order_by(FertilizanteSiex.nome)}
+
+
 def dose_kg_ha(dose: float, unidade: str, densidade: float | None) -> float | None:
     """Dose en kg/ha; None se é un líquido sen densidade coñecida ou a unidade non é de dose."""
     if unidade in _MASA_A_KG_HA:
