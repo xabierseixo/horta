@@ -234,6 +234,14 @@ def actualizar_tratamento_fito(
     return tratamento
 
 
+def cabe_no_formulario(tratamento: TratamentoFito) -> bool:
+    """Se o formulario simple da app pode editalo sen borrar ningún dato."""
+    return (len(tratamento.cultivos) <= 1 and len(tratamento.problemas) <= 1
+            and len(tratamento.xustificacions) <= 1 and len(tratamento.produtos) <= 1
+            and len(tratamento.aplicadores) <= 1 and not tratamento.medidas
+            and tratamento.asesor is None and tratamento.actividade_cuberta is None)
+
+
 def dar_de_baixa_tratamento_fito(
     session: Session, actor: Usuario, tratamento: TratamentoFito
 ) -> None:
