@@ -67,8 +67,9 @@ from horta.ui.pages.parcelas import seccion_parcelas
 from horta.ui.pages.tratamentos_fito import seccion_tratamentos_fito
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
+from horta.ui.taboas import TEXTOS_TABOA
 
-_PROPS_TABOA = 'flat bordered no-data-label="Aínda non hai rexistros"'
+_PROPS_TABOA = f'flat bordered no-data-label="Aínda non hai rexistros" {TEXTOS_TABOA}'
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}

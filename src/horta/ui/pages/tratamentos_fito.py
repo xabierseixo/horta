@@ -31,6 +31,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal, parsear_hora
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.taboas import TEXTOS_TABOA
 
 _ETIQUETA_PROBLEMA = {"enfermidade": "Enfermidade", "praga": "Praga (artrópodos/gasterópodos)",
                       "mala_herba": "Mala herba", "regulador": "Regulador / outros"}
@@ -93,7 +94,7 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
-        'flat bordered no-data-label="Aínda non hai tratamentos rexistrados"'
+        f'flat bordered no-data-label="Aínda non hai tratamentos rexistrados" {TEXTOS_TABOA}'
     )
 
     if not pode_editar:
