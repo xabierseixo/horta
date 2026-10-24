@@ -17,6 +17,7 @@ from horta.services.colleitas import (
     dar_de_baixa_colleita,
     listar_colleitas,
     propor_lote,
+    rendemento_kg_ha,
 )
 from horta.services.cultivos import listar_cultivos
 from horta.ui.accions import executar_accion
@@ -37,6 +38,9 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         cultivos = listar_cultivos(session, actor, horta_id)
         destinos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_colleita")}
         restos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_restos")}
+        con_colleitas = {c.cultivo_id for c in colleitas}
+        rendementos = {c.id: rendemento_kg_ha(session, actor, c.id)
+                       for c in cultivos if c.id in con_colleitas}
 
     nome_cultivo = {c.id: f"{c.especie} {c.variedade or ''}".strip() for c in cultivos}
     filas = [
@@ -50,6 +54,10 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         }
         for c in colleitas
     ]
+    with ui.row().classes("gap-4"):
+        for cultivo_id, kg_ha in rendementos.items():
+            if kg_ha is not None:
+                ui.label(f"{nome_cultivo[cultivo_id]}: {kg_ha:.0f} kg/ha").classes("text-body2")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivo", "Cultivo"), ("cantidade", "Cantidade"),
