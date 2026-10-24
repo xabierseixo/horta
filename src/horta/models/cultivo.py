@@ -81,28 +81,6 @@ class Cultivo(Base):
     )
 
 
-class Tratamento(Base):
-    __tablename__ = "tratamento"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    cultivo_id: Mapped[int] = mapped_column(ForeignKey("cultivo.id"))
-    data: Mapped[date] = mapped_column(Date)
-    praga: Mapped[str] = mapped_column(String(200))
-    superficie_tratada: Mapped[float | None] = mapped_column(Float, default=None)
-    produto: Mapped[str] = mapped_column(String(200))
-    numero_rexistro_produto: Mapped[str | None] = mapped_column(String(50), default=None)
-    dose: Mapped[str | None] = mapped_column(String(100), default=None)
-    eficacia: Mapped[str | None] = mapped_column(String(200), default=None)
-    aplicador: Mapped[str] = mapped_column(String(200))
-    equipo_aplicador: Mapped[str | None] = mapped_column(String(200), default=None)
-    persoas_asesoramento: Mapped[str | None] = mapped_column(String(200), default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
-
-
 class Fertilizacion(Base):
     __tablename__ = "fertilizacion"
 
