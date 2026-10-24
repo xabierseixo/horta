@@ -24,6 +24,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.superficie import CampoSuperficie
 
 
 def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
@@ -74,8 +75,7 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
                 "w-28")
         lote = ui.input("Lote").classes("w-full")
         albaran = ui.input("Nº de albarán ou factura (opcional)").classes("w-full")
-        superficie = ui.input("Superficie colleitada (ha; baleiro = a do cultivo)").classes(
-            "w-full")
+        superficie = CampoSuperficie("Superficie colleitada (baleiro = a do cultivo)")
         data_fin = campo_data("Data de fin (se durou máis dun día)")
         destino = ui.select(destinos, label="Finalidade (só viño ou procesado industrial)",
                             clearable=True).classes("w-full")
@@ -116,7 +116,7 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
                         cantidade=parsear_decimal(cantidade.value) or 0,
                         unidade=unidade.value,
                         lote=lote.value or "",
-                        superficie_ha=parsear_decimal(superficie.value),
+                        superficie_ha=superficie.ha,
                         destino_colleita=destino.value,
                         destino_restos=destino_restos.value,
                         notas=notas.value or None,
@@ -147,8 +147,9 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         titulo.text = "Apuntar colleita"
         cultivo.value = None
         data.value = date.today().isoformat()
-        for campo in (cantidade, lote, superficie, notas, data_fin, albaran):
+        for campo in (cantidade, lote, notas, data_fin, albaran):
             campo.value = ""
+        superficie.establecer(None)
         sementes.value = plantas.value = sen_colleita.value = restos_solo.value = False
         unidade.value = "kg"
         destino.value = destino_restos.value = None
@@ -166,7 +167,7 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         cantidade.value = f"{c.cantidade:g}"
         unidade.value = c.unidade
         lote.value = c.lote
-        superficie.value = "" if c.superficie_ha is None else f"{c.superficie_ha:g}"
+        superficie.establecer(c.superficie_ha)
         destino.value = c.destino_colleita
         destino_restos.value = c.destino_restos
         notas.value = c.notas or ""
