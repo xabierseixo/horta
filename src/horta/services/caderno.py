@@ -30,7 +30,7 @@ from horta.services.catalogos import describir
 from horta.services.colleitas import listar_colleitas
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import dose_kg_ha
-from horta.services.hortas import comprobar_rol_horta
+from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
 
@@ -163,6 +163,9 @@ def xerar_caderno(
     ws.column_dimensions["A"].width = 36
     ws.column_dimensions["B"].width = 36
 
+    xip = (f"{horta.tipo_xip} ({TIPOS_XIP[horta.tipo_xip]})"
+           if horta.tipo_xip in TIPOS_XIP else "")
+
     def fila_parcela(c: Cultivo) -> list[Any]:
         p = parcelas[c.parcela_id]
         return [orde_cultivo[c.id], p.sigpac_provincia or "", p.sigpac_concello or "",
@@ -172,13 +175,14 @@ def xerar_caderno(
                 {SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
                     p.secano_regadio, "") if p.secano_regadio else "",
                 describir(session, "sistema_cultivo", c.sistema_cultivo)
-                if c.sistema_cultivo else "", p.nome]
+                if c.sistema_cultivo else "", xip, p.nome]
 
     _folla(wb, "2 Parcelas", "2.1 DATOS IDENTIFICATIVOS E AGRONÓMICOS DAS PARCELAS", cab,
            ["Nº de orde", "Provincia", "Termo municipal", "Agregado", "Zona", "Polígono",
             "Parcela", "Recinto", "Uso SIXPAC", "Superficie SIXPAC (ha)",
             "Superficie cultivada (ha)", "Especie", "Variedade", "Secano/Regadío",
-            "Aire libre ou protexido", "Nome da parcela (horta)"],
+            "Aire libre ou protexido", "Sistema de asesoramento en XIP",
+            "Nome da parcela (horta)"],
            [fila_parcela(c) for c in cultivos])
 
     filas_trat = []
@@ -294,7 +298,7 @@ def xerar_caderno(
     datas_plan = [c.plan_data for c in cultivos if c.plan_data]
     ws7.append(["Plan de abonado de cultivos", "SI" if plan else "NON",
                 "Data de entrada en vigor", _data(min(datas_plan)) if datas_plan else ""])
-    ws7.append(["Asesoramento", ""])
+    ws7.append(["Asesoramento", "SI" if horta.asesoramento_fertilizacion else "NON"])
     ws7.append([])
     ws7.append(["PLAN DE ABONADO (necesidades en kg/ha)"])
     ws7.append(["Nº de orde", "Cultivo", "Data do plan", "N", "P₂O₅", "K₂O",
