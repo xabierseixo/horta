@@ -231,6 +231,56 @@ def xerar_caderno(
             "Sup. tratada (ha)", "Problema fitosanitario", "Aplicador (nº de orde)",
             "Equipo (nº de orde)", "Nome comercial", "Nº Rexistro", "Dose", "Eficacia",
             "Observacións"], filas_trat)
+    ws3 = wb["3 Tratamentos"]
+    ws3.append([])
+    ws3.append(["3.1 bis REXISTRO DE TRATAMENTOS FITOSANITARIOS DA PARCELA (soamente para "
+                "cultivos e superficies obxecto de asesoramento)"])
+    ws3.append(["Especie", "Variedade", "Id. parcelas", "Superficie cultivada (ha)",
+                "Superficie tratada (ha)", "Praga", "Xustificación da actuación",
+                "Alternativas non químicas: tipo de medida", "Intensidade da medida",
+                "Data de actuación", "Alternativas químicas: nome comercial",
+                "Número de rexistro", "Dose utilizada", "Data de actuación",
+                "Eficacia da intervención", "Observacións", "Asesor", "Nº inscrición ROPO",
+                "Data de validación"])
+    for t in listar_tratamentos_fito(session, actor, horta_id):
+        if t.baixa or not no_periodo(t.data_inicio, t.data_fin) or t.asesor is None:
+            continue
+        asesor = session.get(Persoa, t.asesor.persoa_id)
+        praga = ", ".join(describir(session, p.tipo, p.codigo) for p in t.problemas)
+        xust = ", ".join(describir(session, "xustificacion", x.codigo) for x in t.xustificacions)
+        medidas = ", ".join(describir(session, "tipo_medida_fito", m.tipo_medida)
+                            for m in t.medidas)
+        intensidade = ", ".join(f"{m.cantidade:g} {describir(session, 'unidade_medida', m.unidade)}"
+                                for m in t.medidas if m.cantidade is not None and m.unidade)
+        pr = t.produtos[0] if t.produtos else None
+        for tc in t.cultivos:
+            cv = cultivo_de(tc.cultivo_id)
+            ws3.append([
+                cv.especie if cv else "", (cv.variedade or "") if cv else "",
+                orde_cultivo.get(tc.cultivo_id, ""), _num(cv.superficie_ha) if cv else "",
+                _num(tc.superficie_ha), praga, xust, medidas, intensidade,
+                _intervalo(t.data_inicio, t.data_fin) if t.medidas else "",
+                (pr.nome_comercial or pr.materia_activa or "") if pr else "",
+                (pr.num_rexistro or "") if pr else "",
+                f"{_num(pr.dose)} {describir(session, 'unidade_medida', pr.unidade)}"
+                if pr and pr.dose is not None else "",
+                _intervalo(t.data_inicio, t.data_fin) if pr else "",
+                describir(session, "eficacia", t.eficacia) if t.eficacia else "",
+                t.observacions or "",
+                " ".join(x for x in (asesor.nome, asesor.apelidos or "") if x) if asesor else "",
+                (asesor.ropo_numero or "") if asesor else "", _data(t.asesor.data)])
+    tratadas = [c for c in cultivos if c.material_tratado
+                and c.data_inicio and no_periodo(c.data_inicio)]
+    ws3.append([])
+    ws3.append(["3.2 REXISTRO DE USO DE SEMENTE TRATADA"])
+    ws3.append(["Aplica tratamento", "SI" if tratadas else "NON"])
+    ws3.append(["Data de sementeira", "Id. parcelas", "Especie", "Variedade",
+                "Superficie sementada (ha)", "Cantidade de semente (kg)",
+                "Materia activa / Nome comercial", "Nº rexistro"])
+    for cu in tratadas:
+        ws3.append([_data(cu.data_inicio), orde_cultivo[cu.id], cu.especie, cu.variedade or "",
+                    _num(cu.superficie_ha), _num(cu.cantidade_semente_kg),
+                    cu.semente_tratamento_produto or "", cu.semente_tratamento_num_rexistro or ""])
 
     analises = [a for a in listar_analises(session, actor, horta_id)
                 if no_periodo(a.data_mostraxe)]
