@@ -10,6 +10,7 @@ from horta.models.analise import Analise
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
+from horta.models.labor import Labor
 from horta.models.parcela import Parcela
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
@@ -237,6 +238,11 @@ def eliminar_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> None
     if session.query(Rega).filter_by(cultivo_id=cultivo.id).first():
         raise OperacionNonPermitidaError(
             "Este cultivo ten regas rexistradas e debe conservarse "
+            "(obriga legal). Podes marcalo como rematado."
+        )
+    if session.query(Labor).filter_by(cultivo_id=cultivo.id).first():
+        raise OperacionNonPermitidaError(
+            "Este cultivo ten labores rexistrados e debe conservarse "
             "(obriga legal). Podes marcalo como rematado."
         )
     if session.query(Colleita).filter_by(cultivo_id=cultivo.id).first():
