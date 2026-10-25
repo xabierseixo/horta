@@ -27,5 +27,6 @@ def cabeceira_paxina(*, titulo_horta: str | None = None, mostrar_admin: bool = F
         ui.space()
         if mostrar_admin:
             ui.link("Administración", "/admin/usuarios")
+            ui.link("Catálogos oficiais", "/admin/catalogos")
         boton_pechar_sesion()
     ui.separator()

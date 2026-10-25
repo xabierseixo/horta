@@ -101,6 +101,9 @@ def marco_horta(
                     with ui.link(target="/admin/usuarios").classes("menu-item w-full"):
                         ui.icon("admin_panel_settings").classes("text-h6")
                         ui.label("Administración")
+                    with ui.link(target="/admin/catalogos").classes("menu-item w-full"):
+                        ui.icon("library_books").classes("text-h6")
+                        ui.label("Catálogos oficiais")
                 with ui.element("button").props('type="button"').classes(
                     "menu-item w-full menu-boton"
                 ).on("click", pechar_sesion):

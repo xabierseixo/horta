@@ -55,6 +55,7 @@ async def manexador_500(request: Request, exc: Exception) -> HTMLResponse:
     )
 
 
+import horta.ui.admin.catalogos  # noqa: E402,F401
 import horta.ui.admin.usuarios  # noqa: E402,F401
 import horta.ui.pages.dashboard  # noqa: E402,F401
 import horta.ui.pages.horta_detalle  # noqa: E402,F401
