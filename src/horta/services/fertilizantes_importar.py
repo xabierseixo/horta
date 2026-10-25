@@ -51,6 +51,12 @@ def importar_fertilizantes(
             "n_pct": _numero(fila.get("N_% TOTAL")),
             "p2o5_pct": _numero(fila.get("P2O5 % total")),
             "k2o_pct": _numero(fila.get("K2O % total")),
+            "n_organico_pct": _numero(
+                fila.get("N orgánico % (en fertilizantes orgánico-minerales)")),
+            "n_ureico_pct": _numero(fila.get("N % ureico")),
+            "n_nitrico_pct": _numero(fila.get("N % nítrico")),
+            "n_amoniacal_pct": _numero(fila.get("N % amoniacal")),
+            "p2o5_soluble_pct": _numero(fila.get("P2O5 % soluble en agua")),
             "liquido": _texto(fila.get("Estado de agregación")) == "Líquido",
             "densidade": densidade or None,
             "inhibidor_nitrificacion":
