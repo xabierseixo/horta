@@ -97,6 +97,18 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             data_baixa = campo_data("Data de baixa")
             causa_baixa = ui.select(opcions["causa_baixa"], label="Causa da baixa",
                                     clearable=True).classes("w-full")
+        with ui.expansion("Auga para consumo humano e zonas protexidas").classes("w-full"):
+            auga = ui.checkbox("Hai un pozo ou toma de auga para consumo humano na parcela "
+                               "ou preto")
+            with ui.column().classes("w-full gap-1").bind_visibility_from(auga, "value"):
+                auga_dentro = ui.checkbox("Está dentro da parcela")
+                auga_distancia = ui.input("Distancia á parcela (m)").classes("w-full")
+                auga_utm = ui.input("Coordenadas UTM (opcional)").classes("w-full")
+                auga_nome = ui.input("Nome do pozo ou da masa de auga").classes("w-full")
+            zona = ui.select({"total": "Toda a parcela", "parcial": "Parte da parcela"},
+                             label="Está nunha zona protexida (captación, hábitats, especies)",
+                             clearable=True).classes("w-full")
+            zona_ha = ui.input("Superficie afectada (ha), se se sabe").classes("w-full")
         with ui.expansion("Localización e notas").classes("w-full"):
             lat = ui.input("Latitude").classes("w-full")
             lon = ui.input("Lonxitude").classes("w-full")
@@ -117,6 +129,11 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
                 causa_baixa=causa_baixa.value,
                 lat=parsear_decimal(lat.value), lon=parsear_decimal(lon.value),
                 notas=notas.value or None,
+                auga_consumo=auga.value, auga_consumo_na_parcela=auga_dentro.value,
+                auga_consumo_distancia_m=parsear_decimal(auga_distancia.value),
+                auga_consumo_utm=auga_utm.value or None,
+                auga_consumo_denominacion=auga_nome.value or None,
+                zona_especifica=zona.value, zona_especifica_ha=parsear_decimal(zona_ha.value),
                 **{campo: (entrada.value or None) for campo, entrada in sigpac.items()},
             )
             with get_session() as session:
@@ -142,8 +159,8 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
     textos = (nome, uso, catastro, nif_arrendador, data_alta, data_baixa, lat, lon, notas,
-              *sigpac.values())
-    selectores = (secano, orixe_auga, tenencia, causa_baixa)
+              auga_distancia, auga_utm, auga_nome, zona_ha, *sigpac.values())
+    selectores = (secano, orixe_auga, tenencia, causa_baixa, zona)
 
     def abrir_nova() -> None:
         editando["id"] = None
@@ -152,7 +169,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             campo.value = ""
         for selector in selectores:
             selector.value = None
-        pequena.value = False
+        pequena.value = auga.value = auga_dentro.value = False
         superficie.establecer(None)
         dialogo.open()
 
@@ -183,6 +200,12 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
         lat.value = _texto(p.lat)
         lon.value = _texto(p.lon)
         notas.value = _texto(p.notas)
+        auga.value, auga_dentro.value = p.auga_consumo, p.auga_consumo_na_parcela
+        auga_distancia.value = _texto(p.auga_consumo_distancia_m)
+        auga_utm.value = _texto(p.auga_consumo_utm)
+        auga_nome.value = _texto(p.auga_consumo_denominacion)
+        zona.value = p.zona_especifica
+        zona_ha.value = _texto(p.zona_especifica_ha)
         dialogo.open()
 
     def eliminar() -> None:
