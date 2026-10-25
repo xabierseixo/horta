@@ -6,6 +6,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from horta.models.abonado import Abonado
+from horta.models.analise import Analise
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
@@ -149,6 +150,10 @@ def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None
             "Esta parcela ten regas rexistradas e debe conservarse (obriga legal)."
         )
     session.query(Tarefa).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
+    session.query(Analise).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
+    if ids_cultivos:
+        session.query(Analise).filter(Analise.cultivo_id.in_(ids_cultivos)).update(
+            {"cultivo_id": None})
     cultivos = session.query(Cultivo).filter_by(parcela_id=parcela.id).all()
     for cultivo in cultivos:
         session.delete(cultivo)
