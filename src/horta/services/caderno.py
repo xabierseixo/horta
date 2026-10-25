@@ -31,6 +31,7 @@ from horta.services.colleitas import listar_colleitas
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import FORMAS_N_P, METAIS_RESIDUO, RESIDUOS, dose_kg_ha
 from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
+from horta.services.labores import DESBROCE, PODAS, listar_labores
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
 from horta.services.tratamentos_instalacion import listar_tratamentos_instalacion
@@ -449,6 +450,30 @@ def xerar_caderno(
            ["Id. parcelas (nº de orde)", "Superficie regada (ha)", "Sistema de rega",
             "Data / intervalo rega", "Volume de rega (m³/ha)", "Volume acumulado (m³/ha)",
             "Auga: nitróxeno nítrico (mg/L)", "Auga: fósforo soluble (mg/L)"], filas_rega)
+
+    # Non está no modelo da Xunta, pero si no CUE electrónico (bloque 5)
+    filas_labor = []
+    for lab in sorted(listar_labores(session, actor, horta_id), key=lambda x: x.data_inicio):
+        if not no_periodo(lab.data_inicio, lab.data_fin):
+            continue
+        m = session.get(Maquina, lab.maquina_id) if lab.maquina_id else None
+        filas_labor.append([
+            orde_cultivo.get(lab.cultivo_id, ""), _num(lab.superficie_ha),
+            describir(session, "tipo_labor", lab.tipo_labor),
+            _intervalo(lab.data_inicio, lab.data_fin),
+            ("SI" if lab.restos_desbroce_no_solo else "NON") if lab.tipo_labor == DESBROCE
+            else "",
+            ("SI" if lab.restos_poda_no_solo else "NON") if lab.tipo_labor in PODAS else "",
+            describir(session, "tipo_cobertura_solo", lab.tipo_cobertura)
+            if lab.tipo_cobertura else "",
+            (m.tipo_une or "") if m else "", _num(m.potencia) if m else "",
+            describir(session, "tipo_enerxia", m.tipo_enerxia) if m and m.tipo_enerxia else "",
+            lab.num_repeticions or "", _num(lab.duracion_h)])
+    _folla(wb, "9 Labores (CUE)", "9. LABORES CULTURAIS (CUE, bloque 5)", cab,
+           ["Id. parcelas (nº de orde)", "Superficie (ha)", "Tipo de labor", "Data / intervalo",
+            "Restos de desbroce no solo", "Restos de poda no solo", "Cobertura do solo",
+            "Maquinaria (tipo UNE)", "Potencia", "Tipo de enerxía", "Nº de repeticións",
+            "Duración de cada repetición (h)"], filas_labor)
 
     saida = BytesIO()
     wb.save(saida)

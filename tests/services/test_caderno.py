@@ -80,7 +80,7 @@ def test_ten_as_seccions_do_modelo_da_xunta(session):
     libro = _libro(session, ana, horta)
     assert libro.sheetnames == ["1 Información xeral", "2 Parcelas", "3 Tratamentos",
                                 "4 Análises", "5 Colleita", "6 Solos", "7 Fertilización",
-                                "8 Rega"]
+                                "8 Rega", "9 Labores (CUE)"]
 
 
 def test_contido_de_cada_seccion(session):
