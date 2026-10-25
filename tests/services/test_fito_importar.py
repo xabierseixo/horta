@@ -93,6 +93,12 @@ def test_produto_que_desaparece_queda_como_non_figura(session, tmp_path):
     assert session.query(FitoUso).count() == 1
 
 
+def test_produto_repetido_no_mapa_importase_unha_vez(session, tmp_path):
+    _escribir(tmp_path, [_produto("ES-001", "A", [_USO]), _produto("ES-001", "A", [_USO])])
+    assert importar_fitosanitarios(session, tmp_path).altas == 1
+    assert session.query(FitoUso).count() == 1
+
+
 def test_falta_un_ficheiro(session, tmp_path):
     with pytest.raises(OperacionNonPermitidaError):
         importar_fitosanitarios(session, tmp_path)

@@ -106,6 +106,8 @@ def importar_fitosanitarios(session: Session, directorio: Path) -> InformeImport
     for p in produtos:
         d = p["DATOSPRODUCTO"]
         num = texto(d["Num_Registro"]) or ""
+        if num in vistos:
+            continue  # o MAPA repite ás veces un produto con outro IdProducto e os mesmos usos
         vistos.add(num)
         datos = {
             "nome": texto(d.get("Nombre")) or num,
