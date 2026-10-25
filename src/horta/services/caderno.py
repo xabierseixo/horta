@@ -150,10 +150,13 @@ def xerar_caderno(
          "Data da última inspección"],
         *[[orde_maquina[m.id], " ".join(x for x in (m.alias, m.marca_modelo or "") if x),
            m.num_roma or m.num_reganip or m.id_equipo_non_inscribible or "",
-           _data(m.data_adquisicion), _data(m.data_ultima_inspeccion)] for m in maquinas if m.propia],
+           _data(m.data_adquisicion), _data(m.data_ultima_inspeccion)]
+          for m in maquinas if m.propia],
         [],
         ["1.4 AGRUPACIÓN OU ENTIDADE DE ASESORAMENTO A QUE PERTENCE A EXPLOTACIÓN"],
         ["Nome ou razón social", "NIF", "Nº de identificación", "Tipo de explotación"],
+        [horta.asesoramento_nome or "", horta.asesoramento_nif or "",
+         horta.asesoramento_num or "", horta.tipo_xip or ""],
     ):
         ws.append(fila)
     ws["A1"].font = Font(bold=True, size=13)
