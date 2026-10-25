@@ -59,6 +59,7 @@ from horta.ui.pages.cultivos import seccion_cultivos
 from horta.ui.pages.equipo import seccion_equipo
 from horta.ui.pages.maquinaria import seccion_maquinaria
 from horta.ui.pages.parcelas import seccion_parcelas
+from horta.ui.pages.regas import seccion_regas
 from horta.ui.pages.tratamentos_fito import seccion_tratamentos_fito
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -270,6 +271,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_tratamentos_fito(horta_id, pode_editar)
     elif seccion == "fertilizacion":
         seccion_abonados(horta_id, pode_editar)
+    elif seccion == "rega":
+        seccion_regas(horta_id, pode_editar)
     elif seccion == "tarefas":
         _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
     elif seccion == "animais":
