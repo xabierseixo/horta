@@ -268,7 +268,9 @@ def importar_variedades(
         raise OperacionNonPermitidaError(
             "Importa primeiro os cultivos (PRODUCTOS.xlsx) e despois as variedades"
         )
-    _, filas = _ler_xlsx(ruta)
+    cabeceira, filas = _ler_xlsx(ruta)
+    _comprobar_columnas(ruta, cabeceira, ["Código cultivo", "Código Variedad/ Especie/ Tipo",
+                                          "Variedad/ Especie/ Tipo"])
     informe = InformeImportacion(catalogo="variedade")
     version = _nova_version(session, "variedade", ruta, len(filas))
     if version is None:
@@ -276,6 +278,7 @@ def importar_variedades(
         return informe
     cultivos = {c for (c,) in session.query(CultivoSiex.codigo)}
     existentes = {(v.cultivo_codigo, v.codigo): v for v in session.query(VariedadeSiex)}
+    informe.existentes = len(existentes)
     vistos: set[tuple[int, int]] = set()
     for fila in filas:
         cultivo = int(_codigo(fila["Código cultivo"]))
@@ -297,5 +300,5 @@ def importar_variedades(
         if clave not in vistos and variedade.data_baixa is None:
             variedade.data_baixa = hoxe
             informe.baixas += 1
-    session.commit()
+    _rematar(session, aplicar)
     return informe
