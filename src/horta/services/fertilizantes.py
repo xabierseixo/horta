@@ -24,6 +24,10 @@ RESIDUOS = {"18", "19", "20", "21", "22", "23"}
 _MASA_A_KG_HA = {"17": 1.0, "29": 1000.0, "49": 0.001, "60": 10000.0, "80": 10.0}
 _VOLUME_A_L_HA = {"18": 1.0, "19": 1000.0, "59": 10000.0}
 UNIDADES_DOSE = (*_MASA_A_KG_HA, *_VOLUME_A_L_HA)
+FORMAS_N_P = ("n_organico_pct", "n_ureico_pct", "n_nitrico_pct", "n_amoniacal_pct",
+              "p2o5_soluble_pct")
+METAIS_RESIDUO = ("cadmio", "cobre", "niquel", "chumbo", "zinc", "mercurio", "cromo_vi",
+                  "arsenico", "cromo")
 
 
 @dataclass
@@ -34,6 +38,21 @@ class DatosFertilizante:
     n_pct: float | None = None
     p2o5_pct: float | None = None
     k2o_pct: float | None = None
+    n_organico_pct: float | None = None
+    n_ureico_pct: float | None = None
+    n_nitrico_pct: float | None = None
+    n_amoniacal_pct: float | None = None
+    p2o5_soluble_pct: float | None = None
+    materia_organica_pct: float | None = None
+    cadmio: float | None = None
+    cobre: float | None = None
+    niquel: float | None = None
+    chumbo: float | None = None
+    zinc: float | None = None
+    mercurio: float | None = None
+    cromo_vi: float | None = None
+    arsenico: float | None = None
+    cromo: float | None = None
     liquido: bool = False
     densidade: float | None = None
     tratamento_estercos: str | None = None
@@ -48,9 +67,12 @@ def _validar(session: Session, datos: DatosFertilizante) -> None:
     if not datos.nome.strip():
         raise OperacionNonPermitidaError("Pon un nome ao abono")
     validar_codigo(session, "material_fertilizante", datos.material, hoxe)
-    for riqueza in (datos.n_pct, datos.p2o5_pct, datos.k2o_pct):
+    for riqueza in (datos.n_pct, datos.p2o5_pct, datos.k2o_pct, *(
+            getattr(datos, c) for c in FORMAS_N_P), datos.materia_organica_pct):
         if riqueza is not None and not 0 <= riqueza <= 100:
             raise OperacionNonPermitidaError("A riqueza ten que estar entre 0 e 100 %")
+    if any(getattr(datos, m) is not None and getattr(datos, m) < 0 for m in METAIS_RESIDUO):
+        raise OperacionNonPermitidaError("Os metais pesados non poden ser negativos")
     if datos.densidade is not None and datos.densidade <= 0:
         raise OperacionNonPermitidaError("A densidade ten que ser maior que 0")
     identificadores = [x for x in (datos.provedor_nif, datos.provedor_rega, datos.provedor_nima)
@@ -97,6 +119,7 @@ def datos_desde_siex(session: Session, codigo: int) -> DatosFertilizante:
     return DatosFertilizante(
         nome=oficial.nome, material=oficial.material, fertilizante_siex_codigo=codigo,
         n_pct=oficial.n_pct, p2o5_pct=oficial.p2o5_pct, k2o_pct=oficial.k2o_pct,
+        **{c: getattr(oficial, c) or None for c in FORMAS_N_P},
         liquido=oficial.liquido, densidade=oficial.densidade,
     )
 
