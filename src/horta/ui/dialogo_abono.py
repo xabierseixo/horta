@@ -21,6 +21,13 @@ from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 _IDENTIFICADORES = {"provedor_nif": "NIF", "provedor_rega": "REGA", "provedor_nima": "NIMA"}
+_FORMAS = (("n_organico_pct", "N orgánico %"), ("n_ureico_pct", "N ureico %"),
+           ("n_nitrico_pct", "N nítrico %"), ("n_amoniacal_pct", "N amoniacal %"),
+           ("p2o5_soluble_pct", "P₂O₅ soluble %"), ("materia_organica_pct",
+                                                    "Materia orgánica % (estercos)"))
+_METAIS = (("cadmio", "Cadmio"), ("cobre", "Cobre"), ("niquel", "Níquel"),
+           ("chumbo", "Chumbo"), ("zinc", "Cinc"), ("mercurio", "Mercurio"),
+           ("cromo_vi", "Cromo VI"), ("arsenico", "Arsénico"), ("cromo", "Cromo total"))
 
 
 def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> ui.dialog:
@@ -55,6 +62,11 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                                    clearable=True).classes("w-full")
         provedor.bind_visibility_from(material, "value",
                                       backward=lambda v: v in ESTERCOS | RESIDUOS)
+        with ui.expansion("Valor agronómico (se o sabes)").classes("w-full"):
+            formas = {c: ui.input(e).classes("w-full") for c, e in _FORMAS}
+        with ui.expansion("Metais pesados do residuo (mg/kg)").classes("w-full") as metais_bloque:
+            metais = {c: ui.input(e).classes("w-full") for c, e in _METAIS}
+        metais_bloque.bind_visibility_from(material, "value", backward=lambda v: v in RESIDUOS)
 
         def encher_dende_oficial() -> None:
             if oficial.value is not None:
@@ -63,6 +75,9 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                 nome.value, material.value = d.nome, d.material
                 n.value, p.value, k.value = (f"{x:g}" for x in (d.n_pct or 0, d.p2o5_pct or 0,
                                                                  d.k2o_pct or 0))
+                for chave, entrada in formas.items():
+                    valor = getattr(d, chave)
+                    entrada.value = f"{valor:g}" if valor else ""
             for campo in (nome, material, n, p, k):
                 campo.set_enabled(oficial.value is None)
 
@@ -81,6 +96,12 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                         nome=nome.value or "", material=material.value or "",
                         n_pct=parsear_decimal(n.value), p2o5_pct=parsear_decimal(p.value),
                         k2o_pct=parsear_decimal(k.value))
+                for campo, entrada in formas.items():
+                    if entrada.value:
+                        setattr(datos, campo, parsear_decimal(entrada.value))
+                if datos.material in RESIDUOS:
+                    for campo, entrada in metais.items():
+                        setattr(datos, campo, parsear_decimal(entrada.value))
                 if datos.material in ESTERCOS | RESIDUOS:
                     datos.provedor_nome = provedor_nome.value or None
                     if ident.value:
