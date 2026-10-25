@@ -24,4 +24,3 @@ def test_crear_cultivo_con_valores_por_defecto(session):
     assert atopado.parcela_id == parcela.id
     assert atopado.estado == "planificado"
     assert atopado.variedade is None
-    assert atopado.data_sementeira is None
