@@ -73,6 +73,30 @@ class InformeImportacion:
     baixas: int = 0
     cambios: int = 0
     xa_importado: bool = False
+    existentes: int = 0
+
+    @property
+    def sospeitoso(self) -> bool:
+        """Moitas baixas dunha vez: o típico dun ficheiro equivocado ou cun formato novo."""
+        return self.baixas > 5 and self.baixas > 0.2 * self.existentes
+
+
+def _comprobar_columnas(ruta: Path, cabeceira: list[str], columnas: list[str]) -> None:
+    for columna in columnas:
+        if columna not in cabeceira:
+            raise OperacionNonPermitidaError(
+                f"Ao ficheiro {ruta.name} fáltalle a columna «{columna}». O FEGA puido cambiar "
+                "o formato: hai que adaptar a app."
+            )
+
+
+def _rematar(session: Session, aplicar: bool) -> None:
+    """Garda a importación. En modo revisión só a envía á BD sen gardala: quen revisa un lote
+    desfaino todo ao final (as variedades precisan ver os cultivos do mesmo lote)."""
+    if aplicar:
+        session.commit()
+    else:
+        session.flush()
 
 
 def _sha256(ruta: Path) -> str:
@@ -138,7 +162,8 @@ def _nova_version(
 
 
 def importar_catalogo(
-    session: Session, catalogo: str, ruta: Path, hoxe: date | None = None
+    session: Session, catalogo: str, ruta: Path, hoxe: date | None = None,
+    aplicar: bool = True,
 ) -> InformeImportacion:
     if catalogo not in CATALOGOS_XERAIS:
         raise ValueError(f"Catálogo descoñecido: {catalogo}")
@@ -147,6 +172,8 @@ def importar_catalogo(
     if _xa_importado(session, catalogo, ruta):
         return InformeImportacion(catalogo=catalogo, xa_importado=True)
     cabeceira, filas = _ler_xlsx(ruta)
+    _comprobar_columnas(ruta, cabeceira, [columna_codigo] + (
+        [columna_descricion] if columna_descricion else []))
     informe = InformeImportacion(catalogo=catalogo)
     version = _nova_version(session, catalogo, ruta, len(filas))
     if version is None:
@@ -154,6 +181,7 @@ def importar_catalogo(
         return informe
     columna = columna_descricion or cabeceira[1]
     existentes = {v.codigo: v for v in session.query(CatalogoValor).filter_by(catalogo=catalogo)}
+    informe.existentes = len(existentes)
     vistos: set[str] = set()
     for fila in filas:
         codigo = _codigo(fila[columna_codigo])
@@ -180,7 +208,7 @@ def importar_catalogo(
         if codigo not in vistos and valor.data_baixa is None:
             valor.data_baixa = hoxe
             informe.baixas += 1
-    session.commit()
+    _rematar(session, aplicar)
     return informe
 
 
