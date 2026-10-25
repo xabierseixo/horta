@@ -10,6 +10,7 @@ from horta.services.catalogos import cargar_nomes_galegos
 from horta.services.catalogos_ficheiros import DIRECTORIO_APP, Revision, revisar
 from horta.services.catalogos_importar import InformeImportacion
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.fito_descargar import actualizar_fitosanitarios
 from horta.services.fito_importar import importar_fitosanitarios
 
 _NOMES_GALEGOS = Path(__file__).parent / "data" / "nomes_galegos.csv"
@@ -53,6 +54,24 @@ def _importar(directorio: Path | None, forzar: bool) -> int:
     return 1 if _con_problemas(revisions) else 0
 
 
+def _fitosanitarios(directorio: Path | None, descargar: bool) -> int:
+    with get_session() as session:
+        try:
+            if descargar:
+                informe = actualizar_fitosanitarios(session, forzar=True)
+                assert informe is not None
+            elif directorio is not None:
+                informe = importar_fitosanitarios(session, directorio)
+            else:
+                print("Indica o directorio cos JSON do MAPA ou --descargar")
+                return 2
+        except OperacionNonPermitidaError as erro:
+            print(f"fitosanitarios: {erro}")
+            return 1
+    _imprimir(informe)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="horta-catalogos")
     sub = parser.add_subparsers(dest="orde", required=True)
@@ -61,20 +80,16 @@ def main(argv: list[str] | None = None) -> int:
     p_imp.add_argument("--forzar", action="store_true",
                        help="importar aínda que un ficheiro dea de baixa moitos códigos")
     p_fito = sub.add_parser("fitosanitarios", help="importa o rexistro de fitosanitarios do MAPA")
-    p_fito.add_argument("directorio", type=Path)
+    p_fito.add_argument("directorio", type=Path, nargs="?", default=None)
+    p_fito.add_argument("--descargar", action="store_true",
+                        help="descargalo agora do MAPA (para o despregamento)")
     p_nom = sub.add_parser("nomes-galegos", help="carga os nomes galegos dos cultivos")
     p_nom.add_argument("csv", type=Path, nargs="?", default=_NOMES_GALEGOS)
     args = parser.parse_args(argv)
     if args.orde == "importar":
         return _importar(args.directorio, args.forzar)
     if args.orde == "fitosanitarios":
-        with get_session() as session:
-            try:
-                _imprimir(importar_fitosanitarios(session, args.directorio))
-            except OperacionNonPermitidaError as erro:
-                print(f"fitosanitarios: {erro}")
-                return 1
-        return 0
+        return _fitosanitarios(args.directorio, args.descargar)
     with get_session() as session:
         print(f"nomes galegos cargados: {cargar_nomes_galegos(session, args.csv)}")
     return 0
