@@ -14,6 +14,7 @@ from horta.services.animais import (
     eliminar_animal,
     listar_animais,
 )
+from horta.services.catalogos_estado import avisos_catalogos
 from horta.services.cultivos import (
     listar_cultivos,
 )
@@ -119,6 +120,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         pode_editar = membro.rol in _ROLES_ESCRITURA
         e_horta_admin = membro.rol == RolHorta.ADMIN
         e_admin_global = actor.rol == RolGlobal.ADMIN
+        avisos_admin = avisos_catalogos(session) if e_admin_global else []
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
@@ -245,6 +247,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             "non_profesional": ("Non profesional", "etiqueta-ok"),
         }[estado]
         ui.label(texto_estado).classes(clase_estado)
+        for aviso in avisos_admin:
+            with ui.row().classes("items-center gap-2 q-mt-sm"):
+                ui.icon("warning").classes("text-warning")
+                ui.label(aviso)
+                ui.link("Catálogos oficiais", "/admin/catalogos")
         if requisitos:
             with ui.column().classes("tarxeta w-full gap-2 q-my-md"):
                 ui.label("Para estar en regra").classes("text-subtitle1 text-weight-bold")
