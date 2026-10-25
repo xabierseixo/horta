@@ -47,6 +47,13 @@ CAMPOS_EDITABLES_PARCELA = frozenset(
         "data_baixa",
         "causa_baixa",
         "orixe_auga",
+        "auga_consumo",
+        "auga_consumo_na_parcela",
+        "auga_consumo_distancia_m",
+        "auga_consumo_utm",
+        "auga_consumo_denominacion",
+        "zona_especifica",
+        "zona_especifica_ha",
         "notas",
         "estado",
         "lat",
@@ -86,6 +93,11 @@ def _validar_rea(session: Session, valores: dict[str, Any]) -> None:
     alta, baixa = valores.get("data_alta"), valores.get("data_baixa")
     if alta is not None and baixa is not None and baixa < alta:
         raise OperacionNonPermitidaError("A data de baixa non pode ser anterior á de alta")
+    if valores.get("zona_especifica") not in (None, "total", "parcial"):
+        raise OperacionNonPermitidaError("A zona específica é «total» ou «parcial»")
+    for campo in ("auga_consumo_distancia_m", "zona_especifica_ha"):
+        if valores.get(campo) is not None and valores[campo] < 0:
+            raise OperacionNonPermitidaError("As distancias e superficies non poden ser negativas")
     for campo, catalogo in _CATALOGOS_PARCELA.items():
         if valores.get(campo):
             validar_codigo(session, catalogo, str(valores[campo]), alta or date.today())
@@ -122,7 +134,9 @@ def actualizar_parcela(
     _validar_coordenadas(cambios)
     _validar_superficie(cambios)
     _validar_rea(session, {c: cambios.get(c, getattr(parcela, c)) for c in
-                           ("nif_arrendador", "data_alta", "data_baixa", *_CATALOGOS_PARCELA)})
+                           ("nif_arrendador", "data_alta", "data_baixa", "zona_especifica",
+                            "auga_consumo_distancia_m", "zona_especifica_ha",
+                            *_CATALOGOS_PARCELA)})
     for campo, valor in cambios.items():
         setattr(parcela, campo, valor)
     session.commit()
