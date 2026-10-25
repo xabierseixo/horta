@@ -29,12 +29,7 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
     {
         "especie",
         "variedade",
-        "data_sementeira",
-        "data_plantacion",
         "data_colleita_prevista",
-        "data_colleita_real",
-        "cantidade",
-        "unidade",
         "notas",
         "estado",
         "cultivo_siex_codigo",
@@ -95,19 +90,6 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
 
 def _horta_id_da_parcela(session: Session, parcela_id: int) -> int | None:
     return session.query(Parcela.horta_id).filter_by(id=parcela_id).scalar()
-
-
-def _validar_cantidade(campos: dict[str, Any]) -> None:
-    if "cantidade" in campos and campos["cantidade"] is not None:
-        if campos["cantidade"] < 0:
-            raise OperacionNonPermitidaError("A cantidade non pode ser negativa")
-
-
-def _validar_datas(sementeira: Any, colleita: Any) -> None:
-    if sementeira is not None and colleita is not None and colleita < sementeira:
-        raise OperacionNonPermitidaError(
-            "A data de colleita non pode ser anterior á de sementeira"
-        )
 
 
 _CATALOGOS_CULTIVO = {
@@ -197,8 +179,6 @@ def crear_cultivo(
     if horta_id is None:
         raise ValueError("Esa parcela non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    _validar_cantidade(campos)
-    _validar_datas(campos.get("data_sementeira"), campos.get("data_colleita_real"))
     _validar_rea(session, _valores_rea(None, campos), session.get(Parcela, parcela_id))
     estado = campos.pop("estado", None)
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, **campos)
@@ -221,11 +201,6 @@ def actualizar_cultivo(
     if horta_id is None:
         raise ValueError("A parcela deste cultivo xa non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    _validar_cantidade(cambios)
-    _validar_datas(
-        cambios.get("data_sementeira", cultivo.data_sementeira),
-        cambios.get("data_colleita_real", cultivo.data_colleita_real),
-    )
     parcela = session.get(Parcela, cultivo.parcela_id)
     _validar_rea(session, _valores_rea(cultivo, cambios), parcela)
     for campo, valor in cambios.items():
