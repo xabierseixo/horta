@@ -77,6 +77,9 @@ class Cultivo(Base):
     dose_sementeira_kg_ha: Mapped[float | None] = mapped_column(Float, default=None)
     densidade_plantas_ha: Mapped[float | None] = mapped_column(Float, default=None)
     material_tratado: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Caderno 3.2 (semente tratada): produto co que vén tratada
+    semente_tratamento_produto: Mapped[str | None] = mapped_column(String(250), default=None)
+    semente_tratamento_num_rexistro: Mapped[str | None] = mapped_column(String(50), default=None)
     material_adquirido: Mapped[bool] = mapped_column(Boolean, default=False)
     data_adquisicion_material: Mapped[date | None] = mapped_column(Date, default=None)
     created_at: Mapped[datetime] = mapped_column(

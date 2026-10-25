@@ -82,6 +82,8 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "dose_sementeira_kg_ha",
         "densidade_plantas_ha",
         "material_tratado",
+        "semente_tratamento_produto",
+        "semente_tratamento_num_rexistro",
         "material_adquirido",
         "data_adquisicion_material",
     }
