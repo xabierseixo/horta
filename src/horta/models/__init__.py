@@ -15,6 +15,7 @@ from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa, TipoCarne
+from horta.models.rega import Rega, RegaBoaPractica
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import (
     TratamentoAplicador,
@@ -48,6 +49,8 @@ __all__ = [
     "Fertilizante",
     "Abonado",
     "AbonadoBoaPractica",
+    "Rega",
+    "RegaBoaPractica",
     "NomeGalego",
     "VariedadeLocal",
     "Persoa",
