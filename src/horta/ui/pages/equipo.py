@@ -101,6 +101,11 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         nif = ui.input("NIF").classes("w-full")
         telefono = ui.input("Teléfono").classes("w-full")
         email = ui.input("Email de contacto").classes("w-full")
+        with ui.expansion("Enderezo (para o caderno, se é o titular)").classes("w-full"):
+            enderezo = ui.input("Enderezo").classes("w-full")
+            localidade = ui.input("Localidade").classes("w-full")
+            codigo_postal = ui.input("Código postal").classes("w-full")
+            provincia = ui.input("Provincia").classes("w-full")
         ui.label("Funcións").classes("text-subtitle2 q-mt-sm")
         with ui.row():
             titular = ui.checkbox("Titular")
@@ -135,6 +140,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
             datos: dict[str, Any] = dict(
                 apelidos=apelidos.value or None, nif=nif.value or None,
                 telefono=telefono.value or None, email=email.value or None,
+                enderezo=enderezo.value or None, localidade=localidade.value or None,
+                codigo_postal=codigo_postal.value or None, provincia=provincia.value or None,
                 e_titular=titular.value, e_traballador=traballador.value,
                 e_aplicador=aplicador.value, e_asesor=asesor.value,
                 ropo_numero=ropo.value or None,
@@ -190,7 +197,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    textos = (nome, apelidos, nif, telefono, email, ropo, caducidade, regfer, horas_ano,
+    textos = (nome, apelidos, nif, telefono, email, enderezo, localidade, codigo_postal,
+              provincia, ropo, caducidade, regfer, horas_ano,
               formacion, nacemento, email_conta)
     casillas = (titular, traballador, aplicador, asesor, discapacidade)
 
@@ -218,6 +226,10 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         nif.value = p.nif or ""
         telefono.value = p.telefono or ""
         email.value = p.email or ""
+        enderezo.value = p.enderezo or ""
+        localidade.value = p.localidade or ""
+        codigo_postal.value = p.codigo_postal or ""
+        provincia.value = p.provincia or ""
         titular.value, traballador.value = p.e_titular, p.e_traballador
         aplicador.value, asesor.value = p.e_aplicador, p.e_asesor
         ropo.value = p.ropo_numero or ""
