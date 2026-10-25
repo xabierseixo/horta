@@ -39,6 +39,10 @@ class DatosColleita:
     notas: str | None = None
     data_fin: date | None = None
     albaran_factura: str | None = None
+    cliente_nome: str | None = None
+    cliente_nif: str | None = None
+    cliente_enderezo: str | None = None
+    cliente_reaga: str | None = None
     obten_sementes: bool = False
     obten_plantas: bool = False
     sen_colleita_ambiental: bool = False
@@ -125,6 +129,10 @@ def _copiar(colleita: Colleita, datos: DatosColleita) -> None:
     colleita.destino_colleita = datos.destino_colleita or None
     colleita.destino_restos = datos.destino_restos or None
     colleita.notas = datos.notas or None
+    colleita.cliente_nome = datos.cliente_nome or None
+    colleita.cliente_nif = datos.cliente_nif or None
+    colleita.cliente_enderezo = datos.cliente_enderezo or None
+    colleita.cliente_reaga = datos.cliente_reaga or None
 
 
 def crear_colleita(
