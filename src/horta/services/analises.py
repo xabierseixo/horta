@@ -21,7 +21,8 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 SOLO = "3"  # catálogo MATERIAL_ANALIZADO
 _PORCENTAXES = ("materia_organica", "area", "limo", "arxila", "n_total")
-CAMPOS_SOLO = (*_PORCENTAXES, "ph", "fosforo_ppm", "potasio_ppm", "conductividade")
+METAIS = ("cadmio", "cobre", "niquel", "chumbo", "zinc", "mercurio", "cromo")
+CAMPOS_SOLO = (*_PORCENTAXES, "ph", "fosforo_ppm", "potasio_ppm", "conductividade", *METAIS)
 
 
 @dataclass
@@ -73,6 +74,8 @@ def _validar(session: Session, horta_id: int, datos: DatosAnalise, hoxe: date) -
     for campo in _PORCENTAXES:
         if campo in valores and not 0 <= valores[campo] <= 100:
             raise OperacionNonPermitidaError("As porcentaxes van de 0 a 100")
+    if any(valores[m] < 0 for m in METAIS if m in valores):
+        raise OperacionNonPermitidaError("Os metais pesados non poden ser negativos")
     if "ph" in valores and not 0 <= valores["ph"] <= 14:
         raise OperacionNonPermitidaError("O pH vai de 0 a 14")
 
