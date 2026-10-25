@@ -44,6 +44,7 @@ from horta.services.tarefas import (
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.descarga_caderno import boton_caderno
 from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import (
     SECCIONS,
@@ -228,6 +229,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     etiquetas = {s.clave: s.etiqueta for s in SECCIONS}
     if seccion == "resumo":
         accions = cabeceira_seccion(horta_nome, horta_descricion or "Resumo da explotación")
+        with accions:
+            boton_caderno(horta_id)
         if e_horta_admin:
             with accions:
                 ui.button(
