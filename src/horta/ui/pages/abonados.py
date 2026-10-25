@@ -23,6 +23,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import UNIDADES_DOSE, listar_fertilizantes, nutrientes_kg_ha
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
+from horta.services.plan_abonado import balance_do_cultivo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -45,8 +46,12 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
             return
         abonados = listar_abonados(session, actor, horta_id)
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+        lista_cultivos = listar_cultivos(session, actor, horta_id)
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
-                    for c in listar_cultivos(session, actor, horta_id)}
+                    for c in lista_cultivos}
+        abonados_cultivos = {a.cultivo_id for a in abonados}
+        balances = {c.id: balance_do_cultivo(session, actor, horta_id, c) for c in lista_cultivos
+                    if c.id in abonados_cultivos or c.plan_necesidade_n}
         abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
         unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat[c] for c in UNIDADES_DOSE if c in unidades_cat}
@@ -66,6 +71,16 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
             "nutrientes": _nutrientes(nutrientes_do_abonado(session, a)),
         } for a in abonados]
 
+    for cultivo_id, balance in balances.items():
+        partes = []
+        for nome, feito, preciso in zip(("N", "P₂O₅", "K₂O"), balance.aplicado,
+                                        balance.necesidade):
+            if feito or preciso:
+                partes.append(f"{nome} {feito:g}" + (f" de {preciso:g}" if preciso else ""))
+        aviso = (f" (sen contar {balance.sen_calcular}: falta a densidade)"
+                 if balance.sen_calcular else "")
+        ui.label(f"{cultivos[cultivo_id]}: {' · '.join(partes) or 'nada'} kg/ha{aviso}").classes(
+            "text-body2")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivo", "Cultivo"), ("abono", "Abono"), ("dose", "Dose"),
