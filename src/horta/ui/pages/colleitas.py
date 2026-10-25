@@ -20,6 +20,7 @@ from horta.services.colleitas import (
     rendemento_kg_ha,
 )
 from horta.services.cultivos import listar_cultivos
+from horta.services.fito_consulta import aviso_prazo_colleita
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -112,6 +113,18 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
                                          parsear_data(data.value) or date.today())
 
         cultivo.on_value_change(propor)
+        aviso_prazo = ui.label().classes("text-negative text-sm")
+
+        def comprobar_prazo() -> None:
+            dia = parsear_data(data.value) if data.value else None
+            if cultivo.value is None or dia is None:
+                aviso_prazo.text = ""
+                return
+            with get_session() as session:
+                aviso_prazo.text = aviso_prazo_colleita(session, cultivo.value, dia) or ""
+
+        cultivo.on_value_change(comprobar_prazo)
+        data.on_value_change(comprobar_prazo)
 
         def gardar() -> None:
             if cultivo.value is None:
