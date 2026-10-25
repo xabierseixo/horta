@@ -63,7 +63,7 @@ from horta.ui.pages.equipo import seccion_equipo
 from horta.ui.pages.maquinaria import seccion_maquinaria
 from horta.ui.pages.parcelas import seccion_parcelas
 from horta.ui.pages.regas import seccion_regas
-from horta.ui.pages.tratamentos_fito import seccion_tratamentos_fito
+from horta.ui.pages.tratamentos import seccion_tratamentos_fito
 from horta.ui.pages.tratamentos_instalacion import seccion_tratamentos_instalacion
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
