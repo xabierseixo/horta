@@ -30,8 +30,23 @@ CAMPOS_EDITABLES_HORTA = frozenset(
         "titular_nif",
         "codigo_reaga",
         "codigo_rega",
+        "enderezo",
+        "localidade",
+        "codigo_postal",
+        "provincia",
+        "email",
+        "tipo_representacion",
+        "asesoramento_nome",
+        "asesoramento_nif",
+        "asesoramento_num",
+        "tipo_xip",
+        "asesoramento_fertilizacion",
     }
 )
+# Tipo de explotación en xestión integrada de pragas (modelo do caderno, 1.4)
+TIPOS_XIP = {"AE": "Agricultura ecolóxica", "PI": "Produción integrada",
+             "CP": "Certificación privada", "ATRIA": "Agrupación de tratamento integrado (ATRIA)",
+             "AS": "Asistida por un asesor", "NO": "Sen obriga de asesor en XIP"}
 
 # Patróns do descritor SIEX (Anexo VI): NIF/NIE de persoa física e CIF; código de
 # explotación ES + 12 díxitos (codigoREA). O REGA segue o mesmo formato.
@@ -47,6 +62,8 @@ def _normalizar_e_validar_codigos(cambios: dict[str, Any]) -> None:
             cambios[campo] = cambios[campo].strip().upper().replace(" ", "")
         elif campo in cambios:
             cambios[campo] = None
+    if cambios.get("tipo_xip") and cambios["tipo_xip"] not in TIPOS_XIP:
+        raise OperacionNonPermitidaError("Tipo de explotación en XIP descoñecido")
     if cambios.get("titular_nif") and not _PATRON_NIF.match(cambios["titular_nif"]):
         raise OperacionNonPermitidaError("O NIF do titular non é válido")
     for campo, nome in (("codigo_reaga", "REAGA"), ("codigo_rega", "REGA")):

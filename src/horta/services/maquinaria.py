@@ -17,7 +17,7 @@ _IDENTIFICADORES = ("num_roma", "num_reganip", "id_equipo_non_inscribible")
 CAMPOS_EDITABLES_MAQUINA = frozenset(
     {"alias", "tipo_une", "marca_modelo", "num_roma", "num_reganip", "id_equipo_non_inscribible",
      "propia", "potencia", "unidade_potencia", "tipo_enerxia", "data_ultima_inspeccion", "alugada",
-     "activa"}
+     "activa", "data_adquisicion"}
 )
 
 

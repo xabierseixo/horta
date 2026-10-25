@@ -22,7 +22,7 @@ CAMPOS_EDITABLES_PERSOA = frozenset(
     {"nome", "apelidos", "nif", "e_aplicador", "e_asesor", "ropo_numero", "ropo_tipo_carne",
      "ropo_caducidade", "regfer_numero", "activa", "e_titular", "e_traballador", "telefono",
      "email", "vinculo", "horas_ano", "formacion_agraria", "xenero", "data_nacemento",
-     "discapacidade"}
+     "discapacidade", "enderezo", "localidade", "codigo_postal", "provincia"}
 )
 
 
