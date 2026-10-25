@@ -9,6 +9,7 @@ from loguru import logger
 from nicegui import Client, app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from horta.actualizacions import activar as activar_actualizacions
 from horta.log import configurar_rexistro
 from horta.ui.erros import pagina_erro_html
 
@@ -61,6 +62,7 @@ import horta.ui.pages.login  # noqa: E402,F401
 
 
 def main() -> None:
+    activar_actualizacions()
     ui.run(
         port=8081,
         title="Horta",
