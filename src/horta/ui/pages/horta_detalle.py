@@ -45,6 +45,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.descarga_caderno import boton_caderno
+from horta.ui.dialogo_datos_caderno import boton_datos_caderno
 from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import (
     SECCIONS,
@@ -236,6 +237,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.button(
                     "Configurar explotación", icon="settings", on_click=dialog_config_horta.open
                 ).props("outline")
+                boton_datos_caderno(horta_id)
         texto_estado, clase_estado = {
             "rexistrada": ("Explotación rexistrada", "etiqueta-ok"),
             "en_preparacion": ("En preparación", "etiqueta-aviso"),
