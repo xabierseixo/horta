@@ -24,12 +24,7 @@ class Cultivo(Base):
     variedade_local_id: Mapped[int | None] = mapped_column(
         ForeignKey("variedade_local.id"), default=None
     )
-    data_sementeira: Mapped[date | None] = mapped_column(Date, default=None)
-    data_plantacion: Mapped[date | None] = mapped_column(Date, default=None)
     data_colleita_prevista: Mapped[date | None] = mapped_column(Date, default=None)
-    data_colleita_real: Mapped[date | None] = mapped_column(Date, default=None)
-    cantidade: Mapped[float | None] = mapped_column(Float, default=None)
-    unidade: Mapped[str | None] = mapped_column(String(30), default=None)
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
     estado: Mapped[str] = mapped_column(String(50), default="planificado")
     # Campos do REA (deseño 2026-10-23-cultivo-e-colleitas). Superficie en hectáreas.
