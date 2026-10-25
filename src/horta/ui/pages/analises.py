@@ -33,7 +33,11 @@ _PARAMETROS_SOLO = (("materia_organica", "Materia orgánica (%)"), ("ph", "pH"),
                     ("area", "Area (%)"), ("limo", "Limo (%)"), ("arxila", "Arxila (%)"),
                     ("n_total", "Nitróxeno total (%)"), ("fosforo_ppm", "Fósforo (ppm)"),
                     ("potasio_ppm", "Potasio (ppm)"),
-                    ("conductividade", "Condutividade (dS/m)"))
+                    ("conductividade", "Condutividade (dS/m)"),
+                    ("cadmio", "Cadmio (mg/kg)"), ("cobre", "Cobre (mg/kg)"),
+                    ("niquel", "Níquel (mg/kg)"), ("chumbo", "Chumbo (mg/kg)"),
+                    ("zinc", "Cinc (mg/kg)"), ("mercurio", "Mercurio (mg/kg)"),
+                    ("cromo", "Cromo total (mg/kg)"))
 
 
 def seccion_analises(horta_id: int, pode_editar: bool) -> None:

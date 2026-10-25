@@ -348,7 +348,8 @@ def xerar_caderno(
            [[parcelas[a.parcela_id].nome if a.parcela_id in parcelas else
              orde_cultivo.get(a.cultivo_id or 0, ""), _data(a.data_mostraxe), _num(a.ph),
              _num(a.materia_organica), _num(a.n_total), _num(a.fosforo_ppm),
-             _num(a.potasio_ppm), "", "", "", "", "", "", ""]
+             _num(a.potasio_ppm), _num(a.cadmio), _num(a.cobre), _num(a.niquel),
+             _num(a.chumbo), _num(a.zinc), _num(a.mercurio), _num(a.cromo)]
             for a in analises if a.material_analizado == SOLO])
 
     filas_fert = []
