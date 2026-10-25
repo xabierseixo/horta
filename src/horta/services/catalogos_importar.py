@@ -213,18 +213,20 @@ def importar_catalogo(
 
 
 def importar_cultivos(
-    session: Session, ruta: Path, hoxe: date | None = None
+    session: Session, ruta: Path, hoxe: date | None = None, aplicar: bool = True
 ) -> InformeImportacion:
     hoxe = hoxe or date.today()
     if _xa_importado(session, "cultivo", ruta):
         return InformeImportacion(catalogo="cultivo", xa_importado=True)
-    _, filas = _ler_xlsx(ruta)
+    cabeceira, filas = _ler_xlsx(ruta)
+    _comprobar_columnas(ruta, cabeceira, ["Código", "Cultivo"])
     informe = InformeImportacion(catalogo="cultivo")
     version = _nova_version(session, "cultivo", ruta, len(filas))
     if version is None:
         informe.xa_importado = True
         return informe
     existentes = {c.codigo: c for c in session.query(CultivoSiex)}
+    informe.existentes = len(existentes)
     vistos: set[int] = set()
     for fila in filas:
         codigo = int(_codigo(fila["Código"]))
@@ -252,12 +254,12 @@ def importar_cultivos(
         if codigo not in vistos and cultivo.data_baixa is None:
             cultivo.data_baixa = hoxe
             informe.baixas += 1
-    session.commit()
+    _rematar(session, aplicar)
     return informe
 
 
 def importar_variedades(
-    session: Session, ruta: Path, hoxe: date | None = None
+    session: Session, ruta: Path, hoxe: date | None = None, aplicar: bool = True
 ) -> InformeImportacion:
     hoxe = hoxe or date.today()
     if _xa_importado(session, "variedade", ruta):
