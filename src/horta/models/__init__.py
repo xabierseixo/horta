@@ -28,6 +28,7 @@ from horta.models.tratamento_fito import (
     TratamentoProduto,
     TratamentoXustificacion,
 )
+from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.models.usuario import RolGlobal, Usuario
 
 __all__ = [
@@ -55,6 +56,7 @@ __all__ = [
     "Analise",
     "AnaliseTipo",
     "AnaliseSubstancia",
+    "TratamentoInstalacion",
     "NomeGalego",
     "VariedadeLocal",
     "Persoa",
