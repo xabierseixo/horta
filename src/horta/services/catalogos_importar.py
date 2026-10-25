@@ -58,6 +58,7 @@ CATALOGOS_XERAIS: dict[str, tuple[str, str, str | None]] = {
     "tipo_analise": ("TIPO_ANALISIS", "Código SIEX", None),
     "orixe_auga": ("ORIGEN_AGUA_RIEGO", "Código SIEX", None),
     "sistema_rega": ("SIST_RIEGO", "Código SIEX", None),
+    "substancia_activa": ("SUST_ACTIVAS", "Código SIEX", "Sustancia"),
     # Labores e animais
     "tipo_labor": ("TIPO_LABOR", "Código SIEX", None),
     "especie_animal": ("ESPECIE_ANIMAL", "Código SIEX", None),
