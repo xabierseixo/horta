@@ -26,6 +26,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("tratamentos", "Tratamentos", "sanitizer", "Caderno"),
     Seccion("fertilizacion", "Fertilización", "compost", "Caderno"),
     Seccion("rega", "Rega", "water_drop", "Caderno"),
+    Seccion("analises", "Análises", "science", "Caderno"),
     Seccion("colleitas", "Colleitas", "inventory_2", "Caderno"),
     Seccion("tarefas", "Tarefas", "task_alt", "Caderno"),
     Seccion("animais", "Animais", "pets", "Gandaría"),
