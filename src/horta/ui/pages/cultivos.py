@@ -161,6 +161,15 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
             anterior = ui.select(opcions_cultivo, label="Cultivo anterior", with_input=True,
                                  clearable=True).classes("w-full")
             obxectivo = ui.input("Colleita esperada (kg/ha)").classes("w-full")
+            ui.label("Necesidades do cultivo (kg/ha)").classes("text-caption")
+            with ui.row().classes("w-full no-wrap"):
+                necesidade_n = ui.input("N").classes("col")
+                necesidade_p = ui.input("P₂O₅").classes("col")
+                necesidade_k = ui.input("K₂O").classes("col")
+            plan_data = campo_data("Data do plan")
+            ferramenta = ui.checkbox("Calculouse cunha ferramenta de nutrientes")
+            auga_n = ui.input("Nitróxeno nítrico da auga de rega (mg/l)").classes("w-full")
+            auga_p = ui.input("P₂O₅ da auga de rega (mg/l)").classes("w-full")
         with ui.expansion("Baixa e notas").classes("w-full"):
             causa_baixa = ui.select(opcions["causa_baixa"], label="Causa da baixa",
                                     clearable=True).classes("w-full")
@@ -230,6 +239,13 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
                 duracion_ciclo_dias=_enteiro(duracion.value),
                 cultivo_anterior_codigo=anterior.value,
                 obxectivo_colleita_kg_ha=parsear_decimal(obxectivo.value),
+                plan_necesidade_n=parsear_decimal(necesidade_n.value),
+                plan_necesidade_p2o5=parsear_decimal(necesidade_p.value),
+                plan_necesidade_k2o=parsear_decimal(necesidade_k.value),
+                plan_data=parsear_data(plan_data.value),
+                plan_ferramenta_sostibilidade=ferramenta.value,
+                plan_auga_n_nitrico=parsear_decimal(auga_n.value),
+                plan_auga_p2o5=parsear_decimal(auga_p.value),
                 causa_baixa=causa_baixa.value,
                 actividade_agraria="1",
                 notas=notas.value or None,
@@ -274,10 +290,11 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
     campos_texto = (variedade_texto, data_inicio, data_prevista, data_fin, data_conversion,
                     provedor, lote_material, pasaporte, ropveg, num_arbores, marco,
                     ano_plantacion, unidades, ciclos, duracion, obxectivo, notas,
+                    necesidade_n, necesidade_p, necesidade_k, plan_data, auga_n, auga_p,
                     data_fin_sementeira, cantidade_semente, dose_sementeira, densidade,
                     data_adquisicion, castineiros, abeleiras, nogueiras, amendoeiras, outros_casca)
     campos_select = (variedade_oficial, secano, procedencia, anterior, causa_baixa, cobertura)
-    casillas = (sementeira_directa, material_tratado, material_adquirido)
+    casillas = (sementeira_directa, material_tratado, material_adquirido, ferramenta)
 
     def _texto(valor: Any) -> str:
         return "" if valor is None else str(valor)
@@ -335,6 +352,13 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
         duracion.value = _texto(c.duracion_ciclo_dias)
         anterior.value = c.cultivo_anterior_codigo
         obxectivo.value = _texto(c.obxectivo_colleita_kg_ha)
+        necesidade_n.value = _texto(c.plan_necesidade_n)
+        necesidade_p.value = _texto(c.plan_necesidade_p2o5)
+        necesidade_k.value = _texto(c.plan_necesidade_k2o)
+        plan_data.value = _texto(c.plan_data)
+        ferramenta.value = bool(c.plan_ferramenta_sostibilidade)
+        auga_n.value = _texto(c.plan_auga_n_nitrico)
+        auga_p.value = _texto(c.plan_auga_p2o5)
         causa_baixa.value = c.causa_baixa
         notas.value = _texto(c.notas)
         cobertura.value = c.tipo_cobertura_solo
