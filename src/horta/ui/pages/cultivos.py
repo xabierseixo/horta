@@ -134,6 +134,11 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
             densidade = ui.input("Plantas por hectárea").classes("w-full")
             sementeira_directa = ui.checkbox("Sementeira directa")
             material_tratado = ui.checkbox("A semente ou planta vén tratada")
+            with ui.column().classes("w-full gap-1").bind_visibility_from(
+                    material_tratado, "value"):
+                semente_produto = ui.input("Produto do tratamento (nome comercial ou materia "
+                                           "activa)").classes("w-full")
+                semente_rexistro = ui.input("Nº de rexistro do produto").classes("w-full")
             material_adquirido = ui.checkbox("A semente ou planta comprouse")
             data_adquisicion = campo_data("Data de compra")
 
@@ -256,6 +261,10 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
                 densidade_plantas_ha=parsear_decimal(densidade.value),
                 sementeira_directa=sementeira_directa.value,
                 material_tratado=material_tratado.value,
+                semente_tratamento_produto=(semente_produto.value or None)
+                if material_tratado.value else None,
+                semente_tratamento_num_rexistro=(semente_rexistro.value or None)
+                if material_tratado.value else None,
                 material_adquirido=material_adquirido.value,
                 data_adquisicion_material=parsear_data(data_adquisicion.value),
                 num_castineiros=_enteiro(castineiros.value),
@@ -291,6 +300,7 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
                     provedor, lote_material, pasaporte, ropveg, num_arbores, marco,
                     ano_plantacion, unidades, ciclos, duracion, obxectivo, notas,
                     necesidade_n, necesidade_p, necesidade_k, plan_data, auga_n, auga_p,
+                    semente_produto, semente_rexistro,
                     data_fin_sementeira, cantidade_semente, dose_sementeira, densidade,
                     data_adquisicion, castineiros, abeleiras, nogueiras, amendoeiras, outros_casca)
     campos_select = (variedade_oficial, secano, procedencia, anterior, causa_baixa, cobertura)
@@ -368,6 +378,8 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
         densidade.value = _texto(c.densidade_plantas_ha)
         sementeira_directa.value = bool(c.sementeira_directa)
         material_tratado.value = bool(c.material_tratado)
+        semente_produto.value = _texto(c.semente_tratamento_produto)
+        semente_rexistro.value = _texto(c.semente_tratamento_num_rexistro)
         material_adquirido.value = bool(c.material_adquirido)
         data_adquisicion.value = _texto(c.data_adquisicion_material)
         castineiros.value = _texto(c.num_castineiros)
