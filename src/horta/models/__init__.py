@@ -21,6 +21,7 @@ from horta.models.fito_rexistro import (
     FitoUso,
 )
 from horta.models.horta import Horta, HortaMembro, RolHorta
+from horta.models.labor import Labor
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa, TipoCarne
@@ -66,6 +67,7 @@ __all__ = [
     "Abonado",
     "AbonadoBoaPractica",
     "Rega",
+    "Labor",
     "RegaBoaPractica",
     "Analise",
     "AnaliseTipo",
