@@ -334,7 +334,8 @@ def xerar_caderno(
             _intervalo(col.data, col.data_fin), c.especie if c else "",
             _num(kg) if kg is not None else f"{col.cantidade:g} {col.unidade}",
             orde_cultivo.get(col.cultivo_id, ""), col.albaran_factura or "", col.lote,
-            "", "", "", ""])
+            col.cliente_nome or "", col.cliente_nif or "", col.cliente_enderezo or "",
+            col.cliente_reaga or ""])
     _folla(wb, "5 Colleita", "5. REXISTRO DE COLLEITA COMERCIALIZADA", cab,
            ["Data", "Produto", "Cantidade de produto (kg)", "Nº de orde parcela/s de orixe",
             "Nº de albará ou factura", "Nº de lote", "Cliente: nome ou razón social",

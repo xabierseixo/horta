@@ -94,6 +94,11 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         plantas = ui.checkbox("Obtéñense plantas ou plantóns")
         sen_colleita = ui.checkbox("Sen colleita por razóns ambientais")
         restos_solo = ui.checkbox("Os restos quedan no chan")
+        with ui.expansion("Cliente (se se vende a unha empresa)").classes("w-full"):
+            cliente_nome = ui.input("Nome ou razón social").classes("w-full")
+            cliente_nif = ui.input("NIF").classes("w-full")
+            cliente_enderezo = ui.input("Enderezo").classes("w-full")
+            cliente_reaga = ui.input("Nº REAGA (se é unha explotación)").classes("w-full")
         notas = ui.textarea("Notas").classes("w-full")
 
         def propor() -> None:
@@ -131,6 +136,10 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
                         notas=notas.value or None,
                         data_fin=parsear_data(data_fin.value),
                         albaran_factura=albaran.value or None,
+                        cliente_nome=cliente_nome.value or None,
+                        cliente_nif=cliente_nif.value or None,
+                        cliente_enderezo=cliente_enderezo.value or None,
+                        cliente_reaga=cliente_reaga.value or None,
                         obten_sementes=sementes.value,
                         obten_plantas=plantas.value,
                         sen_colleita_ambiental=sen_colleita.value,
@@ -156,7 +165,8 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         titulo.text = "Apuntar colleita"
         cultivo.value = None
         data.value = date.today().isoformat()
-        for campo in (cantidade, lote, notas, data_fin, albaran):
+        for campo in (cantidade, lote, notas, data_fin, albaran, cliente_nome, cliente_nif,
+                      cliente_enderezo, cliente_reaga):
             campo.value = ""
         superficie.establecer(None)
         sementes.value = plantas.value = sen_colleita.value = restos_solo.value = False
@@ -182,6 +192,10 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         notas.value = c.notas or ""
         data_fin.value = c.data_fin.isoformat() if c.data_fin else ""
         albaran.value = c.albaran_factura or ""
+        cliente_nome.value = c.cliente_nome or ""
+        cliente_nif.value = c.cliente_nif or ""
+        cliente_enderezo.value = c.cliente_enderezo or ""
+        cliente_reaga.value = c.cliente_reaga or ""
         sementes.value = c.obten_sementes
         plantas.value = c.obten_plantas
         sen_colleita.value = c.sen_colleita_ambiental
