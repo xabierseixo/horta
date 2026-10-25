@@ -12,6 +12,7 @@ from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela
 from horta.models.persoa import Persoa
+from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.models.usuario import Usuario
@@ -139,6 +140,10 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     if session.query(Abonado).filter_by(horta_id=horta.id).first():
         raise OperacionNonPermitidaError(
             "Esta explotación ten abonados rexistrados e debe conservarse (obriga legal)."
+        )
+    if session.query(Rega).filter_by(horta_id=horta.id).first():
+        raise OperacionNonPermitidaError(
+            "Esta explotación ten regas rexistradas e debe conservarse (obriga legal)."
         )
     session.query(Fertilizante).filter_by(horta_id=horta.id).delete()
     for tarefa in session.query(Tarefa).filter_by(horta_id=horta.id).all():
