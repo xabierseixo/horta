@@ -184,6 +184,25 @@ def xerar_caderno(
             "Aire libre ou protexido", "Sistema de asesoramento en XIP",
             "Nome da parcela (horta)"],
            [fila_parcela(c) for c in cultivos])
+    ws2 = wb["2 Parcelas"]
+    ws2.append([])
+    ws2.append(["2.2 DATOS IDENTIFICATIVOS MEDIOAMBIENTAIS DAS PARCELAS"])
+    ws2.append(["Id. parcelas", "Especie", "Variedade",
+                "Captación de auga para consumo humano: incluído na parcela (SI/NON)",
+                "Distancia (m)", "Coordenadas UTM", "Denominación",
+                "Zona específica: totalmente (SI/NON)", "Parcialmente (SI/NON)",
+                "Superficie afectada (ha)"])
+    for cu in cultivos:
+        pa = parcelas[cu.parcela_id]
+        if not (pa.auga_consumo or pa.zona_especifica):
+            continue
+        ws2.append([orde_cultivo[cu.id], cu.especie, cu.variedade or "",
+                    ("SI" if pa.auga_consumo_na_parcela else "NON") if pa.auga_consumo else "",
+                    _num(pa.auga_consumo_distancia_m) if pa.auga_consumo else "",
+                    pa.auga_consumo_utm or "", pa.auga_consumo_denominacion or "",
+                    "SI" if pa.zona_especifica == "total" else "NON",
+                    "SI" if pa.zona_especifica == "parcial" else "NON",
+                    _num(pa.zona_especifica_ha)])
 
     filas_trat = []
     for t in listar_tratamentos_fito(session, actor, horta_id):
