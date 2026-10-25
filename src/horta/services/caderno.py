@@ -29,7 +29,7 @@ from horta.services.analises import SOLO, listar_analises
 from horta.services.catalogos import describir
 from horta.services.colleitas import listar_colleitas
 from horta.services.errors import OperacionNonPermitidaError
-from horta.services.fertilizantes import dose_kg_ha
+from horta.services.fertilizantes import FORMAS_N_P, METAIS_RESIDUO, RESIDUOS, dose_kg_ha
 from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
@@ -379,6 +379,8 @@ def xerar_caderno(
             ab.empresa_servizos_regfer or ((persoa.regfer_numero or "") if persoa else ""),
             _num(fe.n_pct) if fe else "", _num(fe.p2o5_pct) if fe else "",
             _num(fe.k2o_pct) if fe else "",
+            *((_num(getattr(fe, c)) for c in FORMAS_N_P) if fe else ("",) * 5),
+            _num(fe.materia_organica_pct) if fe else "",
             _num(kg_ha / 1000) if kg_ha is not None else "",
             *(npk if npk else ("", "", "")),
             ab.albaran_factura or ""])
@@ -388,9 +390,27 @@ def xerar_caderno(
                   "Tipo de material", "Material empregado", "Empresa subministradora",
                   "REGA/NIF/NIMA", "Forma de aplicación", "Máquina de tratamento",
                   "Nº REGFER", "Valor agronómico: N total (%)", "P₂O₅ total (%)",
-                  "K₂O total (%)", "Dose (t/ha)", "Aportadas N (kg/ha)",
+                  "K₂O total (%)", "N orgánico (%)", "N ureico (%)", "N nítrico (%)",
+                  "N amoniacal (%)", "P₂O₅ soluble (%)", "Mat. orgánica (%) (estercos)",
+                  "Dose (t/ha)", "Aportadas N (kg/ha)",
                   "Aportadas P₂O₅ (kg/ha)", "Aportadas K₂O (kg/ha)", "Nº albará/factura"],
                  filas_fert)
+    ws7.append([])
+    ws7.append(["FERTILIZACIÓN (Metais pesados) - só obrigatorio se se empregan residuos "
+                "valorizables do Anexo VIII do RD 1051/2022"])
+    ws7.append(["Data aplicación", "Identificación parcelas", "Tipo residuo valorizable",
+                "Dose (kg/ha de produto)", "Cadmio", "Cobre", "Níquel", "Chumbo", "Cinc",
+                "Mercurio", "Cromo VI", "Arsénico", "Cromo"])
+    for ab in listar_abonados(session, actor, horta_id):
+        fr = session.get(Fertilizante, ab.fertilizante_id) if ab.fertilizante_id else None
+        if fr is None or fr.material not in RESIDUOS or not no_periodo(ab.data_inicio,
+                                                                       ab.data_fin):
+            continue
+        dose = dose_kg_ha(ab.dose, ab.unidade, fr.densidade) \
+            if ab.dose is not None and ab.unidade else None
+        ws7.append([_intervalo(ab.data_inicio, ab.data_fin), orde_cultivo.get(ab.cultivo_id, ""),
+                    describir(session, "material_fertilizante", fr.material), _num(dose),
+                    *(_num(getattr(fr, m)) for m in METAIS_RESIDUO)])
     ws7.append([])
     plan = any(c.plan_necesidade_n or c.plan_necesidade_p2o5 or c.plan_necesidade_k2o
                for c in cultivos)
