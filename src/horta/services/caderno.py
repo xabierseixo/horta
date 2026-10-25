@@ -33,6 +33,7 @@ from horta.services.fertilizantes import dose_kg_ha
 from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
+from horta.services.tratamentos_instalacion import listar_tratamentos_instalacion
 
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 _A_KG = {"kg": 1.0, "t": 1000.0}
@@ -281,6 +282,33 @@ def xerar_caderno(
         ws3.append([_data(cu.data_inicio), orde_cultivo[cu.id], cu.especie, cu.variedade or "",
                     _num(cu.superficie_ha), _num(cu.cantidade_semente_kg),
                     cu.semente_tratamento_produto or "", cu.semente_tratamento_num_rexistro or ""])
+    instalacions = [ti for ti in listar_tratamentos_instalacion(session, actor, horta_id)
+                    if no_periodo(ti.data)]
+    for tipo, titulo, que, cantidade in (
+        ("postcolleita", "3.3 REXISTRO DE TRATAMENTOS POSTCOLLEITA (en produto vexetal)",
+         "Produto vexetal tratado", "Cantidade de prod. vex. tratado (ti)"),
+        ("local", "3.4 REXISTRO DE TRATAMENTOS DOS LOCAIS DE ALMACENAMENTO",
+         "Local tratado (tipo e dirección)", "Volume tratado (m³)"),
+        ("transporte", "3.5 REXISTRO DE TRATAMENTOS DOS MEDIOS DE TRANSPORTE",
+         "Vehículo tratado (tipo, modelo e matrícula)", "Volume tratado (m³)"),
+    ):
+        destes = sorted((ti for ti in instalacions if ti.tipo == tipo), key=lambda ti: ti.data)
+        ws3.append([])
+        ws3.append([titulo])
+        ws3.append(["Aplica tratamento", "SI" if destes else "NON"])
+        ws3.append(["Data", que, "Referencia catastral", "Problemática fitosanitaria",
+                    cantidade, "Nome comercial", "Nº Rexistro", "Materia activa",
+                    "Cantidade utilizada (kg ou l)"])
+        for ti in destes:
+            ws3.append([
+                _data(ti.data), ti.obxecto, ti.referencia_catastral or "",
+                describir(session, ti.problema_tipo, ti.problema_codigo)
+                if ti.problema_tipo and ti.problema_codigo else "",
+                _num(ti.cantidade_tratada), ti.nome_comercial or "", ti.num_rexistro or "",
+                ti.materia_activa or "",
+                f"{_num(ti.cantidade_utilizada)} {describir(session, 'unidade_medida', ti.unidade)}"
+                if ti.cantidade_utilizada is not None and ti.unidade else
+                _num(ti.cantidade_utilizada)])
 
     analises = [a for a in listar_analises(session, actor, horta_id)
                 if no_periodo(a.data_mostraxe)]
