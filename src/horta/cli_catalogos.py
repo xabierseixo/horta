@@ -16,6 +16,7 @@ from horta.services.catalogos_importar import (
 )
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes_importar import importar_fertilizantes
+from horta.services.fito_importar import importar_fitosanitarios
 
 _NOMES_GALEGOS = Path(__file__).parent / "data" / "nomes_galegos.csv"
 
@@ -56,11 +57,21 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="orde", required=True)
     p_imp = sub.add_parser("importar", help="importa os XLSX dun directorio")
     p_imp.add_argument("directorio", type=Path)
+    p_fito = sub.add_parser("fitosanitarios", help="importa o rexistro de fitosanitarios do MAPA")
+    p_fito.add_argument("directorio", type=Path)
     p_nom = sub.add_parser("nomes-galegos", help="carga os nomes galegos dos cultivos")
     p_nom.add_argument("csv", type=Path, nargs="?", default=_NOMES_GALEGOS)
     args = parser.parse_args(argv)
     if args.orde == "importar":
         return _importar(args.directorio)
+    if args.orde == "fitosanitarios":
+        with get_session() as session:
+            try:
+                _imprimir(importar_fitosanitarios(session, args.directorio))
+            except OperacionNonPermitidaError as erro:
+                print(f"fitosanitarios: {erro}")
+                return 1
+        return 0
     with get_session() as session:
         print(f"nomes galegos cargados: {cargar_nomes_galegos(session, args.csv)}")
     return 0
