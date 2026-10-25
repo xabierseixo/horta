@@ -24,5 +24,6 @@ class Maquina(Base):
     unidade_potencia: Mapped[str | None] = mapped_column(String(20), default=None)
     tipo_enerxia: Mapped[str | None] = mapped_column(String(20), default=None)
     data_ultima_inspeccion: Mapped[date | None] = mapped_column(Date, default=None)
+    data_adquisicion: Mapped[date | None] = mapped_column(Date, default=None)
     alugada: Mapped[bool] = mapped_column(Boolean, default=False)
     activa: Mapped[bool] = mapped_column(Boolean, default=True)

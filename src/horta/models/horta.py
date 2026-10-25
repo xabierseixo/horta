@@ -29,6 +29,18 @@ class Horta(Base):
     lat: Mapped[float | None] = mapped_column(Float, default=None)
     lon: Mapped[float | None] = mapped_column(Float, default=None)
     telefono: Mapped[str | None] = mapped_column(String(30), default=None)
+    # Caderno de explotación (modelo da Xunta 1.1 e 1.4)
+    enderezo: Mapped[str | None] = mapped_column(String(200), default=None)
+    localidade: Mapped[str | None] = mapped_column(String(100), default=None)
+    codigo_postal: Mapped[str | None] = mapped_column(String(10), default=None)
+    provincia: Mapped[str | None] = mapped_column(String(50), default=None)
+    email: Mapped[str | None] = mapped_column(String(200), default=None)
+    tipo_representacion: Mapped[str | None] = mapped_column(String(100), default=None)
+    asesoramento_nome: Mapped[str | None] = mapped_column(String(200), default=None)
+    asesoramento_nif: Mapped[str | None] = mapped_column(String(14), default=None)
+    asesoramento_num: Mapped[str | None] = mapped_column(String(50), default=None)
+    tipo_xip: Mapped[str | None] = mapped_column(String(10), default=None)
+    asesoramento_fertilizacion: Mapped[bool] = mapped_column(Boolean, default=False)
     foto_perfil: Mapped[str | None] = mapped_column(String(500), default=None)
     ultima_conexion: Mapped[datetime | None] = mapped_column(
         DateTime, default=None
