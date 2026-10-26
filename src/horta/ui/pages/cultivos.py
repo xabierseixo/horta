@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from typing import Any
 
 from nicegui import ui
@@ -54,11 +55,6 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
         cultivos = listar_cultivos(session, actor, horta_id)
         parcelas = listar_parcelas(session, actor, horta_id)
         colleitas = listar_colleitas(session, actor, horta_id)
-        opcions_cultivo = {c.codigo: nome for c, nome in buscar_cultivos(session, "", 2000)}
-        opcions = {
-            campo: {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
-            for campo, catalogo in _CATALOGOS.items()
-        }
 
     nome_parcela = {p.id: p.nome for p in parcelas}
     colleitado: dict[int, dict[str, float]] = defaultdict(lambda: defaultdict(float))
@@ -92,6 +88,55 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
 
     if not pode_editar:
         return
+
+    abrir = dialogo_cultivo(horta_id)
+
+    def editar() -> None:
+        if not taboa.selected:
+            ui.notify("Selecciona un cultivo na táboa", type="warning")
+            return
+        abrir(next(x for x in cultivos if x.id == taboa.selected[0]["id"]))
+
+    def eliminar() -> None:
+        if not taboa.selected:
+            ui.notify("Selecciona un cultivo na táboa", type="warning")
+            return
+        cultivo_id = taboa.selected[0]["id"]
+
+        def confirmar() -> None:
+            with get_session() as session:
+                actor = usuario_actual(session)
+                cultivo = session.get(Cultivo, cultivo_id)
+                if actor is None or cultivo is None:
+                    return
+                ok = executar_accion(session, lambda: eliminar_cultivo(session, actor, cultivo))
+            if ok:
+                ui.navigate.reload()
+
+        confirmar_eliminacion("Eliminar este cultivo?", confirmar)
+
+    with ui.row():
+        ui.button("Novo cultivo", icon="add", on_click=lambda: abrir(None))
+        ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Eliminar", icon="delete", on_click=eliminar).props("outline color=negative")
+
+
+def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
+    """Constrúe o diálogo de crear ou editar un cultivo (tamén a súa sementeira ou plantación)
+    e devolve a función que o abre."""
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return lambda _: None
+        cultivos = listar_cultivos(session, actor, horta_id)
+        parcelas = listar_parcelas(session, actor, horta_id)
+        opcions_cultivo = {c.codigo: nome for c, nome in buscar_cultivos(session, "", 2000)}
+        opcions = {
+            campo: {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
+            for campo, catalogo in _CATALOGOS.items()
+        }
+    nome_parcela = {p.id: p.nome for p in parcelas}
 
     editando: dict[str, int | None] = {"id": None}
 
@@ -309,29 +354,25 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
     def _texto(valor: Any) -> str:
         return "" if valor is None else str(valor)
 
-    def abrir_novo() -> None:
-        editando["id"] = None
-        titulo.text = "Novo cultivo"
-        parcela.value = cultivo_oficial.value = None
-        for campo in campos_texto:
-            campo.value = ""
-        for selector in campos_select:
-            selector.value = None
-        superficie.establecer(None)
-        tipo_inicio.value = "sementeira"
-        sistema.value = _POR_DEFECTO["sistema_cultivo"]
-        destino.value = _POR_DEFECTO["destino"]
-        eco.value = _POR_DEFECTO["certificacion_ecoloxica"]
-        integrada.value = False
-        for casilla in casillas:
-            casilla.value = False
-        dialogo.open()
-
-    def abrir_edicion() -> None:
-        if not taboa.selected:
-            ui.notify("Selecciona un cultivo na táboa", type="warning")
+    def abrir(c: Cultivo | None) -> None:
+        if c is None:
+            editando["id"] = None
+            titulo.text = "Novo cultivo"
+            parcela.value = cultivo_oficial.value = None
+            for campo in campos_texto:
+                campo.value = ""
+            for selector in campos_select:
+                selector.value = None
+            superficie.establecer(None)
+            tipo_inicio.value = "sementeira"
+            sistema.value = _POR_DEFECTO["sistema_cultivo"]
+            destino.value = _POR_DEFECTO["destino"]
+            eco.value = _POR_DEFECTO["certificacion_ecoloxica"]
+            integrada.value = False
+            for casilla in casillas:
+                casilla.value = False
+            dialogo.open()
             return
-        c = next(x for x in cultivos if x.id == taboa.selected[0]["id"])
         editando["id"] = c.id
         titulo.text = "Editar cultivo"
         parcela.value = c.parcela_id
@@ -389,25 +430,4 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
         outros_casca.value = _texto(c.num_outros_froitos_casca)
         dialogo.open()
 
-    def eliminar() -> None:
-        if not taboa.selected:
-            ui.notify("Selecciona un cultivo na táboa", type="warning")
-            return
-        cultivo_id = taboa.selected[0]["id"]
-
-        def confirmar() -> None:
-            with get_session() as session:
-                actor = usuario_actual(session)
-                cultivo = session.get(Cultivo, cultivo_id)
-                if actor is None or cultivo is None:
-                    return
-                ok = executar_accion(session, lambda: eliminar_cultivo(session, actor, cultivo))
-            if ok:
-                ui.navigate.reload()
-
-        confirmar_eliminacion("Eliminar este cultivo?", confirmar)
-
-    with ui.row():
-        ui.button("Novo cultivo", icon="add", on_click=abrir_novo)
-        ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
-        ui.button("Eliminar", icon="delete", on_click=eliminar).props("outline color=negative")
+    return abrir
