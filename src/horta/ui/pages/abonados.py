@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 
 from nicegui import ui
@@ -26,6 +27,7 @@ from horta.services.persoas import listar_persoas
 from horta.services.plan_abonado import balance_do_cultivo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
+from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_abono import dialogo_novo_abono
 from horta.ui.numeros import parsear_data, parsear_decimal
@@ -55,13 +57,6 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
         abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
         unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat[c] for c in UNIDADES_DOSE if c in unidades_cat}
-        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_fertilizacion")}
-        metodos = {v.codigo: v.descricion
-                   for v in valores_vixentes(session, "metodo_fertilizacion")}
-        practicas = {v.codigo: v.descricion for v in valores_vixentes(session, "boas_practicas")
-                     if "fertilizacion" in (v.categoria or "")}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
-        maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
         filas = [{
             "id": a.id,
             "data": f"{a.data_inicio:%d/%m/%Y}",
@@ -91,10 +86,64 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
 
     if not pode_editar:
         return
-    if not tipos or not practicas:
-        ui.label("Faltan os catálogos oficiais. Un administrador debe executar "
-                 "`horta-catalogos importar`.").classes("text-negative")
-        return
+    abrir = dialogo_abonado(horta_id)
+
+    def editar() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro un abonado na táboa", type="warning")
+            return
+        with get_session() as session:
+            a = session.get(Abonado, taboa.selected[0]["id"])
+            if a is not None:
+                _ = a.boas_practicas
+                abrir(a)
+
+    def dar_de_baixa() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro un abonado na táboa", type="warning")
+            return
+        abonado_id = taboa.selected[0]["id"]
+
+        def confirmar() -> None:
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                a = session.get(Abonado, abonado_id)
+                if actor_actual is None or a is None:
+                    return
+                ok = executar_accion(session, lambda: dar_de_baixa_abonado(
+                    session, actor_actual, a))
+            if ok:
+                ui.navigate.reload()
+
+        confirmar_eliminacion(
+            "Dar de baixa este abonado? Non se borra: consérvase no histórico.", confirmar)
+
+    with ui.row():
+        ui.button("Apuntar abonado", icon="add", on_click=lambda: abrir(None))
+        ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+
+
+def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
+    """Constrúe o diálogo de apuntar ou editar un abonado e devolve a función que o abre."""
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return lambda _: None
+        parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+                    for c in listar_cultivos(session, actor, horta_id)}
+        abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
+        unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        unidades = {c: unidades_cat[c] for c in UNIDADES_DOSE if c in unidades_cat}
+        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_fertilizacion")}
+        metodos = {v.codigo: v.descricion
+                   for v in valores_vixentes(session, "metodo_fertilizacion")}
+        practicas = {v.codigo: v.descricion for v in valores_vixentes(session, "boas_practicas")
+                     if "fertilizacion" in (v.categoria or "")}
+        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None}
 
@@ -106,6 +155,8 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
 
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar abonado").classes("text-h6")
+        if not tipos or not practicas:
+            ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
         cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
         data_inicio = campo_data("Data", date.today().isoformat())
         superficie = CampoSuperficie("Superficie abonada (baleiro = a do cultivo)")
@@ -209,37 +260,4 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
         calcular()
         dialogo.open()
 
-    def editar() -> None:
-        if not taboa.selected:
-            ui.notify("Escolle primeiro un abonado na táboa", type="warning")
-            return
-        with get_session() as session:
-            a = session.get(Abonado, taboa.selected[0]["id"])
-            if a is not None:
-                _ = a.boas_practicas
-                abrir(a)
-
-    def dar_de_baixa() -> None:
-        if not taboa.selected:
-            ui.notify("Escolle primeiro un abonado na táboa", type="warning")
-            return
-        abonado_id = taboa.selected[0]["id"]
-
-        def confirmar() -> None:
-            with get_session() as session:
-                actor_actual = usuario_actual(session)
-                a = session.get(Abonado, abonado_id)
-                if actor_actual is None or a is None:
-                    return
-                ok = executar_accion(session, lambda: dar_de_baixa_abonado(
-                    session, actor_actual, a))
-            if ok:
-                ui.navigate.reload()
-
-        confirmar_eliminacion(
-            "Dar de baixa este abonado? Non se borra: consérvase no histórico.", confirmar)
-
-    with ui.row():
-        ui.button("Apuntar abonado", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+    return abrir
