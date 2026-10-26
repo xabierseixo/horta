@@ -1,0 +1,134 @@
+"""Diario de traballos: todo o feito e o por facer nunha soa lista. Le os rexistros de cada
+tipo de traballo (cada un na súa táboa) e devolve a parte común: que, cando, onde e estado."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+
+from sqlalchemy.orm import Session
+
+from horta.models.abonado import Fertilizante
+from horta.models.parcela import Parcela
+from horta.models.usuario import Usuario
+from horta.services.abonados import listar_abonados
+from horta.services.analises import listar_analises
+from horta.services.catalogos import describir
+from horta.services.colleitas import listar_colleitas
+from horta.services.cultivos import listar_cultivos
+from horta.services.labores import listar_labores
+from horta.services.regas import listar_regas
+from horta.services.tarefas import listar_tarefas
+from horta.services.tratamentos_fito import listar_tratamentos_fito
+from horta.services.tratamentos_instalacion import listar_tratamentos_instalacion
+
+# Tipos de traballo, na orde en que se ofrecen ao apuntar
+TIPOS: dict[str, str] = {
+    "tratamento": "Tratamento",
+    "abonado": "Abonado",
+    "rega": "Rega",
+    "labor": "Labor",
+    "colleita": "Colleita",
+    "sementeira": "Sementeira ou plantación",
+    "analise": "Toma de mostras",
+    "tratamento_instalacion": "Tratamento en almacén ou instalación",
+    "tarefa": "Tarefa",
+}
+
+
+@dataclass(frozen=True)
+class Traballo:
+    tipo: str  # clave de TIPOS
+    id: int  # id do rexistro na táboa do seu tipo
+    data: date | None  # None: tarefa por facer sen data
+    feito: bool
+    que: str
+    onde: str
+    parcelas: frozenset[int]
+    atrasado: bool = False
+
+
+def listar_traballos(
+    session: Session, actor: Usuario, horta_id: int, desde: date | None = None,
+    ata: date | None = None, hoxe: date | None = None,
+) -> list[Traballo]:
+    """Primeiro o por facer (sen data, despois por data); logo o feito no período, do máis
+    recente ao máis antigo. O por facer sae sempre, sexa cal sexa o período."""
+    hoxe = hoxe or date.today()
+    cultivos = {c.id: c for c in listar_cultivos(session, actor, horta_id)}
+    parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+
+    def onde(cultivo_id: int | None) -> str:
+        c = cultivos.get(cultivo_id) if cultivo_id else None
+        if c is None:
+            return ""
+        return f"{c.especie} {c.variedade or ''}".strip() + f" — {parcelas.get(c.parcela_id, '')}"
+
+    def parcela_de(cultivo_id: int | None) -> frozenset[int]:
+        c = cultivos.get(cultivo_id) if cultivo_id else None
+        return frozenset({c.parcela_id}) if c else frozenset()
+
+    def texto(catalogo: str, codigo: str | None) -> str:
+        return describir(session, catalogo, codigo) if codigo else ""
+
+    traballos: list[Traballo] = []
+    for t in listar_tratamentos_fito(session, actor, horta_id):
+        ids = [tc.cultivo_id for tc in t.cultivos]
+        traballos.append(Traballo(
+            "tratamento", t.id, t.data_inicio, True,
+            ", ".join(p.nome_comercial or p.num_rexistro or "" for p in t.produtos)
+            or ", ".join(texto(p.tipo, p.codigo) for p in t.problemas),
+            onde(ids[0]) if len(ids) == 1 else f"{len(ids)} cultivos",
+            frozenset().union(*(parcela_de(i) for i in ids))))
+    for a in listar_abonados(session, actor, horta_id):
+        abono = session.get(Fertilizante, a.fertilizante_id) if a.fertilizante_id else None
+        traballos.append(Traballo(
+            "abonado", a.id, a.data_inicio, True, abono.nome if abono else "Abonado en verde",
+            onde(a.cultivo_id), parcela_de(a.cultivo_id)))
+    for r in listar_regas(session, actor, horta_id):
+        traballos.append(Traballo("rega", r.id, r.data_inicio, True,
+                                  texto("sistema_rega", r.sistema_rega),
+                                  onde(r.cultivo_id), parcela_de(r.cultivo_id)))
+    for lab in listar_labores(session, actor, horta_id):
+        traballos.append(Traballo("labor", lab.id, lab.data_inicio, True,
+                                  texto("tipo_labor", lab.tipo_labor),
+                                  onde(lab.cultivo_id), parcela_de(lab.cultivo_id)))
+    for col in listar_colleitas(session, actor, horta_id):
+        traballos.append(Traballo("colleita", col.id, col.data, True,
+                                  f"{col.cantidade:g} {col.unidade} · lote {col.lote}",
+                                  onde(col.cultivo_id), parcela_de(col.cultivo_id)))
+    for c in cultivos.values():
+        if c.data_inicio is not None:
+            traballos.append(Traballo(
+                "sementeira", c.id, c.data_inicio, c.data_inicio <= hoxe,
+                "Plantación" if c.tipo_inicio == "plantacion" else "Sementeira",
+                onde(c.id), parcela_de(c.id)))
+    for an in listar_analises(session, actor, horta_id):
+        sitio = onde(an.cultivo_id) or parcelas.get(an.parcela_id or 0, "")
+        traballos.append(Traballo(
+            "analise", an.id, an.data_mostraxe, True,
+            texto("material_analizado", an.material_analizado), sitio,
+            parcela_de(an.cultivo_id) or (frozenset({an.parcela_id}) if an.parcela_id
+                                          else frozenset())))
+    for ti in listar_tratamentos_instalacion(session, actor, horta_id):
+        traballos.append(Traballo("tratamento_instalacion", ti.id, ti.data, True,
+                                  ti.nome_comercial or ti.materia_activa or "", ti.obxecto,
+                                  frozenset()))
+    for ta in listar_tarefas(session, actor, horta_id):
+        feita = ta.estado == "feito"
+        sitio = onde(ta.cultivo_id) or parcelas.get(ta.parcela_id or 0, "")
+        traballos.append(Traballo(
+            "tarefa", ta.id, ta.data_feita or ta.data if feita else ta.data or ta.data_limite,
+            feita, ta.descricion, sitio,
+            parcela_de(ta.cultivo_id) or (frozenset({ta.parcela_id}) if ta.parcela_id
+                                          else frozenset()),
+            atrasado=not feita and ta.data_limite is not None and ta.data_limite < hoxe))
+
+    por_facer = sorted((t for t in traballos if not t.feito),
+                       key=lambda t: (t.data is not None, t.data or hoxe))
+    feitos = sorted((t for t in traballos if t.feito
+                     and (t.data is None or ((desde is None or t.data >= desde)
+                                             and (ata is None or t.data <= ata)))),
+                    key=lambda t: (t.data or hoxe, t.id), reverse=True)
+    return por_facer + feitos
+
