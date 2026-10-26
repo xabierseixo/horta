@@ -22,4 +22,12 @@ def test_grupos_en_orde():
     for s in seccions_visibles(e_horta_admin=True):
         if s.grupo and s.grupo not in grupos:
             grupos.append(s.grupo)
-    assert grupos == ["Terra", "Caderno", "Gandaría", "Equipo"]
+    assert grupos == ["Explotación"]
+
+
+def test_menu_de_traballos_e_informes():
+    claves = [s.clave for s in seccions_visibles(e_horta_admin=False)]
+    assert claves[:3] == ["resumo", "diario", "informes"]
+    assert "tratamentos" not in claves and "explotacion" not in claves
+    assert normalizar_seccion("tratamentos") == "tratamentos"
+    assert "explotacion" in [s.clave for s in seccions_visibles(e_horta_admin=True)]

@@ -17,22 +17,27 @@ class Seccion:
     icona: str  # Material Icons
     grupo: str | None
     so_admin_horta: bool = False
+    no_menu: bool = False
 
 
 SECCIONS: tuple[Seccion, ...] = (
-    Seccion("resumo", "Resumo", "dashboard", None),
-    Seccion("parcelas", "Parcelas", "map", "Terra"),
-    Seccion("cultivos", "Cultivos", "spa", "Terra"),
-    Seccion("tratamentos", "Tratamentos", "sanitizer", "Caderno"),
-    Seccion("fertilizacion", "Fertilización", "compost", "Caderno"),
-    Seccion("rega", "Rega", "water_drop", "Caderno"),
-    Seccion("labores", "Labores", "grass", "Caderno"),
-    Seccion("analises", "Análises", "science", "Caderno"),
-    Seccion("colleitas", "Colleitas", "inventory_2", "Caderno"),
-    Seccion("tarefas", "Tarefas", "task_alt", "Caderno"),
-    Seccion("animais", "Animais", "pets", "Gandaría"),
-    Seccion("equipo", "Equipo", "groups", "Equipo"),
-    Seccion("maquinaria", "Maquinaria", "agriculture", "Equipo"),
+    Seccion("resumo", "Inicio", "home", None),
+    Seccion("diario", "Diario", "event_note", None),
+    Seccion("informes", "Informes", "description", None),
+    Seccion("parcelas", "Parcelas", "map", "Explotación"),
+    Seccion("cultivos", "Cultivos", "spa", "Explotación"),
+    Seccion("animais", "Animais", "pets", "Explotación"),
+    Seccion("equipo", "Equipo", "groups", "Explotación"),
+    Seccion("maquinaria", "Maquinaria", "agriculture", "Explotación"),
+    Seccion("explotacion", "Datos da explotación", "store", "Explotación", so_admin_horta=True),
+    # A táboa de cada tipo de traballo: fóra do menú, chégase desde o Diario
+    Seccion("tratamentos", "Tratamentos", "sanitizer", None, no_menu=True),
+    Seccion("fertilizacion", "Abonados", "compost", None, no_menu=True),
+    Seccion("rega", "Regas", "water_drop", None, no_menu=True),
+    Seccion("labores", "Labores", "grass", None, no_menu=True),
+    Seccion("analises", "Tomas de mostras", "science", None, no_menu=True),
+    Seccion("colleitas", "Colleitas", "inventory_2", None, no_menu=True),
+    Seccion("tarefas", "Tarefas", "task_alt", None, no_menu=True),
 )
 _CLAVES = {s.clave for s in SECCIONS}
 NOVA_EXPLOTACION = -1  # valor especial do selector de explotación
@@ -47,7 +52,8 @@ def normalizar_seccion(clave: str) -> str:
 
 
 def seccions_visibles(e_horta_admin: bool) -> list[Seccion]:
-    return [s for s in SECCIONS if e_horta_admin or not s.so_admin_horta]
+    """As do menú: as táboas de cada tipo de traballo ábrense desde o Diario."""
+    return [s for s in SECCIONS if (e_horta_admin or not s.so_admin_horta) and not s.no_menu]
 
 
 def marco_horta(
