@@ -33,7 +33,6 @@ from horta.services.parcelas import (
 from horta.services.tarefas import (
     actualizar_tarefa,
     contar_tarefas_pendentes,
-    crear_tarefa,
     eliminar_tarefa,
     listar_tarefas,
     listar_tarefas_atrasadas,
@@ -47,6 +46,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.descarga_caderno import boton_caderno
 from horta.ui.dialogo_datos_caderno import boton_datos_caderno
+from horta.ui.dialogo_tarefa import PRIORIDADES_TAREFA, dialogo_nova_tarefa
 from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import (
     SECCIONS,
@@ -82,7 +82,6 @@ _ROLES_HORTA = ("admin", "editor", "lector")
 _ESTADOS_CULTIVO = ("planificado", "sementado", "plantado", "colleitado", "finalizado")
 _UNIDADES_CULTIVO = ("kg", "unidades", "ducias", "mazos")
 
-_PRIORIDADES_TAREFA = ("baixa", "media", "alta")
 
 
 @ui.page("/hortas/{horta_id}")
@@ -559,55 +558,12 @@ def _seccion_tarefas(
             raise ValueError(f"Data non válida: {texto!r} (usa o formato AAAA-MM-DD)") from erro
 
     if pode_editar:
-        with ui.dialog() as dialog_nova_tarefa, ui.card():
-            ui.label("Nova tarefa").classes("text-md font-bold")
-            descricion_input = ui.input("Descrición")
-            parcela_select = ui.select(opcions_parcela, label="Parcela", value="")
-            cultivo_select = ui.select(opcions_cultivo, label="Cultivo", value="")
-            data_input = campo_data("Data (opcional)")
-            prioridade_select = ui.select(
-                list(_PRIORIDADES_TAREFA), label="Prioridade", value="media"
-            )
-
-            def crear() -> None:
-                if not descricion_input.value:
-                    ui.notify("A descrición é obrigatoria", type="negative")
-                    return
-                try:
-                    data_valor = _parsear_data(data_input.value)
-                except ValueError as erro:
-                    ui.notify(str(erro), type="negative")
-                    return
-                with get_session() as session:
-                    actor_actual = usuario_actual(session)
-                    if actor_actual is None:
-                        pechar_sesion()
-                        return
-                    creada = executar_accion(
-                        session,
-                        lambda: crear_tarefa(
-                            session,
-                            actor_actual,
-                            horta_id,
-                            descricion_input.value,
-                            parcela_id=parcela_select.value or None,
-                            cultivo_id=cultivo_select.value or None,
-                            data=data_valor,
-                            prioridade=prioridade_select.value,
-                        ),
-                    )
-                if not creada:
-                    return
-                ui.navigate.reload()
-
-            with ui.row():
-                ui.button("Crear", icon="check", on_click=crear)
-                ui.button("Cancelar", on_click=dialog_nova_tarefa.close).props("flat")
+        abrir_nova_tarefa = dialogo_nova_tarefa(horta_id)
 
     with ui.row().classes("w-full items-center justify-between"):
         ui.space()
         if pode_editar:
-            ui.button("Nova tarefa", icon="add", on_click=dialog_nova_tarefa.open)
+            ui.button("Nova tarefa", icon="add", on_click=abrir_nova_tarefa)
 
     todas_as_filas = [
         {
@@ -695,7 +651,7 @@ def _seccion_tarefas(
         cultivo_edit = ui.select(opcions_cultivo, label="Cultivo")
         data_edit = campo_data("Data (opcional)")
         data_limite_edit = campo_data("Data límite (opcional)")
-        prioridade_edit = ui.select(list(_PRIORIDADES_TAREFA), label="Prioridade")
+        prioridade_edit = ui.select(list(PRIORIDADES_TAREFA), label="Prioridade")
         notas_edit = ui.textarea("Notas")
 
         def gardar() -> None:
