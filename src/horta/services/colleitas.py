@@ -95,7 +95,7 @@ def _validar(
             raise OperacionNonPermitidaError("A superficie colleitada é maior ca do cultivo")
     lote = datos.lote.strip()
     if not lote:
-        raise OperacionNonPermitidaError("O lote é obrigatorio")
+        raise OperacionNonPermitidaError("O lote non pode quedar baleiro")
     if lote in _lotes_da_horta(session, horta_id, excepto_id):
         raise OperacionNonPermitidaError(f"O lote {lote} xa existe nesta explotación")
     if datos.data_fin is not None and datos.data_fin < datos.data:
@@ -140,6 +140,8 @@ def crear_colleita(
 ) -> Colleita:
     cultivo, horta_id = _cultivo_e_horta(session, datos.cultivo_id)
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    if not datos.lote.strip():
+        datos.lote = propor_lote(session, actor, datos.cultivo_id, datos.data)
     _validar(session, datos, cultivo, horta_id, hoxe or date.today())
     if datos.superficie_ha is None:
         datos.superficie_ha = cultivo.superficie_ha

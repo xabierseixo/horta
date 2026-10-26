@@ -64,7 +64,6 @@ def test_crear_e_listar(session):
         ({"data": date(2026, 12, 1)}, "futura"),
         ({"data": date(2026, 2, 1)}, "anterior ao inicio"),
         ({"superficie_ha": 0.9}, "maior ca do cultivo"),
-        ({"lote": "  "}, "lote é obrigatorio"),
     ],
 )
 def test_validacions(session, cambios, mensaxe):
