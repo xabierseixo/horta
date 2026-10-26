@@ -370,12 +370,13 @@ def xerar_caderno(
             ({SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
                 p.secano_regadio, "") if p and p.secano_regadio else ""),
             c.especie if c else "", _num(ab.superficie_ha),
-            describir(session, "tipo_fertilizacion", ab.tipo_fertilizacion),
+            describir(session, "tipo_fertilizacion", ab.tipo_fertilizacion)
+            if ab.tipo_fertilizacion else "",
             describir(session, "material_fertilizante", fe.material) if fe else
             "Abonado en verde",
             fe.nome if fe else "", (fe.provedor_nome or "") if fe else "",
             (fe.provedor_rega or fe.provedor_nif or fe.provedor_nima or "") if fe else "",
-            describir(session, "metodo_fertilizacion", ab.metodo),
+            describir(session, "metodo_fertilizacion", ab.metodo) if ab.metodo else "",
             maquina.alias if maquina else "",
             ab.empresa_servizos_regfer or ((persoa.regfer_numero or "") if persoa else ""),
             _num(fe.n_pct) if fe else "", _num(fe.p2o5_pct) if fe else "",

@@ -32,7 +32,7 @@ def balance_do_cultivo(
             sen_calcular += abonado.fertilizante_id is not None
             continue
         parte = (abonado.superficie_ha / cultivo.superficie_ha
-                 if cultivo.superficie_ha else 1.0)
+                 if cultivo.superficie_ha and abonado.superficie_ha else 1.0)
         n, p, k = n + npk[0] * parte, p + npk[1] * parte, k + npk[2] * parte
     return Balance(
         aplicado=(round(n, 1), round(p, 1), round(k, 1)),

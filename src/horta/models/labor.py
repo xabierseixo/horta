@@ -18,7 +18,7 @@ class Labor(Base):
     cultivo_id: Mapped[int] = mapped_column(ForeignKey("cultivo.id"), index=True)
     data_inicio: Mapped[date] = mapped_column(Date)
     data_fin: Mapped[date] = mapped_column(Date)
-    superficie_ha: Mapped[float] = mapped_column(Float)
+    superficie_ha: Mapped[float | None] = mapped_column(Float, default=None)
     tipo_labor: Mapped[str] = mapped_column(String(20))
     restos_desbroce_no_solo: Mapped[bool] = mapped_column(Boolean, default=False)
     restos_poda_no_solo: Mapped[bool] = mapped_column(Boolean, default=False)
