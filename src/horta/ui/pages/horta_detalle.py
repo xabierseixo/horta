@@ -44,7 +44,6 @@ from horta.services.tarefas import (
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
-from horta.ui.descarga_caderno import boton_caderno
 from horta.ui.dialogo_datos_caderno import boton_datos_caderno
 from horta.ui.dialogo_tarefa import PRIORIDADES_TAREFA, dialogo_nova_tarefa
 from horta.ui.filtros import filtrar_filas
@@ -60,7 +59,9 @@ from horta.ui.pages.abonados import seccion_abonados
 from horta.ui.pages.analises import seccion_analises
 from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
+from horta.ui.pages.diario import Formularios, boton_apuntar_traballo, seccion_diario
 from horta.ui.pages.equipo import seccion_equipo
+from horta.ui.pages.informes import seccion_informes
 from horta.ui.pages.labores import seccion_labores
 from horta.ui.pages.maquinaria import seccion_maquinaria
 from horta.ui.pages.parcelas import seccion_parcelas
@@ -230,17 +231,12 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                     ),
                 ).props("flat color=negative")
 
-    etiquetas = {s.clave: s.etiqueta for s in SECCIONS}
+    seccions = {s.clave: s for s in SECCIONS}
     if seccion == "resumo":
-        accions = cabeceira_seccion(horta_nome, horta_descricion or "Resumo da explotación")
-        with accions:
-            boton_caderno(horta_id)
-        if e_horta_admin:
+        accions = cabeceira_seccion(horta_nome, horta_descricion or "Inicio")
+        if pode_editar:
             with accions:
-                ui.button(
-                    "Configurar explotación", icon="settings", on_click=dialog_config_horta.open
-                ).props("outline")
-                boton_datos_caderno(horta_id)
+                boton_apuntar_traballo(Formularios(horta_id))
         texto_estado, clase_estado = {
             "rexistrada": ("Explotación rexistrada", "etiqueta-ok"),
             "en_preparacion": ("En preparación", "etiqueta-aviso"),
@@ -274,8 +270,21 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             tarefas_atrasadas,
         )
         return
-    cabeceira_seccion(etiquetas[seccion], horta_nome)
-    if seccion == "parcelas":
+    if seccions[seccion].no_menu:
+        ui.link("← Diario", url_seccion(horta_id, "diario")).classes("text-caption")
+    cabeceira_seccion(seccions[seccion].etiqueta, horta_nome)
+    if seccion == "diario":
+        seccion_diario(horta_id, pode_editar)
+    elif seccion == "informes":
+        seccion_informes(horta_id, horta_uso_profesional)
+    elif seccion == "explotacion" and e_horta_admin:
+        ui.label({"rexistrada": "Explotación rexistrada", "en_preparacion": "En preparación",
+                  "non_profesional": "Non profesional"}[estado]).classes("q-mb-md")
+        with ui.row().classes("gap-2"):
+            ui.button("Configurar explotación", icon="settings",
+                      on_click=dialog_config_horta.open).props("outline")
+            boton_datos_caderno(horta_id)
+    elif seccion == "parcelas":
         seccion_parcelas(horta_id, pode_editar)
     elif seccion == "cultivos":
         seccion_cultivos(horta_id, pode_editar)
