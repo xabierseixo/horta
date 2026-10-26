@@ -27,8 +27,8 @@ ABONADO_EN_VERDE = "20"
 class DatosAbonado:
     cultivo_id: int
     data_inicio: date
-    tipo_fertilizacion: str
-    metodo: str
+    tipo_fertilizacion: str | None = None
+    metodo: str | None = None
     boas_practicas: list[str] = field(default_factory=list)
     fertilizante_id: int | None = None
     dose: float | None = None
@@ -66,14 +66,10 @@ def _validar(
             raise OperacionNonPermitidaError("A superficie ten que ser maior que 0")
         if cultivo.superficie_ha and datos.superficie_ha > cultivo.superficie_ha:
             raise OperacionNonPermitidaError("A superficie abonada é maior ca do cultivo")
-    elif not cultivo.superficie_ha:
-        raise OperacionNonPermitidaError("Indica a superficie: o cultivo non a ten")
-    validar_codigo(session, "tipo_fertilizacion", datos.tipo_fertilizacion, datos.data_inicio)
-    validar_codigo(session, "metodo_fertilizacion", datos.metodo, datos.data_inicio)
-    if not datos.boas_practicas:
-        raise OperacionNonPermitidaError(
-            "Indica polo menos unha boa práctica (ou «Non realiza boas prácticas»)"
-        )
+    if datos.tipo_fertilizacion:
+        validar_codigo(session, "tipo_fertilizacion", datos.tipo_fertilizacion, datos.data_inicio)
+    if datos.metodo:
+        validar_codigo(session, "metodo_fertilizacion", datos.metodo, datos.data_inicio)
     for codigo in datos.boas_practicas:
         valor = validar_codigo(session, "boas_practicas", codigo, datos.data_inicio)
         if "fertilizacion" not in (valor.categoria or ""):
@@ -85,7 +81,9 @@ def _validar(
     fertilizante = session.get(Fertilizante, datos.fertilizante_id)
     if fertilizante is None or fertilizante.horta_id != horta_id:
         raise OperacionNonPermitidaError("Ese abono non é desta explotación")
-    if datos.dose is None or datos.dose <= 0:
+    if datos.dose is None:
+        return
+    if datos.dose <= 0:
         raise OperacionNonPermitidaError("A dose ten que ser maior que 0")
     if datos.unidade not in UNIDADES_DOSE:
         raise OperacionNonPermitidaError("Escolle a unidade da dose (por hectárea ou por m²)")
@@ -96,12 +94,12 @@ def _copiar(abonado: Abonado, datos: DatosAbonado, horta_id: int, cultivo: Culti
     abonado.cultivo_id = datos.cultivo_id
     abonado.data_inicio = datos.data_inicio
     abonado.data_fin = datos.data_fin or datos.data_inicio
-    abonado.superficie_ha = datos.superficie_ha or cultivo.superficie_ha or 0
+    abonado.superficie_ha = datos.superficie_ha or cultivo.superficie_ha
     abonado.fertilizante_id = datos.fertilizante_id
     abonado.dose = datos.dose if datos.fertilizante_id else None
-    abonado.unidade = datos.unidade if datos.fertilizante_id else None
-    abonado.tipo_fertilizacion = datos.tipo_fertilizacion
-    abonado.metodo = datos.metodo
+    abonado.unidade = datos.unidade if datos.fertilizante_id and datos.dose else None
+    abonado.tipo_fertilizacion = datos.tipo_fertilizacion or None
+    abonado.metodo = datos.metodo or None
     abonado.xestion_sostible = datos.xestion_sostible
     abonado.aplicacion_lodos = datos.aplicacion_lodos
     abonado.albaran_factura = datos.albaran_factura or None

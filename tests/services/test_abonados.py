@@ -73,7 +73,6 @@ def test_crear_abonado_coa_superficie_do_cultivo(session):
     ({"data_inicio": date(2026, 11, 1)}, "futura"),
     ({"data_fin": date(2026, 3, 1)}, "anterior"),
     ({"superficie_ha": 0.3}, "maior ca do cultivo"),
-    ({"boas_practicas": []}, "boa práctica"),
     ({"boas_practicas": ["50"]}, "non é de fertilización"),
     ({"fertilizante_id": None}, "Escolle o abono"),
     ({"dose": 0}, "dose"),
