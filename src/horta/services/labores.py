@@ -61,8 +61,6 @@ def _validar(session: Session, datos: DatosLabor, cultivo: Cultivo, horta_id: in
             raise OperacionNonPermitidaError("A superficie ten que ser maior que 0")
         if cultivo.superficie_ha and datos.superficie_ha > cultivo.superficie_ha:
             raise OperacionNonPermitidaError("A superficie do labor é maior ca do cultivo")
-    elif not cultivo.superficie_ha:
-        raise OperacionNonPermitidaError("Indica a superficie: o cultivo non a ten")
     for valor, texto in ((datos.num_repeticions, "repeticións"), (datos.duracion_h, "horas")):
         if valor is not None and valor <= 0:
             raise OperacionNonPermitidaError(f"O número de {texto} ten que ser maior que 0")
@@ -84,7 +82,7 @@ def _copiar(labor: Labor, datos: DatosLabor, cultivo: Cultivo, parcela: Parcela)
     labor.cultivo_id = datos.cultivo_id
     labor.data_inicio = datos.data_inicio
     labor.data_fin = datos.data_fin or datos.data_inicio
-    labor.superficie_ha = datos.superficie_ha or cultivo.superficie_ha or 0
+    labor.superficie_ha = datos.superficie_ha or cultivo.superficie_ha
     labor.tipo_labor = datos.tipo_labor
     # Os restos só se anotan nos labores onde o CUE os pregunta
     labor.restos_desbroce_no_solo = datos.tipo_labor == DESBROCE and datos.restos_desbroce_no_solo

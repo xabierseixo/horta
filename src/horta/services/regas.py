@@ -26,8 +26,8 @@ UNIDADES_AUGA = ("3", "4")
 class DatosRega:
     cultivo_id: int
     data_inicio: date
-    sistema_rega: str
-    cantidade: float
+    sistema_rega: str | None = None
+    cantidade: float | None = None
     unidade: str = "4"
     data_fin: date | None = None
     superficie_ha: float | None = None
@@ -56,13 +56,12 @@ def _validar(session: Session, datos: DatosRega, cultivo: Cultivo, hoxe: date) -
             raise OperacionNonPermitidaError("A superficie ten que ser maior que 0")
         if cultivo.superficie_ha and datos.superficie_ha > cultivo.superficie_ha:
             raise OperacionNonPermitidaError("A superficie regada é maior ca do cultivo")
-    elif not cultivo.superficie_ha:
-        raise OperacionNonPermitidaError("Indica a superficie: o cultivo non a ten")
-    if datos.cantidade is None or datos.cantidade <= 0:
+    if datos.cantidade is not None and datos.cantidade <= 0:
         raise OperacionNonPermitidaError("A cantidade de auga ten que ser maior que 0")
     if datos.unidade not in UNIDADES_AUGA:
         raise OperacionNonPermitidaError("A auga vai en litros ou m³")
-    validar_codigo(session, "sistema_rega", datos.sistema_rega, datos.data_inicio)
+    if datos.sistema_rega:
+        validar_codigo(session, "sistema_rega", datos.sistema_rega, datos.data_inicio)
     if datos.orixe_auga:
         validar_codigo(session, "orixe_auga", datos.orixe_auga, datos.data_inicio)
     if datos.tipo_enerxia:
@@ -78,8 +77,8 @@ def _copiar(rega: Rega, datos: DatosRega, cultivo: Cultivo, parcela: Parcela) ->
     rega.cultivo_id = datos.cultivo_id
     rega.data_inicio = datos.data_inicio
     rega.data_fin = datos.data_fin or datos.data_inicio
-    rega.superficie_ha = datos.superficie_ha or cultivo.superficie_ha or 0
-    rega.sistema_rega = datos.sistema_rega
+    rega.superficie_ha = datos.superficie_ha or cultivo.superficie_ha
+    rega.sistema_rega = datos.sistema_rega or None
     rega.cantidade = datos.cantidade
     rega.unidade = datos.unidade
     rega.orixe_auga = datos.orixe_auga or parcela.orixe_auga
