@@ -52,8 +52,8 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
         "id": r.id,
         "data": f"{r.data_inicio:%d/%m/%Y}",
         "cultivo": cultivos.get(r.cultivo_id, ""),
-        "sistema": sistemas.get(r.sistema_rega, r.sistema_rega),
-        "auga": f"{r.cantidade:g} {unidades.get(r.unidade, '')}",
+        "sistema": sistemas.get(r.sistema_rega, r.sistema_rega) if r.sistema_rega else "",
+        "auga": f"{r.cantidade:g} {unidades.get(r.unidade, '')}" if r.cantidade else "",
     } for r in regas]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (

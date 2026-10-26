@@ -437,12 +437,12 @@ def xerar_caderno(
             continue
         c = cultivo_de(r.cultivo_id)
         m3_ha = (r.cantidade * _A_M3.get(r.unidade, 0) / r.superficie_ha
-                 if r.superficie_ha else None)
+                 if r.superficie_ha and r.cantidade else None)
         if m3_ha is not None:
             acumulado[r.cultivo_id] = acumulado.get(r.cultivo_id, 0) + m3_ha
         filas_rega.append([
             orde_cultivo.get(r.cultivo_id, ""), _num(r.superficie_ha),
-            describir(session, "sistema_rega", r.sistema_rega),
+            describir(session, "sistema_rega", r.sistema_rega) if r.sistema_rega else "",
             _intervalo(r.data_inicio, r.data_fin), _num(m3_ha),
             _num(acumulado.get(r.cultivo_id)),
             _num(c.plan_auga_n_nitrico) if c else "", _num(c.plan_auga_p2o5) if c else ""])
