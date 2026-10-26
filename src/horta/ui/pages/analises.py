@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 
 from nicegui import ui
@@ -23,6 +24,7 @@ from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
+from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -55,8 +57,6 @@ def seccion_analises(horta_id: int, pode_editar: bool) -> None:
         materiais = {v.codigo: v.descricion
                      for v in valores_vixentes(session, "material_analizado")}
         tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_analise")}
-        substancias = {v.codigo: v.descricion
-                       for v in valores_vixentes(session, "substancia_activa")}
 
     def onde(a: Analise) -> str:
         return ", ".join(x for x in (parcelas.get(a.parcela_id or 0),
@@ -81,15 +81,63 @@ def seccion_analises(horta_id: int, pode_editar: bool) -> None:
 
     if not pode_editar:
         return
-    if not materiais:
-        ui.label("Faltan os catálogos oficiais. Un administrador debe executar "
-                 "`horta-catalogos importar`.").classes("text-negative")
-        return
+    abrir = dialogo_analise(horta_id)
+
+    def editar() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro unha análise na táboa", type="warning")
+            return
+        abrir(next(a for a in analises if a.id == taboa.selected[0]["id"]))
+
+    def dar_de_baixa() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro unha análise na táboa", type="warning")
+            return
+        analise_id = taboa.selected[0]["id"]
+
+        def confirmar() -> None:
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                a = session.get(Analise, analise_id)
+                if actor_actual is None or a is None:
+                    return
+                ok = executar_accion(session, lambda: dar_de_baixa_analise(
+                    session, actor_actual, a))
+            if ok:
+                ui.navigate.reload()
+
+        confirmar_eliminacion(
+            "Dar de baixa esta análise? Non se borra: consérvase no histórico.", confirmar)
+
+    with ui.row():
+        ui.button("Apuntar análise", icon="add", on_click=lambda: abrir(None))
+        ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+
+
+def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
+    """Constrúe o diálogo de apuntar ou editar unha análise e devolve a función que o abre."""
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return lambda _: None
+        parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+        cultivos = {c.id: f"{c.especie} — {parcelas[c.parcela_id]}"
+                    for c in listar_cultivos(session, actor, horta_id)}
+        lotes = {c.id: c.lote for c in listar_colleitas(session, actor, horta_id)}
+        materiais = {v.codigo: v.descricion
+                     for v in valores_vixentes(session, "material_analizado")}
+        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_analise")}
+        substancias = {v.codigo: v.descricion
+                       for v in valores_vixentes(session, "substancia_activa")}
 
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar análise").classes("text-h6")
+        if not materiais:
+            ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
         material = ui.select(materiais, label="Que se analizou").classes("w-full")
         data = campo_data("Data da mostra", date.today().isoformat())
         tipo = ui.select(tipos, multiple=True, label="Tipo de análise").classes(
@@ -172,33 +220,4 @@ def seccion_analises(horta_id: int, pode_editar: bool) -> None:
         notas.value = (a.notas or "") if a else ""
         dialogo.open()
 
-    def editar() -> None:
-        if not taboa.selected:
-            ui.notify("Escolle primeiro unha análise na táboa", type="warning")
-            return
-        abrir(next(a for a in analises if a.id == taboa.selected[0]["id"]))
-
-    def dar_de_baixa() -> None:
-        if not taboa.selected:
-            ui.notify("Escolle primeiro unha análise na táboa", type="warning")
-            return
-        analise_id = taboa.selected[0]["id"]
-
-        def confirmar() -> None:
-            with get_session() as session:
-                actor_actual = usuario_actual(session)
-                a = session.get(Analise, analise_id)
-                if actor_actual is None or a is None:
-                    return
-                ok = executar_accion(session, lambda: dar_de_baixa_analise(
-                    session, actor_actual, a))
-            if ok:
-                ui.navigate.reload()
-
-        confirmar_eliminacion(
-            "Dar de baixa esta análise? Non se borra: consérvase no histórico.", confirmar)
-
-    with ui.row():
-        ui.button("Apuntar análise", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+    return abrir
