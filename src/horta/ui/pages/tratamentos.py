@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from nicegui import ui
 
 from horta.db import get_session
@@ -20,6 +22,7 @@ from horta.services.tratamentos_fito import (
     listar_tratamentos_fito,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_tratamento import OpcionsTratamento, crear_dialogo_tratamento
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -52,25 +55,6 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                 "cue": "completo" if not faltas_para_cue(t)
                 else "falta: " + ", ".join(faltas_para_cue(t)),
             })
-        cultivos_horta = listar_cultivos(session, actor, horta_id)
-        parcelas = {p.id: p for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        persoas = listar_persoas(session, actor, horta_id)
-        opcions = OpcionsTratamento(
-            cultivos={c.id: f"{c.especie} {c.variedade or ''} — "
-                            f"{parcelas[c.parcela_id].nome}".strip() for c in cultivos_horta},
-            problemas={tipo: _opcions(session, tipo) for tipo in TIPOS_PROBLEMA},
-            xustificacions=_opcions(session, "xustificacion"),
-            estados=_opcions(session, "estado_fenoloxico"),
-            unidades=_opcions(session, "unidade_medida"),
-            tipos_produto=_opcions(session, "tipo_produto"),
-            tipos_medida=_opcions(session, "tipo_medida_fito"),
-            eficacias=_opcions(session, "eficacia"),
-            aplicadores={p.id: p.nome for p in persoas if p.e_aplicador},
-            asesores={p.id: p.nome for p in persoas if p.e_asesor},
-            maquinas={m.id: m.alias for m in listar_maquinas(session, actor, horta_id)},
-            rexistro={p.num_rexistro: f"{p.nome} ({p.num_rexistro})"
-                      for p in session.query(FitoProduto).order_by(FitoProduto.nome)},
-        )
 
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
@@ -84,16 +68,7 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
 
     if not pode_editar:
         return
-    if not opcions.problemas["enfermidade"]:
-        ui.label("Faltan os catálogos oficiais. Un administrador debe executar "
-                 "`horta-catalogos importar`.").classes("text-negative")
-        return
-    if not opcions.rexistro:
-        ui.label("Falta o rexistro de fitosanitarios do MAPA: sen el non se comproban os "
-                 "produtos. Un administrador debe executar `horta-catalogos fitosanitarios`."
-                 ).classes("text-warning")
-
-    abrir = crear_dialogo_tratamento(horta_id, opcions)
+    abrir = dialogo_tratamento_fito(horta_id)
 
     def seleccionado() -> int | None:
         if not taboa.selected:
@@ -140,3 +115,38 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
         ui.button("Dar de baixa o seleccionado", icon="archive", on_click=dar_de_baixa).props(
             "outline"
         )
+
+
+def dialogo_tratamento_fito(horta_id: int) -> Callable[[TratamentoFito | None], None]:
+    """Constrúe o diálogo do tratamento fitosanitario e devolve a función que o abre."""
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return lambda _: None
+        cultivos_horta = listar_cultivos(session, actor, horta_id)
+        parcelas = {p.id: p for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+        persoas = listar_persoas(session, actor, horta_id)
+        opcions = OpcionsTratamento(
+            cultivos={c.id: f"{c.especie} {c.variedade or ''} — "
+                            f"{parcelas[c.parcela_id].nome}".strip() for c in cultivos_horta},
+            problemas={tipo: _opcions(session, tipo) for tipo in TIPOS_PROBLEMA},
+            xustificacions=_opcions(session, "xustificacion"),
+            estados=_opcions(session, "estado_fenoloxico"),
+            unidades=_opcions(session, "unidade_medida"),
+            tipos_produto=_opcions(session, "tipo_produto"),
+            tipos_medida=_opcions(session, "tipo_medida_fito"),
+            eficacias=_opcions(session, "eficacia"),
+            aplicadores={p.id: p.nome for p in persoas if p.e_aplicador},
+            asesores={p.id: p.nome for p in persoas if p.e_asesor},
+            maquinas={m.id: m.alias for m in listar_maquinas(session, actor, horta_id)},
+            rexistro={p.num_rexistro: f"{p.nome} ({p.num_rexistro})"
+                      for p in session.query(FitoProduto).order_by(FitoProduto.nome)},
+        )
+    if not opcions.problemas["enfermidade"]:
+        ui.label(AVISO_SEN_CATALOGOS).classes("text-warning")
+    if not opcions.rexistro:
+        ui.label("Falta o rexistro de fitosanitarios do MAPA: sen el non se comproban os "
+                 "produtos. Un administrador debe executar `horta-catalogos fitosanitarios`."
+                 ).classes("text-warning")
+    return crear_dialogo_tratamento(horta_id, opcions)
