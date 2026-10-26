@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 
 from nicegui import ui
@@ -40,13 +41,6 @@ def seccion_tratamentos_instalacion(horta_id: int, pode_editar: bool) -> None:
             pechar_sesion()
             return
         tratamentos = listar_tratamentos_instalacion(session, actor, horta_id)
-        problemas = {t: {v.codigo: v.descricion for v in valores_vixentes(session, t)}
-                     for t in TIPOS_PROBLEMA}
-        xustificacions = {v.codigo: v.descricion
-                          for v in valores_vixentes(session, "xustificacion")}
-        tipos_produto = {v.codigo: v.descricion
-                         for v in valores_vixentes(session, "tipo_produto")}
-        unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         filas = [{
             "id": t.id, "data": f"{t.data:%d/%m/%Y}", "tipo": TIPOS_INSTALACION[t.tipo],
             "que": t.obxecto,
@@ -65,6 +59,63 @@ def seccion_tratamentos_instalacion(horta_id: int, pode_editar: bool) -> None:
         f'flat bordered no-data-label="Ningún tratamento destes" {TEXTOS_TABOA}')
     if not pode_editar:
         return
+
+    abrir = dialogo_tratamento_instalacion(horta_id)
+
+    def escollido() -> TratamentoInstalacion | None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro un tratamento na táboa", type="warning")
+            return None
+        return next(t for t in tratamentos if t.id == taboa.selected[0]["id"])
+
+    def editar() -> None:
+        t = escollido()
+        if t is not None:
+            abrir(t)
+
+    def dar_de_baixa() -> None:
+        t = escollido()
+        if t is None:
+            return
+        tratamento_id = t.id
+
+        def confirmar() -> None:
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                x = session.get(TratamentoInstalacion, tratamento_id)
+                if actor_actual is None or x is None:
+                    return
+                ok = executar_accion(session, lambda: dar_de_baixa_tratamento_instalacion(
+                    session, actor_actual, x))
+            if ok:
+                ui.navigate.reload()
+
+        confirmar_eliminacion(
+            "Dar de baixa este tratamento? Non se borra: consérvase no histórico.", confirmar)
+
+    with ui.row():
+        ui.button("Apuntar postcolleita, almacén ou transporte", icon="add",
+                  on_click=lambda: abrir(None))
+        ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+
+
+def dialogo_tratamento_instalacion(
+    horta_id: int,
+) -> Callable[[TratamentoInstalacion | None], None]:
+    """Constrúe o diálogo do tratamento de instalacións e devolve a función que o abre."""
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return lambda _: None
+        problemas = {t: {v.codigo: v.descricion for v in valores_vixentes(session, t)}
+                     for t in TIPOS_PROBLEMA}
+        xustificacions = {v.codigo: v.descricion
+                          for v in valores_vixentes(session, "xustificacion")}
+        tipos_produto = {v.codigo: v.descricion
+                         for v in valores_vixentes(session, "tipo_produto")}
+        unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
 
     editando: dict[str, int | None] = {"id": None}
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
@@ -161,39 +212,4 @@ def seccion_tratamentos_instalacion(horta_id: int, pode_editar: bool) -> None:
         cambiar_tipo()
         dialogo.open()
 
-    def escollido() -> TratamentoInstalacion | None:
-        if not taboa.selected:
-            ui.notify("Escolle primeiro un tratamento na táboa", type="warning")
-            return None
-        return next(t for t in tratamentos if t.id == taboa.selected[0]["id"])
-
-    def editar() -> None:
-        t = escollido()
-        if t is not None:
-            abrir(t)
-
-    def dar_de_baixa() -> None:
-        t = escollido()
-        if t is None:
-            return
-        tratamento_id = t.id
-
-        def confirmar() -> None:
-            with get_session() as session:
-                actor_actual = usuario_actual(session)
-                x = session.get(TratamentoInstalacion, tratamento_id)
-                if actor_actual is None or x is None:
-                    return
-                ok = executar_accion(session, lambda: dar_de_baixa_tratamento_instalacion(
-                    session, actor_actual, x))
-            if ok:
-                ui.navigate.reload()
-
-        confirmar_eliminacion(
-            "Dar de baixa este tratamento? Non se borra: consérvase no histórico.", confirmar)
-
-    with ui.row():
-        ui.button("Apuntar postcolleita, almacén ou transporte", icon="add",
-                  on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+    return abrir
