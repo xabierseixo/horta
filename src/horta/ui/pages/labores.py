@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 
 from nicegui import ui
@@ -26,6 +27,7 @@ from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
+from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -44,10 +46,7 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                     for c in listar_cultivos(session, actor, horta_id)}
         tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_labor")}
-        coberturas = {v.codigo: v.descricion
-                      for v in valores_vixentes(session, "tipo_cobertura_solo")}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
     filas = [{
         "id": lab.id,
@@ -66,15 +65,65 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
 
     if not pode_editar:
         return
-    if not tipos:
-        ui.label("Faltan os catálogos oficiais. Un administrador debe executar "
-                 "`horta-catalogos importar`.").classes("text-negative")
-        return
+    abrir = dialogo_labor(horta_id)
+
+    def editar() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro un labor na táboa", type="warning")
+            return
+        with get_session() as session:
+            lab = session.get(Labor, taboa.selected[0]["id"])
+            if lab is not None:
+                abrir(lab)
+
+    def dar_de_baixa() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro un labor na táboa", type="warning")
+            return
+        labor_id = taboa.selected[0]["id"]
+
+        def confirmar() -> None:
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                lab = session.get(Labor, labor_id)
+                if actor_actual is None or lab is None:
+                    return
+                ok = executar_accion(session, lambda: dar_de_baixa_labor(
+                    session, actor_actual, lab))
+            if ok:
+                ui.navigate.reload()
+
+        confirmar_eliminacion(
+            "Dar de baixa este labor? Non se borra: consérvase no histórico.", confirmar)
+
+    with ui.row():
+        ui.button("Apuntar labor", icon="add", on_click=lambda: abrir(None))
+        ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+
+
+def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
+    """Constrúe o diálogo de apuntar ou editar un labor e devolve a función que o abre."""
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return lambda _: None
+        parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+                    for c in listar_cultivos(session, actor, horta_id)}
+        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_labor")}
+        coberturas = {v.codigo: v.descricion
+                      for v in valores_vixentes(session, "tipo_cobertura_solo")}
+        maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar labor").classes("text-h6")
+        if not tipos:
+            ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
         cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
         data_inicio = campo_data("Data", date.today().isoformat())
         tipo = ui.select(tipos, label="Labor").classes("w-full")
@@ -163,36 +212,4 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
         mostrar_restos()
         dialogo.open()
 
-    def editar() -> None:
-        if not taboa.selected:
-            ui.notify("Escolle primeiro un labor na táboa", type="warning")
-            return
-        with get_session() as session:
-            lab = session.get(Labor, taboa.selected[0]["id"])
-            if lab is not None:
-                abrir(lab)
-
-    def dar_de_baixa() -> None:
-        if not taboa.selected:
-            ui.notify("Escolle primeiro un labor na táboa", type="warning")
-            return
-        labor_id = taboa.selected[0]["id"]
-
-        def confirmar() -> None:
-            with get_session() as session:
-                actor_actual = usuario_actual(session)
-                lab = session.get(Labor, labor_id)
-                if actor_actual is None or lab is None:
-                    return
-                ok = executar_accion(session, lambda: dar_de_baixa_labor(
-                    session, actor_actual, lab))
-            if ok:
-                ui.navigate.reload()
-
-        confirmar_eliminacion(
-            "Dar de baixa este labor? Non se borra: consérvase no histórico.", confirmar)
-
-    with ui.row():
-        ui.button("Apuntar labor", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+    return abrir
