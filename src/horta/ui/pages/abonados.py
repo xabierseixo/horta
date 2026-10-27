@@ -31,6 +31,7 @@ from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_abono import dialogo_novo_abono
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
 from horta.ui.taboas import TEXTOS_TABOA
@@ -159,6 +160,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
         cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
         data_inicio = campo_data("Data", date.today().isoformat())
+        aplicador = ui.select(persoas, label="Quen o botou", clearable=True).classes("w-full")
         superficie = CampoSuperficie("Superficie abonada (baleiro = a do cultivo)")
         with ui.row().classes("w-full no-wrap items-center"):
             abono = ui.select(abonos, label="Abono", with_input=True).classes("col")
@@ -174,11 +176,10 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
             "w-full").props("use-chips")
         with ui.expansion("Máis datos").classes("w-full"):
             data_fin = campo_data("Data de fin (se durou máis dun día)")
+            horas = ui.input("Horas de traballo").classes("w-full")
             xestion = ui.checkbox("Xestión sostible dos insumos")
             lodos = ui.checkbox("Leva documento de aplicación de lodos de depuradora")
             albaran = ui.input("Albará ou factura").classes("w-full")
-            aplicador = ui.select(persoas, label="Quen o botou", clearable=True).classes(
-                "w-full")
             maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
             empresa = ui.input("REGFER da empresa de servizos (se o fixo unha)").classes(
                 "w-full")
@@ -222,7 +223,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                         xestion_sostible=xestion.value, aplicacion_lodos=lodos.value,
                         albaran_factura=albaran.value or None, aplicador_persoa_id=aplicador.value,
                         maquina_id=maquina.value, empresa_servizos_regfer=empresa.value or None,
-                        notas=notas.value or None)
+                        horas=parsear_decimal(horas.value), notas=notas.value or None)
                     existente = session.get(Abonado, editando["id"]) if editando["id"] else None
                     if existente is None:
                         crear_abonado(session, actor_actual, datos)
@@ -253,7 +254,9 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         xestion.value = a.xestion_sostible if a else False
         lodos.value = a.aplicacion_lodos if a else False
         albaran.value = (a.albaran_factura or "") if a else ""
-        aplicador.value = a.aplicador_persoa_id if a else None
+        aplicador.value = (a.aplicador_persoa_id if a.aplicador_persoa_id in persoas
+                           else None) if a else proposta_quen(horta_id)
+        horas.value = f"{a.horas:g}" if a and a.horas else ""
         maquina.value = a.maquina_id if a else None
         empresa.value = (a.empresa_servizos_regfer or "") if a else ""
         notas.value = (a.notas or "") if a else ""
