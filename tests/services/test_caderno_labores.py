@@ -12,6 +12,10 @@ from horta.services.labores import DatosLabor, crear_labor
 from horta.services.maquinaria import crear_maquina
 from horta.services.parcelas import crear_parcela
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
+
 
 def test_labores_no_caderno(session):
     v = CatalogoVersion(catalogo="t", nome_ficheiro="t", sha256="c" * 64, filas=0)
@@ -30,6 +34,7 @@ def test_labores_no_caderno(session):
     maquina = crear_maquina(session, ana, horta.id, "Tesoira", id_equipo_non_inscribible="T1",
                             potencia=0.5)
     crear_labor(session, ana, DatosLabor(cultivo_id=cultivo.id, data_inicio=date(2026, 2, 10),
+                                         persoa_id=QUEN,
                                          tipo_labor="7", restos_poda_no_solo=True,
                                          maquina_id=maquina.id, num_repeticions=1,
                                          duracion_h=3), hoxe=date(2026, 10, 25))

@@ -11,6 +11,10 @@ from horta.services.tratamentos_instalacion import (
     crear_tratamento_instalacion,
 )
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
+
 
 def test_no_caderno(session):
     ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
@@ -18,7 +22,7 @@ def test_no_caderno(session):
     session.add(ana)
     session.commit()
     horta = crear_horta(session, ana, "Horta")
-    crear_tratamento_instalacion(session, ana, horta.id, DatosTratamentoInstalacion(
+    crear_tratamento_instalacion(session, ana, horta.id, DatosTratamentoInstalacion(persoa_id=QUEN,
         tipo="local", data=date(2026, 6, 1), obxecto="Alpendre das patacas",
         nome_comercial="Produto X"), hoxe=date(2026, 10, 25))
     libro = load_workbook(BytesIO(xerar_caderno(session, ana, horta.id, date(2026, 1, 1),

@@ -12,6 +12,10 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta
 from horta.services.parcelas import crear_parcela
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
+
 HOXE = date(2026, 10, 25)
 
 
@@ -31,7 +35,7 @@ def _escenario(session):
 
 def test_metais_pesados_no_caderno(session):
     ana, horta, parcela = _escenario(session)
-    crear_analise(session, ana, horta.id, DatosAnalise(
+    crear_analise(session, ana, horta.id, DatosAnalise(persoa_id=QUEN,
         material_analizado="3", data_mostraxe=date(2026, 2, 1), parcela_id=parcela.id,
         solo={"ph": 5.6, "cadmio": 0.4, "chumbo": 12}), hoxe=HOXE)
     libro = load_workbook(BytesIO(xerar_caderno(session, ana, horta.id, date(2026, 1, 1),
@@ -43,6 +47,6 @@ def test_metais_pesados_no_caderno(session):
 def test_metal_negativo(session):
     ana, horta, parcela = _escenario(session)
     with pytest.raises(OperacionNonPermitidaError, match="metais"):
-        crear_analise(session, ana, horta.id, DatosAnalise(
+        crear_analise(session, ana, horta.id, DatosAnalise(persoa_id=QUEN,
             material_analizado="3", data_mostraxe=date(2026, 2, 1), solo={"zinc": -1}),
             hoxe=HOXE)
