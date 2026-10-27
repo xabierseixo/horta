@@ -82,6 +82,11 @@ class Cultivo(Base):
     semente_tratamento_num_rexistro: Mapped[str | None] = mapped_column(String(50), default=None)
     material_adquirido: Mapped[bool] = mapped_column(Boolean, default=False)
     data_adquisicion_material: Mapped[date | None] = mapped_column(Date, default=None)
+    # Quen fixo a sementeira ou plantación e cantas horas
+    sementeira_persoa_id: Mapped[int | None] = mapped_column(
+        ForeignKey("persoa.id"), default=None
+    )
+    sementeira_horas: Mapped[float | None] = mapped_column(Float, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )

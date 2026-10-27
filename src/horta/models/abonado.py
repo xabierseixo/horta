@@ -76,6 +76,7 @@ class Abonado(Base):
     aplicacion_lodos: Mapped[bool] = mapped_column(Boolean, default=False)
     albaran_factura: Mapped[str | None] = mapped_column(String(50), default=None)
     aplicador_persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
+    horas: Mapped[float | None] = mapped_column(Float, default=None)
     empresa_servizos_regfer: Mapped[str | None] = mapped_column(String(50), default=None)
     maquina_id: Mapped[int | None] = mapped_column(ForeignKey("maquina.id"), default=None)
     num_repeticions: Mapped[int | None] = mapped_column(Integer, default=None)

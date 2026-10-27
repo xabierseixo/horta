@@ -87,3 +87,20 @@ def listar_persoas(
 
 def ropo_vixente(persoa: Persoa, na_data: date) -> bool:
     return persoa.ropo_caducidade is not None and persoa.ropo_caducidade >= na_data
+
+
+def comprobar_quen(
+    session: Session, horta_id: int, persoa_id: int | None, horas: float | None,
+    obrigatoria: bool = True,
+) -> None:
+    """Todo traballo o fai unha persoa: tense que indicar e ten que ser desta explotación.
+    As horas son opcionais."""
+    if persoa_id is None:
+        if obrigatoria:
+            raise OperacionNonPermitidaError("Indica quen o fixo")
+    else:
+        persoa = session.get(Persoa, persoa_id)
+        if persoa is None or persoa.horta_id != horta_id:
+            raise OperacionNonPermitidaError("A persoa indicada non é desta explotación")
+    if horas is not None and horas <= 0:
+        raise OperacionNonPermitidaError("As horas teñen que ser máis de 0")
