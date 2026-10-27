@@ -12,6 +12,7 @@ from horta.models.tratamento_fito import TIPOS_PROBLEMA
 from horta.models.tratamento_instalacion import TIPOS_INSTALACION, TratamentoInstalacion
 from horta.services.catalogos import describir, valores_vixentes
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.persoas import listar_persoas
 from horta.services.tratamentos_instalacion import (
     DatosTratamentoInstalacion,
     actualizar_tratamento_instalacion,
@@ -23,6 +24,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
@@ -116,6 +118,7 @@ def dialogo_tratamento_instalacion(
         tipos_produto = {v.codigo: v.descricion
                          for v in valores_vixentes(session, "tipo_produto")}
         unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None}
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
@@ -123,6 +126,7 @@ def dialogo_tratamento_instalacion(
         tipo = ui.select(TIPOS_INSTALACION, value="postcolleita", label="Que tipo").classes(
             "w-full")
         data = campo_data("Data", date.today().isoformat())
+        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         obxecto = ui.input(_QUE["postcolleita"]).classes("w-full")
         catastro = ui.input("Referencia catastral do local").classes("w-full")
         catastro.bind_visibility_from(tipo, "value", backward=lambda v: v == "local")
@@ -149,6 +153,7 @@ def dialogo_tratamento_instalacion(
         with ui.row().classes("w-full no-wrap"):
             cantidade = ui.input("Cantidade utilizada").classes("col")
             unidade = ui.select(unidades, label="Unidade", with_input=True).classes("col")
+        horas = ui.input("Horas de traballo").classes("w-full")
         notas = ui.textarea("Notas").classes("w-full")
 
         def gardar() -> None:
@@ -173,7 +178,8 @@ def dialogo_tratamento_instalacion(
                         num_rexistro=num_rexistro.value or None,
                         materia_activa=materia_activa.value or None,
                         cantidade_utilizada=parsear_decimal(cantidade.value),
-                        unidade=unidade.value, notas=notas.value or None)
+                        unidade=unidade.value, notas=notas.value or None,
+                        persoa_id=persoa.value, horas=parsear_decimal(horas.value))
                     existente = (session.get(TratamentoInstalacion, editando["id"])
                                  if editando["id"] else None)
                     if existente is None:
@@ -195,6 +201,9 @@ def dialogo_tratamento_instalacion(
         titulo.text = "Editar tratamento" if t else "Apuntar tratamento"
         tipo.value = t.tipo if t else "postcolleita"
         data.value = (t.data if t else date.today()).isoformat()
+        persoa.value = (t.persoa_id if t.persoa_id in persoas else None) if t else (
+            proposta_quen(horta_id))
+        horas.value = f"{t.horas:g}" if t and t.horas else ""
         obxecto.value = t.obxecto if t else ""
         catastro.value = (t.referencia_catastral or "") if t else ""
         cantidade_tratada.value = f"{t.cantidade_tratada:g}" if t and t.cantidade_tratada \
