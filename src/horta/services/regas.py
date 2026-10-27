@@ -15,6 +15,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -48,9 +49,11 @@ def _cultivo_e_parcela(session: Session, cultivo_id: int) -> tuple[Cultivo, Parc
     return cultivo, parcela
 
 
-def _validar(session: Session, datos: DatosRega, cultivo: Cultivo, hoxe: date) -> None:
+def _validar(session: Session, datos: DatosRega, cultivo: Cultivo, horta_id: int,
+             hoxe: date) -> None:
     if datos.data_inicio > hoxe:
         raise OperacionNonPermitidaError("A data da rega non pode ser futura")
+    comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     if datos.data_fin is not None and datos.data_fin < datos.data_inicio:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
     if datos.superficie_ha is not None:
@@ -86,6 +89,8 @@ def _copiar(rega: Rega, datos: DatosRega, cultivo: Cultivo, parcela: Parcela) ->
     rega.orixe_auga = datos.orixe_auga or parcela.orixe_auga
     rega.tipo_enerxia = datos.tipo_enerxia or None
     rega.num_contador = datos.num_contador or None
+    rega.persoa_id = datos.persoa_id
+    rega.horas = datos.horas
     rega.notas = datos.notas or None
     rega.boas_practicas = [RegaBoaPractica(codigo=c) for c in datos.boas_practicas]
 
@@ -95,7 +100,7 @@ def crear_rega(
 ) -> Rega:
     cultivo, parcela = _cultivo_e_parcela(session, datos.cultivo_id)
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
-    _validar(session, datos, cultivo, hoxe or date.today())
+    _validar(session, datos, cultivo, parcela.horta_id, hoxe or date.today())
     rega = Rega(creado_por=actor.id)
     _copiar(rega, datos, cultivo, parcela)
     session.add(rega)
@@ -112,7 +117,7 @@ def actualizar_rega(
     cultivo, parcela = _cultivo_e_parcela(session, datos.cultivo_id)
     if parcela.horta_id != rega.horta_id:
         raise OperacionNonPermitidaError("O cultivo indicado non pertence a esta explotación")
-    _validar(session, datos, cultivo, hoxe or date.today())
+    _validar(session, datos, cultivo, rega.horta_id, hoxe or date.today())
     _copiar(rega, datos, cultivo, parcela)
     session.commit()
     return rega
