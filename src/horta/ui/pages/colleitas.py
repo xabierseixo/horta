@@ -9,6 +9,7 @@ from nicegui import ui
 
 from horta.db import get_session
 from horta.models.colleita import Colleita
+from horta.models.tarefa import Tarefa
 from horta.services.catalogos import valores_vixentes
 from horta.services.colleitas import (
     UNIDADES_COLLEITA,
@@ -26,6 +27,7 @@ from horta.services.persoas import listar_persoas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -124,7 +126,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         restos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_restos")}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
-    editando: dict[str, int | None] = {"id": None}
+    editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         titulo = ui.label("Apuntar colleita").classes("text-h6")
@@ -214,7 +216,8 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
                         horas=parsear_decimal(horas.value),
                     )
                     if editando["id"] is None:
-                        crear_colleita(session, actor, datos)
+                        novo = crear_colleita(session, actor, datos)
+                        rematar_tarefa(session, actor, editando["tarefa"], novo)
                     else:
                         colleita = session.get(Colleita, editando["id"])
                         if colleita is not None:
@@ -228,13 +231,14 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    def abrir(c: Colleita | None) -> None:
+    def abrir(c: Colleita | None, tarefa: Tarefa | None = None) -> None:
+        editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = c.id if c else None
         titulo.text = "Editar colleita" if c else "Apuntar colleita"
-        cultivo.value = c.cultivo_id if c else None
+        cultivo.value = c.cultivo_id if c else (tarefa.cultivo_id if tarefa else None)
         data.value = (c.data if c else date.today()).isoformat()
         persoa.value = (c.persoa_id if c.persoa_id in persoas else None) if c else (
-            proposta_quen(horta_id))
+            proposta_quen(horta_id, tarefa))
         horas.value = f"{c.horas:g}" if c and c.horas else ""
         cantidade.value = f"{c.cantidade:g}" if c else ""
         unidade.value = c.unidade if c else "kg"
