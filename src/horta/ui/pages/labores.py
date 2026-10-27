@@ -10,6 +10,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.models.labor import Labor
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.services.catalogos import valores_vixentes
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
@@ -29,6 +30,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -119,7 +121,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
-    editando: dict[str, int | None] = {"id": None}
+    editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar labor").classes("text-h6")
@@ -182,7 +184,8 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
                         horas=parsear_decimal(horas_traballo.value), notas=notas.value or None)
                     existente = session.get(Labor, editando["id"]) if editando["id"] else None
                     if existente is None:
-                        crear_labor(session, actor_actual, datos)
+                        novo = crear_labor(session, actor_actual, datos)
+                        rematar_tarefa(session, actor_actual, editando["tarefa"], novo)
                     else:
                         actualizar_labor(session, actor_actual, existente, datos)
 
@@ -194,11 +197,12 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    def abrir(lab: Labor | None) -> None:
+    def abrir(lab: Labor | None, tarefa: Tarefa | None = None) -> None:
+        editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = lab.id if lab else None
         titulo.text = "Editar labor" if lab else "Apuntar labor"
         tipo.value = lab.tipo_labor if lab else None
-        cultivo.value = lab.cultivo_id if lab else None
+        cultivo.value = lab.cultivo_id if lab else (tarefa.cultivo_id if tarefa else None)
         data_inicio.value = (lab.data_inicio if lab else date.today()).isoformat()
         data_fin.value = (lab.data_fin.isoformat()
                           if lab and lab.data_fin != lab.data_inicio else "")
@@ -210,7 +214,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         repeticions.value = str(lab.num_repeticions) if lab and lab.num_repeticions else ""
         horas.value = f"{lab.duracion_h:g}" if lab and lab.duracion_h else ""
         persoa.value = (lab.persoa_id if lab.persoa_id in persoas else None) if lab else (
-            proposta_quen(horta_id))
+            proposta_quen(horta_id, tarefa))
         horas_traballo.value = f"{lab.horas:g}" if lab and lab.horas else ""
         notas.value = (lab.notas or "") if lab else ""
         mostrar_restos()
