@@ -12,11 +12,11 @@ from horta.models.horta import RolHorta
 from horta.models.labor import Labor
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela
-from horta.models.persoa import Persoa
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -55,6 +55,7 @@ def _validar(session: Session, datos: DatosLabor, cultivo: Cultivo, horta_id: in
              hoxe: date) -> None:
     if datos.data_inicio > hoxe:
         raise OperacionNonPermitidaError("A data do labor non pode ser futura")
+    comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     if datos.data_fin is not None and datos.data_fin < datos.data_inicio:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
     if datos.superficie_ha is not None:
@@ -72,10 +73,6 @@ def _validar(session: Session, datos: DatosLabor, cultivo: Cultivo, horta_id: in
         maquina = session.get(Maquina, datos.maquina_id)
         if maquina is None or maquina.horta_id != horta_id:
             raise OperacionNonPermitidaError("A máquina indicada non é desta explotación")
-    if datos.persoa_id is not None:
-        persoa = session.get(Persoa, datos.persoa_id)
-        if persoa is None or persoa.horta_id != horta_id:
-            raise OperacionNonPermitidaError("A persoa indicada non é desta explotación")
 
 
 def _copiar(labor: Labor, datos: DatosLabor, cultivo: Cultivo, parcela: Parcela) -> None:
@@ -93,6 +90,7 @@ def _copiar(labor: Labor, datos: DatosLabor, cultivo: Cultivo, parcela: Parcela)
     labor.num_repeticions = datos.num_repeticions
     labor.duracion_h = datos.duracion_h
     labor.persoa_id = datos.persoa_id
+    labor.horas = datos.horas
     labor.notas = datos.notas or None
 
 
