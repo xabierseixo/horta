@@ -10,6 +10,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.models.abonado import Abonado, Fertilizante
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.services.abonados import (
     DatosAbonado,
     actualizar_abonado,
@@ -30,6 +31,7 @@ from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_abono import dialogo_novo_abono
+from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -146,7 +148,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
-    editando: dict[str, int | None] = {"id": None}
+    editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     def abono_creado(abono_id: int, nome: str) -> None:
         abonos[abono_id] = nome
@@ -226,7 +228,8 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                         horas=parsear_decimal(horas.value), notas=notas.value or None)
                     existente = session.get(Abonado, editando["id"]) if editando["id"] else None
                     if existente is None:
-                        crear_abonado(session, actor_actual, datos)
+                        novo = crear_abonado(session, actor_actual, datos)
+                        rematar_tarefa(session, actor_actual, editando["tarefa"], novo)
                     else:
                         actualizar_abonado(session, actor_actual, existente, datos)
 
@@ -238,10 +241,11 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    def abrir(a: Abonado | None) -> None:
+    def abrir(a: Abonado | None, tarefa: Tarefa | None = None) -> None:
+        editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = a.id if a else None
         titulo.text = "Editar abonado" if a else "Apuntar abonado"
-        cultivo.value = a.cultivo_id if a else None
+        cultivo.value = a.cultivo_id if a else (tarefa.cultivo_id if tarefa else None)
         data_inicio.value = (a.data_inicio if a else date.today()).isoformat()
         data_fin.value = a.data_fin.isoformat() if a and a.data_fin != a.data_inicio else ""
         superficie.establecer(a.superficie_ha if a else None)
@@ -255,7 +259,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         lodos.value = a.aplicacion_lodos if a else False
         albaran.value = (a.albaran_factura or "") if a else ""
         aplicador.value = (a.aplicador_persoa_id if a.aplicador_persoa_id in persoas
-                           else None) if a else proposta_quen(horta_id)
+                           else None) if a else proposta_quen(horta_id, tarefa)
         horas.value = f"{a.horas:g}" if a and a.horas else ""
         maquina.value = a.maquina_id if a else None
         empresa.value = (a.empresa_servizos_regfer or "") if a else ""
