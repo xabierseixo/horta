@@ -44,8 +44,7 @@ def dialogo_nova_tarefa(horta_id: int) -> Callable[[], None]:
             p.id: p.nome for p in listar_parcelas(session, actor, horta_id)}}
         opcions_cultivo: dict[int | str, str] = {"": "(sen cultivo)", **{
             c.id: c.especie for c in listar_cultivos(session, actor, horta_id)}}
-
-    opcions_tipo, opcions_persoa = opcions_tarefa(session, actor, horta_id)
+        opcions_tipo, opcions_persoa = opcions_tarefa(session, actor, horta_id)
 
     with ui.dialog() as dialogo, ui.card():
         ui.label("Nova tarefa").classes("text-md font-bold")
