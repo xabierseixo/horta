@@ -12,6 +12,7 @@ from nicegui import ui
 
 from horta.db import get_session
 from horta.models.horta import Horta
+from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fito_consulta import AVISO, FORTE, comprobar_tratamento, materia_activa
@@ -28,6 +29,7 @@ from horta.services.tratamentos_fito import (
 )
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
+from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal, parsear_hora
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
@@ -75,7 +77,7 @@ def crear_dialogo_tratamento(
 ) -> Callable[[TratamentoFito | None], None]:
     """Constrúe o diálogo e devolve a función que o abre (None = tratamento novo)."""
     estado: dict[str, Any] = {"id": None, "cultivos": [], "problemas": [], "produtos": [],
-                              "medidas": [], "orixinais": ""}
+                              "medidas": [], "orixinais": "", "tarefa": None}
 
     def fila_cultivo(cultivo_id: int | None = None, superficie: str = "",
                      fenoloxico: str | None = None) -> dict[str, Any]:
@@ -336,7 +338,8 @@ def crear_dialogo_tratamento(
                             tratamento = (session.get(TratamentoFito, estado["id"])
                                           if estado["id"] else None)
                             if tratamento is None:
-                                crear_tratamento_fito(session, actor, horta_id, d)
+                                novo = crear_tratamento_fito(session, actor, horta_id, d)
+                                rematar_tarefa(session, actor, estado["tarefa"], novo)
                             else:
                                 actualizar_tratamento_fito(session, actor, tratamento, d)
 
@@ -349,8 +352,9 @@ def crear_dialogo_tratamento(
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
         ui.button("Pechar", on_click=dialogo.close).props("flat")
 
-    def abrir(t: TratamentoFito | None) -> None:
+    def abrir(t: TratamentoFito | None, tarefa: Tarefa | None = None) -> None:
         hoxe = date.today().isoformat()
+        estado["tarefa"] = tarefa.id if tarefa else None
         estado["id"] = t.id if t else None
         data_inicio.value = t.data_inicio.isoformat() if t else hoxe
         data_fin.value = t.data_fin.isoformat() if t else hoxe
@@ -371,7 +375,8 @@ def crear_dialogo_tratamento(
         estado["medidas"] = [fila_medida(m.tipo_medida, _txt(m.cantidade), m.unidade,
                                          m.num_rexistro_mdf or "")
                              for m in t.medidas] if t else []
-        estado["cultivos"] = estado["cultivos"] or [fila_cultivo()]
+        estado["cultivos"] = estado["cultivos"] or [
+            fila_cultivo(tarefa.cultivo_id if tarefa else None)]
         estado["problemas"] = estado["problemas"] or [fila_problema()]
         estado["produtos"] = estado["produtos"] or [fila_produto()]
         orixinais_t = [(etiqueta, valor) for etiqueta, valor in (
@@ -382,7 +387,8 @@ def crear_dialogo_tratamento(
         xustificacions.value = [x.codigo for x in t.xustificacions
                                 if x.codigo in op.xustificacions] if t else []
         a = t.aplicadores[0] if t and t.aplicadores else None
-        aplicador.value = _ou_nada(op.aplicadores, a.persoa_id if a else None)
+        aplicador.value = _ou_nada(op.aplicadores, a.persoa_id if a else (
+            tarefa.persoa_id if tarefa else None))
         maquina.value = _ou_nada(op.maquinas, a.maquina_id if a else None)
         asesor.value = _ou_nada(op.asesores, t.asesor.persoa_id if t and t.asesor else None)
         data_asesor.value = (t.asesor.data.isoformat()
