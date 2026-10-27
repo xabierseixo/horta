@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TIPOS_PROBLEMA
 from horta.models.tratamento_instalacion import TIPOS_INSTALACION, TratamentoInstalacion
 from horta.services.catalogos import describir, valores_vixentes
@@ -23,6 +24,7 @@ from horta.services.tratamentos_instalacion import (
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -120,7 +122,7 @@ def dialogo_tratamento_instalacion(
         unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
-    editando: dict[str, int | None] = {"id": None}
+    editando: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar tratamento").classes("text-h6")
         tipo = ui.select(TIPOS_INSTALACION, value="postcolleita", label="Que tipo").classes(
@@ -183,7 +185,8 @@ def dialogo_tratamento_instalacion(
                     existente = (session.get(TratamentoInstalacion, editando["id"])
                                  if editando["id"] else None)
                     if existente is None:
-                        crear_tratamento_instalacion(session, actor_actual, horta_id, datos)
+                        novo = crear_tratamento_instalacion(session, actor_actual, horta_id, datos)
+                        rematar_tarefa(session, actor_actual, editando["tarefa"], novo)
                     else:
                         actualizar_tratamento_instalacion(session, actor_actual, existente,
                                                           datos)
@@ -196,13 +199,14 @@ def dialogo_tratamento_instalacion(
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    def abrir(t: TratamentoInstalacion | None) -> None:
+    def abrir(t: TratamentoInstalacion | None, tarefa: Tarefa | None = None) -> None:
+        editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = t.id if t else None
         titulo.text = "Editar tratamento" if t else "Apuntar tratamento"
         tipo.value = t.tipo if t else "postcolleita"
         data.value = (t.data if t else date.today()).isoformat()
         persoa.value = (t.persoa_id if t.persoa_id in persoas else None) if t else (
-            proposta_quen(horta_id))
+            proposta_quen(horta_id, tarefa))
         horas.value = f"{t.horas:g}" if t and t.horas else ""
         obxecto.value = t.obxecto if t else ""
         catastro.value = (t.referencia_catastral or "") if t else ""
