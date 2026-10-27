@@ -34,6 +34,8 @@ class DatosRega:
     orixe_auga: str | None = None
     tipo_enerxia: str | None = None
     num_contador: str | None = None
+    persoa_id: int | None = None
+    horas: float | None = None
     boas_practicas: list[str] = field(default_factory=list)
     notas: str | None = None
 

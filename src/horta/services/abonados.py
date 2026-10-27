@@ -39,6 +39,7 @@ class DatosAbonado:
     aplicacion_lodos: bool = False
     albaran_factura: str | None = None
     aplicador_persoa_id: int | None = None
+    horas: float | None = None
     empresa_servizos_regfer: str | None = None
     maquina_id: int | None = None
     num_repeticions: int | None = None

@@ -39,6 +39,7 @@ class DatosLabor:
     num_repeticions: int | None = None
     duracion_h: float | None = None
     persoa_id: int | None = None
+    horas: float | None = None
     notas: str | None = None
 
 

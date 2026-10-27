@@ -38,6 +38,8 @@ class DatosAnalise:
     cultivo_id: int | None = None
     colleita_id: int | None = None
     solo: dict[str, float | None] = field(default_factory=dict)
+    persoa_id: int | None = None
+    horas: float | None = None
     notas: str | None = None
 
 

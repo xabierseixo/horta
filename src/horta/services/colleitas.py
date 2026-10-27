@@ -50,6 +50,8 @@ class DatosColleita:
     maquina_id: int | None = None
     num_repeticions: int | None = None
     duracion_h_ha: float | None = None
+    persoa_id: int | None = None
+    horas: float | None = None
 
 
 def _cultivo_e_horta(session: Session, cultivo_id: int) -> tuple[Cultivo, int]:

@@ -36,6 +36,8 @@ class DatosTratamentoInstalacion:
     cantidade_utilizada: float | None = None
     unidade: str | None = None
     notas: str | None = None
+    persoa_id: int | None = None
+    horas: float | None = None
 
 
 def _validar(session: Session, datos: DatosTratamentoInstalacion, hoxe: date) -> None:
