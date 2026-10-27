@@ -9,8 +9,10 @@ from horta.db import Base
 from horta.models.abonado import Abonado
 from horta.models.analise import Analise
 from horta.models.colleita import Colleita
+from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.labor import Labor
+from horta.models.parcela import Parcela
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
@@ -109,16 +111,49 @@ def actualizar_tarefa(
     return tarefa
 
 
-def marcar_feita(session: Session, actor: Usuario, tarefa: Tarefa) -> Tarefa:
+def marcar_feita(
+    session: Session, actor: Usuario, tarefa: Tarefa, persoa_id: int | None = None,
+    data: date | None = None, horas: float | None = None,
+) -> Tarefa:
+    """Unha tarefa sen tipo (outro traballo) feita: quen a fixo, cando e cantas horas."""
     comprobar_rol_horta(session, tarefa.horta_id, actor, _ROLES_ESCRITURA)
+    if tarefa.tipo is not None:
+        raise OperacionNonPermitidaError("Esta tarefa apúntase no formulario do seu tipo")
+    comprobar_quen(session, tarefa.horta_id, persoa_id, horas, obrigatoria=False)
     tarefa.estado = "feito"
-    tarefa.data_feita = date.today()
+    tarefa.data_feita = data or date.today()
+    tarefa.persoa_id = persoa_id
+    tarefa.horas = horas
+    session.commit()
+    return tarefa
+
+
+def facer_tarefa(session: Session, actor: Usuario, tarefa: Tarefa, rexistro: Base) -> Tarefa:
+    """A tarefa fíxose: queda feita e ligada ao traballo apuntado no formulario do seu tipo."""
+    comprobar_rol_horta(session, tarefa.horta_id, actor, _ROLES_ESCRITURA)
+    taboa, campo_data = _TABOA_E_DATA.get(tarefa.tipo or "", (None, ""))
+    if taboa is None or not isinstance(rexistro, taboa):
+        raise OperacionNonPermitidaError("O traballo apuntado non é do tipo da tarefa")
+    if isinstance(rexistro, Colleita):
+        cultivo = session.get(Cultivo, rexistro.cultivo_id)
+        parcela = session.get(Parcela, cultivo.parcela_id) if cultivo else None
+        horta_id = parcela.horta_id if parcela else None
+    else:
+        horta_id = getattr(rexistro, "horta_id", None)
+    if horta_id != tarefa.horta_id:
+        raise OperacionNonPermitidaError("O traballo apuntado non é desta explotación")
+    tarefa.estado = "feito"
+    tarefa.data_feita = getattr(rexistro, campo_data)
+    tarefa.traballo_id = getattr(rexistro, "id")
     session.commit()
     return tarefa
 
 
 def marcar_pendente(session: Session, actor: Usuario, tarefa: Tarefa) -> Tarefa:
     comprobar_rol_horta(session, tarefa.horta_id, actor, _ROLES_ESCRITURA)
+    if tarefa.traballo_id is not None:
+        raise OperacionNonPermitidaError(
+            "Esta tarefa xa ten o traballo apuntado: para cambiala, edita ese traballo")
     tarefa.estado = "pendente"
     tarefa.data_feita = None
     session.commit()

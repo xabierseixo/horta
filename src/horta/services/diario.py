@@ -133,6 +133,8 @@ def listar_traballos(
                                   frozenset(), persoas=_quen(ti.persoa_id),
                                   sen_quen=ti.persoa_id is None))
     for ta in listar_tarefas(session, actor, horta_id):
+        if ta.traballo_id is not None:
+            continue  # xa feita: sae o traballo apuntado no seu tipo
         feita = ta.estado == "feito"
         sitio = onde(ta.cultivo_id) or parcelas.get(ta.parcela_id or 0, "")
         traballos.append(Traballo(
@@ -140,7 +142,8 @@ def listar_traballos(
             feita, ta.descricion, sitio,
             parcela_de(ta.cultivo_id) or (frozenset({ta.parcela_id}) if ta.parcela_id
                                           else frozenset()),
-            atrasado=not feita and ta.data_limite is not None and ta.data_limite < hoxe))
+            atrasado=not feita and ta.data_limite is not None and ta.data_limite < hoxe,
+            persoas=_quen(ta.persoa_id), sen_quen=feita and ta.persoa_id is None))
 
     por_facer = sorted((t for t in traballos if not t.feito),
                        key=lambda t: (t.data is not None, t.data or hoxe))
