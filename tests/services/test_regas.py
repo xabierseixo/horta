@@ -19,6 +19,9 @@ from horta.services.regas import (
     ultimo_sistema_rega,
 )
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
 HOXE = date(2026, 10, 25)
 
 
@@ -53,7 +56,7 @@ def _datos(cultivo, **cambios):
     base = {"cultivo_id": cultivo.id, "data_inicio": date(2026, 7, 1), "sistema_rega": "6",
             "cantidade": 300}
     base.update(cambios)
-    return DatosRega(**base)
+    return DatosRega(**{"persoa_id": QUEN, **base})
 
 
 def test_crear_rega_cos_valores_por_defecto(session):

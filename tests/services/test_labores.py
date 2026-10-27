@@ -19,6 +19,9 @@ from horta.services.labores import (
 from horta.services.maquinaria import crear_maquina
 from horta.services.parcelas import crear_parcela, eliminar_parcela
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
 HOXE = date(2026, 10, 25)
 
 
@@ -49,7 +52,7 @@ def _escenario(session):
 def _datos(cultivo, **cambios):
     base = {"cultivo_id": cultivo.id, "data_inicio": date(2026, 3, 1), "tipo_labor": "7"}
     base.update(cambios)
-    return DatosLabor(**base)
+    return DatosLabor(**{"persoa_id": QUEN, **base})
 
 
 def test_crear_labor_cos_valores_por_defecto(session):
