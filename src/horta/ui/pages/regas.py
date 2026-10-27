@@ -13,6 +13,7 @@ from horta.models.rega import Rega
 from horta.services.catalogos import valores_vixentes
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.persoas import listar_persoas
 from horta.services.regas import (
     UNIDADES_AUGA,
     DatosRega,
@@ -28,6 +29,7 @@ from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
 from horta.ui.taboas import TEXTOS_TABOA
@@ -118,6 +120,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         unidades = {c: unidades_cat.get(c, c) for c in UNIDADES_AUGA}
         practicas = {v.codigo: v.descricion for v in valores_vixentes(session, "boas_practicas")
                      if "rega" in (v.categoria or "")}
+        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None}
 
@@ -153,6 +156,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
         cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
         data_inicio = campo_data("Data", date.today().isoformat())
+        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         superficie = CampoSuperficie("Superficie regada (baleiro = a do cultivo)")
         sistema = ui.select(sistemas, label="Como se rega").classes("w-full")
         with ui.row().classes("w-full no-wrap items-center"):
@@ -162,6 +166,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
             "flat dense")
         with ui.expansion("Máis datos").classes("w-full"):
             data_fin = campo_data("Data de fin (se durou máis dun día)")
+            horas = ui.input("Horas de traballo").classes("w-full")
             orixe = ui.select(orixes, label="De onde vén a auga (baleiro = a da parcela)",
                               clearable=True).classes("w-full")
             contador = ui.input("Nº de contador").classes("w-full")
@@ -197,7 +202,8 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                         cantidade=parsear_decimal(cantidade.value),
                         unidade=unidade.value or "4", orixe_auga=orixe.value,
                         num_contador=contador.value or None,
-                        boas_practicas=list(boas.value or []), notas=notas.value or None)
+                        boas_practicas=list(boas.value or []), notas=notas.value or None,
+                        persoa_id=persoa.value, horas=parsear_decimal(horas.value))
                     existente = session.get(Rega, editando["id"]) if editando["id"] else None
                     if existente is None:
                         crear_rega(session, actor_actual, datos)
@@ -219,6 +225,9 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         cultivo.value = r.cultivo_id if r else None
         data_inicio.value = (r.data_inicio if r else date.today()).isoformat()
         data_fin.value = r.data_fin.isoformat() if r and r.data_fin != r.data_inicio else ""
+        persoa.value = (r.persoa_id if r.persoa_id in persoas else None) if r else (
+            proposta_quen(horta_id))
+        horas.value = f"{r.horas:g}" if r and r.horas else ""
         superficie.establecer(r.superficie_ha if r else None)
         cantidade.value = f"{r.cantidade:g}" if r and r.cantidade else ""
         unidade.value = r.unidade if r else "4"
