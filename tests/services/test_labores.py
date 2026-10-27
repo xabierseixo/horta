@@ -22,6 +22,7 @@ from horta.services.parcelas import crear_parcela, eliminar_parcela
 # A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
 QUEN = 1
 
+
 HOXE = date(2026, 10, 25)
 
 
