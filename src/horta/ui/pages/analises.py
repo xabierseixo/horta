@@ -10,6 +10,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.models.analise import Analise
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.services.analises import (
     SOLO,
     DatosAnalise,
@@ -27,6 +28,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -135,7 +137,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
                        for v in valores_vixentes(session, "substancia_activa")}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
-    editando: dict[str, int | None] = {"id": None}
+    editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar análise").classes("text-h6")
@@ -195,7 +197,8 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
                         notas=notas.value or None)
                     existente = session.get(Analise, editando["id"]) if editando["id"] else None
                     if existente is None:
-                        crear_analise(session, actor_actual, horta_id, datos)
+                        novo = crear_analise(session, actor_actual, horta_id, datos)
+                        rematar_tarefa(session, actor_actual, editando["tarefa"], novo)
                     else:
                         actualizar_analise(session, actor_actual, existente, datos)
 
@@ -207,18 +210,19 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    def abrir(a: Analise | None) -> None:
+    def abrir(a: Analise | None, tarefa: Tarefa | None = None) -> None:
+        editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = a.id if a else None
         titulo.text = "Editar análise" if a else "Apuntar análise"
         material.value = a.material_analizado if a else None
         data.value = (a.data_mostraxe if a else date.today()).isoformat()
         persoa.value = (a.persoa_id if a.persoa_id in persoas else None) if a else (
-            proposta_quen(horta_id))
+            proposta_quen(horta_id, tarefa))
         horas.value = f"{a.horas:g}" if a and a.horas else ""
         tipo.value = [t.codigo for t in a.tipos] if a else []
         substancia.value = [s.codigo for s in a.substancias] if a else []
-        parcela.value = a.parcela_id if a else None
-        cultivo.value = a.cultivo_id if a else None
+        parcela.value = a.parcela_id if a else (tarefa.parcela_id if tarefa else None)
+        cultivo.value = a.cultivo_id if a else (tarefa.cultivo_id if tarefa else None)
         lote.value = a.colleita_id if a else None
         for campo, entrada in parametros.items():
             valor = getattr(a, campo) if a else None
