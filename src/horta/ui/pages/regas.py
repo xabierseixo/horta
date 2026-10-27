@@ -10,6 +10,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.models.parcela import Parcela
 from horta.models.rega import Rega
+from horta.models.tarefa import Tarefa
 from horta.services.catalogos import valores_vixentes
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
@@ -28,6 +29,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -122,7 +124,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                      if "rega" in (v.categoria or "")}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
-    editando: dict[str, int | None] = {"id": None}
+    editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog() as calculadora, ui.card().style("width: min(28rem, 94vw)"):
         ui.label("Calcular os litros").classes("text-h6")
@@ -206,7 +208,8 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                         persoa_id=persoa.value, horas=parsear_decimal(horas.value))
                     existente = session.get(Rega, editando["id"]) if editando["id"] else None
                     if existente is None:
-                        crear_rega(session, actor_actual, datos)
+                        novo = crear_rega(session, actor_actual, datos)
+                        rematar_tarefa(session, actor_actual, editando["tarefa"], novo)
                     else:
                         actualizar_rega(session, actor_actual, existente, datos)
 
@@ -218,15 +221,16 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    def abrir(r: Rega | None) -> None:
+    def abrir(r: Rega | None, tarefa: Tarefa | None = None) -> None:
+        editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = r.id if r else None
         titulo.text = "Editar rega" if r else "Apuntar rega"
         sistema.value = r.sistema_rega if r else None
-        cultivo.value = r.cultivo_id if r else None
+        cultivo.value = r.cultivo_id if r else (tarefa.cultivo_id if tarefa else None)
         data_inicio.value = (r.data_inicio if r else date.today()).isoformat()
         data_fin.value = r.data_fin.isoformat() if r and r.data_fin != r.data_inicio else ""
         persoa.value = (r.persoa_id if r.persoa_id in persoas else None) if r else (
-            proposta_quen(horta_id))
+            proposta_quen(horta_id, tarefa))
         horas.value = f"{r.horas:g}" if r and r.horas else ""
         superficie.establecer(r.superficie_ha if r else None)
         cantidade.value = f"{r.cantidade:g}" if r and r.cantidade else ""
