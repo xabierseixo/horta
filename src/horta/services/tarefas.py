@@ -112,14 +112,14 @@ def actualizar_tarefa(
 
 
 def marcar_feita(
-    session: Session, actor: Usuario, tarefa: Tarefa, persoa_id: int | None = None,
+    session: Session, actor: Usuario, tarefa: Tarefa, persoa_id: int | None,
     data: date | None = None, horas: float | None = None,
 ) -> Tarefa:
     """Unha tarefa sen tipo (outro traballo) feita: quen a fixo, cando e cantas horas."""
     comprobar_rol_horta(session, tarefa.horta_id, actor, _ROLES_ESCRITURA)
     if tarefa.tipo is not None:
         raise OperacionNonPermitidaError("Esta tarefa apúntase no formulario do seu tipo")
-    comprobar_quen(session, tarefa.horta_id, persoa_id, horas, obrigatoria=False)
+    comprobar_quen(session, tarefa.horta_id, persoa_id, horas)
     tarefa.estado = "feito"
     tarefa.data_feita = data or date.today()
     tarefa.persoa_id = persoa_id

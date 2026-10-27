@@ -19,6 +19,9 @@ from horta.services.tarefas import (
     marcar_pendente,
 )
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
 
 def _crear_usuario(session, email: str) -> Usuario:
     usuario = Usuario(
@@ -124,7 +127,7 @@ def test_marcar_feita_e_marcar_pendente(session):
     horta = crear_horta(session, ana, "A miña horta")
     tarefa = crear_tarefa(session, ana, horta.id, "Regar")
 
-    feita = marcar_feita(session, ana, tarefa)
+    feita = marcar_feita(session, ana, tarefa, QUEN)
     assert feita.estado == "feito"
     assert feita.data_feita == date.today()
 
@@ -139,7 +142,7 @@ def test_listar_tarefas_pendentes_hoxe(session):
     hoxe = crear_tarefa(session, ana, horta.id, "Regar hoxe", data=date.today())
     crear_tarefa(session, ana, horta.id, "Regar mañá", data=date.today() + timedelta(days=1))
     feita_hoxe = crear_tarefa(session, ana, horta.id, "Xa feita hoxe", data=date.today())
-    marcar_feita(session, ana, feita_hoxe)
+    marcar_feita(session, ana, feita_hoxe, QUEN)
 
     tarefas = listar_tarefas_pendentes_hoxe(session, ana, horta.id)
 
@@ -175,7 +178,7 @@ def test_contar_tarefas_pendentes(session):
     horta = crear_horta(session, ana, "A miña horta")
     crear_tarefa(session, ana, horta.id, "Unha")
     feita = crear_tarefa(session, ana, horta.id, "Outra")
-    marcar_feita(session, ana, feita)
+    marcar_feita(session, ana, feita, QUEN)
 
     assert contar_tarefas_pendentes(session, ana, horta.id) == 1
 

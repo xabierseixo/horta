@@ -56,6 +56,6 @@ def test_o_por_facer_vai_primeiro_e_sae_sempre(session):
 def test_a_tarefa_feita_vai_coa_data_en_que_se_fixo(session):
     ana, horta, _, _ = _escenario(session)
     tarefa = crear_tarefa(session, ana, horta.id, "Limpar o galiñeiro", data=date(2026, 10, 1))
-    marcar_feita(session, ana, tarefa)
+    marcar_feita(session, ana, tarefa, QUEN)
     (traballo,) = listar_traballos(session, ana, horta.id, hoxe=HOXE)
     assert traballo.feito and traballo.data == tarefa.data_feita
