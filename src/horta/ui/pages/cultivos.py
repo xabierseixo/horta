@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable
+from datetime import date
 from typing import Any
 
 from nicegui import ui
@@ -20,6 +21,7 @@ from horta.services.cultivos import (
     listar_cultivos,
 )
 from horta.services.parcelas import listar_parcelas
+from horta.services.persoas import listar_persoas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -136,6 +138,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             campo: {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
             for campo, catalogo in _CATALOGOS.items()
         }
+        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
     nome_parcela = {p.id: p.nome for p in parcelas}
 
     editando: dict[str, int | None] = {"id": None}
@@ -154,6 +157,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         tipo_inicio = ui.radio({"sementeira": "Sementeira", "plantacion": "Plantación"},
                                value="sementeira").props("inline")
         data_inicio = campo_data("Data de sementeira ou plantación")
+        quen = ui.select(persoas, label="Quen sementou ou plantou", clearable=True).classes(
+            "w-full")
         data_prevista = campo_data("Colleita prevista")
         data_fin = campo_data("Data de fin (cando remata)")
 
@@ -173,6 +178,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
 
         with ui.expansion("Sementeira ou plantación (caderno)").classes("w-full"):
             data_fin_sementeira = campo_data("Data de fin da sementeira/plantación")
+            horas_sementeira = ui.input("Horas de traballo").classes("w-full")
             ui.label("Indica só un destes catro:").classes("text-caption")
             cantidade_semente = ui.input("Semente usada (kg)").classes("w-full")
             dose_sementeira = ui.input("Dose de sementeira (kg/ha)").classes("w-full")
@@ -259,6 +265,10 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             if not parcela.value or cultivo_oficial.value is None:
                 ui.notify("Parcela e cultivo son obrigatorios", type="negative")
                 return
+            inicio = parsear_data(data_inicio.value)
+            if inicio is not None and inicio <= date.today() and quen.value is None:
+                ui.notify("Indica quen sementou ou plantou", type="negative")
+                return
             datos: dict[str, Any] = dict(
                 especie=opcions_cultivo.get(cultivo_oficial.value, ""),
                 cultivo_siex_codigo=cultivo_oficial.value,
@@ -267,7 +277,9 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 else variedade_oficial.options[variedade_oficial.value],
                 superficie_ha=superficie.ha,
                 tipo_inicio=tipo_inicio.value,
-                data_inicio=parsear_data(data_inicio.value),
+                data_inicio=inicio,
+                sementeira_persoa_id=quen.value,
+                sementeira_horas=parsear_decimal(horas_sementeira.value),
                 data_colleita_prevista=parsear_data(data_prevista.value),
                 data_fin=parsear_data(data_fin.value),
                 sistema_cultivo=sistema.value,
