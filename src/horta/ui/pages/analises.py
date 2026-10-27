@@ -22,11 +22,13 @@ from horta.services.catalogos import valores_vixentes
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.persoas import listar_persoas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
@@ -131,6 +133,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
         tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_analise")}
         substancias = {v.codigo: v.descricion
                        for v in valores_vixentes(session, "substancia_activa")}
+        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None}
 
@@ -140,6 +143,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
         material = ui.select(materiais, label="Que se analizou").classes("w-full")
         data = campo_data("Data da mostra", date.today().isoformat())
+        persoa = ui.select(persoas, label="Quen colleu a mostra").classes("w-full")
         tipo = ui.select(tipos, multiple=True, label="Tipo de análise").classes(
             "w-full").props("use-chips")
         parcela = ui.select(parcelas, label="Parcela", clearable=True).classes("w-full")
@@ -159,6 +163,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
             laboratorio = ui.input("Laboratorio").classes("w-full")
             nif = ui.input("NIF do laboratorio").classes("w-full")
             boletin = ui.input("Nº de boletín").classes("w-full")
+            horas = ui.input("Horas de traballo").classes("w-full")
             notas = ui.textarea("Notas").classes("w-full")
 
         def gardar() -> None:
@@ -186,6 +191,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
                         colleita_id=lote.value,
                         solo={c: parsear_decimal(i.value) for c, i in parametros.items()}
                         if material.value == SOLO else {},
+                        persoa_id=persoa.value, horas=parsear_decimal(horas.value),
                         notas=notas.value or None)
                     existente = session.get(Analise, editando["id"]) if editando["id"] else None
                     if existente is None:
@@ -206,6 +212,9 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
         titulo.text = "Editar análise" if a else "Apuntar análise"
         material.value = a.material_analizado if a else None
         data.value = (a.data_mostraxe if a else date.today()).isoformat()
+        persoa.value = (a.persoa_id if a.persoa_id in persoas else None) if a else (
+            proposta_quen(horta_id))
+        horas.value = f"{a.horas:g}" if a and a.horas else ""
         tipo.value = [t.codigo for t in a.tipos] if a else []
         substancia.value = [s.codigo for s in a.substancias] if a else []
         parcela.value = a.parcela_id if a else None
