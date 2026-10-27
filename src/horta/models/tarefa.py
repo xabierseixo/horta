@@ -15,6 +15,7 @@ class Tarefa(Base):
     horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"))
     parcela_id: Mapped[int | None] = mapped_column(ForeignKey("parcela.id"), default=None)
     cultivo_id: Mapped[int | None] = mapped_column(ForeignKey("cultivo.id"), default=None)
+    animal_id: Mapped[int | None] = mapped_column(ForeignKey("animal.id"), default=None)
     descricion: Mapped[str] = mapped_column(String(300))
     data: Mapped[date | None] = mapped_column(Date, default=None)
     data_limite: Mapped[date | None] = mapped_column(Date, default=None)

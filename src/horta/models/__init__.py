@@ -9,6 +9,7 @@ from horta.models.catalogo import (
     VariedadeLocal,
     VariedadeSiex,
 )
+from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.comprobacion_catalogo import ComprobacionCatalogo
 from horta.models.cultivo import Cultivo
@@ -49,6 +50,7 @@ __all__ = [
     "Parcela",
     "SecanoRegadio",
     "Animal",
+    "CoidadoAnimal",
     "Cultivo",
     "Tarefa",
     "Colleita",
