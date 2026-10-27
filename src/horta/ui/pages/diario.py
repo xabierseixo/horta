@@ -6,7 +6,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date, timedelta
 from functools import partial
-from typing import Any
 
 from nicegui import ui
 
@@ -18,12 +17,14 @@ from horta.models.cultivo import Cultivo
 from horta.models.labor import Labor
 from horta.models.parcela import Parcela
 from horta.models.rega import Rega
+from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.services.diario import TIPOS, Traballo, listar_traballos
 from horta.services.persoas import listar_persoas
 from horta.ui.campos import campo_data
 from horta.ui.dialogo_tarefa import dialogo_nova_tarefa
+from horta.ui.facer_tarefa import dialogo_tarefa_feita
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data
 from horta.ui.pages.abonados import dialogo_abonado
@@ -52,7 +53,7 @@ _MODELOS: dict[str, type[Base]] = {
     "colleita": Colleita, "sementeira": Cultivo, "analise": Analise,
     "tratamento_instalacion": TratamentoInstalacion,
 }
-_CONSTRUTORES: dict[str, Callable[[int], Callable[[Any], None]]] = {
+_CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "tratamento": dialogo_tratamento_fito, "abonado": dialogo_abonado, "rega": dialogo_rega,
     "labor": dialogo_labor, "colleita": dialogo_colleita, "sementeira": dialogo_cultivo,
     "analise": dialogo_analise, "tratamento_instalacion": dialogo_tratamento_instalacion,
@@ -66,14 +67,16 @@ class Formularios:
     def __init__(self, horta_id: int) -> None:
         self.horta_id = horta_id
         self._contedor = ui.element("div")
-        self._abrir: dict[str, Callable[[Any], None]] = {}
+        self._abrir: dict[str, Callable[..., None]] = {}
 
-    def _abridor(self, tipo: str) -> Callable[[Any], None]:
+    def _abridor(self, tipo: str) -> Callable[..., None]:
         if tipo not in self._abrir:
             with self._contedor:
                 if tipo == "tarefa":
                     abrir_tarefa = dialogo_nova_tarefa(self.horta_id)
                     self._abrir[tipo] = lambda _: abrir_tarefa()
+                elif tipo == "tarefa_feita":
+                    self._abrir[tipo] = dialogo_tarefa_feita(self.horta_id)
                 else:
                     self._abrir[tipo] = _CONSTRUTORES[tipo](self.horta_id)
         return self._abrir[tipo]
@@ -81,9 +84,35 @@ class Formularios:
     def novo(self, tipo: str) -> None:
         self._abridor(tipo)(None)
 
+    def facer(self, tarefa: Tarefa) -> None:
+        """Facer unha tarefa: o formulario do seu tipo xa enchido ou, sen tipo, quen a fixo."""
+        if tarefa.tipo:
+            self._abridor(tarefa.tipo)(None, tarefa)
+        else:
+            self._abridor("tarefa_feita")(tarefa)
+
+    def _escoller(self, tarefa: Tarefa) -> None:
+        with self._contedor, ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
+            ui.label(tarefa.descricion).classes("text-h6")
+
+            def facela() -> None:
+                dialogo.close()
+                self.facer(tarefa)
+
+            with ui.row():
+                ui.button("Facela agora", icon="check", on_click=facela)
+                ui.button("Editar a tarefa", icon="edit", on_click=lambda: ui.navigate.to(
+                    url_seccion(self.horta_id, "tarefas"))).props("flat")
+        dialogo.open()
+
     def editar(self, traballo: Traballo) -> None:
         if traballo.tipo == "tarefa":
-            ui.navigate.to(url_seccion(self.horta_id, "tarefas"))
+            with get_session() as session:
+                tarefa = session.get(Tarefa, traballo.id)
+            if tarefa is not None and not traballo.feito:
+                self._escoller(tarefa)
+            else:
+                ui.navigate.to(url_seccion(self.horta_id, "tarefas"))
             return
         abrir = self._abridor(traballo.tipo)
         with get_session() as session:
