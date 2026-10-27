@@ -10,6 +10,10 @@ from horta.services.cultivos import crear_cultivo
 from horta.services.hortas import crear_horta
 from horta.services.parcelas import crear_parcela
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
+
 
 def test_cliente_da_colleita_no_caderno(session):
     ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
@@ -19,7 +23,7 @@ def test_cliente_da_colleita_no_caderno(session):
     horta = crear_horta(session, ana, "Horta")
     cultivo = crear_cultivo(session, ana, crear_parcela(session, ana, horta.id, "P").id,
                             "Pataca")
-    crear_colleita(session, ana, DatosColleita(
+    crear_colleita(session, ana, DatosColleita(persoa_id=QUEN,
         cultivo_id=cultivo.id, data=date(2026, 9, 1), cantidade=200, unidade="kg",
         lote="2026-PATACA-001", albaran_factura="A-7", cliente_nome="Froitas Melide SL",
         cliente_nif="B15000000", cliente_enderezo="Rúa do Mercado 2"), hoxe=date(2026, 10, 25))

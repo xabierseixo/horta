@@ -18,6 +18,9 @@ from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoErr
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.parcelas import crear_parcela
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
 HOXE = date(2026, 10, 23)
 
 
@@ -46,7 +49,7 @@ def _escenario(session):
 def _datos(cultivo, **cambios) -> DatosColleita:
     base = {"cultivo_id": cultivo.id, "data": date(2026, 7, 15), "cantidade": 1000.0,
             "unidade": "kg", "lote": "2026-PATACA-001"}
-    return DatosColleita(**{**base, **cambios})
+    return DatosColleita(**{"persoa_id": QUEN, **base, **cambios})
 
 
 def test_crear_e_listar(session):
@@ -66,6 +69,7 @@ def test_crear_e_listar(session):
         ({"superficie_ha": 0.9}, "maior ca do cultivo"),
     ],
 )
+
 def test_validacions(session, cambios, mensaxe):
     ana, _, cultivo = _escenario(session)
     with pytest.raises(OperacionNonPermitidaError, match=mensaxe):

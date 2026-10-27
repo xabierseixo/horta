@@ -15,6 +15,10 @@ from horta.services.tratamentos_instalacion import (
     listar_tratamentos_instalacion,
 )
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
+
 HOXE = date(2026, 10, 25)
 
 
@@ -42,7 +46,7 @@ def _datos(**cambios):
             "problema_tipo": "praga", "problema_codigo": "7", "cantidade_tratada": 30,
             "nome_comercial": "Produto X", "cantidade_utilizada": 0.5, "unidade": "4"}
     base.update(cambios)
-    return DatosTratamentoInstalacion(**base)
+    return DatosTratamentoInstalacion(**{"persoa_id": QUEN, **base})
 
 
 def test_crear_editar_e_dar_de_baixa(session):
