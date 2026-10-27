@@ -16,6 +16,7 @@ from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import UNIDADES_DOSE, nutrientes_kg_ha
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -60,6 +61,9 @@ def _validar(
 ) -> None:
     if datos.data_inicio > hoxe:
         raise OperacionNonPermitidaError("A data do abonado non pode ser futura")
+    # Se o fixo unha empresa de servizos, a persoa pode non ser do equipo
+    comprobar_quen(session, horta_id, datos.aplicador_persoa_id, datos.horas,
+                   obrigatoria=not datos.empresa_servizos_regfer)
     if datos.data_fin is not None and datos.data_fin < datos.data_inicio:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
     if datos.superficie_ha is not None:
@@ -105,6 +109,7 @@ def _copiar(abonado: Abonado, datos: DatosAbonado, horta_id: int, cultivo: Culti
     abonado.aplicacion_lodos = datos.aplicacion_lodos
     abonado.albaran_factura = datos.albaran_factura or None
     abonado.aplicador_persoa_id = datos.aplicador_persoa_id
+    abonado.horas = datos.horas
     abonado.empresa_servizos_regfer = datos.empresa_servizos_regfer or None
     abonado.maquina_id = datos.maquina_id
     abonado.num_repeticions = datos.num_repeticions

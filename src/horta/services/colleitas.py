@@ -16,6 +16,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -88,6 +89,7 @@ def _validar(
         raise OperacionNonPermitidaError(f"Unidade non válida: {datos.unidade}")
     if datos.data > hoxe:
         raise OperacionNonPermitidaError("A data da colleita non pode ser futura")
+    comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     if cultivo.data_inicio is not None and datos.data < cultivo.data_inicio:
         raise OperacionNonPermitidaError("A colleita non pode ser anterior ao inicio do cultivo")
     if datos.superficie_ha is not None:
@@ -128,6 +130,8 @@ def _copiar(colleita: Colleita, datos: DatosColleita) -> None:
     colleita.maquina_id = datos.maquina_id
     colleita.num_repeticions = datos.num_repeticions
     colleita.duracion_h_ha = datos.duracion_h_ha
+    colleita.persoa_id = datos.persoa_id
+    colleita.horas = datos.horas
     colleita.destino_colleita = datos.destino_colleita or None
     colleita.destino_restos = datos.destino_restos or None
     colleita.notas = datos.notas or None
