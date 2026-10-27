@@ -26,6 +26,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
 from horta.ui.taboas import TEXTOS_TABOA
@@ -359,7 +360,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                     necesidade_n, necesidade_p, necesidade_k, plan_data, auga_n, auga_p,
                     semente_produto, semente_rexistro,
                     data_fin_sementeira, cantidade_semente, dose_sementeira, densidade,
-                    data_adquisicion, castineiros, abeleiras, nogueiras, amendoeiras, outros_casca)
+                    data_adquisicion, castineiros, abeleiras, nogueiras, amendoeiras, outros_casca,
+                    horas_sementeira)
     campos_select = (variedade_oficial, secano, procedencia, anterior, causa_baixa, cobertura)
     casillas = (sementeira_directa, material_tratado, material_adquirido, ferramenta)
 
@@ -377,6 +379,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 selector.value = None
             superficie.establecer(None)
             tipo_inicio.value = "sementeira"
+            quen.value = proposta_quen(horta_id)
             sistema.value = _POR_DEFECTO["sistema_cultivo"]
             destino.value = _POR_DEFECTO["destino"]
             eco.value = _POR_DEFECTO["certificacion_ecoloxica"]
@@ -394,6 +397,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         superficie.establecer(c.superficie_ha)
         tipo_inicio.value = c.tipo_inicio or "sementeira"
         data_inicio.value = _texto(c.data_inicio)
+        quen.value = c.sementeira_persoa_id if c.sementeira_persoa_id in persoas else None
+        horas_sementeira.value = "" if c.sementeira_horas is None else f"{c.sementeira_horas:g}"
         data_prevista.value = _texto(c.data_colleita_prevista)
         data_fin.value = _texto(c.data_fin)
         sistema.value = c.sistema_cultivo or _POR_DEFECTO["sistema_cultivo"]
