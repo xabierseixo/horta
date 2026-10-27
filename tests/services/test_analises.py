@@ -17,6 +17,10 @@ from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoErr
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.parcelas import crear_parcela
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
+
 HOXE = date(2026, 10, 25)
 
 
@@ -46,7 +50,7 @@ def _escenario(session):
 
 def test_analise_de_solo_dunha_parcela(session):
     ana, horta, parcela, _ = _escenario(session)
-    analise = crear_analise(session, ana, horta.id, DatosAnalise(
+    analise = crear_analise(session, ana, horta.id, DatosAnalise(persoa_id=QUEN,
         material_analizado="3", data_mostraxe=date(2026, 3, 1), tipos=["5"],
         parcela_id=parcela.id, laboratorio="Lab", solo={"ph": 5.8, "materia_organica": 4.2}),
         hoxe=HOXE)
@@ -57,7 +61,7 @@ def test_analise_de_solo_dunha_parcela(session):
 
 def test_residuos_no_produto(session):
     ana, horta, _, cultivo = _escenario(session)
-    analise = crear_analise(session, ana, horta.id, DatosAnalise(
+    analise = crear_analise(session, ana, horta.id, DatosAnalise(persoa_id=QUEN,
         material_analizado="2", data_mostraxe=date(2026, 8, 1), tipos=["1"],
         substancias=["2"], cultivo_id=cultivo.id), hoxe=HOXE)
     assert [s.codigo for s in analise.substancias] == ["2"]
@@ -72,7 +76,8 @@ def test_residuos_no_produto(session):
 ])
 def test_validacions(session, cambios, mensaxe):
     ana, horta, _, _ = _escenario(session)
-    datos = {"material_analizado": "3", "data_mostraxe": date(2026, 3, 1), **cambios}
+    datos = {"material_analizado": "3", "data_mostraxe": date(2026, 3, 1), "persoa_id": QUEN,
+             **cambios}
     with pytest.raises(OperacionNonPermitidaError, match=mensaxe):
         crear_analise(session, ana, horta.id, DatosAnalise(**datos), hoxe=HOXE)
 
@@ -82,7 +87,7 @@ def test_cultivo_doutra_explotacion(session):
     outra = crear_horta(session, ana, "Outra")
     outro = crear_cultivo(session, ana, crear_parcela(session, ana, outra.id, "P").id, "X")
     with pytest.raises(OperacionNonPermitidaError, match="non é desta explotación"):
-        crear_analise(session, ana, horta.id, DatosAnalise(
+        crear_analise(session, ana, horta.id, DatosAnalise(persoa_id=QUEN,
             material_analizado="3", data_mostraxe=date(2026, 3, 1), cultivo_id=outro.id),
             hoxe=HOXE)
 
@@ -91,11 +96,11 @@ def test_lector_non_pode_e_baixa(session):
     ana, horta, _, _ = _escenario(session)
     bea = _usuario(session, "bea@example.com")
     engadir_membro(session, ana, horta.id, bea, RolHorta.LECTOR)
-    datos = DatosAnalise(material_analizado="3", data_mostraxe=date(2026, 3, 1))
+    datos = DatosAnalise(persoa_id=QUEN, material_analizado="3", data_mostraxe=date(2026, 3, 1))
     with pytest.raises(PermisoDenegadoError):
         crear_analise(session, bea, horta.id, datos, hoxe=HOXE)
     analise = crear_analise(session, ana, horta.id, datos, hoxe=HOXE)
-    actualizar_analise(session, ana, analise, DatosAnalise(
+    actualizar_analise(session, ana, analise, DatosAnalise(persoa_id=QUEN,
         material_analizado="3", data_mostraxe=date(2026, 3, 2)), hoxe=HOXE)
     dar_de_baixa_analise(session, ana, analise)
     assert listar_analises(session, ana, horta.id) == []

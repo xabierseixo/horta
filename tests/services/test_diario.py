@@ -8,6 +8,10 @@ from horta.services.parcelas import crear_parcela
 from horta.services.regas import DatosRega, crear_rega
 from horta.services.tarefas import crear_tarefa, marcar_feita
 
+# A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
+QUEN = 1
+
+
 HOXE = date(2026, 10, 26)
 
 
@@ -26,8 +30,8 @@ def test_xunta_os_traballos_de_cada_tipo(session):
     ana, horta, parcela, cultivo = _escenario(session)
     actualizar_cultivo(session, ana, cultivo, data_inicio=date(2026, 5, 1),
                        tipo_inicio="plantacion")
-    crear_rega(session, ana, DatosRega(cultivo_id=cultivo.id, data_inicio=date(2026, 7, 1)),
-               hoxe=HOXE)
+    crear_rega(session, ana, DatosRega(cultivo_id=cultivo.id, data_inicio=date(2026, 7, 1),
+                                       persoa_id=QUEN), hoxe=HOXE)
     traballos = listar_traballos(session, ana, horta.id, hoxe=HOXE)
     assert [(t.tipo, t.data, t.feito) for t in traballos] == [
         ("rega", date(2026, 7, 1), True), ("sementeira", date(2026, 5, 1), True)]
@@ -38,8 +42,8 @@ def test_xunta_os_traballos_de_cada_tipo(session):
 
 def test_o_por_facer_vai_primeiro_e_sae_sempre(session):
     ana, horta, _, cultivo = _escenario(session)
-    crear_rega(session, ana, DatosRega(cultivo_id=cultivo.id, data_inicio=date(2026, 1, 10)),
-               hoxe=HOXE)
+    crear_rega(session, ana, DatosRega(cultivo_id=cultivo.id, data_inicio=date(2026, 1, 10),
+                                       persoa_id=QUEN), hoxe=HOXE)
     crear_tarefa(session, ana, horta.id, "Podar a viña", data=date(2026, 11, 2))
     crear_tarefa(session, ana, horta.id, "Mercar sementes")
     crear_tarefa(session, ana, horta.id, "Sulfatar", data_limite=date(2026, 10, 1))
