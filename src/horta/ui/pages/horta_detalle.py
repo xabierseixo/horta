@@ -38,7 +38,6 @@ from horta.services.tarefas import (
     listar_tarefas_atrasadas,
     listar_tarefas_pendentes_hoxe,
     listar_tarefas_proximas,
-    marcar_feita,
     marcar_pendente,
 )
 from horta.ui.accions import executar_accion
@@ -568,6 +567,7 @@ def _seccion_tarefas(
 
     if pode_editar:
         abrir_nova_tarefa = dialogo_nova_tarefa(horta_id)
+        formularios = Formularios(horta_id)
         with get_session() as session:
             actor = usuario_actual(session)
             opcions_tipo, opcions_persoa = (
@@ -751,7 +751,9 @@ def _seccion_tarefas(
         tarefa_completa = next((t for t in tarefas if t.id == tarefa_id), None)
         if tarefa_completa is None:
             return
-        accion = marcar_pendente if tarefa_completa.estado == "feito" else marcar_feita
+        if tarefa_completa.estado != "feito":
+            formularios.facer(tarefa_completa)
+            return
         with get_session() as session:
             actor_actual = usuario_actual(session)
             if actor_actual is None:
@@ -764,7 +766,8 @@ def _seccion_tarefas(
             if obxectivo is None:
                 ui.notify("Esa tarefa xa non existe", type="negative")
                 return
-            feito = executar_accion(session, lambda: accion(session, actor_actual, obxectivo))
+            feito = executar_accion(
+                session, lambda: marcar_pendente(session, actor_actual, obxectivo))
         if not feito:
             return
         ui.navigate.reload()
