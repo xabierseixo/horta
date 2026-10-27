@@ -30,6 +30,7 @@ from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
 from horta.ui.taboas import TEXTOS_TABOA
@@ -127,10 +128,12 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
         data_inicio = campo_data("Data", date.today().isoformat())
         tipo = ui.select(tipos, label="Labor").classes("w-full")
+        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         restos_desbroce = ui.checkbox("Os restos do desbroce quedaron no chan")
         restos_poda = ui.checkbox("Os restos da poda quedaron no chan")
         with ui.expansion("Máis datos").classes("w-full"):
             data_fin = campo_data("Data de fin (se durou máis dun día)")
+            horas_traballo = ui.input("Horas de traballo").classes("w-full")
             superficie = CampoSuperficie("Superficie (baleiro = a do cultivo)")
             cobertura = ui.select(coberturas, label="Cobertura do solo (baleiro = a do cultivo)",
                                   clearable=True).classes("w-full")
@@ -138,7 +141,6 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
             with ui.row().classes("w-full no-wrap"):
                 repeticions = ui.input("Nº de pasadas").classes("col")
                 horas = ui.input("Horas de cada pasada").classes("col")
-            persoa = ui.select(persoas, label="Quen o fixo", clearable=True).classes("w-full")
             notas = ui.textarea("Notas").classes("w-full")
 
         def mostrar_restos() -> None:
@@ -177,7 +179,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
                         tipo_cobertura=cobertura.value, maquina_id=maquina.value,
                         num_repeticions=int(pasadas) if pasadas is not None else None,
                         duracion_h=parsear_decimal(horas.value), persoa_id=persoa.value,
-                        notas=notas.value or None)
+                        horas=parsear_decimal(horas_traballo.value), notas=notas.value or None)
                     existente = session.get(Labor, editando["id"]) if editando["id"] else None
                     if existente is None:
                         crear_labor(session, actor_actual, datos)
@@ -207,7 +209,9 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         maquina.value = lab.maquina_id if lab and lab.maquina_id in maquinas else None
         repeticions.value = str(lab.num_repeticions) if lab and lab.num_repeticions else ""
         horas.value = f"{lab.duracion_h:g}" if lab and lab.duracion_h else ""
-        persoa.value = lab.persoa_id if lab and lab.persoa_id in persoas else None
+        persoa.value = (lab.persoa_id if lab.persoa_id in persoas else None) if lab else (
+            proposta_quen(horta_id))
+        horas_traballo.value = f"{lab.horas:g}" if lab and lab.horas else ""
         notas.value = (lab.notas or "") if lab else ""
         mostrar_restos()
         dialogo.open()
