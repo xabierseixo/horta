@@ -19,6 +19,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -87,6 +88,8 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "semente_tratamento_num_rexistro",
         "material_adquirido",
         "data_adquisicion_material",
+        "sementeira_persoa_id",
+        "sementeira_horas",
     }
 )
 
@@ -183,6 +186,8 @@ def crear_cultivo(
         raise ValueError("Esa parcela non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_rea(session, _valores_rea(None, campos), session.get(Parcela, parcela_id))
+    comprobar_quen(session, horta_id, campos.get("sementeira_persoa_id"),
+                   campos.get("sementeira_horas"), obrigatoria=False)
     estado = campos.pop("estado", None)
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, **campos)
     cultivo.estado = estado or calcular_estado(cultivo)
@@ -206,6 +211,8 @@ def actualizar_cultivo(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     parcela = session.get(Parcela, cultivo.parcela_id)
     _validar_rea(session, _valores_rea(cultivo, cambios), parcela)
+    comprobar_quen(session, horta_id, cambios.get("sementeira_persoa_id"),
+                   cambios.get("sementeira_horas"), obrigatoria=False)
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
     if "estado" not in cambios and {"data_inicio", "data_fin"} & set(cambios):
