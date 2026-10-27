@@ -22,10 +22,12 @@ from horta.services.colleitas import (
 )
 from horta.services.cultivos import listar_cultivos
 from horta.services.fito_consulta import aviso_prazo_colleita
+from horta.services.persoas import listar_persoas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
 from horta.ui.taboas import TEXTOS_TABOA
@@ -120,6 +122,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
                         for c in listar_cultivos(session, actor, horta_id)}
         destinos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_colleita")}
         restos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_restos")}
+        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None}
 
@@ -127,6 +130,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         titulo = ui.label("Apuntar colleita").classes("text-h6")
         cultivo = ui.select(nome_cultivo, label="Cultivo", with_input=True).classes("w-full")
         data = campo_data("Data", date.today().isoformat())
+        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         with ui.row().classes("w-full no-wrap gap-2"):
             cantidade = ui.input("Cantidade").classes("col-grow")
             unidade = ui.select(list(UNIDADES_COLLEITA), value="kg", label="Unidade").classes(
@@ -135,6 +139,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         albaran = ui.input("Nº de albarán ou factura (opcional)").classes("w-full")
         superficie = CampoSuperficie("Superficie colleitada (baleiro = a do cultivo)")
         data_fin = campo_data("Data de fin (se durou máis dun día)")
+        horas = ui.input("Horas de traballo").classes("w-full")
         destino = ui.select(destinos, label="Finalidade (só viño ou procesado industrial)",
                             clearable=True).classes("w-full")
         destino_restos = ui.select(restos, label="Que se fai cos restos", clearable=True).classes(
@@ -205,6 +210,8 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
                         obten_plantas=plantas.value,
                         sen_colleita_ambiental=sen_colleita.value,
                         restos_no_solo=restos_solo.value,
+                        persoa_id=persoa.value,
+                        horas=parsear_decimal(horas.value),
                     )
                     if editando["id"] is None:
                         crear_colleita(session, actor, datos)
@@ -226,6 +233,9 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         titulo.text = "Editar colleita" if c else "Apuntar colleita"
         cultivo.value = c.cultivo_id if c else None
         data.value = (c.data if c else date.today()).isoformat()
+        persoa.value = (c.persoa_id if c.persoa_id in persoas else None) if c else (
+            proposta_quen(horta_id))
+        horas.value = f"{c.horas:g}" if c and c.horas else ""
         cantidade.value = f"{c.cantidade:g}" if c else ""
         unidade.value = c.unidade if c else "kg"
         lote.value = c.lote if c else ""
