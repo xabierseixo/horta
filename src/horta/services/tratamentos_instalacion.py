@@ -14,6 +14,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -40,11 +41,13 @@ class DatosTratamentoInstalacion:
     horas: float | None = None
 
 
-def _validar(session: Session, datos: DatosTratamentoInstalacion, hoxe: date) -> None:
+def _validar(session: Session, datos: DatosTratamentoInstalacion, horta_id: int,
+             hoxe: date) -> None:
     if datos.tipo not in TIPOS_INSTALACION:
         raise OperacionNonPermitidaError("Escolle se é postcolleita, local ou transporte")
     if datos.data > hoxe:
         raise OperacionNonPermitidaError("A data do tratamento non pode ser futura")
+    comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     if not datos.obxecto.strip():
         raise OperacionNonPermitidaError("Indica que se tratou")
     if not (datos.nome_comercial or datos.materia_activa):
@@ -76,7 +79,7 @@ def crear_tratamento_instalacion(
     hoxe: date | None = None,
 ) -> TratamentoInstalacion:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    _validar(session, datos, hoxe or date.today())
+    _validar(session, datos, horta_id, hoxe or date.today())
     tratamento = TratamentoInstalacion(horta_id=horta_id, creado_por=actor.id)
     _copiar(tratamento, datos)
     session.add(tratamento)
@@ -91,7 +94,7 @@ def actualizar_tratamento_instalacion(
     if tratamento.baixa:
         raise OperacionNonPermitidaError("Un tratamento dado de baixa non se pode modificar")
     comprobar_rol_horta(session, tratamento.horta_id, actor, _ROLES_ESCRITURA)
-    _validar(session, datos, hoxe or date.today())
+    _validar(session, datos, tratamento.horta_id, hoxe or date.today())
     _copiar(tratamento, datos)
     session.commit()
     return tratamento
