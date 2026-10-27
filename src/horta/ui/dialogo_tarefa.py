@@ -6,17 +6,31 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from nicegui import ui
+from sqlalchemy.orm import Session
 
 from horta.db import get_session
+from horta.models.usuario import Usuario
 from horta.services.cultivos import listar_cultivos
+from horta.services.diario import TIPOS
 from horta.services.parcelas import listar_parcelas
-from horta.services.tarefas import crear_tarefa
+from horta.services.persoas import listar_persoas
+from horta.services.tarefas import TIPOS_TAREFA, crear_tarefa
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.numeros import parsear_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 PRIORIDADES_TAREFA = ("baixa", "media", "alta")
+
+
+def opcions_tarefa(
+    session: Session, actor: Usuario, horta_id: int
+) -> tuple[dict[str, str], dict[int | str, str]]:
+    """Que traballo é (baleiro = outro) e quen o vai facer (opcional)."""
+    tipos = {"": "Outro traballo", **{tipo: TIPOS[tipo] for tipo in TIPOS_TAREFA}}
+    persoas: dict[int | str, str] = {"": "(sen decidir)", **{
+        p.id: p.nome for p in listar_persoas(session, actor, horta_id)}}
+    return tipos, persoas
 
 
 def dialogo_nova_tarefa(horta_id: int) -> Callable[[], None]:
@@ -31,11 +45,15 @@ def dialogo_nova_tarefa(horta_id: int) -> Callable[[], None]:
         opcions_cultivo: dict[int | str, str] = {"": "(sen cultivo)", **{
             c.id: c.especie for c in listar_cultivos(session, actor, horta_id)}}
 
+    opcions_tipo, opcions_persoa = opcions_tarefa(session, actor, horta_id)
+
     with ui.dialog() as dialogo, ui.card():
         ui.label("Nova tarefa").classes("text-md font-bold")
         descricion = ui.input("Que hai que facer").classes("w-full")
+        tipo = ui.select(opcions_tipo, label="Que traballo é", value="").classes("w-full")
         parcela = ui.select(opcions_parcela, label="Parcela", value="").classes("w-full")
         cultivo = ui.select(opcions_cultivo, label="Cultivo", value="").classes("w-full")
+        persoa = ui.select(opcions_persoa, label="Quen o vai facer", value="").classes("w-full")
         data = campo_data("Data (opcional)")
         prioridade = ui.select(list(PRIORIDADES_TAREFA), label="Prioridade", value="media")
 
@@ -51,6 +69,7 @@ def dialogo_nova_tarefa(horta_id: int) -> Callable[[], None]:
                 creada = executar_accion(session, lambda: crear_tarefa(
                     session, actor_actual, horta_id, descricion.value,
                     parcela_id=parcela.value or None, cultivo_id=cultivo.value or None,
+                    tipo=tipo.value or None, persoa_id=persoa.value or None,
                     data=parsear_data(data.value),
                     prioridade=prioridade.value))
             if creada:
@@ -62,7 +81,7 @@ def dialogo_nova_tarefa(horta_id: int) -> Callable[[], None]:
 
     def abrir() -> None:
         descricion.value = ""
-        parcela.value = cultivo.value = ""
+        parcela.value = cultivo.value = tipo.value = persoa.value = ""
         data.value = ""
         prioridade.value = "media"
         dialogo.open()
