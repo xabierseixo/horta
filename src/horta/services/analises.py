@@ -16,6 +16,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -59,6 +60,7 @@ def _horta_de(session: Session, modelo: type, ident: int | None) -> int | None:
 def _validar(session: Session, horta_id: int, datos: DatosAnalise, hoxe: date) -> None:
     if datos.data_mostraxe > hoxe:
         raise OperacionNonPermitidaError("A data da mostra non pode ser futura")
+    comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     validar_codigo(session, "material_analizado", datos.material_analizado, datos.data_mostraxe)
     for codigo in datos.tipos:
         validar_codigo(session, "tipo_analise", codigo, datos.data_mostraxe)
@@ -92,6 +94,8 @@ def _copiar(analise: Analise, horta_id: int, datos: DatosAnalise) -> None:
     analise.parcela_id = datos.parcela_id
     analise.cultivo_id = datos.cultivo_id
     analise.colleita_id = datos.colleita_id
+    analise.persoa_id = datos.persoa_id
+    analise.horas = datos.horas
     for campo in CAMPOS_SOLO:
         setattr(analise, campo, datos.solo.get(campo))
     analise.notas = datos.notas or None
