@@ -45,7 +45,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_datos_caderno import boton_datos_caderno
-from horta.ui.dialogo_tarefa import PRIORIDADES_TAREFA, dialogo_nova_tarefa
+from horta.ui.dialogo_tarefa import PRIORIDADES_TAREFA, dialogo_nova_tarefa, opcions_tarefa
 from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import (
     SECCIONS,
@@ -568,6 +568,10 @@ def _seccion_tarefas(
 
     if pode_editar:
         abrir_nova_tarefa = dialogo_nova_tarefa(horta_id)
+        with get_session() as session:
+            actor = usuario_actual(session)
+            opcions_tipo, opcions_persoa = (
+                opcions_tarefa(session, actor, horta_id) if actor else ({}, {}))
 
     with ui.row().classes("w-full items-center justify-between"):
         ui.space()
@@ -656,6 +660,8 @@ def _seccion_tarefas(
     with ui.dialog() as dialog_editar, ui.card():
         ui.label("Editar tarefa").classes("text-md font-bold")
         descricion_edit = ui.input("Descrición")
+        tipo_edit = ui.select(opcions_tipo, label="Que traballo é")
+        persoa_edit = ui.select(opcions_persoa, label="Quen o vai facer")
         parcela_edit = ui.select(opcions_parcela, label="Parcela")
         cultivo_edit = ui.select(opcions_cultivo, label="Cultivo")
         data_edit = campo_data("Data (opcional)")
@@ -699,6 +705,8 @@ def _seccion_tarefas(
                         actor_actual,
                         obxectivo,
                         descricion=descricion_edit.value,
+                        tipo=tipo_edit.value or None,
+                        persoa_id=persoa_edit.value or None,
                         parcela_id=parcela_edit.value or None,
                         cultivo_id=cultivo_edit.value or None,
                         data=data_valor,
@@ -723,6 +731,9 @@ def _seccion_tarefas(
         if tarefa_completa is None:
             return
         descricion_edit.value = tarefa_completa.descricion
+        tipo_edit.value = tarefa_completa.tipo or ""
+        persoa_edit.value = (tarefa_completa.persoa_id
+                             if tarefa_completa.persoa_id in opcions_persoa else "")
         parcela_edit.value = tarefa_completa.parcela_id or ""
         cultivo_edit.value = tarefa_completa.cultivo_id or ""
         data_edit.value = tarefa_completa.data.isoformat() if tarefa_completa.data else ""
