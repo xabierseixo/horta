@@ -37,6 +37,8 @@ class Colleita(Base):
     maquina_id: Mapped[int | None] = mapped_column(ForeignKey("maquina.id"), default=None)
     num_repeticions: Mapped[int | None] = mapped_column(Integer, default=None)
     duracion_h_ha: Mapped[float | None] = mapped_column(Float, default=None)
+    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
+    horas: Mapped[float | None] = mapped_column(Float, default=None)
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
     baixa: Mapped[bool] = mapped_column(Boolean, default=False)
     # App do móbil: identificador xerado no móbil (envío sen duplicados)

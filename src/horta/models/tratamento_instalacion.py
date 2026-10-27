@@ -35,6 +35,8 @@ class TratamentoInstalacion(Base):
     materia_activa: Mapped[str | None] = mapped_column(String(250), default=None)
     cantidade_utilizada: Mapped[float | None] = mapped_column(Float, default=None)
     unidade: Mapped[str | None] = mapped_column(String(20), default=None)
+    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
+    horas: Mapped[float | None] = mapped_column(Float, default=None)
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
     baixa: Mapped[bool] = mapped_column(Boolean, default=False)
     creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)

@@ -24,6 +24,8 @@ class Analise(Base):
     parcela_id: Mapped[int | None] = mapped_column(ForeignKey("parcela.id"), default=None)
     cultivo_id: Mapped[int | None] = mapped_column(ForeignKey("cultivo.id"), default=None)
     colleita_id: Mapped[int | None] = mapped_column(ForeignKey("colleita.id"), default=None)
+    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
+    horas: Mapped[float | None] = mapped_column(Float, default=None)
     # Parámetros do solo (CUE ParametrosSuelo): só se o material é solo
     materia_organica: Mapped[float | None] = mapped_column(Float, default=None)
     area: Mapped[float | None] = mapped_column(Float, default=None)
