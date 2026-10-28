@@ -1,4 +1,4 @@
-"""Sección Fertilización: cada abonado dun cultivo (CUE bloque 9). Baixa lóxica."""
+"""Sección Fertilización: cada abonado, nunha ou varias leiras (CUE bloque 9). Baixa lóxica."""
 
 from __future__ import annotations
 
@@ -32,6 +32,7 @@ from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_abono import dialogo_novo_abono
 from horta.ui.facer_tarefa import rematar_tarefa
+from horta.ui.leiras import leiras_escollidas
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -54,7 +55,7 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
         lista_cultivos = listar_cultivos(session, actor, horta_id)
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                     for c in lista_cultivos}
-        abonados_cultivos = {a.cultivo_id for a in abonados}
+        abonados_cultivos = {le.cultivo_id for a in abonados for le in a.leiras}
         balances = {c.id: balance_do_cultivo(session, actor, horta_id, c) for c in lista_cultivos
                     if c.id in abonados_cultivos or c.plan_necesidade_n}
         abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
@@ -63,7 +64,7 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
         filas = [{
             "id": a.id,
             "data": f"{a.data_inicio:%d/%m/%Y}",
-            "cultivo": cultivos.get(a.cultivo_id, ""),
+            "cultivo": ", ".join(cultivos.get(le.cultivo_id, "") for le in a.leiras),
             "abono": abonos.get(a.fertilizante_id or 0, "abonado en verde"),
             "dose": f"{a.dose:g} {unidades.get(a.unidade or '', '')}" if a.dose else "",
             "nutrientes": _nutrientes(nutrientes_do_abonado(session, a)),
@@ -160,11 +161,14 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         titulo = ui.label("Apuntar abonado").classes("text-h6")
         if not tipos or not practicas:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
-        cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
+        cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
+                            multiple=True, value=[]).classes("w-full").props("use-chips")
         data_inicio = campo_data("Data", date.today().isoformat())
         aplicador = ui.select(persoas, label="Quen o botou (persoa ou empresa de servizos)",
                               clearable=True).classes("w-full")
-        superficie = CampoSuperficie("Superficie abonada (baleiro = a do cultivo)")
+        superficie = CampoSuperficie("Superficie abonada (baleiro = a do cultivo; só cunha leira)")
+        cultivo.on_value_change(
+            lambda: superficie.set_visibility(len(cultivo.value or []) == 1))
         with ui.row().classes("w-full no-wrap items-center"):
             abono = ui.select(abonos, label="Abono", with_input=True).classes("col")
             ui.button(icon="add", on_click=novo_abono.open).props(
@@ -202,8 +206,8 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
             campo.on_value_change(calcular)
 
         def gardar() -> None:
-            if cultivo.value is None:
-                ui.notify("Escolle o cultivo", type="warning")
+            if not cultivo.value:
+                ui.notify("Escolle as leiras", type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -216,8 +220,8 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                     if inicio is None:
                         raise OperacionNonPermitidaError("Indica a data")
                     datos = DatosAbonado(
-                        cultivo_id=cultivo.value, data_inicio=inicio,
-                        data_fin=parsear_data(data_fin.value), superficie_ha=superficie.ha,
+                        leiras=leiras_escollidas(cultivo.value, superficie.ha),
+                        data_inicio=inicio, data_fin=parsear_data(data_fin.value),
                         tipo_fertilizacion=tipo.value or "", metodo=metodo.value or "",
                         boas_practicas=list(boas.value or []), fertilizante_id=abono.value,
                         dose=parsear_decimal(dose.value), unidade=unidade.value,
@@ -244,10 +248,12 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = a.id if a else None
         titulo.text = "Editar abonado" if a else "Apuntar abonado"
-        cultivo.value = a.cultivo_id if a else (tarefa.cultivo_id if tarefa else None)
+        cultivo.value = ([le.cultivo_id for le in a.leiras] if a else
+                         [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])
         data_inicio.value = (a.data_inicio if a else date.today()).isoformat()
         data_fin.value = a.data_fin.isoformat() if a and a.data_fin != a.data_inicio else ""
-        superficie.establecer(a.superficie_ha if a else None)
+        superficie.establecer(a.leiras[0].superficie_ha if a and len(a.leiras) == 1 else None)
+        superficie.set_visibility(len(cultivo.value) == 1)
         abono.value = a.fertilizante_id if a else None
         dose.value = f"{a.dose:g}" if a and a.dose else ""
         unidade.value = (a.unidade if a and a.unidade else "17")

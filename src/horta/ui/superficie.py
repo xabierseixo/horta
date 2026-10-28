@@ -40,7 +40,7 @@ class CampoSuperficie:
 
     def __init__(self, etiqueta: str, unidade: str = "m²") -> None:
         self._unidade_anterior = unidade
-        with ui.row().classes("w-full no-wrap items-end gap-2"):
+        with ui.row().classes("w-full no-wrap items-end gap-2") as self.fila:
             self.numero = ui.number(etiqueta, min=0).classes("col-grow")
             self.unidade = ui.select(
                 list(UNIDADES_SUPERFICIE), value=unidade, label="Unidade",
@@ -50,6 +50,9 @@ class CampoSuperficie:
     @property
     def ha(self) -> float | None:
         return a_hectareas(self.numero.value, self.unidade.value)
+
+    def set_visibility(self, visible: bool) -> None:
+        self.fila.set_visibility(visible)
 
     def establecer(self, ha: float | None) -> None:
         unidade = "ha" if ha is not None and ha >= 1 else "m²"

@@ -31,6 +31,7 @@ from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
+from horta.ui.leiras import leiras_escollidas
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -54,7 +55,7 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
     filas = [{
         "id": lab.id,
         "data": f"{lab.data_inicio:%d/%m/%Y}",
-        "cultivo": cultivos.get(lab.cultivo_id, ""),
+        "cultivo": ", ".join(cultivos.get(le.cultivo_id, "") for le in lab.leiras),
         "labor": tipos.get(lab.tipo_labor, lab.tipo_labor),
         "maquina": maquinas.get(lab.maquina_id, "") if lab.maquina_id else "",
     } for lab in labores]
@@ -127,7 +128,8 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         titulo = ui.label("Apuntar labor").classes("text-h6")
         if not tipos:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
-        cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
+        cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
+                            multiple=True, value=[]).classes("w-full").props("use-chips")
         data_inicio = campo_data("Data", date.today().isoformat())
         tipo = ui.select(tipos, label="Labor").classes("w-full")
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
@@ -136,7 +138,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         with ui.expansion("Máis datos").classes("w-full"):
             data_fin = campo_data("Data de fin (se durou máis dun día)")
             horas_traballo = ui.input("Horas de traballo").classes("w-full")
-            superficie = CampoSuperficie("Superficie (baleiro = a do cultivo)")
+            superficie = CampoSuperficie("Superficie (baleiro = a do cultivo; só cunha leira)")
             cobertura = ui.select(coberturas, label="Cobertura do solo (baleiro = a do cultivo)",
                                   clearable=True).classes("w-full")
             maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
@@ -151,16 +153,17 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
 
         tipo.on_value_change(mostrar_restos)
 
-        def propor_labor() -> None:
-            if cultivo.value is not None and tipo.value is None:
+        def cambiar_leiras() -> None:
+            superficie.set_visibility(len(cultivo.value or []) == 1)
+            if cultivo.value and tipo.value is None:
                 with get_session() as session:
-                    tipo.value = ultimo_labor(session, cultivo.value)
+                    tipo.value = ultimo_labor(session, cultivo.value[0])
 
-        cultivo.on_value_change(propor_labor)
+        cultivo.on_value_change(cambiar_leiras)
 
         def gardar() -> None:
-            if cultivo.value is None or tipo.value is None:
-                ui.notify("Escolle o cultivo e o labor", type="warning")
+            if not cultivo.value or tipo.value is None:
+                ui.notify("Escolle as leiras e o labor", type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -174,8 +177,9 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
                         raise OperacionNonPermitidaError("Indica a data")
                     pasadas = parsear_decimal(repeticions.value)
                     datos = DatosLabor(
-                        cultivo_id=cultivo.value, data_inicio=inicio, tipo_labor=tipo.value,
-                        data_fin=parsear_data(data_fin.value), superficie_ha=superficie.ha,
+                        leiras=leiras_escollidas(cultivo.value, superficie.ha),
+                        data_inicio=inicio, tipo_labor=tipo.value,
+                        data_fin=parsear_data(data_fin.value),
                         restos_desbroce_no_solo=bool(restos_desbroce.value),
                         restos_poda_no_solo=bool(restos_poda.value),
                         tipo_cobertura=cobertura.value, maquina_id=maquina.value,
@@ -202,11 +206,13 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         editando["id"] = lab.id if lab else None
         titulo.text = "Editar labor" if lab else "Apuntar labor"
         tipo.value = lab.tipo_labor if lab else None
-        cultivo.value = lab.cultivo_id if lab else (tarefa.cultivo_id if tarefa else None)
+        cultivo.value = ([le.cultivo_id for le in lab.leiras] if lab else
+                         [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])
         data_inicio.value = (lab.data_inicio if lab else date.today()).isoformat()
         data_fin.value = (lab.data_fin.isoformat()
                           if lab and lab.data_fin != lab.data_inicio else "")
-        superficie.establecer(lab.superficie_ha if lab else None)
+        superficie.establecer(lab.leiras[0].superficie_ha if lab and len(lab.leiras) == 1
+                              else None)
         restos_desbroce.value = bool(lab and lab.restos_desbroce_no_solo)
         restos_poda.value = bool(lab and lab.restos_poda_no_solo)
         cobertura.value = lab.tipo_cobertura if lab else None
@@ -218,6 +224,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         horas_traballo.value = f"{lab.horas:g}" if lab and lab.horas else ""
         notas.value = (lab.notas or "") if lab else ""
         mostrar_restos()
+        cambiar_leiras()
         dialogo.open()
 
     return abrir

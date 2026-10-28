@@ -1,4 +1,4 @@
-"""Sección Rega: cada rega dun cultivo (CUE bloque 10). Baixa lóxica."""
+"""Sección Rega: cada rega, nunha ou varias leiras (CUE bloque 10). Baixa lóxica."""
 
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
+from horta.ui.leiras import leiras_escollidas
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -55,7 +56,7 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
     filas = [{
         "id": r.id,
         "data": f"{r.data_inicio:%d/%m/%Y}",
-        "cultivo": cultivos.get(r.cultivo_id, ""),
+        "cultivo": ", ".join(cultivos.get(le.cultivo_id, "") for le in r.leiras),
         "sistema": sistemas.get(r.sistema_rega, r.sistema_rega) if r.sistema_rega else "",
         "auga": f"{r.cantidade:g} {unidades.get(r.unidade, '')}" if r.cantidade else "",
     } for r in regas]
@@ -158,10 +159,11 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         titulo = ui.label("Apuntar rega").classes("text-h6")
         if not sistemas:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
-        cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
+        cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
+                            multiple=True, value=[]).classes("w-full").props("use-chips")
         data_inicio = campo_data("Data", date.today().isoformat())
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        superficie = CampoSuperficie("Superficie regada (baleiro = a do cultivo)")
+        superficie = CampoSuperficie("Superficie regada (baleiro = a do cultivo; só cunha leira)")
         sistema = ui.select(sistemas, label="Como se rega").classes("w-full")
         with ui.row().classes("w-full no-wrap items-center"):
             cantidade = ui.input("Auga").classes("col")
@@ -179,16 +181,17 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                 "w-full").props("use-chips")
             notas = ui.textarea("Notas").classes("w-full")
 
-        def propor_sistema() -> None:
-            if cultivo.value is not None and sistema.value is None:
+        def cambiar_leiras() -> None:
+            superficie.set_visibility(len(cultivo.value or []) == 1)
+            if cultivo.value and sistema.value is None:
                 with get_session() as session:
-                    sistema.value = ultimo_sistema_rega(session, cultivo.value)
+                    sistema.value = ultimo_sistema_rega(session, cultivo.value[0])
 
-        cultivo.on_value_change(propor_sistema)
+        cultivo.on_value_change(cambiar_leiras)
 
         def gardar() -> None:
-            if cultivo.value is None:
-                ui.notify("Escolle o cultivo", type="warning")
+            if not cultivo.value:
+                ui.notify("Escolle as leiras", type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -201,8 +204,8 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                     if inicio is None:
                         raise OperacionNonPermitidaError("Indica a data")
                     datos = DatosRega(
-                        cultivo_id=cultivo.value, data_inicio=inicio,
-                        data_fin=parsear_data(data_fin.value), superficie_ha=superficie.ha,
+                        leiras=leiras_escollidas(cultivo.value, superficie.ha),
+                        data_inicio=inicio, data_fin=parsear_data(data_fin.value),
                         sistema_rega=sistema.value,
                         cantidade=parsear_decimal(cantidade.value),
                         unidade=unidade.value or "4", orixe_auga=orixe.value,
@@ -230,14 +233,16 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         editando["id"] = r.id if r else None
         titulo.text = "Editar rega" if r else "Apuntar rega"
         sistema.value = r.sistema_rega if r else None
-        cultivo.value = r.cultivo_id if r else (tarefa.cultivo_id if tarefa else None)
+        cultivo.value = ([le.cultivo_id for le in r.leiras] if r else
+                         [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])
         data_inicio.value = (r.data_inicio if r else date.today()).isoformat()
         data_fin.value = r.data_fin.isoformat() if r and r.data_fin != r.data_inicio else ""
         persoa.value = (r.persoa_id if r.persoa_id in persoas else None) if r else (
             proposta_quen(horta_id, tarefa))
         horas.value = f"{r.horas:g}" if r and r.horas else ""
         maquina.value = r.maquina_id if r and r.maquina_id in maquinas else None
-        superficie.establecer(r.superficie_ha if r else None)
+        superficie.establecer(r.leiras[0].superficie_ha if r and len(r.leiras) == 1 else None)
+        cambiar_leiras()
         cantidade.value = f"{r.cantidade:g}" if r and r.cantidade else ""
         unidade.value = r.unidade if r else "4"
         orixe.value = r.orixe_auga if r else None
