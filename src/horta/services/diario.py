@@ -14,7 +14,9 @@ from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
 from horta.services.abonados import listar_abonados
 from horta.services.analises import listar_analises
+from horta.services.animais import listar_animais
 from horta.services.catalogos import describir
+from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.labores import listar_labores
@@ -33,6 +35,7 @@ TIPOS: dict[str, str] = {
     "sementeira": "Sementeira ou plantación",
     "analise": "Toma de mostras",
     "tratamento_instalacion": "Tratamento en almacén ou instalación",
+    "coidado_animal": "Coidado de animais",
     "tarefa": "Tarefa",
 }
 
@@ -51,6 +54,11 @@ class Traballo:
     sen_quen: bool = False  # feito e sen saber quen o fixo (rexistros de antes)
 
 
+def nome_grupo(especie: str, raza: str | None) -> str:
+    """Como se nomea un grupo de animais nas listas."""
+    return f"{especie} ({raza})" if raza else especie
+
+
 def _quen(*ids: int | None) -> tuple[int, ...]:
     return tuple(i for i in ids if i is not None)
 
@@ -64,6 +72,7 @@ def listar_traballos(
     hoxe = hoxe or date.today()
     cultivos = {c.id: c for c in listar_cultivos(session, actor, horta_id)}
     parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+    grupos = {a.id: nome_grupo(a.especie, a.raza) for a in listar_animais(session, actor, horta_id)}
 
     def onde(cultivo_id: int | None) -> str:
         c = cultivos.get(cultivo_id) if cultivo_id else None
@@ -132,11 +141,20 @@ def listar_traballos(
                                   ti.nome_comercial or ti.materia_activa or "", ti.obxecto,
                                   frozenset(), persoas=_quen(ti.persoa_id),
                                   sen_quen=ti.persoa_id is None))
+    for co in listar_coidados(session, actor, horta_id):
+        que = TIPOS_COIDADO[co.tipo].split(" (")[0]
+        detalle = co.medicamento if co.tipo == "medicamento" else (
+            co.visitante if co.tipo == "visita" else co.descricion)
+        traballos.append(Traballo("coidado_animal", co.id, co.data_inicio, True,
+                                  f"{que} — {detalle}" if detalle else que,
+                                  grupos.get(co.animal_id, ""), frozenset(),
+                                  persoas=_quen(co.persoa_id), sen_quen=co.persoa_id is None))
     for ta in listar_tarefas(session, actor, horta_id):
         if ta.traballo_id is not None:
             continue  # xa feita: sae o traballo apuntado no seu tipo
         feita = ta.estado == "feito"
-        sitio = onde(ta.cultivo_id) or parcelas.get(ta.parcela_id or 0, "")
+        sitio = (onde(ta.cultivo_id) or parcelas.get(ta.parcela_id or 0, "")
+                 or grupos.get(ta.animal_id or 0, ""))
         traballos.append(Traballo(
             "tarefa", ta.id, ta.data_feita or ta.data if feita else ta.data or ta.data_limite,
             feita, ta.descricion, sitio,
