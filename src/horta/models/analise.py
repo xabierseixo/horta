@@ -18,8 +18,7 @@ class Analise(ParteComun, FeitoPor, Base):
     horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"), index=True)
     material_analizado: Mapped[str] = mapped_column(String(20))
     data_mostraxe: Mapped[date] = mapped_column(Date)
-    laboratorio: Mapped[str | None] = mapped_column(String(150), default=None)
-    laboratorio_nif: Mapped[str | None] = mapped_column(String(9), default=None)
+    laboratorio_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     num_boletin: Mapped[str | None] = mapped_column(String(50), default=None)
     # Onde: opcionais. colleita_id liga a análise do produto co seu lote (trazabilidade).
     parcela_id: Mapped[int | None] = mapped_column(ForeignKey("parcela.id"), default=None)

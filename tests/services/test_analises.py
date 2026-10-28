@@ -16,6 +16,7 @@ from horta.services.cultivos import crear_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.parcelas import crear_parcela
+from horta.services.persoas import crear_contacto
 
 # A persoa que crear_horta engade por quen crea a explotación (a primeira da BD)
 QUEN = 1
@@ -52,7 +53,9 @@ def test_analise_de_solo_dunha_parcela(session):
     ana, horta, parcela, _ = _escenario(session)
     analise = crear_analise(session, ana, horta.id, DatosAnalise(persoa_id=QUEN,
         material_analizado="3", data_mostraxe=date(2026, 3, 1), tipos=["5"],
-        parcela_id=parcela.id, laboratorio="Lab", solo={"ph": 5.8, "materia_organica": 4.2}),
+        parcela_id=parcela.id,
+        laboratorio_id=crear_contacto(session, ana, horta.id, "Lab", "laboratorio").id,
+        solo={"ph": 5.8, "materia_organica": 4.2}),
         hoxe=HOXE)
     assert analise.ph == 5.8 and analise.materia_organica == 4.2
     assert [t.codigo for t in analise.tipos] == ["5"]

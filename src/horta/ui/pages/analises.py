@@ -23,8 +23,9 @@ from horta.services.catalogos import valores_vixentes
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_persoas, listar_quen
 from horta.ui.accions import executar_accion
+from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -61,6 +62,8 @@ def seccion_analises(horta_id: int, pode_editar: bool) -> None:
         materiais = {v.codigo: v.descricion
                      for v in valores_vixentes(session, "material_analizado")}
         tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_analise")}
+        nomes = {p.id: p.nome
+                 for p in listar_persoas(session, actor, horta_id, so_activas=False)}
 
     def onde(a: Analise) -> str:
         return ", ".join(x for x in (parcelas.get(a.parcela_id or 0),
@@ -73,7 +76,7 @@ def seccion_analises(horta_id: int, pode_editar: bool) -> None:
         "material": materiais.get(a.material_analizado, a.material_analizado),
         "onde": onde(a),
         "tipos": ", ".join(tipos.get(t.codigo, t.codigo) for t in a.tipos),
-        "laboratorio": a.laboratorio or "",
+        "laboratorio": nomes.get(a.laboratorio_id or 0, ""),
     } for a in analises]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
@@ -135,7 +138,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
         tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_analise")}
         substancias = {v.codigo: v.descricion
                        for v in valores_vixentes(session, "substancia_activa")}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
@@ -162,8 +165,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
                           for campo, etiqueta in _PARAMETROS_SOLO}
         solo.bind_visibility_from(material, "value", backward=lambda v: v == SOLO)
         with ui.expansion("Laboratorio e notas").classes("w-full"):
-            laboratorio = ui.input("Laboratorio").classes("w-full")
-            nif = ui.input("NIF do laboratorio").classes("w-full")
+            laboratorio = CampoPersoa(horta_id, "laboratorio", "Laboratorio")
             boletin = ui.input("Nº de boletín").classes("w-full")
             horas = ui.input("Horas de traballo").classes("w-full")
             notas = ui.textarea("Notas").classes("w-full")
@@ -187,8 +189,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
                         tipos=list(tipo.value or []),
                         substancias=list(substancia.value or [])
                         if RESIDUOS in (tipo.value or []) else [],
-                        laboratorio=laboratorio.value or None,
-                        laboratorio_nif=nif.value or None, num_boletin=boletin.value or None,
+                        laboratorio_id=laboratorio.value, num_boletin=boletin.value or None,
                         parcela_id=parcela.value, cultivo_id=cultivo.value,
                         colleita_id=lote.value,
                         solo={c: parsear_decimal(i.value) for c, i in parametros.items()}
@@ -227,8 +228,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
         for campo, entrada in parametros.items():
             valor = getattr(a, campo) if a else None
             entrada.value = "" if valor is None else f"{valor:g}"
-        laboratorio.value = (a.laboratorio or "") if a else ""
-        nif.value = (a.laboratorio_nif or "") if a else ""
+        laboratorio.value = a.laboratorio_id if a else None
         boletin.value = (a.num_boletin or "") if a else ""
         notas.value = (a.notas or "") if a else ""
         dialogo.open()

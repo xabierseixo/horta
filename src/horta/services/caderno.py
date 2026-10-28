@@ -327,7 +327,7 @@ def xerar_caderno(
            [[_data(a.data_mostraxe), describir(session, "material_analizado",
                                                a.material_analizado),
              ", ".join(x for x in (str(orde_cultivo.get(a.cultivo_id or 0, "")),) if x),
-             a.num_boletin or "", a.laboratorio or "",
+             a.num_boletin or "", nome_completo(persoas_por_id.get(a.laboratorio_id or 0)),
              ", ".join(describir(session, "substancia_activa", s.codigo)
                        for s in a.substancias)]
             for a in analises if a.material_analizado != SOLO])

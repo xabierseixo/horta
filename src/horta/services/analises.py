@@ -16,7 +16,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import comprobar_quen
+from horta.services.persoas import comprobar_quen, persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -32,8 +32,8 @@ class DatosAnalise:
     data_mostraxe: date
     tipos: list[str] = field(default_factory=list)
     substancias: list[str] = field(default_factory=list)
-    laboratorio: str | None = None
-    laboratorio_nif: str | None = None
+    # O laboratorio: entidade co papel «laboratorio» (co seu NIF)
+    laboratorio_id: int | None = None
     num_boletin: str | None = None
     parcela_id: int | None = None
     cultivo_id: int | None = None
@@ -61,6 +61,7 @@ def _validar(session: Session, horta_id: int, datos: DatosAnalise, hoxe: date) -
     if datos.data_mostraxe > hoxe:
         raise OperacionNonPermitidaError("A data da mostra non pode ser futura")
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
+    persoa_co_papel(session, horta_id, datos.laboratorio_id, "laboratorio")
     validar_codigo(session, "material_analizado", datos.material_analizado, datos.data_mostraxe)
     for codigo in datos.tipos:
         validar_codigo(session, "tipo_analise", codigo, datos.data_mostraxe)
@@ -88,8 +89,7 @@ def _copiar(analise: Analise, horta_id: int, datos: DatosAnalise) -> None:
     analise.horta_id = horta_id
     analise.material_analizado = datos.material_analizado
     analise.data_mostraxe = datos.data_mostraxe
-    analise.laboratorio = datos.laboratorio or None
-    analise.laboratorio_nif = datos.laboratorio_nif or None
+    analise.laboratorio_id = datos.laboratorio_id
     analise.num_boletin = datos.num_boletin or None
     analise.parcela_id = datos.parcela_id
     analise.cultivo_id = datos.cultivo_id
