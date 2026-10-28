@@ -7,14 +7,17 @@ from openpyxl import load_workbook
 from horta.models.abonado import Abonado, Fertilizante
 from horta.models.analise import Analise
 from horta.models.catalogo import CatalogoValor, CatalogoVersion
-from horta.models.colleita import Colleita
+from horta.models.persoa import Persoa
 from horta.models.rega import Rega
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.caderno import xerar_caderno
+from horta.services.colleitas import DatosColleita, crear_colleita
 from horta.services.cultivos import actualizar_cultivo, crear_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import crear_horta
+from horta.services.lotes import DatosSaida, crear_saida
 from horta.services.parcelas import crear_parcela
+from horta.services.persoas import crear_contacto
 
 
 def _usuario(session, email):
@@ -53,8 +56,6 @@ def _escenario(session):
         Rega(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 7, 1),
              data_fin=date(2026, 7, 1), superficie_ha=0.2, sistema_rega="6", cantidade=4,
              unidade="3"),
-        Colleita(cultivo_id=cultivo.id, data=date(2026, 9, 1), cantidade=1.5, unidade="t",
-                 lote="2026-PATACA-001"),
         Analise(horta_id=horta.id, material_analizado="3", data_mostraxe=date(2026, 2, 1),
                 parcela_id=parcela.id, ph=5.6),
         # fóra do período: non debe saír
@@ -63,6 +64,16 @@ def _escenario(session):
              unidade="3"),
     ])
     session.commit()
+    # A folla 5 (colleita comercializada) sae das vendas dos lotes de colleitas
+    quen = session.query(Persoa).filter_by(horta_id=horta.id).first().id
+    colleita = crear_colleita(session, ana, DatosColleita(
+        cultivo_id=cultivo.id, data=date(2026, 9, 1), cantidade=1.5, unidade="t",
+        lote="2026-PATACA-001", persoa_id=quen), hoxe=date(2026, 10, 28))
+    crear_saida(session, ana, DatosSaida(
+        lote_id=colleita.lote_id, data=date(2026, 9, 2), tipo="venda", cantidade=1.5,
+        unidade="t", canle="almacen", persoa_id=quen,
+        comprador_id=crear_contacto(session, ana, horta.id, "Coop", "cliente").id),
+        hoxe=date(2026, 10, 28))
     return ana, horta
 
 

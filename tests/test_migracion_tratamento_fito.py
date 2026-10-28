@@ -94,7 +94,8 @@ def test_migracion_cultivo_pasa_datas_e_crea_colleita(tmp_path):
             "SELECT id, tipo_inicio, data_inicio, data_fin FROM cultivo ORDER BY id"
         )).all()
         colleitas = conn.execute(text(
-            "SELECT cultivo_id, data, cantidade, unidade, lote FROM colleita"
+            "SELECT c.cultivo_id, c.data, c.cantidade, c.unidade, l.codigo FROM colleita c "
+            "JOIN lote l ON l.id = c.lote_id"
         )).all()
     assert [tuple(map(str, c)) for c in cultivos] == [
         ("1", "sementeira", "2026-03-01", "2026-07-15"),

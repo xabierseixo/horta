@@ -66,8 +66,10 @@ def test_o_lote_proposto_non_repite_os_das_colleitas_nin_os_propios(session):
     ana, horta, persoa, galinas = _escenario(session)
     crear_producion(session, ana, _ovos(galinas, persoa), hoxe=HOXE)
     assert propor_lote(session, ana, horta.id, "ovos", date(2026, 9, 2)) == "2026-OVOS-002"
-    with pytest.raises(OperacionNonPermitidaError, match="xa existe"):
-        crear_producion(session, ana, _ovos(galinas, persoa, lote="2026-OVOS-001"), hoxe=HOXE)
+    # Co mesmo código, os ovos doutro día súmanse ao mesmo lote
+    outra = crear_producion(session, ana, _ovos(galinas, persoa, lote="2026-OVOS-001"),
+                            hoxe=HOXE)
+    assert outra.lote == "2026-OVOS-001"
 
 
 def test_un_lote_de_colleita_non_se_pode_repetir_na_producion(session):

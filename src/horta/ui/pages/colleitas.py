@@ -137,8 +137,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
             cantidade = ui.input("Cantidade").classes("col-grow")
             unidade = ui.select(list(UNIDADES_COLLEITA), value="kg", label="Unidade").classes(
                 "w-28")
-        lote = ui.input("Lote").classes("w-full")
-        albaran = ui.input("Nº de albarán ou factura (opcional)").classes("w-full")
+        lote = ui.input("Lote (un que xa exista do mesmo cultivo súmase a el)").classes("w-full")
         superficie = CampoSuperficie("Superficie colleitada (baleiro = a do cultivo)")
         data_fin = campo_data("Data de fin (se durou máis dun día)")
         horas = ui.input("Horas de traballo").classes("w-full")
@@ -150,11 +149,6 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         plantas = ui.checkbox("Obtéñense plantas ou plantóns")
         sen_colleita = ui.checkbox("Sen colleita por razóns ambientais")
         restos_solo = ui.checkbox("Os restos quedan no chan")
-        with ui.expansion("Cliente (se se vende a unha empresa)").classes("w-full"):
-            cliente_nome = ui.input("Nome ou razón social").classes("w-full")
-            cliente_nif = ui.input("NIF").classes("w-full")
-            cliente_enderezo = ui.input("Enderezo").classes("w-full")
-            cliente_reaga = ui.input("Nº REAGA (se é unha explotación)").classes("w-full")
         notas = ui.textarea("Notas").classes("w-full")
 
         def propor() -> None:
@@ -203,11 +197,6 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
                         destino_restos=destino_restos.value,
                         notas=notas.value or None,
                         data_fin=parsear_data(data_fin.value),
-                        albaran_factura=albaran.value or None,
-                        cliente_nome=cliente_nome.value or None,
-                        cliente_nif=cliente_nif.value or None,
-                        cliente_enderezo=cliente_enderezo.value or None,
-                        cliente_reaga=cliente_reaga.value or None,
                         obten_sementes=sementes.value,
                         obten_plantas=plantas.value,
                         sen_colleita_ambiental=sen_colleita.value,
@@ -248,11 +237,6 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         destino_restos.value = c.destino_restos if c else None
         notas.value = (c.notas or "") if c else ""
         data_fin.value = c.data_fin.isoformat() if c and c.data_fin else ""
-        albaran.value = (c.albaran_factura or "") if c else ""
-        cliente_nome.value = (c.cliente_nome or "") if c else ""
-        cliente_nif.value = (c.cliente_nif or "") if c else ""
-        cliente_enderezo.value = (c.cliente_enderezo or "") if c else ""
-        cliente_reaga.value = (c.cliente_reaga or "") if c else ""
         sementes.value = bool(c and c.obten_sementes)
         plantas.value = bool(c and c.obten_plantas)
         sen_colleita.value = bool(c and c.sen_colleita_ambiental)

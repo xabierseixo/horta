@@ -6,9 +6,10 @@ from __future__ import annotations
 from datetime import date
 
 from sqlalchemy import Date, Float, ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from horta.db import Base
+from horta.models.lote import Lote
 from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
 
@@ -27,5 +28,11 @@ class ProducionAnimal(ParteComun, FeitoPor, ConMaquina, Base):
     unidade: Mapped[str] = mapped_column(String(20))
     # O que non vale: rotos, ou o que se tira polo tempo de espera dun medicamento
     retirada: Mapped[float | None] = mapped_column(Float, default=None)
-    # Trazabilidade (Reg. CE 178/2002 art. 18): único na explotación, xunto cos das colleitas
-    lote: Mapped[str] = mapped_column(String(40))
+    # O lote onde entra o producido menos o retirado (models.lote)
+    lote_id: Mapped[int] = mapped_column(ForeignKey("lote.id"), index=True)
+    lote_ficha: Mapped[Lote] = relationship(lazy="joined")
+
+    @property
+    def lote(self) -> str:
+        """O código do lote."""
+        return self.lote_ficha.codigo

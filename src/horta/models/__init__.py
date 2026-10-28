@@ -23,6 +23,7 @@ from horta.models.fito_rexistro import (
 )
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor
+from horta.models.lote import Lote, LoteSaida
 from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.parcela import Parcela, SecanoRegadio
@@ -88,6 +89,8 @@ __all__ = [
     "Persoa",
     "PersoaPapel",
     "TipoCarne",
+    "Lote",
+    "LoteSaida",
     "Maquina",
     "TratamentoFito",
     "TratamentoCultivo",

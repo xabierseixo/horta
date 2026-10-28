@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from horta.models.abonado import Fertilizante
 from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, RolHorta
+from horta.models.lote import Lote
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa, TipoCarne
@@ -32,13 +33,13 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import FORMAS_N_P, METAIS_RESIDUO, RESIDUOS, dose_kg_ha
 from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
 from horta.services.labores import DESBROCE, PODAS, listar_labores
+from horta.services.lotes import converter, listar_saidas
 from horta.services.persoas import nome_completo
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
 from horta.services.tratamentos_instalacion import listar_tratamentos_instalacion
 
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
-_A_KG = {"kg": 1.0, "t": 1000.0}
 _A_M3 = {"3": 1.0, "4": 0.001}  # UNIDADES_MEDIDA: m³ e litros
 _NEGRA = Font(bold=True)
 
@@ -332,18 +333,25 @@ def xerar_caderno(
                        for s in a.substancias)]
             for a in analises if a.material_analizado != SOLO])
 
+    # 5: as vendas dos lotes de colleitas (a colleita comercializada)
     filas_colleita = []
-    for col in listar_colleitas(session, actor, horta_id):
-        if not no_periodo(col.data, col.data_fin):
+    colleitas = listar_colleitas(session, actor, horta_id)
+    for venda in listar_saidas(session, actor, horta_id):
+        lote = session.get(Lote, venda.lote_id)
+        if (venda.tipo != "venda" or lote is None or lote.produto_animal is not None
+                or not no_periodo(venda.data, venda.data_fin)):
             continue
-        c = cultivo_de(col.cultivo_id)
-        kg = col.cantidade * _A_KG[col.unidade] if col.unidade in _A_KG else None
+        kg = converter(venda.cantidade, venda.unidade, "kg")
+        cliente = persoas_por_id.get(venda.comprador_id or 0)
         filas_colleita.append([
-            _intervalo(col.data, col.data_fin), c.especie if c else "",
-            _num(kg) if kg is not None else f"{col.cantidade:g} {col.unidade}",
-            orde_cultivo.get(col.cultivo_id, ""), col.albaran_factura or "", col.lote,
-            col.cliente_nome or "", col.cliente_nif or "", col.cliente_enderezo or "",
-            col.cliente_reaga or ""])
+            _intervalo(venda.data, venda.data_fin), lote.produto,
+            _num(kg) if kg is not None else f"{venda.cantidade:g} {venda.unidade}",
+            ", ".join(str(n) for n in sorted({orde_cultivo[col.cultivo_id] for col in colleitas
+                                              if col.lote_id == lote.id
+                                              and col.cultivo_id in orde_cultivo})),
+            venda.albaran_factura or "", lote.codigo, nome_completo(cliente),
+            (cliente.nif or "") if cliente else "", (cliente.enderezo or "") if cliente else "",
+            (cliente.reaga or "") if cliente else ""])
     _folla(wb, "5 Colleita", "5. REXISTRO DE COLLEITA COMERCIALIZADA", cab,
            ["Data", "Produto", "Cantidade de produto (kg)", "Nº de orde parcela/s de orixe",
             "Nº de albará ou factura", "Nº de lote", "Cliente: nome ou razón social",

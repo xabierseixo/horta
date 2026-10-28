@@ -76,11 +76,15 @@ def test_validacions(session, cambios, mensaxe):
         crear_colleita(session, ana, _datos(cultivo, **cambios), hoxe=HOXE)
 
 
-def test_lote_repetido_rexeitase(session):
-    ana, _, cultivo = _escenario(session)
-    crear_colleita(session, ana, _datos(cultivo), hoxe=HOXE)
-    with pytest.raises(OperacionNonPermitidaError, match="xa existe"):
-        crear_colleita(session, ana, _datos(cultivo), hoxe=HOXE)
+def test_o_mesmo_lote_recolle_varias_colleitas_do_mesmo_cultivo(session):
+    ana, horta, cultivo = _escenario(session)
+    primeira = crear_colleita(session, ana, _datos(cultivo), hoxe=HOXE)
+    segunda = crear_colleita(session, ana, _datos(cultivo), hoxe=HOXE)
+    assert primeira.lote_id == segunda.lote_id
+    outro = crear_cultivo(session, ana, crear_parcela(session, ana, horta.id, "Outra").id,
+                          "Cebola")
+    with pytest.raises(OperacionNonPermitidaError, match="doutro produto"):
+        crear_colleita(session, ana, _datos(outro), hoxe=HOXE)
 
 
 def test_lector_non_pode_crear(session):

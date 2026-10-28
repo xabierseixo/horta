@@ -1,6 +1,6 @@
 import pytest
 
-from horta.services.colleitas import nome_para_lote
+from horta.services.lotes import nome_para_codigo
 
 
 @pytest.mark.parametrize(
@@ -15,8 +15,8 @@ from horta.services.colleitas import nome_para_lote
         ("Cabaciña", "CABACINA"),
         ("Alcachofa_branca", "ALCACHOFA"),
         ("Superlonganome", "SUPERLONGA"),
-        ("  ", "CULTIVO"),
+        ("  ", "LOTE"),
     ],
 )
-def test_nome_para_lote(especie, esperado):
-    assert nome_para_lote(especie) == esperado
+def test_nome_para_codigo(especie, esperado):
+    assert nome_para_codigo(especie) == esperado

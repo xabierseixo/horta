@@ -1,8 +1,8 @@
-"""Colleitas dos cultivos (CUE bloque Cosecha), cada unha co seu lote. Baixa lóxica."""
+"""Colleitas dos cultivos (CUE bloque Cosecha). Cada colleita entra nun lote (services.lotes),
+de onde sae despois a venda. Baixa lóxica."""
 
 from __future__ import annotations
 
-import unicodedata
 from dataclasses import dataclass
 from datetime import date
 
@@ -16,8 +16,13 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.lotes import (
+    comprobar_entrada,
+    cultivo_protexido,
+    lote_para_entrada,
+    propor_codigo,
+)
 from horta.services.persoas import comprobar_quen
-from horta.services.producions_animais import lotes_da_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -40,11 +45,6 @@ class DatosColleita:
     destino_restos: str | None = None
     notas: str | None = None
     data_fin: date | None = None
-    albaran_factura: str | None = None
-    cliente_nome: str | None = None
-    cliente_nif: str | None = None
-    cliente_enderezo: str | None = None
-    cliente_reaga: str | None = None
     obten_sementes: bool = False
     obten_plantas: bool = False
     sen_colleita_ambiental: bool = False
@@ -64,18 +64,12 @@ def _cultivo_e_horta(session: Session, cultivo_id: int) -> tuple[Cultivo, int]:
     return cultivo, horta_id
 
 
-def _lotes_da_horta(session: Session, horta_id: int, excepto_id: int | None = None) -> set[str]:
-    """Os lotes da explotación, tamén os da produción dos animais."""
-    return lotes_da_horta(session, horta_id, excepto_colleita=excepto_id)
-
-
 def _validar(
     session: Session,
     datos: DatosColleita,
     cultivo: Cultivo,
     horta_id: int,
     hoxe: date,
-    excepto_id: int | None = None,
 ) -> None:
     if datos.cantidade is None or datos.cantidade <= 0:
         raise OperacionNonPermitidaError("A cantidade ten que ser maior que 0")
@@ -91,11 +85,6 @@ def _validar(
             raise OperacionNonPermitidaError("A superficie ten que ser maior que 0")
         if cultivo.superficie_ha and datos.superficie_ha > cultivo.superficie_ha:
             raise OperacionNonPermitidaError("A superficie colleitada é maior ca do cultivo")
-    lote = datos.lote.strip()
-    if not lote:
-        raise OperacionNonPermitidaError("O lote non pode quedar baleiro")
-    if lote in _lotes_da_horta(session, horta_id, excepto_id):
-        raise OperacionNonPermitidaError(f"O lote {lote} xa existe nesta explotación")
     if datos.data_fin is not None and datos.data_fin < datos.data:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
     if datos.destino_colleita:
@@ -108,15 +97,21 @@ def _validar(
         validar_codigo(session, "destino_restos", datos.destino_restos, datos.data)
 
 
+def _lote(session: Session, datos: DatosColleita, cultivo: Cultivo, horta_id: int) -> int:
+    """O lote onde entra: o do código, se é o mesmo cultivo, ou un novo."""
+    return lote_para_entrada(
+        session, horta_id, datos.lote, cultivo.especie, datos.unidade, datos.data,
+        cultivo_siex_codigo=cultivo.cultivo_siex_codigo,
+        protexido=cultivo_protexido(cultivo)).id
+
+
 def _copiar(colleita: Colleita, datos: DatosColleita) -> None:
     colleita.cultivo_id = datos.cultivo_id
     colleita.data = datos.data
     colleita.cantidade = datos.cantidade
     colleita.unidade = datos.unidade
-    colleita.lote = datos.lote.strip()
     colleita.superficie_ha = datos.superficie_ha
     colleita.data_fin = datos.data_fin or datos.data
-    colleita.albaran_factura = datos.albaran_factura or None
     colleita.obten_sementes = datos.obten_sementes
     colleita.obten_plantas = datos.obten_plantas
     colleita.sen_colleita_ambiental = datos.sen_colleita_ambiental
@@ -129,10 +124,6 @@ def _copiar(colleita: Colleita, datos: DatosColleita) -> None:
     colleita.destino_colleita = datos.destino_colleita or None
     colleita.destino_restos = datos.destino_restos or None
     colleita.notas = datos.notas or None
-    colleita.cliente_nome = datos.cliente_nome or None
-    colleita.cliente_nif = datos.cliente_nif or None
-    colleita.cliente_enderezo = datos.cliente_enderezo or None
-    colleita.cliente_reaga = datos.cliente_reaga or None
 
 
 def crear_colleita(
@@ -145,7 +136,7 @@ def crear_colleita(
     _validar(session, datos, cultivo, horta_id, hoxe or date.today())
     if datos.superficie_ha is None:
         datos.superficie_ha = cultivo.superficie_ha
-    colleita = Colleita(creado_por=actor.id)
+    colleita = Colleita(creado_por=actor.id, lote_id=_lote(session, datos, cultivo, horta_id))
     _copiar(colleita, datos)
     session.add(colleita)
     session.commit()
@@ -166,7 +157,12 @@ def actualizar_colleita(
     cultivo, horta_id = _cultivo_e_horta(session, datos.cultivo_id)
     if horta_id != horta_actual:
         raise OperacionNonPermitidaError("O cultivo indicado non pertence a esta explotación")
-    _validar(session, datos, cultivo, horta_id, hoxe or date.today(), excepto_id=colleita.id)
+    _validar(session, datos, cultivo, horta_id, hoxe or date.today())
+    lote_id = _lote(session, datos, cultivo, horta_id)
+    # O lote de antes non pode quedar con menos do que xa saíu del
+    comprobar_entrada(session, colleita.lote_id, colleita.cantidade,
+                      datos.cantidade if lote_id == colleita.lote_id else 0, colleita.unidade)
+    colleita.lote_id = lote_id
     _copiar(colleita, datos)
     session.commit()
     return colleita
@@ -175,6 +171,7 @@ def actualizar_colleita(
 def dar_de_baixa_colleita(session: Session, actor: Usuario, colleita: Colleita) -> None:
     _, horta_id = _cultivo_e_horta(session, colleita.cultivo_id)
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    comprobar_entrada(session, colleita.lote_id, colleita.cantidade, 0, colleita.unidade)
     colleita.baixa = True
     session.commit()
 
@@ -200,23 +197,11 @@ def listar_colleitas(
     return list(consulta.order_by(Colleita.data.desc(), Colleita.id.desc()))
 
 
-def nome_para_lote(especie: str) -> str:
-    """'Pemento de Padrón' -> 'PEMENTO': primeira palabra, sen acentos, ata 10 letras."""
-    sen_acentos = unicodedata.normalize("NFKD", especie).encode("ascii", "ignore").decode()
-    palabras = "".join(c if c.isalnum() else " " for c in sen_acentos).split()
-    return palabras[0].upper()[:10] if palabras else "CULTIVO"
-
-
 def propor_lote(session: Session, actor: Usuario, cultivo_id: int, data: date) -> str:
     """Primeiro lote libre do tipo AAAA-CULTIVO-NNN (p.ex. 2026-PATACA-001)."""
     cultivo, horta_id = _cultivo_e_horta(session, cultivo_id)
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
-    nome = nome_para_lote(cultivo.especie)
-    existentes = _lotes_da_horta(session, horta_id)
-    numero = 1
-    while f"{data.year}-{nome}-{numero:03d}" in existentes:
-        numero += 1
-    return f"{data.year}-{nome}-{numero:03d}"
+    return propor_codigo(session, horta_id, cultivo.especie, data)
 
 
 def rendemento_kg_ha(session: Session, actor: Usuario, cultivo_id: int) -> float | None:

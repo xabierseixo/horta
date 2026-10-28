@@ -3,22 +3,19 @@ cultivos (README §7). Avisa se o grupo está en tempo de espera dun medicamento
 
 from __future__ import annotations
 
-import unicodedata
 from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy.orm import Session
 
 from horta.models.animal import Animal
-from horta.models.colleita import Colleita
-from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
-from horta.models.parcela import Parcela
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.usuario import Usuario
 from horta.services.coidados_animais import fin_tempo_espera, listar_coidados
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.lotes import comprobar_entrada, lote_para_entrada, propor_codigo
 from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
@@ -77,34 +74,11 @@ def _animal(session: Session, animal_id: int) -> Animal:
     return animal
 
 
-def lotes_da_horta(session: Session, horta_id: int, excepto_producion: int | None = None,
-                   excepto_colleita: int | None = None) -> set[str]:
-    """Os lotes da explotación: os da produción dos animais e os das colleitas."""
-    producions = session.query(ProducionAnimal.lote).filter_by(horta_id=horta_id)
-    if excepto_producion is not None:
-        producions = producions.filter(ProducionAnimal.id != excepto_producion)
-    colleitas = (
-        session.query(Colleita.lote)
-        .join(Cultivo, Colleita.cultivo_id == Cultivo.id)
-        .join(Parcela, Cultivo.parcela_id == Parcela.id)
-        .filter(Parcela.horta_id == horta_id)
-    )
-    if excepto_colleita is not None:
-        colleitas = colleitas.filter(Colleita.id != excepto_colleita)
-    return {lote for (lote,) in producions} | {lote for (lote,) in colleitas}
-
-
 def propor_lote(session: Session, actor: Usuario, horta_id: int, produto: str,
                 data: date) -> str:
     """Primeiro lote libre do tipo AAAA-PRODUTO-NNN (p.ex. 2026-OVOS-001)."""
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
-    nome = unicodedata.normalize("NFKD", PRODUTOS.get(produto, "Outro")).encode(
-        "ascii", "ignore").decode().upper()
-    existentes = lotes_da_horta(session, horta_id)
-    numero = 1
-    while f"{data.year}-{nome}-{numero:03d}" in existentes:
-        numero += 1
-    return f"{data.year}-{nome}-{numero:03d}"
+    return propor_codigo(session, horta_id, PRODUTOS.get(produto, "Outro"), data)
 
 
 def _validar(session: Session, datos: DatosProducion, animal: Animal, hoxe: date,
@@ -128,11 +102,6 @@ def _validar(session: Session, datos: DatosProducion, animal: Animal, hoxe: date
     if animal.data_baixa is not None and fin > animal.data_baixa:
         raise OperacionNonPermitidaError(
             f"O grupo quedou sen animais o {animal.data_baixa:%d/%m/%Y}")
-    lote = datos.lote.strip()
-    if not lote:
-        raise OperacionNonPermitidaError("O lote non pode quedar baleiro")
-    if lote in lotes_da_horta(session, animal.horta_id, excepto_producion=excepto_id):
-        raise OperacionNonPermitidaError(f"O lote {lote} xa existe nesta explotación")
     comprobar_quen(session, animal.horta_id, datos.persoa_id, datos.horas)
     comprobar_maquina(session, animal.horta_id, datos.maquina_id)
 
@@ -146,11 +115,21 @@ def _copiar(pr: ProducionAnimal, datos: DatosProducion, animal: Animal) -> None:
     pr.cantidade = datos.cantidade
     pr.unidade = datos.unidade
     pr.retirada = datos.retirada or None
-    pr.lote = datos.lote.strip()
     pr.persoa_id = datos.persoa_id
     pr.horas = datos.horas
     pr.maquina_id = datos.maquina_id
     pr.notas = datos.notas or None
+
+
+def _lote(session: Session, datos: DatosProducion, animal: Animal) -> int:
+    """O lote onde entra (o producido menos o retirado): o do código, se é o mesmo produto,
+    ou un novo."""
+    return lote_para_entrada(session, animal.horta_id, datos.lote, PRODUTOS[datos.produto],
+                             datos.unidade, datos.data, produto_animal=datos.produto).id
+
+
+def _neto(cantidade: float, retirada: float | None) -> float:
+    return cantidade - (retirada or 0)
 
 
 def crear_producion(
@@ -161,7 +140,7 @@ def crear_producion(
     if not datos.lote.strip():
         datos.lote = propor_lote(session, actor, animal.horta_id, datos.produto, datos.data)
     _validar(session, datos, animal, hoxe or date.today(), None)
-    pr = ProducionAnimal(creado_por=actor.id)
+    pr = ProducionAnimal(creado_por=actor.id, lote_id=_lote(session, datos, animal))
     _copiar(pr, datos, animal)
     session.add(pr)
     session.commit()
@@ -179,6 +158,12 @@ def actualizar_producion(
     if animal.horta_id != pr.horta_id:
         raise OperacionNonPermitidaError("Ese grupo de animais non é desta explotación")
     _validar(session, datos, animal, hoxe or date.today(), pr.id)
+    lote_id = _lote(session, datos, animal)
+    # O lote de antes non pode quedar con menos do que xa saíu del
+    comprobar_entrada(session, pr.lote_id, _neto(pr.cantidade, pr.retirada),
+                      _neto(datos.cantidade, datos.retirada) if lote_id == pr.lote_id else 0,
+                      pr.unidade)
+    pr.lote_id = lote_id
     _copiar(pr, datos, animal)
     session.commit()
     return pr
@@ -186,6 +171,7 @@ def actualizar_producion(
 
 def dar_de_baixa_producion(session: Session, actor: Usuario, pr: ProducionAnimal) -> None:
     comprobar_rol_horta(session, pr.horta_id, actor, _ROLES_ESCRITURA)
+    comprobar_entrada(session, pr.lote_id, _neto(pr.cantidade, pr.retirada), 0, pr.unidade)
     pr.baixa = True
     session.commit()
 
