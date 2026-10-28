@@ -25,7 +25,7 @@ from horta.services.labores import (
     ultimo_labor,
 )
 from horta.services.maquinaria import listar_maquinas
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_quen
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
@@ -119,7 +119,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         coberturas = {v.codigo: v.descricion
                       for v in valores_vixentes(session, "tipo_cobertura_solo")}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 

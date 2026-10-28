@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from horta.db import Base, get_session
 from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_quen
 from horta.services.tarefas import facer_tarefa, marcar_feita
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
@@ -37,7 +37,7 @@ def dialogo_tarefa_feita(horta_id: int) -> Callable[[Tarefa], None]:
         if actor is None:
             pechar_sesion()
             return lambda _: None
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     tarefa_id: dict[str, int | None] = {"id": None}
     with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):

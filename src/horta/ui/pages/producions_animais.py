@@ -15,7 +15,7 @@ from horta.services.animais import listar_animais
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_persoas, listar_quen
 from horta.services.producions_animais import (
     PRODUTOS,
     UNIDADE_PRODUTO,
@@ -121,7 +121,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: nome_grupo(a.especie, a.raza) for a in animais}
         especies = {a.id: a.especie_codigo for a in animais}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}

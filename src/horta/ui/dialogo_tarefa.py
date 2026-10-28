@@ -14,7 +14,7 @@ from horta.services.animais import listar_animais
 from horta.services.cultivos import listar_cultivos
 from horta.services.diario import TIPOS, nome_grupo
 from horta.services.parcelas import listar_parcelas
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_quen
 from horta.services.tarefas import TIPOS_TAREFA, crear_tarefa
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
@@ -30,7 +30,7 @@ def opcions_tarefa(
     """Que traballo é (baleiro = outro) e quen o vai facer (opcional)."""
     tipos = {"": "Outro traballo", **{tipo: TIPOS[tipo] for tipo in TIPOS_TAREFA}}
     persoas: dict[int | str, str] = {"": "(sen decidir)", **{
-        p.id: p.nome for p in listar_persoas(session, actor, horta_id)}}
+        p.id: p.nome for p in listar_quen(session, actor, horta_id)}}
     return tipos, persoas
 
 

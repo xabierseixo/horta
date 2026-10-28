@@ -15,7 +15,7 @@ from horta.services.catalogos import valores_vixentes
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_quen
 from horta.services.regas import (
     UNIDADES_AUGA,
     DatosRega,
@@ -123,7 +123,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         unidades = {c: unidades_cat.get(c, c) for c in UNIDADES_AUGA}
         practicas = {v.codigo: v.descricion for v in valores_vixentes(session, "boas_practicas")
                      if "rega" in (v.categoria or "")}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}

@@ -23,7 +23,7 @@ from horta.services.colleitas import (
 )
 from horta.services.cultivos import listar_cultivos
 from horta.services.fito_consulta import aviso_prazo_colleita
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_quen
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -124,7 +124,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
                         for c in listar_cultivos(session, actor, horta_id)}
         destinos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_colleita")}
         restos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_restos")}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
