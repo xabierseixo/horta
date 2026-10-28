@@ -32,14 +32,6 @@ class Rega(ParteComun, FeitoPor, ConMaquina, Base):
         cascade="all, delete-orphan", lazy="selectin"
     )
 
-    # Transición (tarefa 084): a primeira leira, mentres se adaptan os informes e as pantallas
-    @property
-    def cultivo_id(self) -> int:
-        return self.leiras[0].cultivo_id
-
-    @property
-    def superficie_ha(self) -> float | None:
-        return self.leiras[0].superficie_ha
 
 
 class RegaBoaPractica(Base):
