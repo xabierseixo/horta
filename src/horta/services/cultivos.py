@@ -6,15 +6,15 @@ from typing import Any
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from horta.models.abonado import Abonado
+from horta.models.abonado import AbonadoCultivo
 from horta.models.analise import Analise
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
-from horta.models.labor import Labor
+from horta.models.labor import LaborCultivo
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import PastoreoLeira
-from horta.models.rega import Rega
+from horta.models.rega import RegaCultivo
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
@@ -254,17 +254,17 @@ def eliminar_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> None
             "Este cultivo ten tratamentos fitosanitarios rexistrados e debe conservarse "
             "(obriga legal). Podes marcalo como rematado."
         )
-    if session.query(Abonado).filter_by(cultivo_id=cultivo.id).first():
+    if session.query(AbonadoCultivo).filter_by(cultivo_id=cultivo.id).first():
         raise OperacionNonPermitidaError(
             "Este cultivo ten abonados rexistrados e debe conservarse "
             "(obriga legal). Podes marcalo como rematado."
         )
-    if session.query(Rega).filter_by(cultivo_id=cultivo.id).first():
+    if session.query(RegaCultivo).filter_by(cultivo_id=cultivo.id).first():
         raise OperacionNonPermitidaError(
             "Este cultivo ten regas rexistradas e debe conservarse "
             "(obriga legal). Podes marcalo como rematado."
         )
-    if session.query(Labor).filter_by(cultivo_id=cultivo.id).first():
+    if session.query(LaborCultivo).filter_by(cultivo_id=cultivo.id).first():
         raise OperacionNonPermitidaError(
             "Este cultivo ten labores rexistrados e debe conservarse "
             "(obriga legal). Podes marcalo como rematado."

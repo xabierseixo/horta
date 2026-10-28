@@ -61,10 +61,8 @@ class Abonado(ParteComun, FeitoPor, ConMaquina, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"), index=True)
-    cultivo_id: Mapped[int] = mapped_column(ForeignKey("cultivo.id"), index=True)
     data_inicio: Mapped[date] = mapped_column(Date)
     data_fin: Mapped[date] = mapped_column(Date)
-    superficie_ha: Mapped[float | None] = mapped_column(Float, default=None)
     fertilizante_id: Mapped[int | None] = mapped_column(ForeignKey("fertilizante.id"), default=None)
     dose: Mapped[float | None] = mapped_column(Float, default=None)
     unidade: Mapped[str | None] = mapped_column(String(20), default=None)
@@ -79,6 +77,20 @@ class Abonado(ParteComun, FeitoPor, ConMaquina, Base):
     boas_practicas: Mapped[list[AbonadoBoaPractica]] = relationship(
         cascade="all, delete-orphan"
     )
+    # As leiras (cultivos) onde se fixo: unha ou varias
+    #
+    leiras: Mapped[list[AbonadoCultivo]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin"
+    )
+
+    # Transición (tarefa 084): a primeira leira, mentres se adaptan os informes e as pantallas
+    @property
+    def cultivo_id(self) -> int:
+        return self.leiras[0].cultivo_id
+
+    @property
+    def superficie_ha(self) -> float | None:
+        return self.leiras[0].superficie_ha
 
 
 class AbonadoBoaPractica(Base):
@@ -87,3 +99,14 @@ class AbonadoBoaPractica(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     abonado_id: Mapped[int] = mapped_column(ForeignKey("abonado.id"), index=True)
     codigo: Mapped[str] = mapped_column(String(20))
+
+
+class AbonadoCultivo(Base):
+    """Cada leira (cultivo) dun abonado, coa superficie onde se fixo."""
+
+    __tablename__ = "abonado_cultivo"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    abonado_id: Mapped[int] = mapped_column(ForeignKey("abonado.id"), index=True)
+    cultivo_id: Mapped[int] = mapped_column(ForeignKey("cultivo.id"), index=True)
+    superficie_ha: Mapped[float | None] = mapped_column(Float, default=None)

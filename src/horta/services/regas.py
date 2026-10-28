@@ -7,14 +7,13 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
-from horta.models.parcela import Parcela
-from horta.models.rega import Rega, RegaBoaPractica
+from horta.models.rega import Rega, RegaBoaPractica, RegaCultivo
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.leiras import LeiraTraballo, LeiraValida, as_leiras, validar_leiras
 from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
@@ -24,10 +23,12 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 UNIDADES_AUGA = ("3", "4")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class DatosRega:
-    cultivo_id: int
     data_inicio: date
+    # As leiras; ou, para unha soa, cultivo_id e superficie_ha. A auga é a total
+    leiras: list[LeiraTraballo] = field(default_factory=list)
+    cultivo_id: int | None = None
     sistema_rega: str | None = None
     cantidade: float | None = None
     unidade: str = "4"
@@ -43,27 +44,13 @@ class DatosRega:
     notas: str | None = None
 
 
-def _cultivo_e_parcela(session: Session, cultivo_id: int) -> tuple[Cultivo, Parcela]:
-    cultivo = session.get(Cultivo, cultivo_id)
-    parcela = session.get(Parcela, cultivo.parcela_id) if cultivo else None
-    if cultivo is None or parcela is None:
-        raise OperacionNonPermitidaError("Ese cultivo non existe")
-    return cultivo, parcela
-
-
-def _validar(session: Session, datos: DatosRega, cultivo: Cultivo, horta_id: int,
-             hoxe: date) -> None:
+def _validar(session: Session, datos: DatosRega, horta_id: int, hoxe: date) -> None:
     if datos.data_inicio > hoxe:
         raise OperacionNonPermitidaError("A data da rega non pode ser futura")
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     comprobar_maquina(session, horta_id, datos.maquina_id)
     if datos.data_fin is not None and datos.data_fin < datos.data_inicio:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
-    if datos.superficie_ha is not None:
-        if datos.superficie_ha <= 0:
-            raise OperacionNonPermitidaError("A superficie ten que ser maior que 0")
-        if cultivo.superficie_ha and datos.superficie_ha > cultivo.superficie_ha:
-            raise OperacionNonPermitidaError("A superficie regada é maior ca do cultivo")
     if datos.cantidade is not None and datos.cantidade <= 0:
         raise OperacionNonPermitidaError("A cantidade de auga ten que ser maior que 0")
     if datos.unidade not in UNIDADES_AUGA:
@@ -80,16 +67,16 @@ def _validar(session: Session, datos: DatosRega, cultivo: Cultivo, horta_id: int
             raise OperacionNonPermitidaError(f"A boa práctica {codigo} non é de rega")
 
 
-def _copiar(rega: Rega, datos: DatosRega, cultivo: Cultivo, parcela: Parcela) -> None:
-    rega.horta_id = parcela.horta_id
-    rega.cultivo_id = datos.cultivo_id
+def _copiar(rega: Rega, datos: DatosRega, horta_id: int, leiras: list[LeiraValida]) -> None:
+    rega.horta_id = horta_id
+    rega.leiras = [RegaCultivo(cultivo_id=le.cultivo.id, superficie_ha=le.superficie_ha)
+                   for le in leiras]
     rega.data_inicio = datos.data_inicio
     rega.data_fin = datos.data_fin or datos.data_inicio
-    rega.superficie_ha = datos.superficie_ha or cultivo.superficie_ha
     rega.sistema_rega = datos.sistema_rega or None
     rega.cantidade = datos.cantidade
     rega.unidade = datos.unidade
-    rega.orixe_auga = datos.orixe_auga or parcela.orixe_auga
+    rega.orixe_auga = datos.orixe_auga or leiras[0].parcela.orixe_auga
     rega.tipo_enerxia = datos.tipo_enerxia or None
     rega.num_contador = datos.num_contador or None
     rega.persoa_id = datos.persoa_id
@@ -102,11 +89,12 @@ def _copiar(rega: Rega, datos: DatosRega, cultivo: Cultivo, parcela: Parcela) ->
 def crear_rega(
     session: Session, actor: Usuario, datos: DatosRega, hoxe: date | None = None
 ) -> Rega:
-    cultivo, parcela = _cultivo_e_parcela(session, datos.cultivo_id)
-    comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
-    _validar(session, datos, cultivo, parcela.horta_id, hoxe or date.today())
+    horta_id, leiras = validar_leiras(
+        session, as_leiras(datos.cultivo_id, datos.superficie_ha, datos.leiras))
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _validar(session, datos, horta_id, hoxe or date.today())
     rega = Rega(creado_por=actor.id)
-    _copiar(rega, datos, cultivo, parcela)
+    _copiar(rega, datos, horta_id, leiras)
     session.add(rega)
     session.commit()
     return rega
@@ -118,11 +106,10 @@ def actualizar_rega(
     if rega.baixa:
         raise OperacionNonPermitidaError("Unha rega dada de baixa non se pode modificar")
     comprobar_rol_horta(session, rega.horta_id, actor, _ROLES_ESCRITURA)
-    cultivo, parcela = _cultivo_e_parcela(session, datos.cultivo_id)
-    if parcela.horta_id != rega.horta_id:
-        raise OperacionNonPermitidaError("O cultivo indicado non pertence a esta explotación")
-    _validar(session, datos, cultivo, rega.horta_id, hoxe or date.today())
-    _copiar(rega, datos, cultivo, parcela)
+    _, leiras = validar_leiras(
+        session, as_leiras(datos.cultivo_id, datos.superficie_ha, datos.leiras), rega.horta_id)
+    _validar(session, datos, rega.horta_id, hoxe or date.today())
+    _copiar(rega, datos, rega.horta_id, leiras)
     session.commit()
     return rega
 
@@ -139,13 +126,14 @@ def listar_regas(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
     consulta = session.query(Rega).filter_by(horta_id=horta_id, baixa=False)
     if cultivo_id is not None:
-        consulta = consulta.filter_by(cultivo_id=cultivo_id)
+        consulta = consulta.filter(Rega.leiras.any(RegaCultivo.cultivo_id == cultivo_id))
     return list(consulta.order_by(Rega.data_inicio.desc(), Rega.id.desc()))
 
 
 def ultimo_sistema_rega(session: Session, cultivo_id: int) -> str | None:
     """O sistema de rega da última rega dese cultivo, para propoñelo na seguinte."""
-    rega = (session.query(Rega).filter_by(cultivo_id=cultivo_id, baixa=False)
+    rega = (session.query(Rega).filter(Rega.baixa.is_(False),
+                                       Rega.leiras.any(RegaCultivo.cultivo_id == cultivo_id))
             .order_by(Rega.data_inicio.desc(), Rega.id.desc()).first())
     return rega.sistema_rega if rega else None
 

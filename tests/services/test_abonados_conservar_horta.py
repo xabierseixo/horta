@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from horta.models.abonado import Abonado, Fertilizante
+from horta.models.abonado import Abonado, AbonadoCultivo, Fertilizante
 from horta.models.horta import Horta
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo
@@ -26,9 +26,10 @@ def test_non_se_borra_unha_explotacion_con_abonados(session):
     ana, horta = _escenario(session)
     parcela = crear_parcela(session, ana, horta.id, "P1")
     cultivo = crear_cultivo(session, ana, parcela.id, "Pataca")
-    session.add(Abonado(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 4, 1),
-                        data_fin=date(2026, 4, 1), superficie_ha=0.1, tipo_fertilizacion="1",
-                        metodo="1"))
+    session.add(Abonado(horta_id=horta.id, data_inicio=date(2026, 4, 1),
+                        data_fin=date(2026, 4, 1), tipo_fertilizacion="1",
+                        metodo="1",
+                        leiras=[AbonadoCultivo(cultivo_id=cultivo.id, superficie_ha=0.1)]))
     session.commit()
     with pytest.raises(OperacionNonPermitidaError, match="abonados"):
         eliminar_horta(session, ana, horta)

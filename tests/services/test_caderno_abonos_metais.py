@@ -4,7 +4,7 @@ from io import BytesIO
 import pytest
 from openpyxl import load_workbook
 
-from horta.models.abonado import Abonado
+from horta.models.abonado import Abonado, AbonadoCultivo
 from horta.models.catalogo import CatalogoValor, CatalogoVersion
 from horta.models.fertilizante import FertilizanteSiex
 from horta.models.usuario import RolGlobal, Usuario
@@ -45,9 +45,10 @@ def test_metais_do_residuo_no_caderno(session):
         provedor_id=crear_contacto(session, ana, horta.id, "Planta X", "provedor").id, n_pct=1.5,
         materia_organica_pct=40, cadmio=0.7, chumbo=45))
     cultivo = crear_cultivo(session, ana, crear_parcela(session, ana, horta.id, "P").id, "Col")
-    session.add(Abonado(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 3, 1),
-                        data_fin=date(2026, 3, 1), superficie_ha=0.1, fertilizante_id=compost.id,
-                        dose=10, unidade="29", tipo_fertilizacion="1", metodo="1"))
+    session.add(Abonado(horta_id=horta.id, data_inicio=date(2026, 3, 1),
+                        data_fin=date(2026, 3, 1), fertilizante_id=compost.id,
+                        dose=10, unidade="29", tipo_fertilizacion="1", metodo="1",
+                        leiras=[AbonadoCultivo(cultivo_id=cultivo.id, superficie_ha=0.1)]))
     session.commit()
     libro = load_workbook(BytesIO(xerar_caderno(session, ana, horta.id, date(2026, 1, 1),
                                                 date(2026, 12, 31))))

@@ -63,7 +63,7 @@ def _datos(cultivo, **cambios):
 def test_crear_rega_cos_valores_por_defecto(session):
     ana, horta, cultivo = _escenario(session)
     rega = crear_rega(session, ana, _datos(cultivo), hoxe=HOXE)
-    assert rega.superficie_ha == 0.01 and rega.data_fin == date(2026, 7, 1)
+    assert rega.leiras[0].superficie_ha == 0.01 and rega.data_fin == date(2026, 7, 1)
     assert rega.unidade == "4" and rega.orixe_auga == "2"  # a orixe da parcela
     assert rega.creado_por == ana.id
     assert listar_regas(session, ana, horta.id) == [rega]

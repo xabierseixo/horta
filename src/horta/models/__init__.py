@@ -1,4 +1,4 @@
-from horta.models.abonado import Abonado, AbonadoBoaPractica, Fertilizante
+from horta.models.abonado import Abonado, AbonadoBoaPractica, AbonadoCultivo, Fertilizante
 from horta.models.analise import Analise, AnaliseSubstancia, AnaliseTipo
 from horta.models.animal import Animal
 from horta.models.catalogo import (
@@ -22,7 +22,7 @@ from horta.models.fito_rexistro import (
     FitoUso,
 )
 from horta.models.horta import Horta, HortaMembro, RolHorta
-from horta.models.labor import Labor
+from horta.models.labor import Labor, LaborCultivo
 from horta.models.lote import Lote, LoteSaida
 from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
@@ -30,7 +30,7 @@ from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.pastoreo import Pastoreo, PastoreoAnimal, PastoreoLeira
 from horta.models.persoa import Persoa, PersoaPapel, TipoCarne
 from horta.models.producion_animal import ProducionAnimal
-from horta.models.rega import Rega, RegaBoaPractica
+from horta.models.rega import Rega, RegaBoaPractica, RegaCultivo
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import (
     TratamentoAplicador,
@@ -76,9 +76,12 @@ __all__ = [
     "FitoPonteAxente",
     "Fertilizante",
     "Abonado",
+    "AbonadoCultivo",
     "AbonadoBoaPractica",
     "Rega",
+    "RegaCultivo",
     "Labor",
+    "LaborCultivo",
     "RegaBoaPractica",
     "Analise",
     "AnaliseTipo",

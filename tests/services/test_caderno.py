@@ -4,11 +4,11 @@ from io import BytesIO
 import pytest
 from openpyxl import load_workbook
 
-from horta.models.abonado import Abonado, Fertilizante
+from horta.models.abonado import Abonado, AbonadoCultivo, Fertilizante
 from horta.models.analise import Analise
 from horta.models.catalogo import CatalogoValor, CatalogoVersion
 from horta.models.persoa import Persoa
-from horta.models.rega import Rega
+from horta.models.rega import Rega, RegaCultivo
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.caderno import xerar_caderno
 from horta.services.colleitas import DatosColleita, crear_colleita
@@ -50,18 +50,21 @@ def _escenario(session):
     session.add(abono)
     session.flush()
     session.add_all([
-        Abonado(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 3, 10),
-                data_fin=date(2026, 3, 10), superficie_ha=0.2, fertilizante_id=abono.id,
-                dose=200, unidade="17", tipo_fertilizacion="1", metodo="1"),
-        Rega(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 7, 1),
-             data_fin=date(2026, 7, 1), superficie_ha=0.2, sistema_rega="6", cantidade=4,
-             unidade="3"),
+        Abonado(horta_id=horta.id, data_inicio=date(2026, 3, 10),
+                data_fin=date(2026, 3, 10), fertilizante_id=abono.id,
+                dose=200, unidade="17", tipo_fertilizacion="1", metodo="1",
+                leiras=[AbonadoCultivo(cultivo_id=cultivo.id, superficie_ha=0.2)]),
+        Rega(horta_id=horta.id, data_inicio=date(2026, 7, 1),
+             data_fin=date(2026, 7, 1), sistema_rega="6", cantidade=4,
+             unidade="3",
+             leiras=[RegaCultivo(cultivo_id=cultivo.id, superficie_ha=0.2)]),
         Analise(horta_id=horta.id, material_analizado="3", data_mostraxe=date(2026, 2, 1),
                 parcela_id=parcela.id, ph=5.6),
         # fóra do período: non debe saír
-        Rega(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2025, 7, 1),
-             data_fin=date(2025, 7, 1), superficie_ha=0.2, sistema_rega="6", cantidade=9,
-             unidade="3"),
+        Rega(horta_id=horta.id, data_inicio=date(2025, 7, 1),
+             data_fin=date(2025, 7, 1), sistema_rega="6", cantidade=9,
+             unidade="3",
+             leiras=[RegaCultivo(cultivo_id=cultivo.id, superficie_ha=0.2)]),
     ])
     session.commit()
     # A folla 5 (colleita comercializada) sae das vendas dos lotes de colleitas

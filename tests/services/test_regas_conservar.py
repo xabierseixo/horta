@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from horta.models.rega import Rega
+from horta.models.rega import Rega, RegaCultivo
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo, eliminar_cultivo
 from horta.services.errors import OperacionNonPermitidaError
@@ -18,9 +18,10 @@ def _escenario(session):
     horta = crear_horta(session, ana, "Horta")
     parcela = crear_parcela(session, ana, horta.id, "P1")
     cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
-    session.add(Rega(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 7, 1),
-                     data_fin=date(2026, 7, 1), superficie_ha=0.01, sistema_rega="6",
-                     cantidade=300, unidade="4"))
+    session.add(Rega(horta_id=horta.id, data_inicio=date(2026, 7, 1),
+                     data_fin=date(2026, 7, 1), sistema_rega="6",
+                     cantidade=300, unidade="4",
+                     leiras=[RegaCultivo(cultivo_id=cultivo.id, superficie_ha=0.01)]))
     session.commit()
     return ana, horta, parcela, cultivo
 

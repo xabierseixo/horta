@@ -42,7 +42,8 @@ def test_rega_so_con_cultivo_e_data(session):
     ana, _, cultivo = _cultivo_sen_superficie(session)
     rega = crear_rega(session, ana, DatosRega(cultivo_id=cultivo.id, data_inicio=HOXE,
                                               persoa_id=QUEN), hoxe=HOXE)
-    assert rega.sistema_rega is None and rega.cantidade is None and rega.superficie_ha is None
+    assert rega.sistema_rega is None and rega.cantidade is None
+    assert rega.leiras[0].superficie_ha is None
 
 
 def test_abonado_so_co_abono(session):
@@ -66,7 +67,7 @@ def test_labor_sen_superficie(session):
     ana, _, cultivo = _cultivo_sen_superficie(session)
     labor = crear_labor(session, ana, DatosLabor(persoa_id=QUEN,
         cultivo_id=cultivo.id, data_inicio=HOXE, tipo_labor="7"), hoxe=HOXE)
-    assert labor.superficie_ha is None
+    assert labor.leiras[0].superficie_ha is None
 
 
 def test_sen_rexistros_non_falta_nada(session):

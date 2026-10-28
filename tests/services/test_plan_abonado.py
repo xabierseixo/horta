@@ -1,6 +1,6 @@
 from datetime import date
 
-from horta.models.abonado import Abonado
+from horta.models.abonado import Abonado, AbonadoCultivo
 from horta.models.catalogo import CatalogoValor, CatalogoVersion
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import actualizar_cultivo, crear_cultivo
@@ -32,10 +32,11 @@ def _escenario(session):
 
 
 def _abonado(session, horta, cultivo, abono, superficie, dose, unidade="17"):
-    session.add(Abonado(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 4, 1),
-                        data_fin=date(2026, 4, 1), superficie_ha=superficie,
+    session.add(Abonado(horta_id=horta.id, data_inicio=date(2026, 4, 1),
+                        data_fin=date(2026, 4, 1), 
                         fertilizante_id=abono.id, dose=dose, unidade=unidade,
-                        tipo_fertilizacion="1", metodo="1"))
+                        tipo_fertilizacion="1", metodo="1",
+                        leiras=[AbonadoCultivo(cultivo_id=cultivo.id, superficie_ha=superficie)]))
     session.commit()
 
 

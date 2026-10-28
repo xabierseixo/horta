@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from horta.models.abonado import Abonado
+from horta.models.abonado import Abonado, AbonadoCultivo
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo, eliminar_cultivo
 from horta.services.errors import OperacionNonPermitidaError
@@ -18,9 +18,10 @@ def _escenario(session):
     horta = crear_horta(session, ana, "Horta")
     parcela = crear_parcela(session, ana, horta.id, "P1")
     cultivo = crear_cultivo(session, ana, parcela.id, "Pataca")
-    session.add(Abonado(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 4, 1),
-                        data_fin=date(2026, 4, 1), superficie_ha=0.1, tipo_fertilizacion="1",
-                        metodo="1"))
+    session.add(Abonado(horta_id=horta.id, data_inicio=date(2026, 4, 1),
+                        data_fin=date(2026, 4, 1), tipo_fertilizacion="1",
+                        metodo="1",
+                        leiras=[AbonadoCultivo(cultivo_id=cultivo.id, superficie_ha=0.1)]))
     session.commit()
     return ana, horta, parcela, cultivo
 

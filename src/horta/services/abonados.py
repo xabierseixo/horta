@@ -7,15 +7,15 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from horta.models.abonado import Abonado, AbonadoBoaPractica, Fertilizante
-from horta.models.cultivo import Cultivo
+from horta.models.abonado import Abonado, AbonadoBoaPractica, AbonadoCultivo, Fertilizante
 from horta.models.horta import RolHorta
-from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import UNIDADES_DOSE, nutrientes_kg_ha
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.leiras import LeiraTraballo, LeiraValida, as_leiras, validar_leiras
+from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -24,10 +24,12 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 ABONADO_EN_VERDE = "20"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class DatosAbonado:
-    cultivo_id: int
     data_inicio: date
+    # As leiras; ou, para unha soa, cultivo_id e superficie_ha. A dose é por hectárea
+    leiras: list[LeiraTraballo] = field(default_factory=list)
+    cultivo_id: int | None = None
     tipo_fertilizacion: str | None = None
     metodo: str | None = None
     boas_practicas: list[str] = field(default_factory=list)
@@ -47,28 +49,14 @@ class DatosAbonado:
     notas: str | None = None
 
 
-def _horta_do_cultivo(session: Session, cultivo_id: int) -> tuple[Cultivo, int]:
-    cultivo = session.get(Cultivo, cultivo_id)
-    if cultivo is None:
-        raise OperacionNonPermitidaError("Ese cultivo non existe")
-    horta_id = session.query(Parcela.horta_id).filter_by(id=cultivo.parcela_id).scalar()
-    return cultivo, horta_id
-
-
-def _validar(
-    session: Session, datos: DatosAbonado, cultivo: Cultivo, horta_id: int, hoxe: date
-) -> None:
+def _validar(session: Session, datos: DatosAbonado, horta_id: int, hoxe: date) -> None:
     if datos.data_inicio > hoxe:
         raise OperacionNonPermitidaError("A data do abonado non pode ser futura")
     # Quen o fixo pode ser unha persoa do equipo ou a empresa de servizos (co seu REGFER)
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     if datos.data_fin is not None and datos.data_fin < datos.data_inicio:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
-    if datos.superficie_ha is not None:
-        if datos.superficie_ha <= 0:
-            raise OperacionNonPermitidaError("A superficie ten que ser maior que 0")
-        if cultivo.superficie_ha and datos.superficie_ha > cultivo.superficie_ha:
-            raise OperacionNonPermitidaError("A superficie abonada é maior ca do cultivo")
+    comprobar_maquina(session, horta_id, datos.maquina_id)
     if datos.tipo_fertilizacion:
         validar_codigo(session, "tipo_fertilizacion", datos.tipo_fertilizacion, datos.data_inicio)
     if datos.metodo:
@@ -92,12 +80,13 @@ def _validar(
         raise OperacionNonPermitidaError("Escolle a unidade da dose (por hectárea ou por m²)")
 
 
-def _copiar(abonado: Abonado, datos: DatosAbonado, horta_id: int, cultivo: Cultivo) -> None:
+def _copiar(abonado: Abonado, datos: DatosAbonado, horta_id: int,
+            leiras: list[LeiraValida]) -> None:
     abonado.horta_id = horta_id
-    abonado.cultivo_id = datos.cultivo_id
+    abonado.leiras = [AbonadoCultivo(cultivo_id=le.cultivo.id, superficie_ha=le.superficie_ha)
+                      for le in leiras]
     abonado.data_inicio = datos.data_inicio
     abonado.data_fin = datos.data_fin or datos.data_inicio
-    abonado.superficie_ha = datos.superficie_ha or cultivo.superficie_ha
     abonado.fertilizante_id = datos.fertilizante_id
     abonado.dose = datos.dose if datos.fertilizante_id else None
     abonado.unidade = datos.unidade if datos.fertilizante_id and datos.dose else None
@@ -118,11 +107,12 @@ def _copiar(abonado: Abonado, datos: DatosAbonado, horta_id: int, cultivo: Culti
 def crear_abonado(
     session: Session, actor: Usuario, datos: DatosAbonado, hoxe: date | None = None
 ) -> Abonado:
-    cultivo, horta_id = _horta_do_cultivo(session, datos.cultivo_id)
+    horta_id, leiras = validar_leiras(
+        session, as_leiras(datos.cultivo_id, datos.superficie_ha, datos.leiras))
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    _validar(session, datos, cultivo, horta_id, hoxe or date.today())
+    _validar(session, datos, horta_id, hoxe or date.today())
     abonado = Abonado(creado_por=actor.id)
-    _copiar(abonado, datos, horta_id, cultivo)
+    _copiar(abonado, datos, horta_id, leiras)
     session.add(abonado)
     session.commit()
     return abonado
@@ -135,11 +125,11 @@ def actualizar_abonado(
     if abonado.baixa:
         raise OperacionNonPermitidaError("Un abonado dado de baixa non se pode modificar")
     comprobar_rol_horta(session, abonado.horta_id, actor, _ROLES_ESCRITURA)
-    cultivo, horta_id = _horta_do_cultivo(session, datos.cultivo_id)
-    if horta_id != abonado.horta_id:
-        raise OperacionNonPermitidaError("O cultivo indicado non pertence a esta explotación")
-    _validar(session, datos, cultivo, horta_id, hoxe or date.today())
-    _copiar(abonado, datos, horta_id, cultivo)
+    _, leiras = validar_leiras(
+        session, as_leiras(datos.cultivo_id, datos.superficie_ha, datos.leiras),
+        abonado.horta_id)
+    _validar(session, datos, abonado.horta_id, hoxe or date.today())
+    _copiar(abonado, datos, abonado.horta_id, leiras)
     session.commit()
     return abonado
 
@@ -156,7 +146,7 @@ def listar_abonados(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
     consulta = session.query(Abonado).filter_by(horta_id=horta_id, baixa=False)
     if cultivo_id is not None:
-        consulta = consulta.filter_by(cultivo_id=cultivo_id)
+        consulta = consulta.filter(Abonado.leiras.any(AbonadoCultivo.cultivo_id == cultivo_id))
     return list(consulta.order_by(Abonado.data_inicio.desc(), Abonado.id.desc()))
 
 

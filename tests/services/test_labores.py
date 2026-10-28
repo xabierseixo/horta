@@ -60,7 +60,7 @@ def test_crear_labor_cos_valores_por_defecto(session):
     ana, horta, _, cultivo = _escenario(session)
     labor = crear_labor(session, ana, _datos(cultivo, restos_poda_no_solo=True), hoxe=HOXE)
     assert labor.data_fin == labor.data_inicio
-    assert labor.superficie_ha == 0.2
+    assert labor.leiras[0].superficie_ha == 0.2
     assert labor.tipo_cobertura == "3"  # a do cultivo
     assert labor.restos_poda_no_solo and not labor.restos_desbroce_no_solo
     assert labor.creado_por == ana.id

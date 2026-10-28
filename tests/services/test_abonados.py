@@ -66,7 +66,7 @@ def _datos(cultivo, abono, **cambios):
 def test_crear_abonado_coa_superficie_do_cultivo(session):
     ana, horta, cultivo, abono = _escenario(session)
     abonado = crear_abonado(session, ana, _datos(cultivo, abono), hoxe=HOXE)
-    assert abonado.superficie_ha == 0.2 and abonado.data_fin == date(2026, 4, 1)
+    assert abonado.leiras[0].superficie_ha == 0.2 and abonado.data_fin == date(2026, 4, 1)
     assert abonado.creado_por == ana.id
     assert [b.codigo for b in abonado.boas_practicas] == ["0"]
     assert nutrientes_do_abonado(session, abonado) == (30.0, 30.0, 30.0)
