@@ -35,7 +35,7 @@ def test_asesorados_e_semente_tratada(session):
     actualizar_cultivo(session, ana, cultivo, superficie_ha=0.2, data_inicio=date(2026, 3, 1),
                        material_tratado=True, cantidade_semente_kg=50,
                        semente_tratamento_produto="Monceren", semente_tratamento_num_rexistro="123")
-    asesora = crear_persoa(session, ana, horta.id, "Lúa", e_asesor=True, ropo_numero="R-9")
+    asesora = crear_persoa(session, ana, horta.id, "Lúa", papeis={"asesor"}, ropo_numero="R-9")
     t = TratamentoFito(horta_id=horta.id, data_inicio=date(2026, 5, 2),
                        data_fin=date(2026, 5, 2))
     t.cultivos = [TratamentoCultivo(cultivo_id=cultivo.id, superficie_ha=0.2)]

@@ -21,7 +21,7 @@ def _escenario(session):
     actualizar_horta(session, ana, horta, enderezo="Lugar de Abaixo 3", localidade="Melide",
                      codigo_postal="15800", provincia="A Coruña", tipo_xip="AS",
                      asesoramento_nome="ATRIA Ulloa", asesoramento_fertilizacion=True)
-    crear_persoa(session, ana, horta.id, "Ana", e_titular=True, enderezo="Rúa Nova 1",
+    crear_persoa(session, ana, horta.id, "Ana", papeis={"titular"}, enderezo="Rúa Nova 1",
                  localidade="Melide")
     crear_maquina(session, ana, horta.id, "Mochila", id_equipo_non_inscribible="M1",
                   data_adquisicion=date(2020, 5, 1))

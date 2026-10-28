@@ -16,7 +16,7 @@ from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
-from horta.models.persoa import Persoa
+from horta.models.persoa import Persoa, PersoaPapel
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
@@ -125,7 +125,7 @@ def crear_horta(
     membro = HortaMembro(horta_id=horta.id, usuario_id=actor.id, rol=RolHorta.ADMIN)
     session.add(membro)
     session.add(Persoa(horta_id=horta.id, nome=actor.nome, usuario_id=actor.id,
-                       email=actor.email))
+                       email=actor.email, papeis_rexistro=[PersoaPapel(papel="traballador")]))
     session.commit()
     return horta
 

@@ -91,11 +91,13 @@ def xerar_caderno(
                 .order_by(Cultivo.parcela_id, Cultivo.id) if _activo(c, desde, ata)]
     orde_cultivo = {c.id: i for i, c in enumerate(cultivos, 1)}
     persoas = session.query(Persoa).filter_by(horta_id=horta_id).order_by(Persoa.id).all()
-    aplicadores = [p for p in persoas if p.e_aplicador or p.e_asesor]
+    # 1.2: persoas ou empresas que interveñen nos tratamentos (aplican, asesoran ou dan servizo)
+    aplicadores = [p for p in persoas if p.ten_papel("aplicador", "asesor", "servizos")
+                   and (p.ropo_numero or p.regfer_numero or p.ten_papel("aplicador"))]
     orde_persoa = {p.id: i for i, p in enumerate(aplicadores, 1)}
     maquinas = session.query(Maquina).filter_by(horta_id=horta_id).order_by(Maquina.id).all()
     orde_maquina = {m.id: i for i, m in enumerate(maquinas, 1)}
-    titular = next((p for p in persoas if p.e_titular), None)
+    titular = next((p for p in persoas if p.activa and p.ten_papel("titular")), None)
     cab = (f"Explotación/Titular da explotación: {horta.nome} / "
            f"{horta.titular_nome or (titular.nome if titular else '')}   "
            f"Período: {_data(desde)} - {_data(ata)}")
@@ -144,7 +146,7 @@ def xerar_caderno(
            p.ropo_numero or "",
            *["X" if p.ropo_tipo_carne == t else "" for t in (
                TipoCarne.basico, TipoCarne.cualificado, TipoCarne.fumigador, TipoCarne.piloto)],
-           "X" if p.e_asesor else "", p.regfer_numero or ""] for p in aplicadores],
+           "X" if p.ten_papel("asesor") else "", p.regfer_numero or ""] for p in aplicadores],
         [],
         ["1.3 EQUIPOS DE APLICACIÓN DE PRODUTOS FITOSANITARIOS E PRODUTOS FERTILIZANTES "
          "PROPIOS DA EXPLOTACIÓN"],

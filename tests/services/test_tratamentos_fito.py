@@ -55,7 +55,7 @@ def _escenario(session, profesional=True):
     session.commit()
     parcela = crear_parcela(session, ana, horta.id, "P1", superficie=0.2)
     cultivo = crear_cultivo(session, ana, parcela.id, "Pataca")
-    xan = crear_persoa(session, ana, horta.id, "Xan", e_aplicador=True, ropo_numero="1",
+    xan = crear_persoa(session, ana, horta.id, "Xan", papeis={"aplicador"}, ropo_numero="1",
                        ropo_caducidade=D)
     maquina = crear_maquina(session, ana, horta.id, "Mochila", id_equipo_non_inscribible="M1")
     return ana, horta, parcela, cultivo, xan, maquina

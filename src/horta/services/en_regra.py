@@ -9,10 +9,9 @@ from sqlalchemy.orm import Session
 
 from horta.models.animal import Animal
 from horta.models.horta import Horta, RolHorta
-from horta.models.persoa import Persoa
 from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import ropo_vixente
+from horta.services.persoas import con_papel, ropo_vixente
 
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
@@ -39,11 +38,7 @@ def requisitos_en_regra(
     if not horta.uso_profesional:
         return [requisito_rega] if ten_animais else []
     hoxe = hoxe or date.today()
-    aplicadores = [
-        p
-        for p in session.query(Persoa).filter_by(horta_id=horta.id, activa=True, e_aplicador=True)
-        if ropo_vixente(p, hoxe)
-    ]
+    aplicadores = [p for p in con_papel(session, horta.id, "aplicador") if ropo_vixente(p, hoxe)]
     requisitos = [
         Requisito(
             "NIF do titular",

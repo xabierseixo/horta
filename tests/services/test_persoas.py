@@ -21,7 +21,7 @@ def test_crear_aplicador_con_ropo(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     persoa = crear_persoa(session, ana, horta.id, "Xan", apelidos="Pérez", nif="12345678z",
-                          e_aplicador=True, ropo_numero="1234567890",
+                          papeis={"aplicador"}, ropo_numero="1234567890",
                           ropo_caducidade=date(2027, 5, 1))
     assert persoa.nif == "12345678Z"
     assert "Xan" in [p.nome for p in listar_persoas(session, ana, horta.id)]
@@ -31,7 +31,7 @@ def test_aplicador_sen_ropo_rexeitase(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     with pytest.raises(ValueError, match="nº ROPO e a data de caducidade"):
-        crear_persoa(session, ana, horta.id, "Xan", e_aplicador=True)
+        crear_persoa(session, ana, horta.id, "Xan", papeis={"aplicador"})
 
 
 def test_nif_mal_formado_rexeitase(session):
@@ -53,7 +53,7 @@ def test_lector_non_pode_crear(session):
 def test_ropo_vixente_ata_o_dia_de_caducidade_incluido(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
-    persoa = crear_persoa(session, ana, horta.id, "Xan", e_aplicador=True, ropo_numero="1",
+    persoa = crear_persoa(session, ana, horta.id, "Xan", papeis={"aplicador"}, ropo_numero="1",
                           ropo_caducidade=date(2026, 6, 1))
     assert ropo_vixente(persoa, date(2026, 6, 1)) is True
     assert ropo_vixente(persoa, date(2026, 6, 2)) is False

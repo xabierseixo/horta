@@ -49,7 +49,7 @@ def test_profesional_completo(session):
         ana,
         horta.id,
         "Xan",
-        e_aplicador=True,
+        papeis={"aplicador"},
         ropo_numero="1",
         ropo_caducidade=date(2030, 1, 1),
     )

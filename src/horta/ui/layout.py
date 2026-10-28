@@ -27,7 +27,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("parcelas", "Parcelas", "map", "Explotación"),
     Seccion("cultivos", "Cultivos", "spa", "Explotación"),
     Seccion("animais", "Animais", "pets", "Explotación"),
-    Seccion("equipo", "Equipo", "groups", "Explotación"),
+    Seccion("equipo", "Persoas", "groups", "Explotación"),
     Seccion("maquinaria", "Maquinaria", "agriculture", "Explotación"),
     Seccion("explotacion", "Datos da explotación", "store", "Explotación", so_admin_horta=True),
     # A táboa de cada tipo de traballo: fóra do menú, chégase desde o Diario

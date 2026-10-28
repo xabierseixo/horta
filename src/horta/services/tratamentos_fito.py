@@ -164,7 +164,7 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
         raise _erro("Indica polo menos un aplicador")
     for linha_aplicador in datos.aplicadores:
         persoa = session.get(Persoa, linha_aplicador.persoa_id)
-        if persoa is None or persoa.horta_id != horta.id or not persoa.e_aplicador:
+        if persoa is None or persoa.horta_id != horta.id or not persoa.ten_papel("aplicador"):
             raise _erro("O aplicador indicado non é un aplicador desta explotación")
         if not persoa.activa:
             raise _erro(f"{persoa.nome} está desactivado/a e non pode figurar como aplicador")
@@ -182,7 +182,7 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
                 raise _erro(f"A máquina {maquina.alias} está desactivada")
     if datos.asesor is not None:
         asesor = session.get(Persoa, datos.asesor.persoa_id)
-        if asesor is None or asesor.horta_id != horta.id or not asesor.e_asesor:
+        if asesor is None or asesor.horta_id != horta.id or not asesor.ten_papel("asesor"):
             raise _erro("O asesor indicado non é un asesor desta explotación")
     if datos.eficacia:
         validar_codigo(session, "eficacia", datos.eficacia, d)
