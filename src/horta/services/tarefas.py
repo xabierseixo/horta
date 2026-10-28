@@ -14,6 +14,7 @@ from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.labor import Labor
+from horta.models.movemento_animal import MovementoAnimal
 from horta.models.parcela import Parcela
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
@@ -56,6 +57,7 @@ _TABOA_E_DATA: dict[str, tuple[type[Base], str]] = {
     "analise": (Analise, "data_mostraxe"),
     "tratamento_instalacion": (TratamentoInstalacion, "data"),
     "coidado_animal": (CoidadoAnimal, "data_inicio"),
+    "movemento_animal": (MovementoAnimal, "data"),
 }
 TIPOS_TAREFA = tuple(_TABOA_E_DATA)
 
