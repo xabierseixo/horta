@@ -21,6 +21,15 @@ CAMPOS_EDITABLES_MAQUINA = frozenset(
 )
 
 
+def comprobar_maquina(session: Session, horta_id: int, maquina_id: int | None) -> None:
+    """A máquina dun traballo (opcional) ten que ser da mesma explotación."""
+    if maquina_id is None:
+        return
+    maquina = session.get(Maquina, maquina_id)
+    if maquina is None or maquina.horta_id != horta_id:
+        raise OperacionNonPermitidaError("A máquina indicada non é desta explotación")
+
+
 def _validar(datos: dict[str, Any]) -> None:
     if sum(1 for c in _IDENTIFICADORES if datos.get(c)) > 1:
         raise OperacionNonPermitidaError(

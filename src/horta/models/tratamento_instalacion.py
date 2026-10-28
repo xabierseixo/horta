@@ -9,13 +9,13 @@ from sqlalchemy import Date, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
-from horta.models.traballo import FeitoPor, ParteComun
+from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
 TIPOS_INSTALACION = {"postcolleita": "Postcolleita (no produto vexetal)",
                      "local": "Local de almacenamento", "transporte": "Medio de transporte"}
 
 
-class TratamentoInstalacion(ParteComun, FeitoPor, Base):
+class TratamentoInstalacion(ParteComun, FeitoPor, ConMaquina, Base):
     __tablename__ = "tratamento_instalacion"
 
     id: Mapped[int] = mapped_column(primary_key=True)

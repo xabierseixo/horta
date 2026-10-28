@@ -8,10 +8,10 @@ from sqlalchemy import Date, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from horta.db import Base
-from horta.models.traballo import FeitoPor, ParteComun
+from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
 
-class Rega(ParteComun, FeitoPor, Base):
+class Rega(ParteComun, FeitoPor, ConMaquina, Base):
     __tablename__ = "rega"
 
     id: Mapped[int] = mapped_column(primary_key=True)

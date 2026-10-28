@@ -9,10 +9,10 @@ from sqlalchemy import Date, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
-from horta.models.traballo import FeitoPor, ParteComun
+from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
 
-class MovementoAnimal(ParteComun, FeitoPor, Base):
+class MovementoAnimal(ParteComun, FeitoPor, ConMaquina, Base):
     __tablename__ = "movemento_animal"
 
     id: Mapped[int] = mapped_column(primary_key=True)
