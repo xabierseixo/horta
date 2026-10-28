@@ -17,6 +17,7 @@ from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import comprobar_quen
+from horta.services.producions_animais import lotes_da_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -64,15 +65,8 @@ def _cultivo_e_horta(session: Session, cultivo_id: int) -> tuple[Cultivo, int]:
 
 
 def _lotes_da_horta(session: Session, horta_id: int, excepto_id: int | None = None) -> set[str]:
-    consulta = (
-        session.query(Colleita.lote)
-        .join(Cultivo, Colleita.cultivo_id == Cultivo.id)
-        .join(Parcela, Cultivo.parcela_id == Parcela.id)
-        .filter(Parcela.horta_id == horta_id)
-    )
-    if excepto_id is not None:
-        consulta = consulta.filter(Colleita.id != excepto_id)
-    return {lote for (lote,) in consulta}
+    """Os lotes da explotación, tamén os da produción dos animais."""
+    return lotes_da_horta(session, horta_id, excepto_colleita=excepto_id)
 
 
 def _validar(
