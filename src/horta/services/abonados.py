@@ -39,7 +39,7 @@ class DatosAbonado:
     xestion_sostible: bool = False
     aplicacion_lodos: bool = False
     albaran_factura: str | None = None
-    aplicador_persoa_id: int | None = None
+    persoa_id: int | None = None
     horas: float | None = None
     empresa_servizos_regfer: str | None = None
     maquina_id: int | None = None
@@ -62,7 +62,7 @@ def _validar(
     if datos.data_inicio > hoxe:
         raise OperacionNonPermitidaError("A data do abonado non pode ser futura")
     # Se o fixo unha empresa de servizos, a persoa pode non ser do equipo
-    comprobar_quen(session, horta_id, datos.aplicador_persoa_id, datos.horas,
+    comprobar_quen(session, horta_id, datos.persoa_id, datos.horas,
                    obrigatoria=not datos.empresa_servizos_regfer)
     if datos.data_fin is not None and datos.data_fin < datos.data_inicio:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
@@ -108,7 +108,7 @@ def _copiar(abonado: Abonado, datos: DatosAbonado, horta_id: int, cultivo: Culti
     abonado.xestion_sostible = datos.xestion_sostible
     abonado.aplicacion_lodos = datos.aplicacion_lodos
     abonado.albaran_factura = datos.albaran_factura or None
-    abonado.aplicador_persoa_id = datos.aplicador_persoa_id
+    abonado.persoa_id = datos.persoa_id
     abonado.horas = datos.horas
     abonado.empresa_servizos_regfer = datos.empresa_servizos_regfer or None
     abonado.maquina_id = datos.maquina_id

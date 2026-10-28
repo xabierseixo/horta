@@ -223,7 +223,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                         boas_practicas=list(boas.value or []), fertilizante_id=abono.value,
                         dose=parsear_decimal(dose.value), unidade=unidade.value,
                         xestion_sostible=xestion.value, aplicacion_lodos=lodos.value,
-                        albaran_factura=albaran.value or None, aplicador_persoa_id=aplicador.value,
+                        albaran_factura=albaran.value or None, persoa_id=aplicador.value,
                         maquina_id=maquina.value, empresa_servizos_regfer=empresa.value or None,
                         horas=parsear_decimal(horas.value), notas=notas.value or None)
                     existente = session.get(Abonado, editando["id"]) if editando["id"] else None
@@ -258,7 +258,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         xestion.value = a.xestion_sostible if a else False
         lodos.value = a.aplicacion_lodos if a else False
         albaran.value = (a.albaran_factura or "") if a else ""
-        aplicador.value = (a.aplicador_persoa_id if a.aplicador_persoa_id in persoas
+        aplicador.value = (a.persoa_id if a.persoa_id in persoas
                            else None) if a else proposta_quen(horta_id, tarefa)
         horas.value = f"{a.horas:g}" if a and a.horas else ""
         maquina.value = a.maquina_id if a else None

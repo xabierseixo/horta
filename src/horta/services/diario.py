@@ -106,7 +106,7 @@ def listar_traballos(
             sen_quen=not quen))
     for a in listar_abonados(session, actor, horta_id):
         abono = session.get(Fertilizante, a.fertilizante_id) if a.fertilizante_id else None
-        quen = _quen(a.aplicador_persoa_id)
+        quen = _quen(a.persoa_id)
         traballos.append(Traballo(
             "abonado", a.id, a.data_inicio, True, abono.nome if abono else "Abonado en verde",
             onde(a.cultivo_id), parcela_de(a.cultivo_id), persoas=quen,

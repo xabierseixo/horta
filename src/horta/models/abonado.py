@@ -8,7 +8,7 @@ from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from horta.db import Base
-from horta.models.traballo import ConMaquina, ParteComun
+from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
 
 class Fertilizante(Base):
@@ -57,7 +57,7 @@ class Fertilizante(Base):
     )
 
 
-class Abonado(ParteComun, ConMaquina, Base):
+class Abonado(ParteComun, FeitoPor, ConMaquina, Base):
     """Cada aplicación de abono a un cultivo."""
 
     __tablename__ = "abonado"
@@ -76,8 +76,6 @@ class Abonado(ParteComun, ConMaquina, Base):
     xestion_sostible: Mapped[bool] = mapped_column(Boolean, default=False)
     aplicacion_lodos: Mapped[bool] = mapped_column(Boolean, default=False)
     albaran_factura: Mapped[str | None] = mapped_column(String(50), default=None)
-    aplicador_persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    horas: Mapped[float | None] = mapped_column(Float, default=None)
     empresa_servizos_regfer: Mapped[str | None] = mapped_column(String(50), default=None)
     num_repeticions: Mapped[int | None] = mapped_column(Integer, default=None)
     duracion_h_ha: Mapped[float | None] = mapped_column(Float, default=None)

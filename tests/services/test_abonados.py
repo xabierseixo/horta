@@ -60,7 +60,7 @@ def _datos(cultivo, abono, **cambios):
             "metodo": "1", "boas_practicas": ["0"], "fertilizante_id": abono.id, "dose": 200,
             "unidade": "17"}
     base.update(cambios)
-    return DatosAbonado(**{"aplicador_persoa_id": QUEN, **base})
+    return DatosAbonado(**{"persoa_id": QUEN, **base})
 
 
 def test_crear_abonado_coa_superficie_do_cultivo(session):

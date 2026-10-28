@@ -69,7 +69,7 @@ def _apuntar(session, ana, horta, cultivo, tipo, persoa_id, horas=None):
         nome="Compost", material="13"))
     return crear_abonado(session, ana, DatosAbonado(
         cultivo_id=cultivo.id, data_inicio=HOXE, fertilizante_id=esterco.id,
-        aplicador_persoa_id=persoa_id, horas=horas), hoxe=HOXE)
+        persoa_id=persoa_id, horas=horas), hoxe=HOXE)
 
 
 TIPOS = ["rega", "labor", "colleita", "analise", "tratamento_instalacion", "abonado"]
@@ -86,8 +86,7 @@ def test_sen_quen_non_se_garda(session, tipo):
 def test_garda_quen_e_as_horas(session, tipo):
     ana, horta, ana_persoa, cultivo = _escenario(session)
     rexistro = _apuntar(session, ana, horta, cultivo, tipo, ana_persoa.id, horas=1.5)
-    persoa_id = rexistro.aplicador_persoa_id if tipo == "abonado" else rexistro.persoa_id
-    assert persoa_id == ana_persoa.id and rexistro.horas == 1.5
+    assert rexistro.persoa_id == ana_persoa.id and rexistro.horas == 1.5
 
 
 def test_as_horas_son_opcionais_pero_positivas(session):
@@ -112,7 +111,7 @@ def test_abonado_dunha_empresa_de_servizos_sen_persoa(session):
     abonado = crear_abonado(session, ana, DatosAbonado(
         cultivo_id=cultivo.id, data_inicio=HOXE, fertilizante_id=esterco.id,
         empresa_servizos_regfer="ES1234"), hoxe=HOXE)
-    assert abonado.aplicador_persoa_id is None
+    assert abonado.persoa_id is None
 
 
 def test_sementeira_garda_quen_e_as_horas(session):

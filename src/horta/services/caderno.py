@@ -363,7 +363,7 @@ def xerar_caderno(
         npk = nutrientes_do_abonado(session, ab)
         kg_ha = dose_kg_ha(ab.dose, ab.unidade, fe.densidade if fe else None) \
             if ab.dose is not None and ab.unidade else None
-        persoa = session.get(Persoa, ab.aplicador_persoa_id) if ab.aplicador_persoa_id else None
+        persoa = session.get(Persoa, ab.persoa_id) if ab.persoa_id else None
         maquina = session.get(Maquina, ab.maquina_id) if ab.maquina_id else None
         filas_fert.append([
             _intervalo(ab.data_inicio, ab.data_fin), orde_cultivo.get(ab.cultivo_id, ""),

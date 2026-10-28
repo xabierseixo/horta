@@ -49,7 +49,7 @@ def test_abonado_so_co_abono(session):
     ana, horta, cultivo = _cultivo_sen_superficie(session)
     esterco = crear_fertilizante(session, ana, horta.id, DatosFertilizante(
         nome="Compost da casa", material="13"))
-    abonado = crear_abonado(session, ana, DatosAbonado(aplicador_persoa_id=QUEN,
+    abonado = crear_abonado(session, ana, DatosAbonado(persoa_id=QUEN,
         cultivo_id=cultivo.id, data_inicio=HOXE, fertilizante_id=esterco.id), hoxe=HOXE)
     assert abonado.tipo_fertilizacion is None and abonado.metodo is None
     assert abonado.dose is None and abonado.unidade is None and abonado.boas_practicas == []
