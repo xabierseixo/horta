@@ -20,6 +20,7 @@ from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.labores import listar_labores
+from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
 from horta.services.regas import listar_regas
 from horta.services.tarefas import listar_tarefas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
@@ -36,6 +37,7 @@ TIPOS: dict[str, str] = {
     "analise": "Toma de mostras",
     "tratamento_instalacion": "Tratamento en almacén ou instalación",
     "coidado_animal": "Coidado de animais",
+    "movemento_animal": "Entrada ou saída de animais",
     "tarefa": "Tarefa",
 }
 
@@ -149,6 +151,11 @@ def listar_traballos(
                                   f"{que} — {detalle}" if detalle else que,
                                   grupos.get(co.animal_id, ""), frozenset(),
                                   persoas=_quen(co.persoa_id), sen_quen=co.persoa_id is None))
+    for mo in listar_movementos(session, actor, horta_id):
+        traballos.append(Traballo("movemento_animal", mo.id, mo.data, True,
+                                  f"{TIPOS_MOVEMENTO[mo.tipo].split(' (')[0]}: {mo.cantidade}",
+                                  grupos.get(mo.animal_id, ""), frozenset(),
+                                  persoas=_quen(mo.persoa_id), sen_quen=mo.persoa_id is None))
     for ta in listar_tarefas(session, actor, horta_id):
         if ta.traballo_id is not None:
             continue  # xa feita: sae o traballo apuntado no seu tipo
