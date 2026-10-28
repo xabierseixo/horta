@@ -19,6 +19,7 @@ from horta.models.usuario import Usuario
 from horta.services.coidados_animais import fin_tempo_espera, listar_coidados
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -59,6 +60,7 @@ class DatosProducion:
     retirada: float | None = None
     horas: float | None = None
     notas: str | None = None
+    maquina_id: int | None = None
 
 
 def produtos_da_especie(especie_codigo: str | None) -> dict[str, str]:
@@ -132,6 +134,7 @@ def _validar(session: Session, datos: DatosProducion, animal: Animal, hoxe: date
     if lote in lotes_da_horta(session, animal.horta_id, excepto_producion=excepto_id):
         raise OperacionNonPermitidaError(f"O lote {lote} xa existe nesta explotación")
     comprobar_quen(session, animal.horta_id, datos.persoa_id, datos.horas)
+    comprobar_maquina(session, animal.horta_id, datos.maquina_id)
 
 
 def _copiar(pr: ProducionAnimal, datos: DatosProducion, animal: Animal) -> None:
@@ -146,6 +149,7 @@ def _copiar(pr: ProducionAnimal, datos: DatosProducion, animal: Animal) -> None:
     pr.lote = datos.lote.strip()
     pr.persoa_id = datos.persoa_id
     pr.horas = datos.horas
+    pr.maquina_id = datos.maquina_id
     pr.notas = datos.notas or None
 
 

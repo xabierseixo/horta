@@ -15,6 +15,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -37,6 +38,7 @@ class DatosRega:
     num_contador: str | None = None
     persoa_id: int | None = None
     horas: float | None = None
+    maquina_id: int | None = None
     boas_practicas: list[str] = field(default_factory=list)
     notas: str | None = None
 
@@ -54,6 +56,7 @@ def _validar(session: Session, datos: DatosRega, cultivo: Cultivo, horta_id: int
     if datos.data_inicio > hoxe:
         raise OperacionNonPermitidaError("A data da rega non pode ser futura")
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
+    comprobar_maquina(session, horta_id, datos.maquina_id)
     if datos.data_fin is not None and datos.data_fin < datos.data_inicio:
         raise OperacionNonPermitidaError("A data de fin non pode ser anterior á de inicio")
     if datos.superficie_ha is not None:
@@ -91,6 +94,7 @@ def _copiar(rega: Rega, datos: DatosRega, cultivo: Cultivo, parcela: Parcela) ->
     rega.num_contador = datos.num_contador or None
     rega.persoa_id = datos.persoa_id
     rega.horas = datos.horas
+    rega.maquina_id = datos.maquina_id
     rega.notas = datos.notas or None
     rega.boas_practicas = [RegaBoaPractica(codigo=c) for c in datos.boas_practicas]
 

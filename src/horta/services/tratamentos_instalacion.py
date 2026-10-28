@@ -14,6 +14,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -39,6 +40,7 @@ class DatosTratamentoInstalacion:
     notas: str | None = None
     persoa_id: int | None = None
     horas: float | None = None
+    maquina_id: int | None = None
 
 
 def _validar(session: Session, datos: DatosTratamentoInstalacion, horta_id: int,
@@ -48,6 +50,7 @@ def _validar(session: Session, datos: DatosTratamentoInstalacion, horta_id: int,
     if datos.data > hoxe:
         raise OperacionNonPermitidaError("A data do tratamento non pode ser futura")
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
+    comprobar_maquina(session, horta_id, datos.maquina_id)
     if not datos.obxecto.strip():
         raise OperacionNonPermitidaError("Indica que se tratou")
     if not (datos.nome_comercial or datos.materia_activa):

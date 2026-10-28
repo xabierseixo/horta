@@ -15,6 +15,7 @@ from horta.models.usuario import Usuario
 from horta.services.coidados_animais import en_tempo_espera
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -46,6 +47,7 @@ class DatosMovemento:
     causa: str | None = None
     horas: float | None = None
     notas: str | None = None
+    maquina_id: int | None = None
 
 
 def _movementos(session: Session, animal_id: int) -> list[MovementoAnimal]:
@@ -105,6 +107,7 @@ def _validar(session: Session, datos: DatosMovemento, animal: Animal, hoxe: date
     if datos.cantidade is None or datos.cantidade < 1:
         raise OperacionNonPermitidaError("Indica cantos animais (polo menos 1)")
     comprobar_quen(session, animal.horta_id, datos.persoa_id, datos.horas)
+    comprobar_maquina(session, animal.horta_id, datos.maquina_id)
 
 
 def _copiar(mov: MovementoAnimal, datos: DatosMovemento, animal: Animal) -> None:
@@ -122,6 +125,7 @@ def _copiar(mov: MovementoAnimal, datos: DatosMovemento, animal: Animal) -> None
     mov.causa = (datos.causa or None) if datos.tipo == "morte" else None
     mov.persoa_id = datos.persoa_id
     mov.horas = datos.horas
+    mov.maquina_id = datos.maquina_id
     mov.notas = datos.notas or None
 
 
