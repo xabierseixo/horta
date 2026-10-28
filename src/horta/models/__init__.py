@@ -24,6 +24,7 @@ from horta.models.fito_rexistro import (
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor
 from horta.models.maquina import Maquina
+from horta.models.movemento_animal import MovementoAnimal
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa, TipoCarne
 from horta.models.rega import Rega, RegaBoaPractica
@@ -51,6 +52,7 @@ __all__ = [
     "SecanoRegadio",
     "Animal",
     "CoidadoAnimal",
+    "MovementoAnimal",
     "Cultivo",
     "Tarefa",
     "Colleita",

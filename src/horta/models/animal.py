@@ -13,8 +13,11 @@ class Animal(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"))
+    # Nome do grupo (p.ex. «Galiñas do galiñeiro de abaixo») e a especie no catálogo oficial
     especie: Mapped[str] = mapped_column(String(80))
+    especie_codigo: Mapped[str | None] = mapped_column(String(20), default=None)
     raza: Mapped[str | None] = mapped_column(String(120), default=None)
+    # Cantidade, data de baixa e estado saen dos movementos (services.movementos_animais)
     cantidade: Mapped[int] = mapped_column(Integer, default=1)
     data_alta: Mapped[date] = mapped_column(Date)
     data_baixa: Mapped[date | None] = mapped_column(Date, default=None)
