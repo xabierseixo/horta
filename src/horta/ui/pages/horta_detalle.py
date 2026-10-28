@@ -65,6 +65,7 @@ from horta.ui.pages.diario import Formularios, boton_apuntar_traballo, seccion_d
 from horta.ui.pages.equipo import seccion_equipo
 from horta.ui.pages.informes import seccion_informes
 from horta.ui.pages.labores import seccion_labores
+from horta.ui.pages.lotes import seccion_lotes
 from horta.ui.pages.maquinaria import seccion_maquinaria
 from horta.ui.pages.movementos_animais import seccion_movementos
 from horta.ui.pages.parcelas import seccion_parcelas
@@ -332,6 +333,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_producion(horta_id, pode_editar)
     elif seccion == "pastoreo":
         seccion_pastoreo(horta_id, pode_editar)
+    elif seccion == "lotes":
+        seccion_lotes(horta_id, pode_editar)
     elif seccion == "coidados":
         seccion_coidados(horta_id, pode_editar)
     elif seccion == "equipo":

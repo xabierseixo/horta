@@ -16,6 +16,7 @@ from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.labor import Labor
+from horta.models.lote import LoteSaida
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
@@ -37,6 +38,7 @@ from horta.ui.pages.coidados_animais import dialogo_coidado
 from horta.ui.pages.colleitas import dialogo_colleita
 from horta.ui.pages.cultivos import dialogo_cultivo
 from horta.ui.pages.labores import dialogo_labor
+from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.pages.movementos_animais import dialogo_movemento
 from horta.ui.pages.pastoreos import dialogo_pastoreo
 from horta.ui.pages.producions_animais import dialogo_producion
@@ -50,7 +52,7 @@ ICONAS = {
     "colleita": "inventory_2", "sementeira": "spa", "analise": "science",
     "tratamento_instalacion": "warehouse", "coidado_animal": "pets",
     "movemento_animal": "swap_horiz", "producion_animal": "egg", "pastoreo": "landscape",
-    "tarefa": "task_alt",
+    "lote_saida": "sell", "tarefa": "task_alt",
 }
 # A táboa de cada tipo, cos seus datos propios (p.ex. «non colleitar antes do»)
 SECCION_DO_TIPO = {
@@ -58,14 +60,14 @@ SECCION_DO_TIPO = {
     "colleita": "colleitas", "sementeira": "cultivos", "analise": "analises",
     "tratamento_instalacion": "tratamentos", "coidado_animal": "coidados",
     "movemento_animal": "movementos", "producion_animal": "producion", "pastoreo": "pastoreo",
-    "tarefa": "tarefas",
+    "lote_saida": "lotes", "tarefa": "tarefas",
 }
 _MODELOS: dict[str, type[Base]] = {
     "tratamento": TratamentoFito, "abonado": Abonado, "rega": Rega, "labor": Labor,
     "colleita": Colleita, "sementeira": Cultivo, "analise": Analise,
     "tratamento_instalacion": TratamentoInstalacion, "coidado_animal": CoidadoAnimal,
     "movemento_animal": MovementoAnimal, "producion_animal": ProducionAnimal,
-    "pastoreo": Pastoreo,
+    "pastoreo": Pastoreo, "lote_saida": LoteSaida,
 }
 _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "tratamento": dialogo_tratamento_fito, "abonado": dialogo_abonado, "rega": dialogo_rega,
@@ -73,6 +75,7 @@ _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "analise": dialogo_analise, "tratamento_instalacion": dialogo_tratamento_instalacion,
     "coidado_animal": dialogo_coidado, "movemento_animal": dialogo_movemento,
     "producion_animal": dialogo_producion, "pastoreo": dialogo_pastoreo,
+    "lote_saida": dialogo_saida,
 }
 _DIAS_POR_DEFECTO = 90
 
