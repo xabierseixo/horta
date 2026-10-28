@@ -94,6 +94,12 @@ def listar_traballos(
         c = cultivos.get(cultivo_id) if cultivo_id else None
         return frozenset({c.parcela_id}) if c else frozenset()
 
+    def onde_leiras(ids: list[int]) -> str:
+        return onde(ids[0]) if len(ids) == 1 else f"{len(ids)} leiras"
+
+    def parcelas_de(ids: list[int]) -> frozenset[int]:
+        return frozenset().union(*(parcela_de(i) for i in ids))
+
     def texto(catalogo: str, codigo: str | None) -> str:
         return describir(session, catalogo, codigo) if codigo else ""
 
@@ -113,17 +119,20 @@ def listar_traballos(
         quen = _quen(a.persoa_id)
         traballos.append(Traballo(
             "abonado", a.id, a.data_inicio, True, abono.nome if abono else "Abonado en verde",
-            onde(a.cultivo_id), parcela_de(a.cultivo_id), persoas=quen,
+            onde_leiras([le.cultivo_id for le in a.leiras]),
+            parcelas_de([le.cultivo_id for le in a.leiras]), persoas=quen,
             sen_quen=not quen))
     for r in listar_regas(session, actor, horta_id):
         traballos.append(Traballo("rega", r.id, r.data_inicio, True,
                                   texto("sistema_rega", r.sistema_rega),
-                                  onde(r.cultivo_id), parcela_de(r.cultivo_id),
+                                  onde_leiras([le.cultivo_id for le in r.leiras]),
+                                  parcelas_de([le.cultivo_id for le in r.leiras]),
                                   persoas=_quen(r.persoa_id), sen_quen=r.persoa_id is None))
     for lab in listar_labores(session, actor, horta_id):
         traballos.append(Traballo("labor", lab.id, lab.data_inicio, True,
                                   texto("tipo_labor", lab.tipo_labor),
-                                  onde(lab.cultivo_id), parcela_de(lab.cultivo_id),
+                                  onde_leiras([le.cultivo_id for le in lab.leiras]),
+                                  parcelas_de([le.cultivo_id for le in lab.leiras]),
                                   persoas=_quen(lab.persoa_id), sen_quen=lab.persoa_id is None))
     for col in listar_colleitas(session, actor, horta_id):
         traballos.append(Traballo("colleita", col.id, col.data, True,

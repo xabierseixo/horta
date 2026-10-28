@@ -33,6 +33,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import FORMAS_N_P, METAIS_RESIDUO, RESIDUOS, dose_kg_ha
 from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
 from horta.services.labores import DESBROCE, PODAS, listar_labores
+from horta.services.leiras import superficie_total
 from horta.services.lotes import converter, listar_saidas
 from horta.services.persoas import nome_completo
 from horta.services.regas import listar_regas
@@ -372,8 +373,6 @@ def xerar_caderno(
     for ab in listar_abonados(session, actor, horta_id):
         if not no_periodo(ab.data_inicio, ab.data_fin):
             continue
-        c = cultivo_de(ab.cultivo_id)
-        p = parcelas.get(c.parcela_id) if c else None
         fe = session.get(Fertilizante, ab.fertilizante_id) if ab.fertilizante_id else None
         npk = nutrientes_do_abonado(session, ab)
         kg_ha = dose_kg_ha(ab.dose, ab.unidade, fe.densidade if fe else None) \
@@ -381,27 +380,31 @@ def xerar_caderno(
         persoa = session.get(Persoa, ab.persoa_id) if ab.persoa_id else None
         provedor = persoas_por_id.get(fe.provedor_id or 0) if fe else None
         maquina = session.get(Maquina, ab.maquina_id) if ab.maquina_id else None
-        filas_fert.append([
-            _intervalo(ab.data_inicio, ab.data_fin), orde_cultivo.get(ab.cultivo_id, ""),
-            ({SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
-                p.secano_regadio, "") if p and p.secano_regadio else ""),
-            c.especie if c else "", _num(ab.superficie_ha),
-            describir(session, "tipo_fertilizacion", ab.tipo_fertilizacion)
-            if ab.tipo_fertilizacion else "",
-            describir(session, "material_fertilizante", fe.material) if fe else
-            "Abonado en verde",
-            fe.nome if fe else "", nome_completo(provedor),
-            (provedor.rega or provedor.nif or provedor.nima or "") if provedor else "",
-            describir(session, "metodo_fertilizacion", ab.metodo) if ab.metodo else "",
-            maquina.alias if maquina else "",
-            (persoa.regfer_numero or "") if persoa else "",
-            _num(fe.n_pct) if fe else "", _num(fe.p2o5_pct) if fe else "",
-            _num(fe.k2o_pct) if fe else "",
-            *((_num(getattr(fe, c)) for c in FORMAS_N_P) if fe else ("",) * 5),
-            _num(fe.materia_organica_pct) if fe else "",
-            _num(kg_ha / 1000) if kg_ha is not None else "",
-            *(npk if npk else ("", "", "")),
-            ab.albaran_factura or ""])
+        # Unha fila por leira, coa súa superficie
+        for le in ab.leiras:
+            c = cultivo_de(le.cultivo_id)
+            p = parcelas.get(c.parcela_id) if c else None
+            filas_fert.append([
+                _intervalo(ab.data_inicio, ab.data_fin), orde_cultivo.get(le.cultivo_id, ""),
+                ({SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
+                    p.secano_regadio, "") if p and p.secano_regadio else ""),
+                c.especie if c else "", _num(le.superficie_ha),
+                describir(session, "tipo_fertilizacion", ab.tipo_fertilizacion)
+                if ab.tipo_fertilizacion else "",
+                describir(session, "material_fertilizante", fe.material) if fe else
+                "Abonado en verde",
+                fe.nome if fe else "", nome_completo(provedor),
+                (provedor.rega or provedor.nif or provedor.nima or "") if provedor else "",
+                describir(session, "metodo_fertilizacion", ab.metodo) if ab.metodo else "",
+                maquina.alias if maquina else "",
+                (persoa.regfer_numero or "") if persoa else "",
+                _num(fe.n_pct) if fe else "", _num(fe.p2o5_pct) if fe else "",
+                _num(fe.k2o_pct) if fe else "",
+                *((_num(getattr(fe, c)) for c in FORMAS_N_P) if fe else ("",) * 5),
+                _num(fe.materia_organica_pct) if fe else "",
+                _num(kg_ha / 1000) if kg_ha is not None else "",
+                *(npk if npk else ("", "", "")),
+                ab.albaran_factura or ""])
     ws7 = _folla(wb, "7 Fertilización", "7. FERTILIZACIÓN", cab,
                  ["Data aplicación", "Identificación parcelas (nº de orde)", "Secano/regadío",
                   "Cultivo", "Superficie fertilizada (ha)", "Tipo de tratamento",
@@ -426,9 +429,11 @@ def xerar_caderno(
             continue
         dose = dose_kg_ha(ab.dose, ab.unidade, fr.densidade) \
             if ab.dose is not None and ab.unidade else None
-        ws7.append([_intervalo(ab.data_inicio, ab.data_fin), orde_cultivo.get(ab.cultivo_id, ""),
-                    describir(session, "material_fertilizante", fr.material), _num(dose),
-                    *(_num(getattr(fr, m)) for m in METAIS_RESIDUO)])
+        for le in ab.leiras:
+            ws7.append([_intervalo(ab.data_inicio, ab.data_fin),
+                        orde_cultivo.get(le.cultivo_id, ""),
+                        describir(session, "material_fertilizante", fr.material), _num(dose),
+                        *(_num(getattr(fr, m)) for m in METAIS_RESIDUO)])
     ws7.append([])
     plan = any(c.plan_necesidade_n or c.plan_necesidade_p2o5 or c.plan_necesidade_k2o
                for c in cultivos)
@@ -452,17 +457,21 @@ def xerar_caderno(
     for r in sorted(listar_regas(session, actor, horta_id), key=lambda x: x.data_inicio):
         if not no_periodo(r.data_inicio, r.data_fin):
             continue
-        c = cultivo_de(r.cultivo_id)
-        m3_ha = (r.cantidade * _A_M3.get(r.unidade, 0) / r.superficie_ha
-                 if r.superficie_ha and r.cantidade else None)
-        if m3_ha is not None:
-            acumulado[r.cultivo_id] = acumulado.get(r.cultivo_id, 0) + m3_ha
-        filas_rega.append([
-            orde_cultivo.get(r.cultivo_id, ""), _num(r.superficie_ha),
-            describir(session, "sistema_rega", r.sistema_rega) if r.sistema_rega else "",
-            _intervalo(r.data_inicio, r.data_fin), _num(m3_ha),
-            _num(acumulado.get(r.cultivo_id)),
-            _num(c.plan_auga_n_nitrico) if c else "", _num(c.plan_auga_p2o5) if c else ""])
+        # A auga é a total da rega: repártese entre as leiras pola súa superficie, así que os
+        # m³/ha son os mesmos en todas
+        superficie = superficie_total([leira_rega.superficie_ha for leira_rega in r.leiras])
+        m3_ha = (r.cantidade * _A_M3.get(r.unidade, 0) / superficie
+                 if superficie and r.cantidade else None)
+        for leira_rega in r.leiras:
+            c = cultivo_de(leira_rega.cultivo_id)
+            if m3_ha is not None:
+                acumulado[leira_rega.cultivo_id] = acumulado.get(leira_rega.cultivo_id, 0) + m3_ha
+            filas_rega.append([
+                orde_cultivo.get(leira_rega.cultivo_id, ""), _num(leira_rega.superficie_ha),
+                describir(session, "sistema_rega", r.sistema_rega) if r.sistema_rega else "",
+                _intervalo(r.data_inicio, r.data_fin), _num(m3_ha),
+                _num(acumulado.get(leira_rega.cultivo_id)),
+                _num(c.plan_auga_n_nitrico) if c else "", _num(c.plan_auga_p2o5) if c else ""])
     _folla(wb, "8 Rega", "8. REGA", cab,
            ["Id. parcelas (nº de orde)", "Superficie regada (ha)", "Sistema de rega",
             "Data / intervalo rega", "Volume de rega (m³/ha)", "Volume acumulado (m³/ha)",
@@ -474,18 +483,19 @@ def xerar_caderno(
         if not no_periodo(lab.data_inicio, lab.data_fin):
             continue
         m = session.get(Maquina, lab.maquina_id) if lab.maquina_id else None
-        filas_labor.append([
-            orde_cultivo.get(lab.cultivo_id, ""), _num(lab.superficie_ha),
-            describir(session, "tipo_labor", lab.tipo_labor),
-            _intervalo(lab.data_inicio, lab.data_fin),
-            ("SI" if lab.restos_desbroce_no_solo else "NON") if lab.tipo_labor == DESBROCE
-            else "",
-            ("SI" if lab.restos_poda_no_solo else "NON") if lab.tipo_labor in PODAS else "",
-            describir(session, "tipo_cobertura_solo", lab.tipo_cobertura)
-            if lab.tipo_cobertura else "",
-            (m.tipo_une or "") if m else "", _num(m.potencia) if m else "",
-            describir(session, "tipo_enerxia", m.tipo_enerxia) if m and m.tipo_enerxia else "",
-            lab.num_repeticions or "", _num(lab.duracion_h)])
+        for leira_labor in lab.leiras:
+            filas_labor.append([
+                orde_cultivo.get(leira_labor.cultivo_id, ""), _num(leira_labor.superficie_ha),
+                describir(session, "tipo_labor", lab.tipo_labor),
+                _intervalo(lab.data_inicio, lab.data_fin),
+                ("SI" if lab.restos_desbroce_no_solo else "NON") if lab.tipo_labor == DESBROCE
+                else "",
+                ("SI" if lab.restos_poda_no_solo else "NON") if lab.tipo_labor in PODAS else "",
+                describir(session, "tipo_cobertura_solo", lab.tipo_cobertura)
+                if lab.tipo_cobertura else "",
+                (m.tipo_une or "") if m else "", _num(m.potencia) if m else "",
+                describir(session, "tipo_enerxia", m.tipo_enerxia) if m and m.tipo_enerxia else "",
+                lab.num_repeticions or "", _num(lab.duracion_h)])
     _folla(wb, "9 Labores (CUE)", "9. LABORES CULTURAIS (CUE, bloque 5)", cab,
            ["Id. parcelas (nº de orde)", "Superficie (ha)", "Tipo de labor", "Data / intervalo",
             "Restos de desbroce no solo", "Restos de poda no solo", "Cobertura do solo",

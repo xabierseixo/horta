@@ -50,14 +50,15 @@ def faltas_caderno(session: Session, actor: Usuario, horta_id: int,
         *_contar("Tratamentos", tratamentos, [
             ("datos do CUE (ver a táboa de tratamentos)", lambda t: bool(faltas_para_cue(t)))]),
         *_contar("Abonados", abonados, [
-            ("superficie", lambda a: not a.superficie_ha),
+            ("superficie", lambda a: any(not le.superficie_ha for le in a.leiras)),
             ("tipo de fertilización", lambda a: not a.tipo_fertilizacion),
             ("método de aplicación", lambda a: not a.metodo),
             ("boas prácticas", lambda a: not a.boas_practicas),
             ("dose", lambda a: a.fertilizante_id is not None and a.dose is None)]),
         *_contar("Regas", regas, [
-            ("superficie", lambda r: not r.superficie_ha),
+            ("superficie", lambda r: any(not le.superficie_ha for le in r.leiras)),
             ("sistema de rega", lambda r: not r.sistema_rega),
             ("cantidade de auga", lambda r: r.cantidade is None)]),
-        *_contar("Labores", labores, [("superficie", lambda lab: not lab.superficie_ha)]),
+        *_contar("Labores", labores, [
+            ("superficie", lambda lab: any(not le.superficie_ha for le in lab.leiras))]),
     ]
