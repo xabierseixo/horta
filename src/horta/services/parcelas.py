@@ -18,7 +18,8 @@ from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
-from horta.services.hortas import _PATRON_NIF, comprobar_rol_horta
+from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -43,7 +44,7 @@ CAMPOS_EDITABLES_PARCELA = frozenset(
         "sigpac_zona",
         "referencia_catastral",
         "rexime_tenencia",
-        "nif_arrendador",
+        "arrendador_id",
         "pequena_superficie",
         "data_alta",
         "data_baixa",
@@ -88,10 +89,9 @@ _CATALOGOS_PARCELA = {
 }
 
 
-def _validar_rea(session: Session, valores: dict[str, Any]) -> None:
-    nif = valores.get("nif_arrendador")
-    if nif and not _PATRON_NIF.match(nif):
-        raise OperacionNonPermitidaError("O NIF do arrendador non é válido")
+def _validar_rea(session: Session, horta_id: int, valores: dict[str, Any]) -> None:
+    # Quen arrenda ou cede a parcela (REA): unha persoa da explotación, co seu NIF
+    persoa_co_papel(session, horta_id, valores.get("arrendador_id"), None)
     alta, baixa = valores.get("data_alta"), valores.get("data_baixa")
     if alta is not None and baixa is not None and baixa < alta:
         raise OperacionNonPermitidaError("A data de baixa non pode ser anterior á de alta")
@@ -115,7 +115,7 @@ def crear_parcela(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_coordenadas(campos)
     _validar_superficie(campos)
-    _validar_rea(session, campos)
+    _validar_rea(session, horta_id, campos)
     estado = campos.pop("estado", "activa")
     parcela = Parcela(horta_id=horta_id, nome=nome, estado=estado, **campos)
     session.add(parcela)
@@ -135,8 +135,8 @@ def actualizar_parcela(
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
     _validar_coordenadas(cambios)
     _validar_superficie(cambios)
-    _validar_rea(session, {c: cambios.get(c, getattr(parcela, c)) for c in
-                           ("nif_arrendador", "data_alta", "data_baixa", "zona_especifica",
+    _validar_rea(session, parcela.horta_id, {c: cambios.get(c, getattr(parcela, c)) for c in
+                           ("arrendador_id", "data_alta", "data_baixa", "zona_especifica",
                             "auga_consumo_distancia_m", "zona_especifica_ha",
                             *_CATALOGOS_PARCELA)})
     for campo, valor in cambios.items():

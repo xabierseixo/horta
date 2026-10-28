@@ -14,6 +14,7 @@ from horta.services.parcelas import (
     eliminar_parcela,
     listar_parcelas,
 )
+from horta.services.persoas import crear_contacto
 from horta.services.tarefas import crear_tarefa
 
 
@@ -229,7 +230,7 @@ def test_non_se_pode_eliminar_parcela_con_tratamentos_fito(session):
 @pytest.mark.parametrize(
     ("campos", "mensaxe"),
     [
-        ({"nif_arrendador": "123"}, "NIF do arrendador"),
+        ({"arrendador_id": 999}, "non é desta explotación"),
         ({"data_alta": date(2026, 5, 1), "data_baixa": date(2026, 4, 1)}, "anterior á de alta"),
         ({"rexime_tenencia": "99"}, "non existe"),
     ],
@@ -246,5 +247,6 @@ def test_parcela_garda_sigpac_completo(session):
     horta = crear_horta(session, ana, "A miña horta")
     parcela = crear_parcela(session, ana, horta.id, "P1", sigpac_agregado="0",
                             sigpac_zona="0", referencia_catastral="15078A00100023")
-    actualizar_parcela(session, ana, parcela, nif_arrendador="12345678Z")
-    assert (parcela.sigpac_zona, parcela.nif_arrendador) == ("0", "12345678Z")
+    arrendador = crear_contacto(session, ana, horta.id, "Arrendador", None, nif="12345678Z")
+    actualizar_parcela(session, ana, parcela, arrendador_id=arrendador.id)
+    assert (parcela.sigpac_zona, parcela.arrendador_id) == ("0", arrendador.id)

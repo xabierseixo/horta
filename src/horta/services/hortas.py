@@ -48,11 +48,8 @@ TIPOS_XIP = {"AE": "Agricultura ecolóxica", "PI": "Produción integrada",
              "CP": "Certificación privada", "ATRIA": "Agrupación de tratamento integrado (ATRIA)",
              "AS": "Asistida por un asesor", "NO": "Sen obriga de asesor en XIP"}
 
-# Patróns do descritor SIEX (Anexo VI): NIF/NIE de persoa física e CIF (aínda o usa o NIF do
-# arrendador das parcelas); código de explotación ES + 12 díxitos (codigoREA).
-_PATRON_NIF = re.compile(
-    r"^([KLMXYZ0-9]\d{7}[TRWAGMYFPDXBNJZSQVHLCKE]|[A-HJ-NP-SUVW]\d{7}[0-9A-J])$"
-)
+# Patrón do descritor SIEX (Anexo VI): código de explotación ES + 12 díxitos (codigoREA).
+# O REGA segue o mesmo formato.
 _PATRON_CODIGO = re.compile(r"^ES\d{12}$")
 
 

@@ -37,7 +37,7 @@ class Parcela(Base):
     sigpac_zona: Mapped[str | None] = mapped_column(String(10), default=None)
     referencia_catastral: Mapped[str | None] = mapped_column(String(20), default=None)
     rexime_tenencia: Mapped[str | None] = mapped_column(String(20), default=None)
-    nif_arrendador: Mapped[str | None] = mapped_column(String(9), default=None)
+    arrendador_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     pequena_superficie: Mapped[bool] = mapped_column(Boolean, default=False)
     data_alta: Mapped[date | None] = mapped_column(Date, default=None)
     data_baixa: Mapped[date | None] = mapped_column(Date, default=None)

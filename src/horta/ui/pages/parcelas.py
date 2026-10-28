@@ -16,6 +16,7 @@ from horta.services.parcelas import (
     listar_parcelas,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
@@ -91,7 +92,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
         with ui.expansion("Tenencia, alta e baixa").classes("w-full"):
             tenencia = ui.select(opcions["rexime_tenencia"], label="Réxime de tenencia",
                                  clearable=True).classes("w-full")
-            nif_arrendador = ui.input("NIF do arrendador ou cedente").classes("w-full")
+            arrendador = CampoPersoa(horta_id, None, "Quen a arrenda ou cede")
             pequena = ui.checkbox("Pequena superficie")
             data_alta = campo_data("Data de alta")
             data_baixa = campo_data("Data de baixa")
@@ -123,7 +124,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
                 secano_regadio=SecanoRegadio(secano.value) if secano.value else None,
                 orixe_auga=orixe_auga.value, uso_aproveitamento=uso.value or None,
                 referencia_catastral=catastro.value or None,
-                rexime_tenencia=tenencia.value, nif_arrendador=nif_arrendador.value or None,
+                rexime_tenencia=tenencia.value, arrendador_id=arrendador.value,
                 pequena_superficie=pequena.value,
                 data_alta=parsear_data(data_alta.value), data_baixa=parsear_data(data_baixa.value),
                 causa_baixa=causa_baixa.value,
@@ -158,7 +159,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             ui.button("Gardar", icon="check", on_click=gardar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    textos = (nome, uso, catastro, nif_arrendador, data_alta, data_baixa, lat, lon, notas,
+    textos = (nome, uso, catastro, data_alta, data_baixa, lat, lon, notas,
               auga_distancia, auga_utm, auga_nome, zona_ha, *sigpac.values())
     selectores = (secano, orixe_auga, tenencia, causa_baixa, zona)
 
@@ -169,6 +170,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             campo.value = ""
         for selector in selectores:
             selector.value = None
+        arrendador.value = None
         pequena.value = auga.value = auga_dentro.value = False
         superficie.establecer(None)
         dialogo.open()
@@ -192,7 +194,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             entrada.value = _texto(getattr(p, campo))
         catastro.value = _texto(p.referencia_catastral)
         tenencia.value = p.rexime_tenencia
-        nif_arrendador.value = _texto(p.nif_arrendador)
+        arrendador.value = p.arrendador_id
         pequena.value = p.pequena_superficie
         data_alta.value = _texto(p.data_alta)
         data_baixa.value = _texto(p.data_baixa)
