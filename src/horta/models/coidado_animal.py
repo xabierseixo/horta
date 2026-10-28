@@ -4,15 +4,16 @@ medicamentos, Reg. UE 2019/6 art. 108). Baixa lóxica."""
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
+from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
 
-class CoidadoAnimal(Base):
+class CoidadoAnimal(ParteComun, FeitoPor, ConMaquina, Base):
     __tablename__ = "coidado_animal"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -39,13 +40,3 @@ class CoidadoAnimal(Base):
     # Visita ou vehículo
     visitante: Mapped[str | None] = mapped_column(String(200), default=None)
     matricula: Mapped[str | None] = mapped_column(String(20), default=None)
-    # Parte común
-    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    horas: Mapped[float | None] = mapped_column(Float, default=None)
-    maquina_id: Mapped[int | None] = mapped_column(ForeignKey("maquina.id"), default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )

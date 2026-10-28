@@ -8,6 +8,7 @@ from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Stri
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from horta.db import Base
+from horta.models.traballo import ConMaquina, ParteComun
 
 
 class Fertilizante(Base):
@@ -56,7 +57,7 @@ class Fertilizante(Base):
     )
 
 
-class Abonado(Base):
+class Abonado(ParteComun, ConMaquina, Base):
     """Cada aplicación de abono a un cultivo."""
 
     __tablename__ = "abonado"
@@ -78,15 +79,8 @@ class Abonado(Base):
     aplicador_persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     horas: Mapped[float | None] = mapped_column(Float, default=None)
     empresa_servizos_regfer: Mapped[str | None] = mapped_column(String(50), default=None)
-    maquina_id: Mapped[int | None] = mapped_column(ForeignKey("maquina.id"), default=None)
     num_repeticions: Mapped[int | None] = mapped_column(Integer, default=None)
     duracion_h_ha: Mapped[float | None] = mapped_column(Float, default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
 
     boas_practicas: Mapped[list[AbonadoBoaPractica]] = relationship(
         cascade="all, delete-orphan"

@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, String
+from sqlalchemy import Date, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from horta.db import Base
+from horta.models.traballo import FeitoPor, ParteComun
 
 
-class Rega(Base):
+class Rega(ParteComun, FeitoPor, Base):
     __tablename__ = "rega"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -25,14 +26,6 @@ class Rega(Base):
     orixe_auga: Mapped[str | None] = mapped_column(String(20), default=None)
     tipo_enerxia: Mapped[str | None] = mapped_column(String(20), default=None)
     num_contador: Mapped[str | None] = mapped_column(String(14), default=None)
-    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    horas: Mapped[float | None] = mapped_column(Float, default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
 
     boas_practicas: Mapped[list[RegaBoaPractica]] = relationship(cascade="all, delete-orphan")
 

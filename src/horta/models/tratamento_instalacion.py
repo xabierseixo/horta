@@ -3,18 +3,19 @@ locais de almacenamento e medios de transporte. Baixa lóxica."""
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, String
+from sqlalchemy import Date, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
+from horta.models.traballo import FeitoPor, ParteComun
 
 TIPOS_INSTALACION = {"postcolleita": "Postcolleita (no produto vexetal)",
                      "local": "Local de almacenamento", "transporte": "Medio de transporte"}
 
 
-class TratamentoInstalacion(Base):
+class TratamentoInstalacion(ParteComun, FeitoPor, Base):
     __tablename__ = "tratamento_instalacion"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -35,11 +36,3 @@ class TratamentoInstalacion(Base):
     materia_activa: Mapped[str | None] = mapped_column(String(250), default=None)
     cantidade_utilizada: Mapped[float | None] = mapped_column(Float, default=None)
     unidade: Mapped[str | None] = mapped_column(String(20), default=None)
-    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    horas: Mapped[float | None] = mapped_column(Float, default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )

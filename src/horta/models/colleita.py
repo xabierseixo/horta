@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
+from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
 
-class Colleita(Base):
+class Colleita(ParteComun, FeitoPor, ConMaquina, Base):
     """Cada colleita dun cultivo (CUE bloque Cosecha) co seu lote. Baixa lóxica."""
 
     __tablename__ = "colleita"
@@ -34,17 +35,5 @@ class Colleita(Base):
     obten_plantas: Mapped[bool] = mapped_column(Boolean, default=False)
     sen_colleita_ambiental: Mapped[bool] = mapped_column(Boolean, default=False)
     restos_no_solo: Mapped[bool] = mapped_column(Boolean, default=False)
-    maquina_id: Mapped[int | None] = mapped_column(ForeignKey("maquina.id"), default=None)
     num_repeticions: Mapped[int | None] = mapped_column(Integer, default=None)
     duracion_h_ha: Mapped[float | None] = mapped_column(Float, default=None)
-    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    horas: Mapped[float | None] = mapped_column(Float, default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    # App do móbil: identificador xerado no móbil (envío sen duplicados)
-    uuid: Mapped[str | None] = mapped_column(String(36), unique=True, default=None)
-    # Trazabilidade: quen apuntou a colleita
-    creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
