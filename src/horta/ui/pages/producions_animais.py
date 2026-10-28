@@ -14,6 +14,7 @@ from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.lotes import listar_lotes, resumo_lotes
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.services.producions_animais import (
@@ -34,6 +35,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -46,6 +48,8 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
             pechar_sesion()
             return
         producions = listar_producions(session, actor, horta_id)
+        queda = resumo_lotes(session, actor, horta_id)
+        unidades_lote = {lo.id: lo.unidade for lo in listar_lotes(session, actor, horta_id)}
         grupos = {a.id: nome_grupo(a.especie, a.raza)
                   for a in listar_animais(session, actor, horta_id)}
         persoas = {p.id: p.nome
@@ -60,12 +64,14 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
         "cantidade": f"{pr.cantidade:g} {pr.unidade}",
         "retirada": f"{pr.retirada:g}" if pr.retirada else "",
         "lote": pr.lote,
+        "queda": (f"{queda[pr.lote_id][2]:g} {unidades_lote[pr.lote_id]}"
+                  if pr.lote_id in queda else ""),
         "quen": persoas.get(pr.persoa_id, "") if pr.persoa_id else "",
     } for pr in producions]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("grupo", "Animais"), ("produto", "Produto"),
-            ("cantidade", "Canto"), ("retirada", "Retirado"), ("lote", "Lote"),
+            ("cantidade", "Canto"), ("retirada", "Retirado"), ("lote", "Lote"), ("queda", "Queda"),
             ("quen", "Quen"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
@@ -74,6 +80,15 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
     if not pode_editar:
         return
     abrir = dialogo_producion(horta_id)
+
+    abrir_saida = dialogo_saida(horta_id)
+
+    def vender() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            return
+        pr_escollida = next(x for x in producions if x.id == taboa.selected[0]["id"])
+        abrir_saida(None, None, pr_escollida.lote_id, "venda")
 
     def editar() -> None:
         if not taboa.selected:
@@ -106,6 +121,7 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
 
     with ui.row():
         ui.button("Apuntar produción", icon="add", on_click=lambda: abrir(None))
+        ui.button("Vender", icon="sell", on_click=vender).props("outline")
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
         ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
 

@@ -23,12 +23,14 @@ from horta.services.colleitas import (
 )
 from horta.services.cultivos import listar_cultivos
 from horta.services.fito_consulta import aviso_prazo_colleita
+from horta.services.lotes import listar_lotes, resumo_lotes
 from horta.services.persoas import listar_quen
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
@@ -42,6 +44,8 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
             pechar_sesion()
             return
         colleitas = listar_colleitas(session, actor, horta_id)
+        queda = resumo_lotes(session, actor, horta_id)
+        unidades_lote = {lo.id: lo.unidade for lo in listar_lotes(session, actor, horta_id)}
         cultivos = listar_cultivos(session, actor, horta_id)
         destinos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_colleita")}
         con_colleitas = {c.cultivo_id for c in colleitas}
@@ -56,6 +60,8 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
             "cultivo": nome_cultivo.get(c.cultivo_id, ""),
             "cantidade": f"{c.cantidade:g} {c.unidade}",
             "lote": c.lote,
+        "queda": (f"{queda[c.lote_id][2]:g} {unidades_lote[c.lote_id]}"
+                  if c.lote_id in queda else ""),
             "destino": destinos.get(c.destino_colleita or "", ""),
         }
         for c in colleitas
@@ -67,7 +73,7 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivo", "Cultivo"), ("cantidade", "Cantidade"),
-            ("lote", "Lote"), ("destino", "Destino"))],
+            ("lote", "Lote"), ("queda", "Queda"), ("destino", "Destino"))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
@@ -78,6 +84,15 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         return
 
     abrir = dialogo_colleita(horta_id)
+
+    abrir_saida = dialogo_saida(horta_id)
+
+    def vender() -> None:
+        if not taboa.selected:
+            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            return
+        c_escollida = next(x for x in colleitas if x.id == taboa.selected[0]["id"])
+        abrir_saida(None, None, c_escollida.lote_id, "venda")
 
     def editar() -> None:
         if not taboa.selected:
@@ -109,6 +124,7 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
 
     with ui.row():
         ui.button("Apuntar colleita", icon="add", on_click=lambda: abrir(None))
+        ui.button("Vender", icon="sell", on_click=vender).props("outline")
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
         ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
 
