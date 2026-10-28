@@ -38,6 +38,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("analises", "Tomas de mostras", "science", None, no_menu=True),
     Seccion("colleitas", "Colleitas", "inventory_2", None, no_menu=True),
     Seccion("coidados", "Coidados dos animais", "pets", None, no_menu=True),
+    Seccion("movementos", "Entradas e saídas de animais", "swap_horiz", None, no_menu=True),
     Seccion("tarefas", "Tarefas", "task_alt", None, no_menu=True),
 )
 _CLAVES = {s.clave for s in SECCIONS}
