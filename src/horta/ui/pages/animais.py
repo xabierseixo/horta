@@ -1,5 +1,5 @@
-"""Sección Animais: os grupos de animais. A cantidade sae das entradas e saídas; os coidados e
-os movementos teñen as súas táboas."""
+"""Sección Animais: os grupos de animais. A cantidade sae das entradas e saídas; os coidados,
+os movementos e a produción teñen as súas táboas."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.movementos_animais import dialogo_movemento
+from horta.ui.pages.producions_animais import dialogo_producion
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
@@ -51,6 +52,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     with ui.row().classes("w-full items-center gap-4"):
         ui.link("Ver as entradas e saídas", url_seccion(horta_id, "movementos"))
         ui.link("Ver os coidados", url_seccion(horta_id, "coidados"))
+        ui.link("Ver a produción", url_seccion(horta_id, "producion"))
 
     todas_as_filas = [{
         "id": a.id,
@@ -88,6 +90,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     if not pode_editar:
         return
     abrir_movemento = dialogo_movemento(horta_id)
+    abrir_producion = dialogo_producion(horta_id)
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog() as dialogo, ui.card().style("width: min(34rem, 94vw)"):
@@ -177,6 +180,9 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     def movemento() -> None:
         abrir_movemento(None, None, taboa.selected[0]["id"] if taboa.selected else None)
 
+    def producion() -> None:
+        abrir_producion(None, None, taboa.selected[0]["id"] if taboa.selected else None)
+
     def eliminar() -> None:
         animal = seleccionado()
         if animal is None:
@@ -200,6 +206,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     with ui.row():
         ui.button("Novo grupo", icon="add", on_click=lambda: abrir(None))
         ui.button("Entrada ou saída", icon="swap_horiz", on_click=movemento).props("outline")
+        ui.button("Produción", icon="egg", on_click=producion).props("outline")
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
         ui.button("Eliminar", icon="delete", on_click=eliminar).props(
             "outline color=negative")
