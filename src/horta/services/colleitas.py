@@ -3,7 +3,7 @@ de onde sae despois a venda. Baixa lóxica."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 from sqlalchemy.orm import Session
@@ -126,21 +126,60 @@ def _copiar(colleita: Colleita, datos: DatosColleita) -> None:
     colleita.notas = datos.notas or None
 
 
-def crear_colleita(
-    session: Session, actor: Usuario, datos: DatosColleita, hoxe: date | None = None
-) -> Colleita:
+def _engadir(session: Session, actor: Usuario, datos: DatosColleita, hoxe: date) -> Colleita:
+    """Valida e engade a colleita á sesión, sen gardar (commit)."""
     cultivo, horta_id = _cultivo_e_horta(session, datos.cultivo_id)
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     if not datos.lote.strip():
         datos.lote = propor_lote(session, actor, datos.cultivo_id, datos.data)
-    _validar(session, datos, cultivo, horta_id, hoxe or date.today())
+    _validar(session, datos, cultivo, horta_id, hoxe)
     if datos.superficie_ha is None:
         datos.superficie_ha = cultivo.superficie_ha
     colleita = Colleita(creado_por=actor.id, lote_id=_lote(session, datos, cultivo, horta_id))
     _copiar(colleita, datos)
     session.add(colleita)
+    session.flush()
+    return colleita
+
+
+def crear_colleita(
+    session: Session, actor: Usuario, datos: DatosColleita, hoxe: date | None = None
+) -> Colleita:
+    colleita = _engadir(session, actor, datos, hoxe or date.today())
     session.commit()
     return colleita
+
+
+def crear_colleitas(
+    session: Session, actor: Usuario, datos: DatosColleita, cantidades: dict[int, float],
+    hoxe: date | None = None,
+) -> list[Colleita]:
+    """A colleita de varias leiras dunha vez: unha colleita por leira (o CUE pídea por
+    cultivo), coa cantidade de cada unha e todas no mesmo lote. As horas repártense pola
+    cantidade. Ou se gardan todas ou ningunha."""
+    if not cantidades:
+        raise OperacionNonPermitidaError("Escolle polo menos unha leira")
+    if any(c is None or c <= 0 for c in cantidades.values()):
+        raise OperacionNonPermitidaError("Pon a cantidade colleitada en cada leira")
+    cultivos = [session.get(Cultivo, c) for c in cantidades]
+    if len({(c.cultivo_siex_codigo or c.especie.strip().lower()) for c in cultivos if c}) > 1:
+        raise OperacionNonPermitidaError(
+            "As leiras dunha mesma colleita van ao mesmo lote: teñen que ser do mesmo cultivo")
+    total = sum(cantidades.values())
+    colleitas = []
+    try:
+        for cultivo_id, cantidade in cantidades.items():
+            parte = replace(
+                datos, cultivo_id=cultivo_id, cantidade=cantidade, superficie_ha=None,
+                horas=round(datos.horas * cantidade / total, 2) if datos.horas else None)
+            colleitas.append(_engadir(session, actor, parte, hoxe or date.today()))
+            # As seguintes van ao mesmo lote
+            datos.lote = colleitas[0].lote
+    except Exception:
+        session.rollback()
+        raise
+    session.commit()
+    return colleitas
 
 
 def actualizar_colleita(

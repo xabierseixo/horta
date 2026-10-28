@@ -16,6 +16,7 @@ from horta.services.colleitas import (
     DatosColleita,
     actualizar_colleita,
     crear_colleita,
+    crear_colleitas,
     dar_de_baixa_colleita,
     listar_colleitas,
     propor_lote,
@@ -146,13 +147,27 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
 
     with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         titulo = ui.label("Apuntar colleita").classes("text-h6")
-        cultivo = ui.select(nome_cultivo, label="Cultivo", with_input=True).classes("w-full")
+        # Varias leiras dunha vez: unha colleita por leira, coa súa cantidade e no mesmo lote
+        cultivo = ui.select(nome_cultivo, label="Leiras (unha ou varias)", with_input=True,
+                            multiple=True, value=[]).classes("w-full").props("use-chips")
         data = campo_data("Data", date.today().isoformat())
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         with ui.row().classes("w-full no-wrap gap-2"):
             cantidade = ui.input("Cantidade").classes("col-grow")
             unidade = ui.select(list(UNIDADES_COLLEITA), value="kg", label="Unidade").classes(
                 "w-28")
+        cantidades: dict[int, ui.input] = {}
+
+        @ui.refreshable
+        def cantidades_por_leira() -> None:
+            cantidades.clear()
+            if len(cultivo.value or []) > 1:
+                ui.label("Canto se colleu en cada leira").classes("text-caption")
+                for cultivo_id in cultivo.value:
+                    cantidades[cultivo_id] = ui.input(nome_cultivo.get(cultivo_id, "")).classes(
+                        "w-full")
+
+        cantidades_por_leira()
         lote = ui.input("Lote (un que xa exista do mesmo cultivo súmase a el)").classes("w-full")
         superficie = CampoSuperficie("Superficie colleitada (baleiro = a do cultivo)")
         data_fin = campo_data("Data de fin (se durou máis dun día)")
@@ -168,13 +183,17 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         notas = ui.textarea("Notas").classes("w-full")
 
         def propor() -> None:
-            if editando["id"] is not None or cultivo.value is None:
+            varias = len(cultivo.value or []) > 1
+            cantidade.set_visibility(not varias)
+            superficie.set_visibility(len(cultivo.value or []) == 1)
+            cantidades_por_leira.refresh()
+            if editando["id"] is not None or not cultivo.value:
                 return
             with get_session() as session:
                 actor = usuario_actual(session)
                 if actor is None:
                     return
-                lote.value = propor_lote(session, actor, cultivo.value,
+                lote.value = propor_lote(session, actor, cultivo.value[0],
                                          parsear_data(data.value) or date.today())
 
         cultivo.on_value_change(propor)
@@ -182,18 +201,24 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
 
         def comprobar_prazo() -> None:
             dia = parsear_data(data.value) if data.value else None
-            if cultivo.value is None or dia is None:
+            if not cultivo.value or dia is None:
                 aviso_prazo.text = ""
                 return
             with get_session() as session:
-                aviso_prazo.text = aviso_prazo_colleita(session, cultivo.value, dia) or ""
+                aviso_prazo.text = " ".join(
+                    aviso for c in cultivo.value
+                    if (aviso := aviso_prazo_colleita(session, c, dia))) or ""
 
         cultivo.on_value_change(comprobar_prazo)
         data.on_value_change(comprobar_prazo)
 
         def gardar() -> None:
-            if cultivo.value is None:
-                ui.notify("Escolle o cultivo", type="negative")
+            if not cultivo.value:
+                ui.notify("Escolle as leiras", type="negative")
+                return
+            if editando["id"] is not None and len(cultivo.value) > 1:
+                ui.notify("Unha colleita apuntada é dunha leira: para máis, apunta outra",
+                          type="negative")
                 return
             with get_session() as session:
                 actor = usuario_actual(session)
@@ -203,7 +228,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
 
                 def accion() -> None:
                     datos = DatosColleita(
-                        cultivo_id=cultivo.value,
+                        cultivo_id=cultivo.value[0],
                         data=parsear_data(data.value) or date.today(),
                         cantidade=parsear_decimal(cantidade.value) or 0,
                         unidade=unidade.value,
@@ -220,7 +245,12 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
                         persoa_id=persoa.value,
                         horas=parsear_decimal(horas.value),
                     )
-                    if editando["id"] is None:
+                    if editando["id"] is None and len(cultivo.value) > 1:
+                        novas = crear_colleitas(session, actor, datos, {
+                            c: parsear_decimal(entrada.value) or 0
+                            for c, entrada in cantidades.items()})
+                        rematar_tarefa(session, actor, editando["tarefa"], novas[0])
+                    elif editando["id"] is None:
                         novo = crear_colleita(session, actor, datos)
                         rematar_tarefa(session, actor, editando["tarefa"], novo)
                     else:
@@ -240,7 +270,8 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = c.id if c else None
         titulo.text = "Editar colleita" if c else "Apuntar colleita"
-        cultivo.value = c.cultivo_id if c else (tarefa.cultivo_id if tarefa else None)
+        cultivo.value = ([c.cultivo_id] if c else
+                         [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])
         data.value = (c.data if c else date.today()).isoformat()
         persoa.value = (c.persoa_id if c.persoa_id in persoas else None) if c else (
             proposta_quen(horta_id, tarefa))
@@ -257,6 +288,9 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         plantas.value = bool(c and c.obten_plantas)
         sen_colleita.value = bool(c and c.sen_colleita_ambiental)
         restos_solo.value = bool(c and c.restos_no_solo)
+        propor()
+        if c:
+            lote.value = c.lote
         dialogo.open()
 
     return abrir
