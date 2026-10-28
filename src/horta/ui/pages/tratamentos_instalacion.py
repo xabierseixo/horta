@@ -13,6 +13,7 @@ from horta.models.tratamento_fito import TIPOS_PROBLEMA
 from horta.models.tratamento_instalacion import TIPOS_INSTALACION, TratamentoInstalacion
 from horta.services.catalogos import describir, valores_vixentes
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
 from horta.services.tratamentos_instalacion import (
     DatosTratamentoInstalacion,
@@ -121,6 +122,7 @@ def dialogo_tratamento_instalacion(
                          for v in valores_vixentes(session, "tipo_produto")}
         unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
@@ -156,6 +158,7 @@ def dialogo_tratamento_instalacion(
             cantidade = ui.input("Cantidade utilizada").classes("col")
             unidade = ui.select(unidades, label="Unidade", with_input=True).classes("col")
         horas = ui.input("Horas de traballo").classes("w-full")
+        maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
         notas = ui.textarea("Notas").classes("w-full")
 
         def gardar() -> None:
@@ -181,7 +184,8 @@ def dialogo_tratamento_instalacion(
                         materia_activa=materia_activa.value or None,
                         cantidade_utilizada=parsear_decimal(cantidade.value),
                         unidade=unidade.value, notas=notas.value or None,
-                        persoa_id=persoa.value, horas=parsear_decimal(horas.value))
+                        persoa_id=persoa.value, horas=parsear_decimal(horas.value),
+                        maquina_id=maquina.value)
                     existente = (session.get(TratamentoInstalacion, editando["id"])
                                  if editando["id"] else None)
                     if existente is None:
@@ -208,6 +212,7 @@ def dialogo_tratamento_instalacion(
         persoa.value = (t.persoa_id if t.persoa_id in persoas else None) if t else (
             proposta_quen(horta_id, tarefa))
         horas.value = f"{t.horas:g}" if t and t.horas else ""
+        maquina.value = t.maquina_id if t and t.maquina_id in maquinas else None
         obxecto.value = t.obxecto if t else ""
         catastro.value = (t.referencia_catastral or "") if t else ""
         cantidade_tratada.value = f"{t.cantidade_tratada:g}" if t and t.cantidade_tratada \

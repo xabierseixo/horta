@@ -14,6 +14,7 @@ from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.maquinaria import listar_maquinas
 from horta.services.movementos_animais import (
     CON_OUTRA_EXPLOTACION,
     TIPOS_MOVEMENTO,
@@ -115,6 +116,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: f"{nome_grupo(a.especie, a.raza)} · {a.cantidade}" for a in animais}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
@@ -141,6 +143,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
             "w-full")
         with ui.expansion("Máis datos").classes("w-full"):
             horas = ui.input("Horas de traballo").classes("w-full")
+            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
             notas = ui.textarea("Notas").classes("w-full")
 
         def mostrar_campos() -> None:
@@ -191,7 +194,8 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
                         persoa_id=persoa.value, identificacion=identificacion.value or None,
                         titular=titular.value or None, rega=rega.value or None,
                         codigo_movemento=codigo.value or None, causa=causa.value or None,
-                        horas=parsear_decimal(horas.value), notas=notas.value or None)
+                        horas=parsear_decimal(horas.value),
+                        maquina_id=maquina.value, notas=notas.value or None)
                     existente = (session.get(MovementoAnimal, editando["id"])
                                  if editando["id"] else None)
                     if existente is None:
@@ -227,6 +231,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
         causa.value = (mo.causa or "") if mo else ""
         identificacion.value = (mo.identificacion or "") if mo else ""
         horas.value = f"{mo.horas:g}" if mo and mo.horas else ""
+        maquina.value = mo.maquina_id if mo and mo.maquina_id in maquinas else None
         notas.value = (mo.notas or "") if mo else ""
         mostrar_campos()
         dialogo.open()

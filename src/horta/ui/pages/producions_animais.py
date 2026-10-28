@@ -14,6 +14,7 @@ from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
 from horta.services.producions_animais import (
     PRODUTOS,
@@ -121,6 +122,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
         todos = {a.id: nome_grupo(a.especie, a.raza) for a in animais}
         especies = {a.id: a.especie_codigo for a in animais}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
@@ -149,6 +151,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         with ui.expansion("Máis datos").classes("w-full"):
             horas = ui.input("Horas de traballo").classes("w-full")
+            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
             notas = ui.textarea("Notas").classes("w-full")
 
         def dias() -> tuple[date | None, date | None]:
@@ -214,7 +217,8 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
                         produto=produto.value, cantidade=canto if canto is not None else 0,
                         unidade=unidade.value, retirada=parsear_decimal(retirada.value),
                         lote=lote.value or "", persoa_id=persoa.value,
-                        horas=parsear_decimal(horas.value), notas=notas.value or None)
+                        horas=parsear_decimal(horas.value),
+                        maquina_id=maquina.value, notas=notas.value or None)
                     existente = (session.get(ProducionAnimal, editando["id"])
                                  if editando["id"] else None)
                     if existente is None:
@@ -252,6 +256,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
         persoa.value = (pr.persoa_id if pr.persoa_id in persoas else None) if pr else (
             proposta_quen(horta_id, tarefa))
         horas.value = f"{pr.horas:g}" if pr and pr.horas else ""
+        maquina.value = pr.maquina_id if pr and pr.maquina_id in maquinas else None
         notas.value = (pr.notas or "") if pr else ""
         avisar()
         dialogo.open()

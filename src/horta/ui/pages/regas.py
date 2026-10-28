@@ -14,6 +14,7 @@ from horta.models.tarefa import Tarefa
 from horta.services.catalogos import valores_vixentes
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
 from horta.services.regas import (
     UNIDADES_AUGA,
@@ -123,6 +124,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         practicas = {v.codigo: v.descricion for v in valores_vixentes(session, "boas_practicas")
                      if "rega" in (v.categoria or "")}
         persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
@@ -169,6 +171,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         with ui.expansion("Máis datos").classes("w-full"):
             data_fin = campo_data("Data de fin (se durou máis dun día)")
             horas = ui.input("Horas de traballo").classes("w-full")
+            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
             orixe = ui.select(orixes, label="De onde vén a auga (baleiro = a da parcela)",
                               clearable=True).classes("w-full")
             contador = ui.input("Nº de contador").classes("w-full")
@@ -205,7 +208,8 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                         unidade=unidade.value or "4", orixe_auga=orixe.value,
                         num_contador=contador.value or None,
                         boas_practicas=list(boas.value or []), notas=notas.value or None,
-                        persoa_id=persoa.value, horas=parsear_decimal(horas.value))
+                        persoa_id=persoa.value, horas=parsear_decimal(horas.value),
+                        maquina_id=maquina.value)
                     existente = session.get(Rega, editando["id"]) if editando["id"] else None
                     if existente is None:
                         novo = crear_rega(session, actor_actual, datos)
@@ -232,6 +236,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         persoa.value = (r.persoa_id if r.persoa_id in persoas else None) if r else (
             proposta_quen(horta_id, tarefa))
         horas.value = f"{r.horas:g}" if r and r.horas else ""
+        maquina.value = r.maquina_id if r and r.maquina_id in maquinas else None
         superficie.establecer(r.superficie_ha if r else None)
         cantidade.value = f"{r.cantidade:g}" if r and r.cantidade else ""
         unidade.value = r.unidade if r else "4"
