@@ -84,7 +84,6 @@ class Abonado(ParteComun, FeitoPor, ConMaquina, Base):
     )
 
 
-
 class AbonadoBoaPractica(Base):
     __tablename__ = "abonado_boa_practica"
 

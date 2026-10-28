@@ -33,7 +33,6 @@ class Rega(ParteComun, FeitoPor, ConMaquina, Base):
     )
 
 
-
 class RegaBoaPractica(Base):
     __tablename__ = "rega_boa_practica"
 

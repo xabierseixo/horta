@@ -31,7 +31,6 @@ class Labor(ParteComun, FeitoPor, ConMaquina, Base):
     )
 
 
-
 class LaborCultivo(Base):
     """Cada leira (cultivo) dun labor, coa superficie onde se fixo."""
 
