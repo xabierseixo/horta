@@ -29,6 +29,7 @@ from horta.services.pastoreos import (
     nomes_leiras,
     sairon_do_pasto,
 )
+from horta.services.persoas import crear_contacto
 from horta.services.tarefas import crear_tarefa, facer_tarefa
 
 HOXE = date(2026, 10, 28)
@@ -87,13 +88,15 @@ def test_varias_leiras_e_animais_de_terceiros(session):
     datos = _datos(horta, persoa, pasto, vacas, numero=5)
     datos.leiras.append(LeiraPastoreo(cultivo_id=outra.id, superficie_ha=0.3,
                                       tipo_cobertura="3"))
-    datos.animais.append(AnimaisPastoreo(numero=20, rega="ES150000000001",
+    veciña = crear_contacto(session, ana, horta.id, "Rosa da Veiga", "explotacion",
+                            rega="ES150000000001")
+    datos.animais.append(AnimaisPastoreo(numero=20, propietario_id=veciña.id,
                                          especie_codigo="01"))
     pa = crear_pastoreo(session, ana, datos, hoxe=HOXE)
     assert [(le.superficie_ha, le.tipo_cobertura) for le in pa.leiras] == [(0.8, "6"),
                                                                            (0.3, "3")]
-    assert [(a.animal_id, a.rega, a.numero) for a in pa.animais] == [
-        (vacas.id, None, 5), (None, "ES150000000001", 20)]
+    assert [(a.animal_id, a.propietario_id, a.numero) for a in pa.animais] == [
+        (vacas.id, None, 5), (None, veciña.id, 20)]
     datos.animais = datos.animais[1:]
     actualizar_pastoreo(session, ana, pa, datos, hoxe=HOXE)
     assert len(pa.animais) == 1
@@ -105,9 +108,9 @@ def test_varias_leiras_e_animais_de_terceiros(session):
 @pytest.mark.parametrize("cambio, erro", [
     ({"leiras": []}, "leira"),
     ({"animais": []}, "animais"),
-    ({"animais": [AnimaisPastoreo(numero=3, especie_codigo="01")]}, "REGA"),
-    ({"animais": [AnimaisPastoreo(numero=3, rega="ES1", especie_codigo="18")]}, "especie"),
-    ({"animais": [AnimaisPastoreo(numero=3, rega="ES1", especie_codigo="99")]}, None),
+    ({"animais": [AnimaisPastoreo(numero=3, especie_codigo="01")]}, "de quen son"),
+    ({"animais": [AnimaisPastoreo(numero=3, especie_codigo="18")]}, "especie"),
+    ({"animais": [AnimaisPastoreo(numero=3, especie_codigo="99")]}, None),
     ({"data_inicio": date(2026, 10, 29)}, "futura"),
     ({"data_inicio": date(2026, 2, 1)}, "alta"),
     ({"data_fin": date(2026, 8, 1)}, "anterior"),
@@ -190,3 +193,13 @@ def test_non_se_borra_nada_con_pastoreo(session):
         eliminar_parcela(session, ana, session.get(Parcela, pasto.parcela_id))
     with pytest.raises(OperacionNonPermitidaError, match="pastoreos"):
         eliminar_horta(session, ana, horta)
+
+
+def test_animais_doutra_persoa_levan_o_seu_rega(session):
+    ana, horta, persoa, pasto, vacas = _escenario(session)
+    sen_rega = crear_contacto(session, ana, horta.id, "Xan do Outeiro", "explotacion")
+    datos = _datos(horta, persoa, pasto, vacas, numero=5)
+    datos.animais.append(AnimaisPastoreo(numero=4, propietario_id=sen_rega.id,
+                                         especie_codigo="01"))
+    with pytest.raises(OperacionNonPermitidaError, match="REGA"):
+        crear_pastoreo(session, ana, datos, hoxe=HOXE)

@@ -31,8 +31,9 @@ from horta.services.pastoreos import (
     nomes_leiras,
     sairon_do_pasto,
 )
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_persoas, listar_quen
 from horta.ui.accions import executar_accion
+from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -59,7 +60,8 @@ def seccion_pastoreo(horta_id: int, pode_editar: bool) -> None:
             "leiras": nomes_leiras(session, pa),
             "animais": ", ".join(
                 f"{li.numero} {grupos.get(li.animal_id, '')}" if li.animal_id
-                else f"{li.numero} {ESPECIES.get(li.especie_codigo or '', '')} ({li.rega})"
+                else f"{li.numero} {ESPECIES.get(li.especie_codigo or '', '')} "
+                     f"({persoas.get(li.propietario_id or 0, '')})"
                 for li in pa.animais),
             "quen": persoas.get(pa.persoa_id, "") if pa.persoa_id else "",
         } for pa in listar_pastoreos(session, actor, horta_id)]
@@ -176,7 +178,7 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
                   for c in listar_cultivos(session, actor, horta_id)}
         coberturas = {v.codigo: v.descricion
                       for v in valores_vixentes(session, "tipo_cobertura_solo")}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
     especies = {k: v for k, v in ESPECIES.items() if k not in NON_PASTAN}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
@@ -204,7 +206,8 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
             with ui.row().classes("w-full no-wrap"):
                 especie = ui.select(especies, label="Especie").classes("col")
                 numero_terceiros = ui.input("Cantos").classes("col")
-            rega = ui.input("REGA da súa explotación").classes("w-full")
+            # De quen son: a súa explotación, co REGA na ficha (Persoas)
+            propietario = CampoPersoa(horta_id, "explotacion", "De quen son (a súa explotación)")
         caixa_terceiros.bind_visibility_from(terceiros, "value")
         persoa = ui.select(persoas, label="Quen levou o gando").classes("w-full")
         with ui.expansion("Máis datos").classes("w-full"):
@@ -275,7 +278,8 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
                         cantos = parsear_decimal(numero_terceiros.value)
                         animais.append(AnimaisPastoreo(
                             numero=int(cantos) if cantos is not None else 0,
-                            rega=rega.value or None, especie_codigo=especie.value))
+                            propietario_id=propietario.value,
+                            especie_codigo=especie.value))
                     datos = DatosPastoreo(
                         horta_id=horta_id, data_inicio=inicio,
                         data_fin=parsear_data(data_fin.value), persoa_id=persoa.value,
@@ -327,7 +331,7 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
         terceiros.value = alleo is not None
         especie.value = alleo.especie_codigo if alleo else None
         numero_terceiros.value = str(alleo.numero) if alleo else ""
-        rega.value = (alleo.rega or "") if alleo else ""
+        propietario.value = alleo.propietario_id if alleo else None
         superficie.value = (f"{pa.leiras[0].superficie_ha:g}"
                             if pa and len(pa.leiras) == 1 and pa.leiras[0].superficie_ha
                             else "")

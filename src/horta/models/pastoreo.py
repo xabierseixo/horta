@@ -44,7 +44,8 @@ class PastoreoAnimal(Base):
     # Animais propios: o grupo. De terceiros: sen grupo, co REGA e a especie
     animal_id: Mapped[int | None] = mapped_column(ForeignKey("animal.id"), index=True,
                                                   default=None)
-    rega: Mapped[str | None] = mapped_column(String(14), default=None)
+    # Animais doutra persoa: a súa explotación (co REGA na súa ficha)
+    propietario_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     # Catálogo especie_animal
     especie_codigo: Mapped[str | None] = mapped_column(String(20), default=None)
     numero: Mapped[int] = mapped_column(Integer)

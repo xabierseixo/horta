@@ -21,7 +21,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fito_consulta import prazo_seguridade
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.movementos_animais import SUMAN
-from horta.services.persoas import comprobar_quen
+from horta.services.persoas import comprobar_quen, persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -39,9 +39,9 @@ class LeiraPastoreo:
 @dataclass
 class AnimaisPastoreo:
     numero: int
-    # Propios: o grupo. De terceiros: o REGA e a especie
+    # Propios: o grupo. Doutra persoa: a súa explotación (persoa co REGA) e a especie
     animal_id: int | None = None
-    rega: str | None = None
+    propietario_id: int | None = None
     especie_codigo: str | None = None
 
 
@@ -110,11 +110,17 @@ def _validar_animais(session: Session, datos: DatosPastoreo, linha: AnimaisPasto
     if linha.numero is None or linha.numero < 1:
         raise OperacionNonPermitidaError("Indica cantos animais (polo menos 1)")
     if linha.animal_id is None:
-        if not (linha.rega or "").strip():
-            raise OperacionNonPermitidaError("Os animais doutra persoa levan o seu REGA")
         if not linha.especie_codigo or linha.especie_codigo in NON_PASTAN:
             raise OperacionNonPermitidaError("Escolle a especie dos animais")
         validar_codigo(session, "especie_animal", linha.especie_codigo, datos.data_inicio)
+        propietario = persoa_co_papel(session, datos.horta_id, linha.propietario_id,
+                                      "explotacion")
+        if propietario is None:
+            raise OperacionNonPermitidaError("Indica de quen son os animais")
+        if not propietario.rega:
+            raise OperacionNonPermitidaError(
+                f"Os animais doutra persoa levan o seu REGA: complétao na ficha de "
+                f"{propietario.nome}")
         return
     animal = session.get(Animal, linha.animal_id)
     if animal is None or animal.horta_id != datos.horta_id:
@@ -172,7 +178,7 @@ def _copiar(session: Session, pastoreo: Pastoreo, datos: DatosPastoreo) -> None:
     pastoreo.leiras = leiras
     pastoreo.animais = [
         PastoreoAnimal(animal_id=linha.animal_id, numero=linha.numero,
-                       rega=None if linha.animal_id else (linha.rega or "").strip(),
+                       propietario_id=None if linha.animal_id else linha.propietario_id,
                        especie_codigo=None if linha.animal_id else linha.especie_codigo)
         for linha in datos.animais]
 

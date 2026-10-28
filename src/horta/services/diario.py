@@ -22,6 +22,7 @@ from horta.services.cultivos import listar_cultivos
 from horta.services.labores import listar_labores
 from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
 from horta.services.pastoreos import listar_pastoreos
+from horta.services.persoas import listar_persoas
 from horta.services.producions_animais import PRODUTOS, listar_producions
 from horta.services.regas import listar_regas
 from horta.services.tarefas import listar_tarefas
@@ -79,6 +80,7 @@ def listar_traballos(
     cultivos = {c.id: c for c in listar_cultivos(session, actor, horta_id)}
     parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
     grupos = {a.id: nome_grupo(a.especie, a.raza) for a in listar_animais(session, actor, horta_id)}
+    nomes = {p.id: p.nome for p in listar_persoas(session, actor, horta_id, so_activas=False)}
 
     def onde(cultivo_id: int | None) -> str:
         c = cultivos.get(cultivo_id) if cultivo_id else None
@@ -170,7 +172,8 @@ def listar_traballos(
     for pa in listar_pastoreos(session, actor, horta_id):
         animais = ", ".join(
             f"{li.numero} {grupos.get(li.animal_id, '')}" if li.animal_id else
-            f"{li.numero} {ESPECIES.get(li.especie_codigo or '', '')} ({li.rega})"
+            f"{li.numero} {ESPECIES.get(li.especie_codigo or '', '')} "
+            f"({nomes.get(li.propietario_id or 0, '')})"
             for li in pa.animais)
         ata_cando = f"ata o {pa.data_fin:%d/%m/%Y}" if pa.data_fin else "aínda no pasto"
         ids = [le.cultivo_id for le in pa.leiras]
