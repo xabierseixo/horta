@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from horta.models.abonado import Abonado, Fertilizante
 from horta.models.analise import Analise
 from horta.models.animal import Animal
+from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor
@@ -167,6 +168,11 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     if session.query(Labor).filter_by(horta_id=horta.id).first():
         raise OperacionNonPermitidaError(
             "Esta explotación ten labores rexistrados e debe conservarse (obriga legal)."
+        )
+    if session.query(CoidadoAnimal).filter_by(horta_id=horta.id).first():
+        raise OperacionNonPermitidaError(
+            "Esta explotación ten coidados de animais rexistrados e debe conservarse "
+            "(obriga legal)."
         )
     session.query(Fertilizante).filter_by(horta_id=horta.id).delete()
     for analise in session.query(Analise).filter_by(horta_id=horta.id).all():

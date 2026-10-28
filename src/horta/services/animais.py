@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from horta.models.animal import Animal
 from horta.models.horta import RolHorta
+from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
+from horta.services.coidados_animais import ten_coidados
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
@@ -76,6 +78,10 @@ def actualizar_animal(
 
 def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
+    if ten_coidados(session, animal.id):
+        raise OperacionNonPermitidaError(
+            "Este grupo ten coidados apuntados e debe conservarse (obriga legal): dálle de baixa")
+    session.query(Tarefa).filter_by(animal_id=animal.id).update({"animal_id": None})
     session.delete(animal)
     session.commit()
 
