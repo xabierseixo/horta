@@ -45,7 +45,12 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_datos_caderno import boton_datos_caderno
-from horta.ui.dialogo_tarefa import PRIORIDADES_TAREFA, dialogo_nova_tarefa, opcions_tarefa
+from horta.ui.dialogo_tarefa import (
+    PRIORIDADES_TAREFA,
+    dialogo_nova_tarefa,
+    opcions_animais,
+    opcions_tarefa,
+)
 from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import (
     SECCIONS,
@@ -584,6 +589,7 @@ def _seccion_tarefas(
             actor = usuario_actual(session)
             opcions_tipo, opcions_persoa = (
                 opcions_tarefa(session, actor, horta_id) if actor else ({}, {}))
+            opcions_animal = opcions_animais(session, actor, horta_id) if actor else {}
 
     with ui.row().classes("w-full items-center justify-between"):
         ui.space()
@@ -676,6 +682,7 @@ def _seccion_tarefas(
         persoa_edit = ui.select(opcions_persoa, label="Quen o vai facer")
         parcela_edit = ui.select(opcions_parcela, label="Parcela")
         cultivo_edit = ui.select(opcions_cultivo, label="Cultivo")
+        animal_edit = ui.select(opcions_animal, label="Animais")
         data_edit = campo_data("Data (opcional)")
         data_limite_edit = campo_data("Data límite (opcional)")
         prioridade_edit = ui.select(list(PRIORIDADES_TAREFA), label="Prioridade")
@@ -721,6 +728,7 @@ def _seccion_tarefas(
                         persoa_id=persoa_edit.value or None,
                         parcela_id=parcela_edit.value or None,
                         cultivo_id=cultivo_edit.value or None,
+                        animal_id=animal_edit.value or None,
                         data=data_valor,
                         data_limite=data_limite_valor,
                         prioridade=prioridade_edit.value,
@@ -748,6 +756,8 @@ def _seccion_tarefas(
                              if tarefa_completa.persoa_id in opcions_persoa else "")
         parcela_edit.value = tarefa_completa.parcela_id or ""
         cultivo_edit.value = tarefa_completa.cultivo_id or ""
+        animal_edit.value = (tarefa_completa.animal_id
+                             if tarefa_completa.animal_id in opcions_animal else "")
         data_edit.value = tarefa_completa.data.isoformat() if tarefa_completa.data else ""
         data_limite_edit.value = (
             tarefa_completa.data_limite.isoformat() if tarefa_completa.data_limite else ""
