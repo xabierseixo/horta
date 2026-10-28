@@ -48,7 +48,7 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                 "data": f"{t.data_inicio:%d/%m/%Y}",
                 "cultivos": ", ".join(c.especie for c in cultivos if c),
                 "problemas": ", ".join(describir(session, p.tipo, p.codigo) for p in t.problemas)
-                or (t.observacions or ""),
+                or (t.notas or ""),
                 "produtos": ", ".join(p.nome_comercial or p.num_rexistro or "" for p in t.produtos)
                 or (t.orixinal_produto or ""),
                 "prazo": f"{prazo:%d/%m/%Y}" if prazo else "",

@@ -97,7 +97,7 @@ class DatosTratamento:
     hora: time | None = None
     asesor: DatosAsesor | None = None
     eficacia: str | None = None
-    observacions: str | None = None
+    notas: str | None = None
     actividade_cuberta: str | None = None
 
 
@@ -193,7 +193,7 @@ def _aplicar(tratamento: TratamentoFito, datos: DatosTratamento) -> None:
     tratamento.data_fin = datos.data_fin
     tratamento.hora = datos.hora
     tratamento.eficacia = datos.eficacia
-    tratamento.observacions = datos.observacions
+    tratamento.notas = datos.notas
     tratamento.actividade_cuberta = datos.actividade_cuberta
     tratamento.cultivos = [TratamentoCultivo(cultivo_id=c.cultivo_id, superficie_ha=c.superficie_ha,
                                              estado_fenoloxico=c.estado_fenoloxico)
@@ -215,7 +215,7 @@ def crear_tratamento_fito(
     assert horta is not None
     _validar(session, horta, datos)
     tratamento = TratamentoFito(horta_id=horta_id, data_inicio=datos.data_inicio,
-                                data_fin=datos.data_fin)
+                                data_fin=datos.data_fin, creado_por=actor.id)
     _aplicar(tratamento, datos)
     session.add(tratamento)
     session.commit()

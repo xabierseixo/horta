@@ -50,7 +50,7 @@ def test_migracion_copia_os_tratamentos_antigos(tmp_path):
     with engine.connect() as conn:
         fito = conn.execute(text(
             "SELECT id, horta_id, data_inicio, orixinal_produto, orixinal_dose, "
-            "orixinal_aplicador, observacions, tratamento_antigo_id, baixa FROM tratamento_fito"
+            "orixinal_aplicador, notas, tratamento_antigo_id, baixa FROM tratamento_fito"
         )).mappings().one()
         cultivo = conn.execute(text(
             "SELECT cultivo_id, superficie_ha FROM tratamento_cultivo WHERE tratamento_id = :t"
@@ -60,7 +60,7 @@ def test_migracion_copia_os_tratamentos_antigos(tmp_path):
     assert (fito["orixinal_produto"], fito["orixinal_dose"], fito["orixinal_aplicador"]) == (
         "Cobre", "2 kg/ha", "Xan"
     )
-    assert "Mildeu" in fito["observacions"] and "ES-1" in fito["observacions"]
+    assert "Mildeu" in fito["notas"] and "ES-1" in fito["notas"]
     assert fito["tratamento_antigo_id"] == 7
     assert cultivo["cultivo_id"] == 1
     assert cultivo["superficie_ha"] == 0.15

@@ -79,9 +79,13 @@ def _datos(cultivo, xan, maquina, **cambios):
 
 def test_crear_tratamento_completo(session):
     ana, horta, _, cultivo, xan, maquina = _escenario(session)
-    t = crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina))
+    datos = _datos(cultivo, xan, maquina)
+    datos.notas = "Sen vento"
+    t = crear_tratamento_fito(session, ana, horta.id, datos)
     assert [c.cultivo_id for c in t.cultivos] == [cultivo.id]
     assert faltas_para_cue(t) == []
+    # Parte común: as notas e quen o apuntou, como nos outros traballos
+    assert t.notas == "Sen vento" and t.creado_por == ana.id
     assert listar_tratamentos_fito(session, ana, horta.id) == [t]
 
 

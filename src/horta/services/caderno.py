@@ -227,7 +227,7 @@ def xerar_caderno(
                     f"{_num(pr.dose)} {describir(session, 'unidade_medida', pr.unidade)}"
                     if pr and pr.dose is not None else "",
                     describir(session, "eficacia", t.eficacia) if t.eficacia else "",
-                    t.observacions or ""])
+                    t.notas or ""])
     _folla(wb, "3 Tratamentos", "3.1 REXISTRO DE ACTUACIÓNS FITOSANITARIAS DA PARCELA", cab,
            ["Id. parcelas (nº de orde)", "Especie", "Variedade", "Intervalo de datas",
             "Sup. tratada (ha)", "Problema fitosanitario", "Aplicador (nº de orde)",
@@ -268,7 +268,7 @@ def xerar_caderno(
                 if pr and pr.dose is not None else "",
                 _intervalo(t.data_inicio, t.data_fin) if pr else "",
                 describir(session, "eficacia", t.eficacia) if t.eficacia else "",
-                t.observacions or "",
+                t.notas or "",
                 " ".join(x for x in (asesor.nome, asesor.apelidos or "") if x) if asesor else "",
                 (asesor.ropo_numero or "") if asesor else "", _data(t.asesor.data)])
     tratadas = [c for c in cultivos if c.material_tratado

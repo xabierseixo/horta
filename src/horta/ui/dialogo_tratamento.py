@@ -259,7 +259,7 @@ def crear_dialogo_tratamento(
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
             with ui.step(_PASO_RESULTADO):
                 eficacia = ui.select(op.eficacias, label="Eficacia").classes("w-full")
-                observacions = ui.textarea("Observacións").classes("w-full")
+                notas = ui.textarea("Notas").classes("w-full")
                 ui.label("Comprobación co rexistro do MAPA (a etiqueta é a referencia legal)"
                          ).classes("text-bold")
 
@@ -297,7 +297,7 @@ def crear_dialogo_tratamento(
                                            validacion=bool(validacion.value))
                         if asesor.value else None,
                         eficacia=eficacia.value,
-                        observacions=observacions.value or None,
+                        notas=notas.value or None,
                     )
 
                 @ui.refreshable
@@ -395,7 +395,7 @@ def crear_dialogo_tratamento(
                              if t and t.asesor and t.asesor.data else "")
         validacion.value = bool(t and t.asesor and t.asesor.validacion)
         eficacia.value = _ou_nada(op.eficacias, t.eficacia if t else None)
-        observacions.value = (t.observacions or "") if t else ""
+        notas.value = (t.notas or "") if t else ""
         for refrescar in (filas_cultivos, filas_problemas, filas_produtos, filas_medidas,
                           orixinais):
             refrescar.refresh()

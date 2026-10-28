@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timezone
+from datetime import date, time
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Time
+from sqlalchemy import Boolean, Date, Float, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from horta.db import Base
+from horta.models.traballo import ParteComun
 
 TIPOS_PROBLEMA = ("enfermidade", "praga", "mala_herba", "regulador")
 
 
-class TratamentoFito(Base):
+class TratamentoFito(ParteComun, Base):
     __tablename__ = "tratamento_fito"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -22,13 +23,6 @@ class TratamentoFito(Base):
     hora: Mapped[time | None] = mapped_column(Time, default=None)
     actividade_cuberta: Mapped[str | None] = mapped_column(String(20), default=None)
     eficacia: Mapped[str | None] = mapped_column(String(20), default=None)
-    observacions: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    # App do móbil: identificador xerado no móbil (envío sen duplicados)
-    uuid: Mapped[str | None] = mapped_column(String(36), unique=True, default=None)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
     orixinal_produto: Mapped[str | None] = mapped_column(String(200), default=None)
     orixinal_dose: Mapped[str | None] = mapped_column(String(100), default=None)
     orixinal_aplicador: Mapped[str | None] = mapped_column(String(200), default=None)
