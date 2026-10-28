@@ -13,6 +13,7 @@ from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor
 from horta.models.maquina import Maquina
+from horta.models.movemento_animal import MovementoAnimal
 from horta.models.parcela import Parcela
 from horta.models.persoa import Persoa
 from horta.models.rega import Rega
@@ -174,6 +175,13 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
             "Esta explotación ten coidados de animais rexistrados e debe conservarse "
             "(obriga legal)."
         )
+    if session.query(MovementoAnimal).filter(
+        MovementoAnimal.horta_id == horta.id, MovementoAnimal.tipo != "inicial"
+    ).first():
+        raise OperacionNonPermitidaError(
+            "Esta explotación ten entradas e saídas de animais rexistradas e debe conservarse "
+            "(obriga legal)."
+        )
     session.query(Fertilizante).filter_by(horta_id=horta.id).delete()
     for analise in session.query(Analise).filter_by(horta_id=horta.id).all():
         session.delete(analise)
@@ -196,6 +204,8 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     session.flush()
     for parcela in parcelas:
         session.delete(parcela)
+    session.query(MovementoAnimal).filter_by(horta_id=horta.id).delete()
+    session.flush()
     for animal in session.query(Animal).filter_by(horta_id=horta.id).all():
         session.delete(animal)
     for membro in session.query(HortaMembro).filter_by(horta_id=horta.id).all():
