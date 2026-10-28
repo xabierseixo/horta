@@ -1,9 +1,11 @@
 from datetime import date
 
+from horta.models.persoa import Persoa
 from horta.models.usuario import RolGlobal, Usuario
-from horta.services.animais import actualizar_animal, crear_animal
+from horta.services.animais import crear_animal
 from horta.services.en_regra import requisitos_en_regra
 from horta.services.hortas import actualizar_horta, crear_horta
+from horta.services.movementos_animais import DatosMovemento, crear_movemento
 from horta.services.persoas import crear_persoa
 
 
@@ -76,5 +78,8 @@ def test_animais_de_baixa_non_contan(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "Explotación")
     animal = crear_animal(session, ana, horta.id, "galiñas", date(2026, 1, 1), cantidade=5)
-    actualizar_animal(session, ana, animal, data_baixa=date(2026, 6, 1))
+    persoa = session.query(Persoa).filter_by(horta_id=horta.id).one()
+    crear_movemento(session, ana, DatosMovemento(
+        animal_id=animal.id, data=date(2026, 6, 1), tipo="morte", cantidade=5,
+        persoa_id=persoa.id), hoxe=date(2026, 6, 1))
     assert requisitos_en_regra(session, ana, horta) == []

@@ -65,7 +65,7 @@ def test_lector_pode_listar_pero_non_actualizar_nin_eliminar(session):
     assert [a.especie for a in animais] == ["galiñas"]
 
     with pytest.raises(PermisoDenegadoError):
-        actualizar_animal(session, carlos, animal, cantidade=10)
+        actualizar_animal(session, carlos, animal, raza="Mos")
 
     with pytest.raises(PermisoDenegadoError):
         eliminar_animal(session, carlos, animal)
@@ -76,8 +76,8 @@ def test_admin_pode_actualizar_e_eliminar_animal(session):
     horta = crear_horta(session, ana, "A miña horta")
     animal = crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA, cantidade=6)
 
-    actualizado = actualizar_animal(session, ana, animal, cantidade=8)
-    assert actualizado.cantidade == 8
+    actualizado = actualizar_animal(session, ana, animal, raza="Galiña de Mos")
+    assert (actualizado.raza, actualizado.cantidade) == ("Galiña de Mos", 6)
 
     eliminar_animal(session, ana, animal)
     assert listar_animais(session, ana, horta.id) == []
@@ -109,40 +109,16 @@ def test_cantidade_menor_que_un_ao_crear(session, cantidade):
         crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA, cantidade=cantidade)
 
 
-def test_cantidade_menor_que_un_ao_actualizar(session):
+def test_cantidade_e_baixa_non_se_escriben_a_man(session):
+    """Saen das entradas e saídas (services.movementos_animais)."""
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     animal = crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA, cantidade=6)
 
-    with pytest.raises(ValueError, match="A cantidade ten que ser polo menos 1"):
-        actualizar_animal(session, ana, animal, cantidade=0)
+    for campo, valor in (("cantidade", 8), ("data_baixa", datetime.date(2026, 3, 1)),
+                         ("estado", "baixa")):
+        with pytest.raises(ValueError, match="non editables"):
+            actualizar_animal(session, ana, animal, **{campo: valor})
 
     session.refresh(animal)
-    assert animal.cantidade == 6
-
-
-def test_baixa_anterior_a_alta_ao_crear(session):
-    ana = _crear_usuario(session, "ana@example.com")
-    horta = crear_horta(session, ana, "A miña horta")
-
-    with pytest.raises(ValueError, match="A data de baixa non pode ser anterior"):
-        crear_animal(
-            session,
-            ana,
-            horta.id,
-            "galiñas",
-            _DATA_ALTA,
-            data_baixa=datetime.date(2026, 1, 1),
-        )
-
-
-def test_baixa_anterior_a_alta_ao_actualizar(session):
-    ana = _crear_usuario(session, "ana@example.com")
-    horta = crear_horta(session, ana, "A miña horta")
-    animal = crear_animal(session, ana, horta.id, "galiñas", _DATA_ALTA)
-
-    with pytest.raises(ValueError, match="A data de baixa non pode ser anterior"):
-        actualizar_animal(session, ana, animal, data_baixa=datetime.date(2026, 1, 1))
-
-    session.refresh(animal)
-    assert animal.data_baixa is None
+    assert (animal.cantidade, animal.data_baixa, animal.estado) == (6, None, "activo")

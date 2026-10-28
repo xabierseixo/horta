@@ -7,7 +7,7 @@ import pytest
 
 from horta.models.persoa import Persoa
 from horta.models.usuario import RolGlobal, Usuario
-from horta.services.animais import actualizar_animal, crear_animal, eliminar_animal
+from horta.services.animais import crear_animal, eliminar_animal
 from horta.services.coidados_animais import (
     DatosCoidado,
     actualizar_coidado,
@@ -20,6 +20,7 @@ from horta.services.coidados_animais import (
 from horta.services.diario import listar_traballos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta, eliminar_horta
+from horta.services.movementos_animais import DatosMovemento, crear_movemento
 from horta.services.tarefas import crear_tarefa, facer_tarefa
 
 HOXE = date(2026, 10, 28)
@@ -111,7 +112,9 @@ def test_o_grupo_ten_que_ser_da_explotacion_e_estar_de_alta(session):
         actualizar_coidado(session, ana, co, DatosCoidado(
             animal_id=alleas.id, data_inicio=HOXE, tipo="coidado", persoa_id=persoa.id,
             descricion="Auga"), hoxe=HOXE)
-    actualizar_animal(session, ana, galinas, data_baixa=date(2026, 10, 1), estado="baixa")
+    crear_movemento(session, ana, DatosMovemento(
+        animal_id=galinas.id, data=date(2026, 10, 1), tipo="saida", cantidade=12,
+        persoa_id=persoa.id), hoxe=HOXE)
     with pytest.raises(OperacionNonPermitidaError, match="de baixa"):
         crear_coidado(session, ana, DatosCoidado(
             animal_id=galinas.id, data_inicio=HOXE, tipo="coidado", persoa_id=persoa.id,
@@ -139,7 +142,7 @@ def test_un_grupo_con_coidados_non_se_borra(session):
     crear_coidado(session, ana, DatosCoidado(
         animal_id=galinas.id, data_inicio=HOXE, tipo="coidado", persoa_id=persoa.id,
         descricion="Auga"), hoxe=HOXE)
-    with pytest.raises(OperacionNonPermitidaError, match="dálle de baixa"):
+    with pytest.raises(OperacionNonPermitidaError, match="debe conservarse"):
         eliminar_animal(session, ana, galinas)
     with pytest.raises(OperacionNonPermitidaError, match="coidados de animais"):
         eliminar_horta(session, ana, horta)
