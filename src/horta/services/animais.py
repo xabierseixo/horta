@@ -21,6 +21,7 @@ from horta.services.movementos_animais import (
     recalcular,
     ten_movementos,
 )
+from horta.services.producions_animais import ten_producion
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -113,9 +114,10 @@ def actualizar_animal(
 
 def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
-    if ten_coidados(session, animal.id) or ten_movementos(session, animal.id):
+    if (ten_coidados(session, animal.id) or ten_movementos(session, animal.id)
+            or ten_producion(session, animal.id)):
         raise OperacionNonPermitidaError(
-            "Este grupo ten coidados ou entradas e saídas apuntados e debe conservarse "
+            "Este grupo ten coidados, entradas e saídas ou produción apuntados e debe conservarse "
             "(obriga legal). Se xa non ten animais, apunta a súa saída ou morte")
     session.query(Tarefa).filter_by(animal_id=animal.id).update({"animal_id": None})
     session.query(MovementoAnimal).filter_by(animal_id=animal.id).delete()
