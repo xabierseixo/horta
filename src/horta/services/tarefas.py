@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from horta.db import Base
 from horta.models.abonado import Abonado
 from horta.models.analise import Analise
+from horta.models.animal import Animal
+from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
@@ -32,6 +34,7 @@ CAMPOS_EDITABLES_TAREFA = frozenset(
     {
         "parcela_id",
         "cultivo_id",
+        "animal_id",
         "descricion",
         "data",
         "data_limite",
@@ -52,6 +55,7 @@ _TABOA_E_DATA: dict[str, tuple[type[Base], str]] = {
     "colleita": (Colleita, "data"),
     "analise": (Analise, "data_mostraxe"),
     "tratamento_instalacion": (TratamentoInstalacion, "data"),
+    "coidado_animal": (CoidadoAnimal, "data_inicio"),
 }
 TIPOS_TAREFA = tuple(_TABOA_E_DATA)
 
@@ -69,6 +73,13 @@ def _validar_tipo_e_quen(
     comprobar_quen(session, horta_id, persoa_id, None, obrigatoria=False)
 
 
+def _validar_animal(session: Session, horta_id: int, animal_id: int | None) -> None:
+    if animal_id is not None:
+        animal = session.get(Animal, animal_id)
+        if animal is None or animal.horta_id != horta_id:
+            raise OperacionNonPermitidaError("Ese grupo de animais non é desta explotación")
+
+
 def crear_tarefa(
     session: Session,
     actor: Usuario,
@@ -79,6 +90,7 @@ def crear_tarefa(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_datas(campos.get("data"), campos.get("data_limite"))
     _validar_tipo_e_quen(session, horta_id, campos.get("tipo"), campos.get("persoa_id"))
+    _validar_animal(session, horta_id, campos.get("animal_id"))
     prioridade = campos.pop("prioridade", "media")
     tarefa = Tarefa(horta_id=horta_id, descricion=descricion, prioridade=prioridade, **campos)
     session.add(tarefa)
@@ -105,6 +117,7 @@ def actualizar_tarefa(
             "Esta tarefa xa ten o traballo apuntado: non se pode cambiar o tipo")
     _validar_tipo_e_quen(session, tarefa.horta_id, cambios.get("tipo", tarefa.tipo),
                          cambios.get("persoa_id", tarefa.persoa_id))
+    _validar_animal(session, tarefa.horta_id, cambios.get("animal_id", tarefa.animal_id))
     for campo, valor in cambios.items():
         setattr(tarefa, campo, valor)
     session.commit()
