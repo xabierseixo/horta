@@ -152,7 +152,7 @@ def listar_traballos(
     for co in listar_coidados(session, actor, horta_id):
         que = TIPOS_COIDADO[co.tipo].split(" (")[0]
         detalle = co.medicamento if co.tipo == "medicamento" else (
-            co.visitante if co.tipo == "visita" else co.descricion)
+            nomes.get(co.visitante_id or 0) if co.tipo == "visita" else co.descricion)
         traballos.append(Traballo("coidado_animal", co.id, co.data_inicio, True,
                                   f"{que} — {detalle}" if detalle else que,
                                   grupos.get(co.animal_id, ""), frozenset(),

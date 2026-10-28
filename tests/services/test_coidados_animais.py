@@ -21,6 +21,7 @@ from horta.services.diario import listar_traballos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta, eliminar_horta
 from horta.services.movementos_animais import DatosMovemento, crear_movemento
+from horta.services.persoas import crear_contacto
 from horta.services.tarefas import crear_tarefa, facer_tarefa
 
 HOXE = date(2026, 10, 28)
@@ -42,8 +43,7 @@ def _escenario(session, nome="Horta"):
 def _medicamento(galinas, persoa, **campos):
     datos = {"animal_id": galinas.id, "data_inicio": date(2026, 10, 20), "tipo": "medicamento",
              "persoa_id": persoa.id, "medicamento": "Oxitetraciclina", "tempo_espera_dias": 7,
-             "duracion_dias": 5, "num_animais": 3, "veterinario": "Marta Vázquez",
-             "receita": "R-123"}
+             "duracion_dias": 5, "num_animais": 3, "receita": "R-123"}
     datos.update(campos)
     return DatosCoidado(**datos)
 
@@ -81,13 +81,14 @@ def test_o_medicamento_pide_o_tempo_de_espera_aínda_que_sexa_cero(session):
 
 
 def test_cada_tipo_garda_so_os_seus_datos(session):
-    ana, _, persoa, galinas = _escenario(session)
+    ana, horta, persoa, galinas = _escenario(session)
+    ads = crear_contacto(session, ana, horta.id, "Veterinaria da ADS", None)
     co = crear_coidado(session, ana, DatosCoidado(
         animal_id=galinas.id, data_inicio=HOXE, tipo="visita", persoa_id=persoa.id,
-        visitante="Veterinaria da ADS", descricion="Revisión", matricula="1234ABC",
+        visitante_id=ads.id, descricion="Revisión", matricula="1234ABC",
         medicamento="Non vai", num_animais=2), hoxe=HOXE)
-    assert (co.visitante, co.matricula, co.medicamento, co.num_animais) == (
-        "Veterinaria da ADS", "1234ABC", None, None)
+    assert (co.visitante_id, co.matricula, co.medicamento, co.num_animais) == (
+        ads.id, "1234ABC", None, None)
     with pytest.raises(OperacionNonPermitidaError, match="quen veu"):
         crear_coidado(session, ana, DatosCoidado(
             animal_id=galinas.id, data_inicio=HOXE, tipo="visita", persoa_id=persoa.id),

@@ -26,8 +26,9 @@ from horta.services.coidados_animais import (
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_persoas, listar_quen
 from horta.ui.accions import executar_accion
+from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -62,7 +63,8 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
             "data": f"{co.data_inicio:%d/%m/%Y}",
             "grupo": grupos.get(co.animal_id, ""),
             "que": TIPOS_COIDADO[co.tipo].split(" (")[0],
-            "detalle": co.medicamento or co.visitante or co.descricion or "",
+            "detalle": co.medicamento or persoas.get(co.visitante_id or 0) or co.descricion
+            or "",
             "quen": persoas.get(co.persoa_id, "") if co.persoa_id else "",
             "espera": f"{fin:%d/%m/%Y}" if fin else "",
         })
@@ -125,7 +127,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         de_alta = {a.id: todos[a.id] for a in animais if a.estado == "activo"}
         unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
@@ -139,7 +141,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         data_inicio = campo_data("Data", date.today().isoformat())
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         descricion = ui.input("Que se fixo").classes("w-full")
-        visitante = ui.input("Quen veu (nome ou empresa)").classes("w-full")
+        visitante = CampoPersoa(horta_id, None, "Quen veu (persoa ou empresa)")
         medicamento = ui.input("Medicamento").classes("w-full")
         with ui.row().classes("w-full no-wrap") as fila_dose:
             cantidade = ui.input("Cantidade").classes("col")
@@ -152,9 +154,9 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
             num_animais = ui.input("Cantos animais").classes("col")
             identificacion = ui.input("Identificación (se a teñen)").classes("col")
         with ui.column().classes("w-full gap-0") as datos_medicamento:
-            veterinario = ui.input("Veterinario que o receitou").classes("w-full")
+            veterinario = CampoPersoa(horta_id, "veterinario", "Veterinario que o receitou")
             receita = ui.input("Nº de receita").classes("w-full")
-            provedor = ui.input("Onde se mercou (nome e enderezo)").classes("w-full")
+            provedor = CampoPersoa(horta_id, "provedor", "Onde se mercou")
             proba_compra = ui.input("Nº de factura ou albará").classes("w-full")
         matricula = ui.input("Matrícula do vehículo").classes("w-full")
         with ui.expansion("Máis datos").classes("w-full"):
@@ -199,12 +201,12 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
                         identificacion=identificacion.value or None,
                         medicamento=medicamento.value or None,
                         cantidade=parsear_decimal(cantidade.value), unidade=unidade.value,
-                        provedor=provedor.value or None,
+                        provedor_id=provedor.value,
                         proba_compra=proba_compra.value or None,
-                        veterinario=veterinario.value or None, receita=receita.value or None,
+                        veterinario_id=veterinario.value, receita=receita.value or None,
                         tempo_espera_dias=_enteiro(tempo_espera.value),
                         duracion_dias=_enteiro(duracion.value),
-                        visitante=visitante.value or None, matricula=matricula.value or None,
+                        visitante_id=visitante.value, matricula=matricula.value or None,
                         horas=parsear_decimal(horas.value), maquina_id=maquina.value,
                         notas=notas.value or None)
                     existente = (session.get(CoidadoAnimal, editando["id"])
@@ -241,7 +243,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         persoa.value = (co.persoa_id if co.persoa_id in persoas else None) if co else (
             proposta_quen(horta_id, tarefa))
         descricion.value = (co.descricion or "") if co else (tarefa.descricion if tarefa else "")
-        visitante.value = (co.visitante or "") if co else ""
+        visitante.value = co.visitante_id if co else None
         medicamento.value = (co.medicamento or "") if co else ""
         cantidade.value = f"{co.cantidade:g}" if co and co.cantidade else ""
         unidade.value = co.unidade if co and co.unidade in unidades else None
@@ -250,9 +252,9 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         duracion.value = str(co.duracion_dias) if co and co.duracion_dias else ""
         num_animais.value = str(co.num_animais) if co and co.num_animais else ""
         identificacion.value = (co.identificacion or "") if co else ""
-        veterinario.value = (co.veterinario or "") if co else ""
+        veterinario.value = co.veterinario_id if co else None
         receita.value = (co.receita or "") if co else ""
-        provedor.value = (co.provedor or "") if co else ""
+        provedor.value = co.provedor_id if co else None
         proba_compra.value = (co.proba_compra or "") if co else ""
         matricula.value = (co.matricula or "") if co else ""
         horas.value = f"{co.horas:g}" if co and co.horas else ""

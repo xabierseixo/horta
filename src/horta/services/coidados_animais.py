@@ -17,7 +17,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import comprobar_quen
+from horta.services.persoas import comprobar_quen, persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -46,13 +46,13 @@ class DatosCoidado:
     medicamento: str | None = None
     cantidade: float | None = None
     unidade: str | None = None
-    provedor: str | None = None
+    provedor_id: int | None = None
     proba_compra: str | None = None
-    veterinario: str | None = None
+    veterinario_id: int | None = None
     receita: str | None = None
     tempo_espera_dias: int | None = None
     duracion_dias: int | None = None
-    visitante: str | None = None
+    visitante_id: int | None = None
     matricula: str | None = None
     horas: float | None = None
     maquina_id: int | None = None
@@ -96,9 +96,12 @@ def _validar(session: Session, datos: DatosCoidado, animal: Animal, hoxe: date) 
             raise OperacionNonPermitidaError("A cantidade ten que ser maior que 0")
         if datos.unidade:
             validar_codigo(session, "unidade_medida", datos.unidade, datos.data_inicio)
+        persoa_co_papel(session, animal.horta_id, datos.provedor_id, "provedor")
+        persoa_co_papel(session, animal.horta_id, datos.veterinario_id, "veterinario")
     elif datos.tipo == "visita":
-        if not datos.visitante:
+        if datos.visitante_id is None:
             raise OperacionNonPermitidaError("Indica quen veu")
+        persoa_co_papel(session, animal.horta_id, datos.visitante_id, None)
     elif not datos.descricion:
         raise OperacionNonPermitidaError("Describe que se fixo ou que se viu")
     for valor in (datos.tempo_espera_dias, datos.duracion_dias):
@@ -122,13 +125,13 @@ def _copiar(coidado: CoidadoAnimal, datos: DatosCoidado, animal: Animal) -> None
     coidado.medicamento = datos.medicamento if medicamento else None
     coidado.cantidade = datos.cantidade if medicamento else None
     coidado.unidade = (datos.unidade or None) if medicamento else None
-    coidado.provedor = (datos.provedor or None) if medicamento else None
+    coidado.provedor_id = datos.provedor_id if medicamento else None
     coidado.proba_compra = (datos.proba_compra or None) if medicamento else None
-    coidado.veterinario = (datos.veterinario or None) if medicamento else None
+    coidado.veterinario_id = datos.veterinario_id if medicamento else None
     coidado.receita = (datos.receita or None) if medicamento else None
     coidado.tempo_espera_dias = datos.tempo_espera_dias if medicamento else None
     coidado.duracion_dias = datos.duracion_dias if medicamento else None
-    coidado.visitante = datos.visitante if visita else None
+    coidado.visitante_id = datos.visitante_id if visita else None
     coidado.matricula = (datos.matricula or None) if visita else None
     coidado.persoa_id = datos.persoa_id
     coidado.horas = datos.horas
