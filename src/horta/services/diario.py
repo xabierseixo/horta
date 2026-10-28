@@ -14,13 +14,14 @@ from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
 from horta.services.abonados import listar_abonados
 from horta.services.analises import listar_analises
-from horta.services.animais import listar_animais
+from horta.services.animais import ESPECIES, listar_animais
 from horta.services.catalogos import describir
 from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.labores import listar_labores
 from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
+from horta.services.pastoreos import listar_pastoreos
 from horta.services.producions_animais import PRODUTOS, listar_producions
 from horta.services.regas import listar_regas
 from horta.services.tarefas import listar_tarefas
@@ -40,6 +41,7 @@ TIPOS: dict[str, str] = {
     "coidado_animal": "Coidado de animais",
     "movemento_animal": "Entrada ou saída de animais",
     "producion_animal": "Produción dos animais",
+    "pastoreo": "Pastoreo",
     "tarefa": "Tarefa",
 }
 
@@ -165,6 +167,18 @@ def listar_traballos(
                                   f"{retirada} · lote {pr.lote}",
                                   grupos.get(pr.animal_id, ""), frozenset(),
                                   persoas=_quen(pr.persoa_id), sen_quen=pr.persoa_id is None))
+    for pa in listar_pastoreos(session, actor, horta_id):
+        animais = ", ".join(
+            f"{li.numero} {grupos.get(li.animal_id, '')}" if li.animal_id else
+            f"{li.numero} {ESPECIES.get(li.especie_codigo or '', '')} ({li.rega})"
+            for li in pa.animais)
+        ata_cando = f"ata o {pa.data_fin:%d/%m/%Y}" if pa.data_fin else "aínda no pasto"
+        ids = [le.cultivo_id for le in pa.leiras]
+        traballos.append(Traballo("pastoreo", pa.id, pa.data_inicio, True,
+                                  f"{animais} · {ata_cando}",
+                                  onde(ids[0]) if len(ids) == 1 else f"{len(ids)} leiras",
+                                  frozenset().union(*(parcela_de(i) for i in ids)),
+                                  persoas=_quen(pa.persoa_id), sen_quen=pa.persoa_id is None))
     for ta in listar_tarefas(session, actor, horta_id):
         if ta.traballo_id is not None:
             continue  # xa feita: sae o traballo apuntado no seu tipo
