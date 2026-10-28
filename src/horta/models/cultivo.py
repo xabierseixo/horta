@@ -87,6 +87,8 @@ class Cultivo(Base):
         ForeignKey("persoa.id"), default=None
     )
     sementeira_horas: Mapped[float | None] = mapped_column(Float, default=None)
+    # App do móbil: identificador xerado no móbil (envío sen duplicados)
+    uuid: Mapped[str | None] = mapped_column(String(36), unique=True, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )

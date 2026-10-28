@@ -29,6 +29,8 @@ class Tarefa(Base):
     horas: Mapped[float | None] = mapped_column(Float, default=None)
     # Ao facela: o rexistro apuntado na táboa do seu tipo
     traballo_id: Mapped[int | None] = mapped_column(Integer, default=None)
+    # App do móbil: identificador xerado no móbil (envío sen duplicados)
+    uuid: Mapped[str | None] = mapped_column(String(36), unique=True, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )

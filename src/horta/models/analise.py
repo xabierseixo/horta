@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, String
+from sqlalchemy import Date, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from horta.db import Base
+from horta.models.traballo import FeitoPor, ParteComun
 
 
-class Analise(Base):
+class Analise(ParteComun, FeitoPor, Base):
     __tablename__ = "analise"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -24,8 +25,6 @@ class Analise(Base):
     parcela_id: Mapped[int | None] = mapped_column(ForeignKey("parcela.id"), default=None)
     cultivo_id: Mapped[int | None] = mapped_column(ForeignKey("cultivo.id"), default=None)
     colleita_id: Mapped[int | None] = mapped_column(ForeignKey("colleita.id"), default=None)
-    persoa_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    horas: Mapped[float | None] = mapped_column(Float, default=None)
     # Parámetros do solo (CUE ParametrosSuelo): só se o material é solo
     materia_organica: Mapped[float | None] = mapped_column(Float, default=None)
     area: Mapped[float | None] = mapped_column(Float, default=None)
@@ -44,12 +43,6 @@ class Analise(Base):
     zinc: Mapped[float | None] = mapped_column(Float, default=None)
     mercurio: Mapped[float | None] = mapped_column(Float, default=None)
     cromo: Mapped[float | None] = mapped_column(Float, default=None)
-    notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    baixa: Mapped[bool] = mapped_column(Boolean, default=False)
-    creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
-    )
 
     tipos: Mapped[list[AnaliseTipo]] = relationship(cascade="all, delete-orphan")
     substancias: Mapped[list[AnaliseSubstancia]] = relationship(cascade="all, delete-orphan")

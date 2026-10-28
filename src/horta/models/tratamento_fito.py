@@ -24,6 +24,8 @@ class TratamentoFito(Base):
     eficacia: Mapped[str | None] = mapped_column(String(20), default=None)
     observacions: Mapped[str | None] = mapped_column(String(1000), default=None)
     baixa: Mapped[bool] = mapped_column(Boolean, default=False)
+    # App do móbil: identificador xerado no móbil (envío sen duplicados)
+    uuid: Mapped[str | None] = mapped_column(String(36), unique=True, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
