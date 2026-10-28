@@ -15,6 +15,7 @@ from horta.services.animais import (
     listar_animais,
 )
 from horta.services.catalogos_estado import avisos_catalogos
+from horta.services.coidados_animais import en_tempo_espera
 from horta.services.cultivos import (
     listar_cultivos,
 )
@@ -56,6 +57,7 @@ from horta.ui.layout import (
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.pages.abonados import seccion_abonados
 from horta.ui.pages.analises import seccion_analises
+from horta.ui.pages.coidados_animais import seccion_coidados
 from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
 from horta.ui.pages.diario import Formularios, boton_apuntar_traballo, seccion_diario
@@ -304,6 +306,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
     elif seccion == "animais":
         _seccion_animais(horta_id, animais, pode_editar)
+    elif seccion == "coidados":
+        seccion_coidados(horta_id, pode_editar)
     elif seccion == "equipo":
         seccion_equipo(horta_id, pode_editar, e_horta_admin)
     elif seccion == "maquinaria":
@@ -347,7 +351,12 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
                 ui.button("Crear", icon="check", on_click=crear)
                 ui.button("Cancelar", on_click=dialog_novo_animal.close).props("flat")
 
+    with get_session() as session:
+        actor = usuario_actual(session)
+        espera = en_tempo_espera(session, actor, horta_id) if actor else {}
+
     with ui.row().classes("w-full items-center justify-between"):
+        ui.link("Ver os coidados dos animais", url_seccion(horta_id, "coidados"))
         ui.space()
         if pode_editar:
             ui.button("Novo animal", icon="add", on_click=dialog_novo_animal.open)
@@ -359,6 +368,8 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
             "raza": a.raza,
             "cantidade": a.cantidade,
             "estado": a.estado,
+            "espera": f"En tempo de espera ata {espera[a.id]:%d/%m/%Y}" if a.id in espera
+            else "",
         }
         for a in animais
     ]
@@ -376,6 +387,7 @@ def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
                 {"name": "raza", "label": "Raza", "field": "raza"},
                 {"name": "cantidade", "label": "Cantidade", "field": "cantidade"},
                 {"name": "estado", "label": "Estado", "field": "estado"},
+                {"name": "espera", "label": "Medicamentos", "field": "espera"},
             ],
             rows=todas_as_filas,
             row_key="id",
