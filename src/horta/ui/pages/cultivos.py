@@ -23,8 +23,9 @@ from horta.services.cultivos import (
     listar_cultivos,
 )
 from horta.services.parcelas import listar_parcelas
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_quen
 from horta.ui.accions import executar_accion
+from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
@@ -142,7 +143,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             campo: {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
             for campo, catalogo in _CATALOGOS.items()
         }
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
     nome_parcela = {p.id: p.nome for p in parcelas}
 
     editando: dict[str, int | None] = {"id": None}
@@ -200,10 +201,10 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         with ui.expansion("Orixe da semente ou planta").classes("w-full"):
             procedencia = ui.select(opcions["procedencia_material"], label="Procedencia",
                                     clearable=True).classes("w-full")
-            provedor = ui.input("Provedor").classes("w-full")
+            # O provedor e o seu ROPVEG: ficha en Persoas
+            provedor = CampoPersoa(horta_id, "provedor", "Provedor")
             lote_material = ui.input("Lote da semente ou planta").classes("w-full")
             pasaporte = ui.input("Pasaporte fitosanitario").classes("w-full")
-            ropveg = ui.input("Nº ROPVEG do provedor").classes("w-full")
         with ui.expansion("Árbores e viña").classes("w-full"):
             num_arbores = ui.input("Número de árbores").classes("w-full")
             marco = ui.input("Marco de plantación (p.ex. 4x4)").classes("w-full")
@@ -293,10 +294,9 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 data_inicio_conversion=parsear_data(data_conversion.value),
                 producion_integrada=integrada.value,
                 procedencia_material=procedencia.value,
-                provedor_material=provedor.value or None,
+                provedor_material_id=provedor.value,
                 lote_material=lote_material.value or None,
                 pasaporte_fitosanitario=pasaporte.value or None,
-                ropveg=ropveg.value or None,
                 num_arbores=_enteiro(num_arbores.value),
                 marco_plantacion=marco.value or None,
                 ano_plantacion=_enteiro(ano_plantacion.value),
@@ -358,7 +358,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
     campos_texto = (variedade_texto, data_inicio, data_prevista, data_fin, data_conversion,
-                    provedor, lote_material, pasaporte, ropveg, num_arbores, marco,
+                    lote_material, pasaporte, num_arbores, marco,
                     ano_plantacion, unidades, ciclos, duracion, obxectivo, notas,
                     necesidade_n, necesidade_p, necesidade_k, plan_data, auga_n, auga_p,
                     semente_produto, semente_rexistro,
@@ -380,6 +380,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 campo.value = ""
             for selector in campos_select:
                 selector.value = None
+            provedor.value = None
             superficie.establecer(None)
             tipo_inicio.value = "sementeira"
             quen.value = proposta_quen(horta_id)
@@ -411,10 +412,9 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         data_conversion.value = _texto(c.data_inicio_conversion)
         integrada.value = bool(c.producion_integrada)
         procedencia.value = c.procedencia_material
-        provedor.value = _texto(c.provedor_material)
+        provedor.value = c.provedor_material_id
         lote_material.value = _texto(c.lote_material)
         pasaporte.value = _texto(c.pasaporte_fitosanitario)
-        ropveg.value = _texto(c.ropveg)
         num_arbores.value = _texto(c.num_arbores)
         marco.value = _texto(c.marco_plantacion)
         ano_plantacion.value = _texto(c.ano_plantacion)

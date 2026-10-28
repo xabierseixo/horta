@@ -21,7 +21,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import comprobar_quen
+from horta.services.persoas import comprobar_quen, persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -51,10 +51,9 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "data_inicio_conversion",
         "producion_integrada",
         "procedencia_material",
-        "provedor_material",
+        "provedor_material_id",
         "lote_material",
         "pasaporte_fitosanitario",
-        "ropveg",
         "num_arbores",
         "marco_plantacion",
         "ano_plantacion",
@@ -208,6 +207,7 @@ def crear_cultivo(
     _validar_rea(session, _valores_rea(None, campos), session.get(Parcela, parcela_id))
     comprobar_quen(session, horta_id, campos.get("sementeira_persoa_id"),
                    campos.get("sementeira_horas"), obrigatoria=False)
+    persoa_co_papel(session, horta_id, campos.get("provedor_material_id"), "provedor")
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, **campos)
     session.add(cultivo)
     session.commit()
@@ -231,6 +231,7 @@ def actualizar_cultivo(
     _validar_rea(session, _valores_rea(cultivo, cambios), parcela)
     comprobar_quen(session, horta_id, cambios.get("sementeira_persoa_id"),
                    cambios.get("sementeira_horas"), obrigatoria=False)
+    persoa_co_papel(session, horta_id, cambios.get("provedor_material_id"), "provedor")
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
     session.commit()
