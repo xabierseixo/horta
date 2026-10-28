@@ -68,7 +68,7 @@ def _escenario(session, profesional=True, siex=True):
     parcela = Parcela(horta_id=horta.id, nome="P", estado="activa")
     session.add(parcela)
     session.flush()
-    cultivo = Cultivo(parcela_id=parcela.id, especie="Pataca", estado="en_curso",
+    cultivo = Cultivo(parcela_id=parcela.id, especie="Pataca",
                       cultivo_siex_codigo=99 if siex else None)
     session.add(cultivo)
     session.commit()

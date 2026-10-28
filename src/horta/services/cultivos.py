@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from horta.models.abonado import Abonado
@@ -34,7 +35,6 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "variedade",
         "data_colleita_prevista",
         "notas",
-        "estado",
         "cultivo_siex_codigo",
         "variedade_siex_id",
         "variedade_local_id",
@@ -118,14 +118,33 @@ _CAMPOS_REA = (
 )
 
 
-def calcular_estado(cultivo: Cultivo, hoxe: date | None = None) -> str:
-    """planificado / en_curso / rematado segundo as datas de inicio e fin."""
+def estado_cultivo(cultivo: Cultivo, primeira_colleita: date | None = None,
+                   hoxe: date | None = None) -> str:
+    """planificado / en_curso / rematado: sae dos traballos do cultivo, non se escribe.
+
+    En curso desde a sementeira ou plantación (data de inicio) ou desde a primeira colleita;
+    rematado coa data de fin."""
     hoxe = hoxe or date.today()
     if cultivo.data_fin is not None and cultivo.data_fin <= hoxe:
         return "rematado"
-    if cultivo.data_inicio is not None and cultivo.data_inicio <= hoxe:
+    comezo = min((d for d in (cultivo.data_inicio, primeira_colleita) if d is not None),
+                 default=None)
+    if comezo is not None and comezo <= hoxe:
         return "en_curso"
     return "planificado"
+
+
+def estados_cultivos(session: Session, actor: Usuario, horta_id: int,
+                     hoxe: date | None = None) -> dict[int, str]:
+    """O estado de cada cultivo da explotación (ver estado_cultivo)."""
+    cultivos = listar_cultivos(session, actor, horta_id)
+    primeiras: dict[int, date] = {
+        cultivo_id: data
+        for cultivo_id, data in session.query(Colleita.cultivo_id, func.min(Colleita.data))
+        .filter(Colleita.cultivo_id.in_([c.id for c in cultivos]), Colleita.baixa.is_(False))
+        .group_by(Colleita.cultivo_id)
+    }
+    return {c.id: estado_cultivo(c, primeiras.get(c.id), hoxe) for c in cultivos}
 
 
 def _valores_rea(cultivo: Cultivo | None, cambios: dict[str, Any]) -> dict[str, Any]:
@@ -189,9 +208,7 @@ def crear_cultivo(
     _validar_rea(session, _valores_rea(None, campos), session.get(Parcela, parcela_id))
     comprobar_quen(session, horta_id, campos.get("sementeira_persoa_id"),
                    campos.get("sementeira_horas"), obrigatoria=False)
-    estado = campos.pop("estado", None)
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, **campos)
-    cultivo.estado = estado or calcular_estado(cultivo)
     session.add(cultivo)
     session.commit()
     return cultivo
@@ -216,8 +233,6 @@ def actualizar_cultivo(
                    cambios.get("sementeira_horas"), obrigatoria=False)
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
-    if "estado" not in cambios and {"data_inicio", "data_fin"} & set(cambios):
-        cultivo.estado = calcular_estado(cultivo)
     session.commit()
     return cultivo
 

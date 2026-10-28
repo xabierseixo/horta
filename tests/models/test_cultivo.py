@@ -22,5 +22,4 @@ def test_crear_cultivo_con_valores_por_defecto(session):
 
     atopado = session.query(Cultivo).filter_by(especie="Tomate").one()
     assert atopado.parcela_id == parcela.id
-    assert atopado.estado == "planificado"
     assert atopado.variedade is None

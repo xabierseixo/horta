@@ -18,6 +18,8 @@ from horta.services.cultivos import (
     actualizar_cultivo,
     crear_cultivo,
     eliminar_cultivo,
+    estado_cultivo,
+    estados_cultivos,
     listar_cultivos,
 )
 from horta.services.parcelas import listar_parcelas
@@ -58,6 +60,7 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
         cultivos = listar_cultivos(session, actor, horta_id)
         parcelas = listar_parcelas(session, actor, horta_id)
         colleitas = listar_colleitas(session, actor, horta_id)
+        estados = estados_cultivos(session, actor, horta_id)
 
     nome_parcela = {p.id: p.nome for p in parcelas}
     colleitado: dict[int, dict[str, float]] = defaultdict(lambda: defaultdict(float))
@@ -70,7 +73,7 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
             "parcela": nome_parcela.get(c.parcela_id, ""),
             "superficie": formatar_superficie(c.superficie_ha),
             "inicio": f"{c.data_inicio:%d/%m/%Y}" if c.data_inicio else "",
-            "estado": _ESTADOS.get(c.estado, c.estado),
+            "estado": _ESTADOS[estados[c.id]],
             "colleitado": " + ".join(
                 f"{cantidade:g} {unidade}" for unidade, cantidade in colleitado[c.id].items()
             ),
@@ -256,7 +259,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 secano.value = "R" if p.secano_regadio.value == "regadio" else "S"
             if superficie.ha is None and p.superficie:
                 ocupada = sum(c.superficie_ha or 0 for c in cultivos
-                              if c.parcela_id == p.id and c.estado != "rematado")
+                              if c.parcela_id == p.id and estado_cultivo(c) != "rematado")
                 if p.superficie - ocupada > 0:
                     superficie.establecer(round(p.superficie - ocupada, 4))
 

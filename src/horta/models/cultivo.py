@@ -26,7 +26,6 @@ class Cultivo(Base):
     )
     data_colleita_prevista: Mapped[date | None] = mapped_column(Date, default=None)
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
-    estado: Mapped[str] = mapped_column(String(50), default="planificado")
     # Campos do REA (deseño 2026-10-23-cultivo-e-colleitas). Superficie en hectáreas.
     superficie_ha: Mapped[float | None] = mapped_column(Float, default=None)
     tipo_inicio: Mapped[str | None] = mapped_column(String(12), default=None)
