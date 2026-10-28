@@ -21,6 +21,7 @@ from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.labores import listar_labores
 from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
+from horta.services.producions_animais import PRODUTOS, listar_producions
 from horta.services.regas import listar_regas
 from horta.services.tarefas import listar_tarefas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
@@ -38,6 +39,7 @@ TIPOS: dict[str, str] = {
     "tratamento_instalacion": "Tratamento en almacén ou instalación",
     "coidado_animal": "Coidado de animais",
     "movemento_animal": "Entrada ou saída de animais",
+    "producion_animal": "Produción dos animais",
     "tarefa": "Tarefa",
 }
 
@@ -156,6 +158,13 @@ def listar_traballos(
                                   f"{TIPOS_MOVEMENTO[mo.tipo].split(' (')[0]}: {mo.cantidade}",
                                   grupos.get(mo.animal_id, ""), frozenset(),
                                   persoas=_quen(mo.persoa_id), sen_quen=mo.persoa_id is None))
+    for pr in listar_producions(session, actor, horta_id):
+        retirada = f" ({pr.retirada:g} retirados)" if pr.retirada else ""
+        traballos.append(Traballo("producion_animal", pr.id, pr.data, True,
+                                  f"{PRODUTOS[pr.produto]}: {pr.cantidade:g} {pr.unidade}"
+                                  f"{retirada} · lote {pr.lote}",
+                                  grupos.get(pr.animal_id, ""), frozenset(),
+                                  persoas=_quen(pr.persoa_id), sen_quen=pr.persoa_id is None))
     for ta in listar_tarefas(session, actor, horta_id):
         if ta.traballo_id is not None:
             continue  # xa feita: sae o traballo apuntado no seu tipo
