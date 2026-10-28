@@ -16,6 +16,7 @@ from horta.services.cultivos import (
 from horta.services.en_regra import requisitos_en_regra
 from horta.services.errors import PermisoDenegadoError
 from horta.services.hortas import (
+    TIPOS_XIP,
     actualizar_horta,
     comprobar_rol_horta,
     eliminar_horta,
@@ -25,6 +26,7 @@ from horta.services.hortas import (
 from horta.services.parcelas import (
     listar_parcelas,
 )
+from horta.services.persoas import nome_completo, titular_da_horta
 from horta.services.tarefas import (
     actualizar_tarefa,
     contar_tarefas_pendentes,
@@ -38,7 +40,6 @@ from horta.services.tarefas import (
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
-from horta.ui.dialogo_datos_caderno import boton_datos_caderno
 from horta.ui.dialogo_tarefa import (
     PRIORIDADES_TAREFA,
     dialogo_nova_tarefa,
@@ -78,6 +79,11 @@ from horta.ui.taboas import TEXTOS_TABOA
 _PROPS_TABOA = f'flat bordered no-data-label="Aínda non hai rexistros" {TEXTOS_TABOA}'
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
+# Datos da explotación para o caderno da Xunta (1.1)
+_DATOS_CADERNO = (("enderezo", "Enderezo"), ("localidade", "Localidade"),
+                  ("codigo_postal", "Código postal"), ("provincia", "Provincia"),
+                  ("email", "Email"),
+                  ("tipo_representacion", "Tipo de representación (se asina un representante)"))
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 _ESTADOS_PARCELA = ("activa", "inactiva")
@@ -128,11 +134,14 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
-        horta_titular_nome = horta.titular_nome or ""
-        horta_titular_nif = horta.titular_nif or ""
+        datos_horta = {campo: getattr(horta, campo) or "" for campo, _ in _DATOS_CADERNO}
+        horta_tipo_xip = horta.tipo_xip
+        horta_fertilizacion = horta.asesoramento_fertilizacion
+        titular = titular_da_horta(session, horta_id)
+        nome_titular = nome_completo(titular)
         horta_codigo_reaga = horta.codigo_reaga or ""
         horta_codigo_rega = horta.codigo_rega or ""
-        estado = estado_rexistro(horta)
+        estado = estado_rexistro(session, horta)
         requisitos = requisitos_en_regra(session, actor, horta)
         hortas_usuario = {h.id: h.nome for h, _ in listar_hortas_usuario(session, actor)}
         nome_usuario = actor.nome
@@ -147,8 +156,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     )
 
     if e_horta_admin:
-        with ui.dialog() as dialog_config_horta, ui.card():
-            ui.label("Configurar explotación").classes("text-md font-bold")
+        with ui.dialog() as dialog_config_horta, ui.card().style("width: min(36rem, 94vw)"):
+            ui.label("Datos da explotación").classes("text-md font-bold")
             nome_horta_input = ui.input("Nome", value=horta_nome).classes("w-full")
             descricion_horta_input = ui.input("Descrición", value=horta_descricion or "").classes(
                 "w-full"
@@ -158,18 +167,23 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 {True: "Profesional", False: "Non profesional"}, value=horta_uso_profesional
             ).props("inline")
             with ui.column().classes("w-full gap-1").bind_visibility_from(tipo_radio, "value"):
-                titular_nome_input = ui.input(
-                    "Titular (nome ou razón social)", value=horta_titular_nome
-                ).classes("w-full")
-                titular_nif_input = ui.input("NIF do titular", value=horta_titular_nif).classes(
-                    "w-full"
-                )
                 reaga_input = ui.input(
                     "Nº REAGA (ES + 12 díxitos)", value=horta_codigo_reaga
                 ).classes("w-full")
             rega_input = ui.input(
                 "Nº REGA, se ten animais (ES + 12 díxitos)", value=horta_codigo_rega
             ).classes("w-full")
+            # Caderno da Xunta 1.1 e 1.4. O titular, o representante e o asesor son persoas
+            with ui.expansion("Datos para o caderno").classes("w-full"):
+                datos_inputs = {campo: ui.input(etiqueta, value=datos_horta[campo]).classes(
+                    "w-full") for campo, etiqueta in _DATOS_CADERNO}
+                tipo_xip_input = ui.select(
+                    TIPOS_XIP, label="Xestión integrada de pragas (XIP)", clearable=True,
+                    value=horta_tipo_xip).classes("w-full")
+                fertilizacion_input = ui.checkbox("Recibe asesoramento en fertilización",
+                                                  value=horta_fertilizacion)
+            ui.label("O titular, o representante e o asesor indícanse en Persoas.").classes(
+                "text-caption texto-suave")
 
             def gardar_horta() -> None:
                 if not nome_horta_input.value:
@@ -193,8 +207,9 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                             nome=nome_horta_input.value,
                             descricion=descricion_horta_input.value or None,
                             uso_profesional=tipo_radio.value,
-                            titular_nome=titular_nome_input.value or None,
-                            titular_nif=titular_nif_input.value or None,
+                            tipo_xip=tipo_xip_input.value,
+                            asesoramento_fertilizacion=fertilizacion_input.value,
+                            **{c: (i.value or None) for c, i in datos_inputs.items()},
                             codigo_reaga=reaga_input.value or None,
                             codigo_rega=rega_input.value or None,
                         ),
@@ -283,10 +298,13 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     elif seccion == "explotacion" and e_horta_admin:
         ui.label({"rexistrada": "Explotación rexistrada", "en_preparacion": "En preparación",
                   "non_profesional": "Non profesional"}[estado]).classes("q-mb-md")
+        ui.label(f"Titular: {nome_titular}" if nome_titular
+                 else "Aínda non se indicou o titular").classes("q-mb-sm")
         with ui.row().classes("gap-2"):
-            ui.button("Configurar explotación", icon="settings",
+            ui.button("Editar datos da explotación", icon="settings",
                       on_click=dialog_config_horta.open).props("outline")
-            boton_datos_caderno(horta_id)
+            ui.button("Titular e asesor en Persoas", icon="groups", on_click=lambda: ui.navigate.to(
+                url_seccion(horta_id, "equipo"))).props("outline")
     elif seccion == "parcelas":
         seccion_parcelas(horta_id, pode_editar)
     elif seccion == "cultivos":

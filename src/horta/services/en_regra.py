@@ -11,7 +11,7 @@ from horta.models.animal import Animal
 from horta.models.horta import Horta, RolHorta
 from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import con_papel, ropo_vixente
+from horta.services.persoas import con_papel, ropo_vixente, titular_da_horta
 
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
@@ -39,11 +39,12 @@ def requisitos_en_regra(
         return [requisito_rega] if ten_animais else []
     hoxe = hoxe or date.today()
     aplicadores = [p for p in con_papel(session, horta.id, "aplicador") if ropo_vixente(p, hoxe)]
+    titular = titular_da_horta(session, horta.id)
     requisitos = [
         Requisito(
             "NIF do titular",
-            bool(horta.titular_nif),
-            "Indícao en «Configurar explotación».",
+            bool(titular and titular.nif),
+            "Indica en «Persoas» quen é o titular e o seu NIF.",
         ),
         Requisito(
             "Inscrición no REAGA",

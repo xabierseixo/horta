@@ -21,6 +21,7 @@ from horta.services.hortas import (
     quitar_membro,
 )
 from horta.services.parcelas import crear_parcela
+from horta.services.persoas import crear_persoa
 from horta.services.tarefas import crear_tarefa
 
 
@@ -301,15 +302,15 @@ def test_estado_rexistro_segundo_os_datos(session):
 
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña explotación")
-    assert estado_rexistro(horta) == "non_profesional"
+    assert estado_rexistro(session, horta) == "non_profesional"
     actualizar_horta(session, ana, horta, uso_profesional=True)
-    assert estado_rexistro(horta) == "en_preparacion"
-    actualizar_horta(
-        session, ana, horta, titular_nif="12345678z", codigo_reaga="es 150010000001"
-    )
-    assert horta.titular_nif == "12345678Z"
+    assert estado_rexistro(session, horta) == "en_preparacion"
+    actualizar_horta(session, ana, horta, codigo_reaga="es 150010000001")
     assert horta.codigo_reaga == "ES150010000001"
-    assert estado_rexistro(horta) == "rexistrada"
+    assert estado_rexistro(session, horta) == "en_preparacion"
+    # O NIF do titular está na persoa co papel titular
+    crear_persoa(session, ana, horta.id, "Ana", papeis={"titular"}, nif="12345678z")
+    assert estado_rexistro(session, horta) == "rexistrada"
 
 
 def test_codigo_reaga_mal_formado(session):
@@ -322,5 +323,5 @@ def test_codigo_reaga_mal_formado(session):
 def test_nif_titular_mal_formado(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña explotación")
-    with pytest.raises(OperacionNonPermitidaError, match="NIF do titular"):
-        actualizar_horta(session, ana, horta, titular_nif="ABC")
+    with pytest.raises(OperacionNonPermitidaError, match="NIF"):
+        crear_persoa(session, ana, horta.id, "Ana", papeis={"titular"}, nif="ABC")

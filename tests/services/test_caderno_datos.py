@@ -20,7 +20,10 @@ def _escenario(session):
     horta = crear_horta(session, ana, "Horta da Ana")
     actualizar_horta(session, ana, horta, enderezo="Lugar de Abaixo 3", localidade="Melide",
                      codigo_postal="15800", provincia="A Coruña", tipo_xip="AS",
-                     asesoramento_nome="ATRIA Ulloa", asesoramento_fertilizacion=True)
+                     asesoramento_fertilizacion=True)
+    # A entidade de asesoramento (caderno 1.4) é unha persoa co papel asesor
+    crear_persoa(session, ana, horta.id, "ATRIA Ulloa", papeis={"asesor"}, tipo="entidade",
+                 num_asesoramento="AT-7")
     crear_persoa(session, ana, horta.id, "Ana", papeis={"titular"}, enderezo="Rúa Nova 1",
                  localidade="Melide")
     crear_maquina(session, ana, horta.id, "Mochila", id_equipo_non_inscribible="M1",
@@ -37,7 +40,7 @@ def test_primeira_folla_leva_enderezos_equipos_e_asesoramento(session):
     assert ["Dirección", "Lugar de Abaixo 3"] in filas
     assert ["Dirección", "Rúa Nova 1"] in filas
     assert [1, "Mochila", "M1", "01/05/2020"] in filas
-    assert ["ATRIA Ulloa", "AS"] in filas
+    assert ["ATRIA Ulloa", "AT-7", "AS"] in filas
     fert = [list(f) for f in libro["7 Fertilización"].iter_rows(values_only=True)]
     assert any(f[:2] == ["Asesoramento", "SI"] for f in fert)
 

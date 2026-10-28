@@ -31,8 +31,6 @@ CAMPOS_EDITABLES_HORTA = frozenset(
         "nome",
         "descricion",
         "uso_profesional",
-        "titular_nome",
-        "titular_nif",
         "codigo_reaga",
         "codigo_rega",
         "enderezo",
@@ -41,9 +39,6 @@ CAMPOS_EDITABLES_HORTA = frozenset(
         "provincia",
         "email",
         "tipo_representacion",
-        "asesoramento_nome",
-        "asesoramento_nif",
-        "asesoramento_num",
         "tipo_xip",
         "asesoramento_fertilizacion",
     }
@@ -53,8 +48,8 @@ TIPOS_XIP = {"AE": "Agricultura ecolóxica", "PI": "Produción integrada",
              "CP": "Certificación privada", "ATRIA": "Agrupación de tratamento integrado (ATRIA)",
              "AS": "Asistida por un asesor", "NO": "Sen obriga de asesor en XIP"}
 
-# Patróns do descritor SIEX (Anexo VI): NIF/NIE de persoa física e CIF; código de
-# explotación ES + 12 díxitos (codigoREA). O REGA segue o mesmo formato.
+# Patróns do descritor SIEX (Anexo VI): NIF/NIE de persoa física e CIF (aínda o usa o NIF do
+# arrendador das parcelas); código de explotación ES + 12 díxitos (codigoREA).
 _PATRON_NIF = re.compile(
     r"^([KLMXYZ0-9]\d{7}[TRWAGMYFPDXBNJZSQVHLCKE]|[A-HJ-NP-SUVW]\d{7}[0-9A-J])$"
 )
@@ -62,15 +57,13 @@ _PATRON_CODIGO = re.compile(r"^ES\d{12}$")
 
 
 def _normalizar_e_validar_codigos(cambios: dict[str, Any]) -> None:
-    for campo in ("titular_nif", "codigo_reaga", "codigo_rega"):
+    for campo in ("codigo_reaga", "codigo_rega"):
         if cambios.get(campo):
             cambios[campo] = cambios[campo].strip().upper().replace(" ", "")
         elif campo in cambios:
             cambios[campo] = None
     if cambios.get("tipo_xip") and cambios["tipo_xip"] not in TIPOS_XIP:
         raise OperacionNonPermitidaError("Tipo de explotación en XIP descoñecido")
-    if cambios.get("titular_nif") and not _PATRON_NIF.match(cambios["titular_nif"]):
-        raise OperacionNonPermitidaError("O NIF do titular non é válido")
     for campo, nome in (("codigo_reaga", "REAGA"), ("codigo_rega", "REGA")):
         if cambios.get(campo) and not _PATRON_CODIGO.match(cambios[campo]):
             raise OperacionNonPermitidaError(
@@ -78,11 +71,15 @@ def _normalizar_e_validar_codigos(cambios: dict[str, Any]) -> None:
             )
 
 
-def estado_rexistro(horta: Horta) -> str:
-    """non_profesional | en_preparacion | rexistrada (calculado, non gardado)."""
+def estado_rexistro(session: Session, horta: Horta) -> str:
+    """non_profesional | en_preparacion | rexistrada (calculado, non gardado): rexistrada se
+    ten REAGA e o titular (a persoa co papel titular) ten NIF."""
     if not horta.uso_profesional:
         return "non_profesional"
-    if horta.titular_nif and horta.codigo_reaga:
+    nif_titular = (session.query(Persoa.nif).join(PersoaPapel)
+                   .filter(Persoa.horta_id == horta.id, Persoa.activa.is_(True),
+                           PersoaPapel.papel == "titular").scalar())
+    if nif_titular and horta.codigo_reaga:
         return "rexistrada"
     return "en_preparacion"
 

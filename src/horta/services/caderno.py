@@ -32,6 +32,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import FORMAS_N_P, METAIS_RESIDUO, RESIDUOS, dose_kg_ha
 from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
 from horta.services.labores import DESBROCE, PODAS, listar_labores
+from horta.services.persoas import nome_completo
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
 from horta.services.tratamentos_instalacion import listar_tratamentos_instalacion
@@ -98,8 +99,12 @@ def xerar_caderno(
     maquinas = session.query(Maquina).filter_by(horta_id=horta_id).order_by(Maquina.id).all()
     orde_maquina = {m.id: i for i, m in enumerate(maquinas, 1)}
     titular = next((p for p in persoas if p.activa and p.ten_papel("titular")), None)
-    cab = (f"Explotación/Titular da explotación: {horta.nome} / "
-           f"{horta.titular_nome or (titular.nome if titular else '')}   "
+    # Titular ou representante (1.1): se o titular é unha entidade, quen a representa
+    representante = titular if titular is None or titular.tipo == "persoa" else next(
+        (p for p in persoas if p.activa and p.ten_papel("representante")), None)
+    asesoria = next((p for p in persoas if p.activa and p.ten_papel("asesor")
+                     and (p.tipo == "entidade" or p.num_asesoramento)), None)
+    cab = (f"Explotación/Titular da explotación: {horta.nome} / {nome_completo(titular)}   "
            f"Período: {_data(desde)} - {_data(ata)}")
 
     def no_periodo(inicio: date, fin: date | None = None) -> bool:
@@ -116,8 +121,8 @@ def xerar_caderno(
     for fila in (
         ["1. INFORMACIÓN XERAL"], [cab], [],
         ["1.1 DATOS XERAIS DA EXPLOTACIÓN"],
-        ["Nome e apelidos ou razón social", horta.titular_nome or horta.nome],
-        ["NIF", horta.titular_nif or (titular.nif if titular else "")],
+        ["Nome e apelidos ou razón social", nome_completo(titular) or horta.nome],
+        ["NIF", (titular.nif or "") if titular else ""],
         ["CEA/Nº de Rexistro da Explotación", horta.codigo_reaga or ""],
         ["Código REGA", horta.codigo_rega or ""],
         ["Dirección", horta.enderezo or ""],
@@ -128,16 +133,15 @@ def xerar_caderno(
         ["e-mail", horta.email or ""],
         [],
         ["TITULAR OU REPRESENTANTE DA EXPLOTACIÓN"],
-        ["Nome e apelidos", " ".join(x for x in (titular.nome, titular.apelidos or "")
-                                     if x) if titular else ""],
-        ["NIF", (titular.nif or "") if titular else ""],
-        ["Dirección", (titular.enderezo or "") if titular else ""],
-        ["Localidade", (titular.localidade or "") if titular else ""],
-        ["C. Postal", (titular.codigo_postal or "") if titular else ""],
-        ["Provincia", (titular.provincia or "") if titular else ""],
+        ["Nome e apelidos", nome_completo(representante)],
+        ["NIF", (representante.nif or "") if representante else ""],
+        ["Dirección", (representante.enderezo or "") if representante else ""],
+        ["Localidade", (representante.localidade or "") if representante else ""],
+        ["C. Postal", (representante.codigo_postal or "") if representante else ""],
+        ["Provincia", (representante.provincia or "") if representante else ""],
         ["Tipo de representación", horta.tipo_representacion or ""],
-        ["Teléfono", (titular.telefono or "") if titular else ""],
-        ["e-mail", (titular.email or "") if titular else ""],
+        ["Teléfono", (representante.telefono or "") if representante else ""],
+        ["e-mail", (representante.email or "") if representante else ""],
         [],
         ["1.2 PERSOAS OU EMPRESAS QUE INTERVEÑEN NO TRATAMENTO CON PRODUTOS FITOSANITARIOS"],
         ["Nº de orde", "Nome e apelidos / Empresas de servizos", "NIF", "Nº Inscrición ROPO",
@@ -159,8 +163,8 @@ def xerar_caderno(
         [],
         ["1.4 AGRUPACIÓN OU ENTIDADE DE ASESORAMENTO A QUE PERTENCE A EXPLOTACIÓN"],
         ["Nome ou razón social", "NIF", "Nº de identificación", "Tipo de explotación"],
-        [horta.asesoramento_nome or "", horta.asesoramento_nif or "",
-         horta.asesoramento_num or "", horta.tipo_xip or ""],
+        [nome_completo(asesoria), (asesoria.nif or "") if asesoria else "",
+         (asesoria.num_asesoramento or "") if asesoria else "", horta.tipo_xip or ""],
     ):
         ws.append(fila)
     ws["A1"].font = Font(bold=True, size=13)

@@ -43,7 +43,9 @@ def test_profesional_sen_datos_ten_tres_pendentes(session):
 def test_profesional_completo(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "Explotación", uso_profesional=True)
-    actualizar_horta(session, ana, horta, titular_nif="12345678Z", codigo_reaga="ES150010000001")
+    actualizar_horta(session, ana, horta, codigo_reaga="ES150010000001")
+    # O NIF do titular está na persoa co papel titular
+    crear_persoa(session, ana, horta.id, "Ana", papeis={"titular"}, nif="12345678Z")
     crear_persoa(
         session,
         ana,
