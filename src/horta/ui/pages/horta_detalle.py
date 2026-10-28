@@ -8,14 +8,8 @@ from nicegui import app, ui
 from horta.db import get_session
 from horta.models.horta import Horta, RolHorta
 from horta.models.usuario import RolGlobal
-from horta.services.animais import (
-    actualizar_animal,
-    crear_animal,
-    eliminar_animal,
-    listar_animais,
-)
+from horta.services.animais import listar_animais
 from horta.services.catalogos_estado import avisos_catalogos
-from horta.services.coidados_animais import en_tempo_espera
 from horta.services.cultivos import (
     listar_cultivos,
 )
@@ -62,6 +56,7 @@ from horta.ui.layout import (
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.pages.abonados import seccion_abonados
 from horta.ui.pages.analises import seccion_analises
+from horta.ui.pages.animais import seccion_animais
 from horta.ui.pages.coidados_animais import seccion_coidados
 from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
@@ -70,6 +65,7 @@ from horta.ui.pages.equipo import seccion_equipo
 from horta.ui.pages.informes import seccion_informes
 from horta.ui.pages.labores import seccion_labores
 from horta.ui.pages.maquinaria import seccion_maquinaria
+from horta.ui.pages.movementos_animais import seccion_movementos
 from horta.ui.pages.parcelas import seccion_parcelas
 from horta.ui.pages.regas import seccion_regas
 from horta.ui.pages.tratamentos import seccion_tratamentos_fito
@@ -83,7 +79,6 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 _ESTADOS_PARCELA = ("activa", "inactiva")
-_ESTADOS_ANIMAL = ("activo", "baixa")
 _ROLES_HORTA = ("admin", "editor", "lector")
 
 _ESTADOS_CULTIVO = ("planificado", "sementado", "plantado", "colleitado", "finalizado")
@@ -310,214 +305,15 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     elif seccion == "tarefas":
         _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
     elif seccion == "animais":
-        _seccion_animais(horta_id, animais, pode_editar)
+        seccion_animais(horta_id, pode_editar)
+    elif seccion == "movementos":
+        seccion_movementos(horta_id, pode_editar)
     elif seccion == "coidados":
         seccion_coidados(horta_id, pode_editar)
     elif seccion == "equipo":
         seccion_equipo(horta_id, pode_editar, e_horta_admin)
     elif seccion == "maquinaria":
         seccion_maquinaria(horta_id, pode_editar)
-
-
-def _seccion_animais(horta_id: int, animais: list, pode_editar: bool) -> None:
-    if pode_editar:
-        with ui.dialog() as dialog_novo_animal, ui.card():
-            ui.label("Novo animal").classes("text-md font-bold")
-            especie_input = ui.input("Especie (p.ex. galiñas, coellos)")
-            raza_input = ui.input("Raza (opcional)")
-            cantidade_input = ui.number("Cantidade", value=1)
-
-            def crear() -> None:
-                if not especie_input.value:
-                    ui.notify("A especie é obrigatoria", type="negative")
-                    return
-                with get_session() as session:
-                    actor_actual = usuario_actual(session)
-                    if actor_actual is None:
-                        pechar_sesion()
-                        return
-                    creado = executar_accion(
-                        session,
-                        lambda: crear_animal(
-                            session,
-                            actor_actual,
-                            horta_id,
-                            especie_input.value,
-                            date.today(),
-                            raza=raza_input.value or None,
-                            cantidade=int(cantidade_input.value or 1),
-                        ),
-                    )
-                if not creado:
-                    return
-                ui.navigate.reload()
-
-            with ui.row():
-                ui.button("Crear", icon="check", on_click=crear)
-                ui.button("Cancelar", on_click=dialog_novo_animal.close).props("flat")
-
-    with get_session() as session:
-        actor = usuario_actual(session)
-        espera = en_tempo_espera(session, actor, horta_id) if actor else {}
-
-    with ui.row().classes("w-full items-center justify-between"):
-        ui.link("Ver os coidados dos animais", url_seccion(horta_id, "coidados"))
-        ui.space()
-        if pode_editar:
-            ui.button("Novo animal", icon="add", on_click=dialog_novo_animal.open)
-
-    todas_as_filas = [
-        {
-            "id": a.id,
-            "especie": a.especie,
-            "raza": a.raza,
-            "cantidade": a.cantidade,
-            "estado": a.estado,
-            "espera": f"En tempo de espera ata {espera[a.id]:%d/%m/%Y}" if a.id in espera
-            else "",
-        }
-        for a in animais
-    ]
-
-    with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
-        busca_input = ui.input("Buscar").props("dense clearable")
-        estado_select = ui.select(["Todos", *_ESTADOS_ANIMAL], label="Estado", value="Todos").props(
-            "dense"
-        )
-
-    taboa = (
-        ui.table(
-            columns=[
-                {"name": "especie", "label": "Especie", "field": "especie"},
-                {"name": "raza", "label": "Raza", "field": "raza"},
-                {"name": "cantidade", "label": "Cantidade", "field": "cantidade"},
-                {"name": "estado", "label": "Estado", "field": "estado"},
-                {"name": "espera", "label": "Medicamentos", "field": "espera"},
-            ],
-            rows=todas_as_filas,
-            row_key="id",
-            selection="single" if pode_editar else None,
-            pagination=10,
-        )
-        .classes("w-full")
-        .props(_PROPS_TABOA)
-    )
-
-    def refrescar_taboa() -> None:
-        estado_filtro = None if estado_select.value == "Todos" else estado_select.value
-        taboa.rows = filtrar_filas(
-            todas_as_filas,
-            busca_input.value or "",
-            ["especie", "raza", "cantidade", "estado"],
-            {"estado": estado_filtro},
-        )
-        if taboa.selected and taboa.selected[0] not in taboa.rows:
-            taboa.selected = []
-            if pode_editar:
-                fila_accions.set_visibility(False)
-        taboa.update()
-
-    busca_input.on_value_change(refrescar_taboa)
-    estado_select.on_value_change(refrescar_taboa)
-
-    if not pode_editar:
-        return
-
-    with ui.row().classes("q-mt-sm") as fila_accions:
-        ui.button("Editar", icon="edit", on_click=lambda: abrir_editar())
-        ui.button(
-            "Eliminar",
-            icon="delete",
-            on_click=lambda: confirmar_eliminacion(
-                f'Eliminar "{taboa.selected[0]["especie"]}"? Esta acción non se pode desfacer.',
-                eliminar_seleccionado,
-            ),
-        ).props("outline color=negative")
-    fila_accions.set_visibility(False)
-    taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
-
-    with ui.dialog() as dialog_editar, ui.card():
-        ui.label("Editar animal").classes("text-md font-bold")
-        especie_edit = ui.input("Especie")
-        raza_edit = ui.input("Raza")
-        cantidade_edit = ui.number("Cantidade")
-        estado_edit = ui.select(list(_ESTADOS_ANIMAL), label="Estado", value="activo")
-
-        def gardar() -> None:
-            if not taboa.selected:
-                return
-            animal_id = taboa.selected[0]["id"]
-            if not especie_edit.value:
-                ui.notify("A especie é obrigatoria", type="negative")
-                return
-            with get_session() as session:
-                actor_actual = usuario_actual(session)
-                if actor_actual is None:
-                    pechar_sesion()
-                    return
-                obxectivo = next(
-                    (
-                        a
-                        for a in listar_animais(session, actor_actual, horta_id)
-                        if a.id == animal_id
-                    ),
-                    None,
-                )
-                if obxectivo is None:
-                    ui.notify("Ese animal xa non existe", type="negative")
-                    return
-                gardado = executar_accion(
-                    session,
-                    lambda: actualizar_animal(
-                        session,
-                        actor_actual,
-                        obxectivo,
-                        especie=especie_edit.value,
-                        raza=raza_edit.value or None,
-                        cantidade=int(cantidade_edit.value or 1),
-                        estado=estado_edit.value,
-                    ),
-                )
-            if not gardado:
-                return
-            ui.navigate.reload()
-
-        with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialog_editar.close).props("flat")
-
-    def abrir_editar() -> None:
-        if not taboa.selected:
-            return
-        fila = taboa.selected[0]
-        especie_edit.value = fila["especie"]
-        raza_edit.value = fila["raza"]
-        cantidade_edit.value = fila["cantidade"]
-        estado_edit.value = fila["estado"]
-        dialog_editar.open()
-
-    def eliminar_seleccionado() -> None:
-        if not taboa.selected:
-            return
-        animal_id = taboa.selected[0]["id"]
-        with get_session() as session:
-            actor_actual = usuario_actual(session)
-            if actor_actual is None:
-                pechar_sesion()
-                return
-            obxectivo = next(
-                (a for a in listar_animais(session, actor_actual, horta_id) if a.id == animal_id),
-                None,
-            )
-            if obxectivo is None:
-                ui.notify("Ese animal xa non existe", type="negative")
-                return
-            eliminado = executar_accion(
-                session, lambda: eliminar_animal(session, actor_actual, obxectivo)
-            )
-        if not eliminado:
-            return
-        ui.navigate.reload()
 
 
 def _seccion_dashboard(
