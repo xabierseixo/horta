@@ -1,5 +1,5 @@
 """Sección Animais: os grupos de animais. A cantidade sae das entradas e saídas; os coidados,
-os movementos e a produción teñen as súas táboas."""
+os movementos, a produción e o pastoreo teñen as súas táboas."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from horta.services.animais import (
 from horta.services.catalogos import valores_vixentes
 from horta.services.coidados_animais import en_tempo_espera
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.pastoreos import no_pasto, nomes_leiras
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -26,6 +27,7 @@ from horta.ui.filtros import filtrar_filas
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.movementos_animais import dialogo_movemento
+from horta.ui.pages.pastoreos import dialogo_pastoreo, dialogo_saida
 from horta.ui.pages.producions_animais import dialogo_producion
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -47,12 +49,16 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             return
         animais = listar_animais(session, actor, horta_id)
         espera = en_tempo_espera(session, actor, horta_id)
+        pastos = {animal_id: (pa.id, f"No pasto: {nomes_leiras(session, pa)} desde o "
+                                     f"{pa.data_inicio:%d/%m}")
+                  for animal_id, pa in no_pasto(session, actor, horta_id).items()}
         razas = [(v.codigo, v.descricion) for v in valores_vixentes(session, "raza")]
 
     with ui.row().classes("w-full items-center gap-4"):
         ui.link("Ver as entradas e saídas", url_seccion(horta_id, "movementos"))
         ui.link("Ver os coidados", url_seccion(horta_id, "coidados"))
         ui.link("Ver a produción", url_seccion(horta_id, "producion"))
+        ui.link("Ver o pastoreo", url_seccion(horta_id, "pastoreo"))
 
     todas_as_filas = [{
         "id": a.id,
@@ -62,6 +68,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         "cantidade": a.cantidade,
         "estado": a.estado,
         "espera": f"En tempo de espera ata {espera[a.id]:%d/%m/%Y}" if a.id in espera else "",
+        "pasto": pastos[a.id][1] if a.id in pastos else "",
     } for a in animais]
 
     with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
@@ -72,7 +79,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("nome", "Grupo"), ("especie", "Especie"), ("raza", "Raza"),
-            ("cantidade", "Cantos"), ("espera", "Medicamentos"))],
+            ("cantidade", "Cantos"), ("espera", "Medicamentos"), ("pasto", "Pasto"))],
         rows=todas_as_filas, row_key="id", selection="single" if pode_editar else None,
         pagination=10,
     ).classes("w-full taboa").props(
@@ -91,6 +98,8 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         return
     abrir_movemento = dialogo_movemento(horta_id)
     abrir_producion = dialogo_producion(horta_id)
+    abrir_pastoreo = dialogo_pastoreo(horta_id)
+    abrir_saida = dialogo_saida()
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog() as dialogo, ui.card().style("width: min(34rem, 94vw)"):
@@ -183,6 +192,18 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     def producion() -> None:
         abrir_producion(None, None, taboa.selected[0]["id"] if taboa.selected else None)
 
+    def ao_pasto() -> None:
+        abrir_pastoreo(None, None, taboa.selected[0]["id"] if taboa.selected else None)
+
+    def saida_do_pasto() -> None:
+        animal = seleccionado()
+        if animal is None:
+            return
+        if animal.id not in pastos:
+            ui.notify("Este grupo non está no pasto", type="warning")
+            return
+        abrir_saida(pastos[animal.id][0])
+
     def eliminar() -> None:
         animal = seleccionado()
         if animal is None:
@@ -207,6 +228,8 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         ui.button("Novo grupo", icon="add", on_click=lambda: abrir(None))
         ui.button("Entrada ou saída", icon="swap_horiz", on_click=movemento).props("outline")
         ui.button("Produción", icon="egg", on_click=producion).props("outline")
+        ui.button("Ao pasto", icon="landscape", on_click=ao_pasto).props("outline")
+        ui.button("Saíron do pasto", icon="logout", on_click=saida_do_pasto).props("outline")
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
         ui.button("Eliminar", icon="delete", on_click=eliminar).props(
             "outline color=negative")
