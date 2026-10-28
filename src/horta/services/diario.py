@@ -20,6 +20,7 @@ from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.labores import listar_labores
+from horta.services.lotes import CANLES, TIPOS_SAIDA, listar_lotes, listar_saidas
 from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
 from horta.services.pastoreos import listar_pastoreos
 from horta.services.persoas import listar_persoas
@@ -43,6 +44,7 @@ TIPOS: dict[str, str] = {
     "movemento_animal": "Entrada ou saída de animais",
     "producion_animal": "Produción dos animais",
     "pastoreo": "Pastoreo",
+    "lote_saida": "Saída de produto (venda, casa...)",
     "tarefa": "Tarefa",
 }
 
@@ -182,6 +184,17 @@ def listar_traballos(
                                   onde(ids[0]) if len(ids) == 1 else f"{len(ids)} leiras",
                                   frozenset().union(*(parcela_de(i) for i in ids)),
                                   persoas=_quen(pa.persoa_id), sen_quen=pa.persoa_id is None))
+    lotes = {lo.id: lo for lo in listar_lotes(session, actor, horta_id)}
+    for sa in listar_saidas(session, actor, horta_id):
+        lote = lotes.get(sa.lote_id)
+        produto = f" de {lote.produto}" if lote else ""
+        codigo = f" · lote {lote.codigo}" if lote else ""
+        traballos.append(Traballo(
+            "lote_saida", sa.id, sa.data, True,
+            f"{TIPOS_SAIDA[sa.tipo].split(' (')[0]}: {sa.cantidade:g} {sa.unidade}{produto}"
+            f"{codigo}",
+            nomes.get(sa.comprador_id or 0) or sa.lugar or CANLES.get(sa.canle or "", "") or "",
+            frozenset(), persoas=_quen(sa.persoa_id), sen_quen=sa.persoa_id is None))
     for ta in listar_tarefas(session, actor, horta_id):
         if ta.traballo_id is not None:
             continue  # xa feita: sae o traballo apuntado no seu tipo
