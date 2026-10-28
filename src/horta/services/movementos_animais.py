@@ -16,7 +16,7 @@ from horta.services.coidados_animais import en_tempo_espera
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.maquinaria import comprobar_maquina
-from horta.services.persoas import comprobar_quen
+from horta.services.persoas import comprobar_quen, persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -41,8 +41,8 @@ class DatosMovemento:
     cantidade: int
     persoa_id: int | None
     identificacion: str | None = None
-    titular: str | None = None
-    rega: str | None = None
+    # A outra explotación (titular e REGA): persoa co papel «explotacion»
+    outra_parte_id: int | None = None
     codigo_movemento: str | None = None
     causa: str | None = None
     horas: float | None = None
@@ -107,6 +107,8 @@ def _validar(session: Session, datos: DatosMovemento, animal: Animal, hoxe: date
     if datos.cantidade is None or datos.cantidade < 1:
         raise OperacionNonPermitidaError("Indica cantos animais (polo menos 1)")
     comprobar_quen(session, animal.horta_id, datos.persoa_id, datos.horas)
+    if datos.tipo in CON_OUTRA_EXPLOTACION:
+        persoa_co_papel(session, animal.horta_id, datos.outra_parte_id, "explotacion")
     comprobar_maquina(session, animal.horta_id, datos.maquina_id)
 
 
@@ -119,8 +121,7 @@ def _copiar(mov: MovementoAnimal, datos: DatosMovemento, animal: Animal) -> None
     mov.cantidade = datos.cantidade
     mov.identificacion = datos.identificacion or None
     # Cada tipo garda só os seus datos
-    mov.titular = (datos.titular or None) if outra else None
-    mov.rega = (datos.rega or None) if outra else None
+    mov.outra_parte_id = datos.outra_parte_id if outra else None
     mov.codigo_movemento = (datos.codigo_movemento or None) if outra else None
     mov.causa = (datos.causa or None) if datos.tipo == "morte" else None
     mov.persoa_id = datos.persoa_id

@@ -25,8 +25,9 @@ from horta.services.movementos_animais import (
     dar_de_baixa_movemento,
     listar_movementos,
 )
-from horta.services.persoas import listar_persoas
+from horta.services.persoas import listar_persoas, listar_quen
 from horta.ui.accions import executar_accion
+from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -54,7 +55,7 @@ def seccion_movementos(horta_id: int, pode_editar: bool) -> None:
         "grupo": grupos.get(mo.animal_id, ""),
         "tipo": TIPOS_MOVEMENTO[mo.tipo].split(" (")[0],
         "cantidade": mo.cantidade,
-        "outra": " · ".join(x for x in (mo.titular, mo.rega) if x) or mo.causa or "",
+        "outra": persoas.get(mo.outra_parte_id or 0) or mo.causa or "",
         "quen": persoas.get(mo.persoa_id, "") if mo.persoa_id else "",
     } for mo in movementos]
     taboa = ui.table(
@@ -115,7 +116,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
             return lambda *_, **__: None
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: f"{nome_grupo(a.especie, a.raza)} · {a.cantidade}" for a in animais}
-        persoas = {p.id: p.nome for p in listar_persoas(session, actor, horta_id)}
+        persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
@@ -134,10 +135,9 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         aviso = ui.label("").classes("etiqueta-aviso")
         with ui.column().classes("w-full gap-0") as outra_explotacion:
-            titular = ui.input("Titular (nome e enderezo)").classes("w-full")
-            with ui.row().classes("w-full no-wrap"):
-                rega = ui.input("Código REGA da explotación").classes("col")
-                codigo = ui.input("Nº de guía ou do movemento").classes("col")
+            # Titular e REGA da outra explotación: ficha en Persoas
+            outra_parte = CampoPersoa(horta_id, "explotacion", "Explotación de destino")
+            codigo = ui.input("Nº de guía ou do movemento").classes("w-full")
         causa = ui.input("Causa").classes("w-full")
         identificacion = ui.input("Identificación dos animais (crotais, anelas…)").classes(
             "w-full")
@@ -148,10 +148,9 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
 
         def mostrar_campos() -> None:
             outra_explotacion.set_visibility(tipo.value in CON_OUTRA_EXPLOTACION)
-            titular.label = ("Titular anterior (nome e enderezo)" if tipo.value == "entrada"
-                             else "Novo titular (nome e enderezo)")
-            rega.label = ("Código REGA de orixe" if tipo.value == "entrada"
-                          else "Código REGA de destino")
+            outra_parte.set_label("Explotación de orixe (titular anterior)"
+                                  if tipo.value == "entrada"
+                                  else "Explotación de destino (novo titular)")
             causa.set_visibility(tipo.value == "morte")
             avisar()
 
@@ -192,7 +191,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
                         animal_id=grupo.value, data=dia, tipo=tipo.value,
                         cantidade=int(cantos) if cantos is not None else 0,
                         persoa_id=persoa.value, identificacion=identificacion.value or None,
-                        titular=titular.value or None, rega=rega.value or None,
+                        outra_parte_id=outra_parte.value,
                         codigo_movemento=codigo.value or None, causa=causa.value or None,
                         horas=parsear_decimal(horas.value),
                         maquina_id=maquina.value, notas=notas.value or None)
@@ -225,8 +224,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
         cantidade.value = str(mo.cantidade) if mo else ""
         persoa.value = (mo.persoa_id if mo.persoa_id in persoas else None) if mo else (
             proposta_quen(horta_id, tarefa))
-        titular.value = (mo.titular or "") if mo else ""
-        rega.value = (mo.rega or "") if mo else ""
+        outra_parte.value = mo.outra_parte_id if mo else None
         codigo.value = (mo.codigo_movemento or "") if mo else ""
         causa.value = (mo.causa or "") if mo else ""
         identificacion.value = (mo.identificacion or "") if mo else ""

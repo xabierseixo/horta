@@ -21,6 +21,7 @@ from horta.services.movementos_animais import (
     dar_de_baixa_movemento,
     listar_movementos,
 )
+from horta.services.persoas import crear_contacto
 from horta.services.tarefas import crear_tarefa, facer_tarefa
 
 HOXE = date(2026, 10, 28)
@@ -49,8 +50,11 @@ def test_a_cantidade_sae_dos_movementos(session):
     ana, horta, persoa, galinas = _escenario(session)
     assert listar_movementos(session, ana, horta.id) == []  # o inicial non se lista
     crear_movemento(session, ana, _mov(galinas, persoa, "nacemento", 4), hoxe=HOXE)
-    crear_movemento(session, ana, _mov(galinas, persoa, "entrada", 6, titular="Xan, Lalín",
-                                       rega="ES360000000001"), hoxe=HOXE)
+    xan = crear_contacto(session, ana, horta.id, "Xan, Lalín", "explotacion",
+                         rega="ES360000000001")
+    entrada = crear_movemento(session, ana, _mov(galinas, persoa, "entrada", 6,
+                                                 outra_parte_id=xan.id), hoxe=HOXE)
+    assert entrada.outra_parte_id == xan.id
     saida = crear_movemento(session, ana, _mov(galinas, persoa, "saida", 5), hoxe=HOXE)
     crear_movemento(session, ana, _mov(galinas, persoa, "morte", 1, causa="Raposo"),
                     hoxe=HOXE)
@@ -85,12 +89,13 @@ def test_a_cero_o_grupo_queda_de_baixa_e_volve_ao_entrar(session):
 
 
 def test_cada_tipo_garda_so_os_seus_datos(session):
-    ana, _, persoa, galinas = _escenario(session)
+    ana, horta, persoa, galinas = _escenario(session)
+    xan = crear_contacto(session, ana, horta.id, "Xan", "explotacion")
     mov = crear_movemento(session, ana, _mov(
-        galinas, persoa, "nacemento", 2, titular="Non vai", rega="ES1", causa="Non vai",
+        galinas, persoa, "nacemento", 2, outra_parte_id=xan.id, causa="Non vai",
         identificacion="Anelas 1 e 2"), hoxe=HOXE)
-    assert (mov.titular, mov.rega, mov.causa, mov.identificacion) == (
-        None, None, None, "Anelas 1 e 2")
+    assert (mov.outra_parte_id, mov.causa, mov.identificacion) == (
+        None, None, "Anelas 1 e 2")
     actualizar_movemento(session, ana, mov, _mov(galinas, persoa, "morte", 2, causa="Frío"),
                          hoxe=HOXE)
     assert (mov.tipo, mov.causa, galinas.cantidade) == ("morte", "Frío", 8)

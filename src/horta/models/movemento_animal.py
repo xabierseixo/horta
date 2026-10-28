@@ -23,9 +23,8 @@ class MovementoAnimal(ParteComun, FeitoPor, ConMaquina, Base):
     tipo: Mapped[str] = mapped_column(String(20))
     cantidade: Mapped[int] = mapped_column(Integer)
     identificacion: Mapped[str | None] = mapped_column(String(500), default=None)
-    # Entrada: o titular anterior e a explotación de orixe; saída: o novo e a de destino
-    titular: Mapped[str | None] = mapped_column(String(300), default=None)
-    rega: Mapped[str | None] = mapped_column(String(20), default=None)
+    # Entrada: a explotación de orixe (titular anterior); saída: a de destino (novo titular)
+    outra_parte_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     codigo_movemento: Mapped[str | None] = mapped_column(String(50), default=None)
     # Morte ou sacrificio
     causa: Mapped[str | None] = mapped_column(String(300), default=None)
