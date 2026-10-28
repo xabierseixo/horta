@@ -14,6 +14,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.persoas import persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -56,13 +57,11 @@ class DatosFertilizante:
     liquido: bool = False
     densidade: float | None = None
     tratamento_estercos: str | None = None
-    provedor_nome: str | None = None
-    provedor_nif: str | None = None
-    provedor_rega: str | None = None
-    provedor_nima: str | None = None
+    # De onde vén: persoa ou entidade co papel «provedor» (co seu NIF, REGA ou NIMA)
+    provedor_id: int | None = None
 
 
-def _validar(session: Session, datos: DatosFertilizante) -> None:
+def _validar(session: Session, horta_id: int, datos: DatosFertilizante) -> None:
     hoxe = date.today()
     if not datos.nome.strip():
         raise OperacionNonPermitidaError("Pon un nome ao abono")
@@ -75,11 +74,8 @@ def _validar(session: Session, datos: DatosFertilizante) -> None:
         raise OperacionNonPermitidaError("Os metais pesados non poden ser negativos")
     if datos.densidade is not None and datos.densidade <= 0:
         raise OperacionNonPermitidaError("A densidade ten que ser maior que 0")
-    identificadores = [x for x in (datos.provedor_nif, datos.provedor_rega, datos.provedor_nima)
-                       if x]
-    if len(identificadores) > 1:
-        raise OperacionNonPermitidaError("Do provedor indica só un: NIF, REGA ou NIMA")
-    if datos.material in ESTERCOS | RESIDUOS and not (datos.provedor_nome or "").strip():
+    persoa_co_papel(session, horta_id, datos.provedor_id, "provedor")
+    if datos.material in ESTERCOS | RESIDUOS and datos.provedor_id is None:
         raise OperacionNonPermitidaError("Nos estercos e residuos indica de onde veñen")
     if datos.tratamento_estercos:
         if datos.material not in ESTERCOS:
@@ -91,7 +87,7 @@ def crear_fertilizante(
     session: Session, actor: Usuario, horta_id: int, datos: DatosFertilizante
 ) -> Fertilizante:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    _validar(session, datos)
+    _validar(session, horta_id, datos)
     nome = datos.nome.strip()
     if session.query(Fertilizante).filter_by(horta_id=horta_id, nome=nome).first():
         raise OperacionNonPermitidaError(f"Xa tes un abono chamado {nome}")

@@ -47,10 +47,7 @@ class Fertilizante(Base):
     liquido: Mapped[bool] = mapped_column(Boolean, default=False)
     densidade: Mapped[float | None] = mapped_column(Float, default=None)  # kg/L
     tratamento_estercos: Mapped[str | None] = mapped_column(String(20), default=None)
-    provedor_nome: Mapped[str | None] = mapped_column(String(150), default=None)
-    provedor_nif: Mapped[str | None] = mapped_column(String(14), default=None)
-    provedor_rega: Mapped[str | None] = mapped_column(String(14), default=None)
-    provedor_nima: Mapped[str | None] = mapped_column(String(50), default=None)
+    provedor_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
@@ -76,7 +73,6 @@ class Abonado(ParteComun, FeitoPor, ConMaquina, Base):
     xestion_sostible: Mapped[bool] = mapped_column(Boolean, default=False)
     aplicacion_lodos: Mapped[bool] = mapped_column(Boolean, default=False)
     albaran_factura: Mapped[str | None] = mapped_column(String(50), default=None)
-    empresa_servizos_regfer: Mapped[str | None] = mapped_column(String(50), default=None)
     num_repeticions: Mapped[int | None] = mapped_column(Integer, default=None)
     duracion_h_ha: Mapped[float | None] = mapped_column(Float, default=None)
 

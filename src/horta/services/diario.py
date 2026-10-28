@@ -112,7 +112,7 @@ def listar_traballos(
         traballos.append(Traballo(
             "abonado", a.id, a.data_inicio, True, abono.nome if abono else "Abonado en verde",
             onde(a.cultivo_id), parcela_de(a.cultivo_id), persoas=quen,
-            sen_quen=not quen and not a.empresa_servizos_regfer))
+            sen_quen=not quen))
     for r in listar_regas(session, actor, horta_id):
         traballos.append(Traballo("rega", r.id, r.data_inicio, True,
                                   texto("sistema_rega", r.sistema_rega),

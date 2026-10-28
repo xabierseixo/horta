@@ -17,6 +17,7 @@ from horta.services.fertilizantes import DatosFertilizante, crear_fertilizante
 from horta.services.hortas import crear_horta
 from horta.services.labores import DatosLabor, crear_labor
 from horta.services.parcelas import crear_parcela
+from horta.services.persoas import crear_contacto, listar_quen
 from horta.services.regas import DatosRega, crear_rega
 from horta.services.tratamentos_instalacion import (
     DatosTratamentoInstalacion,
@@ -104,14 +105,18 @@ def test_a_persoa_ten_que_ser_da_explotacion(session):
         _apuntar(session, ana, horta, cultivo, "rega", de_fora.id)
 
 
-def test_abonado_dunha_empresa_de_servizos_sen_persoa(session):
+def test_abonado_dunha_empresa_de_servizos(session):
+    """Quen o fixo pode ser a empresa de servizos (co seu REGFER), e sae en «Quen o fixo»."""
     ana, horta, _, cultivo = _escenario(session)
     esterco = crear_fertilizante(session, ana, horta.id, DatosFertilizante(
         nome="Compost", material="13"))
+    empresa = crear_contacto(session, ana, horta.id, "Abonos Ulla SL", "servizos",
+                             tipo="entidade", regfer_numero="ES1234")
     abonado = crear_abonado(session, ana, DatosAbonado(
         cultivo_id=cultivo.id, data_inicio=HOXE, fertilizante_id=esterco.id,
-        empresa_servizos_regfer="ES1234"), hoxe=HOXE)
-    assert abonado.persoa_id is None
+        persoa_id=empresa.id), hoxe=HOXE)
+    assert abonado.persoa_id == empresa.id
+    assert empresa in listar_quen(session, ana, horta.id)
 
 
 def test_sementeira_garda_quen_e_as_horas(session):

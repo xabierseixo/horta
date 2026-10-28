@@ -92,6 +92,7 @@ def xerar_caderno(
                 .order_by(Cultivo.parcela_id, Cultivo.id) if _activo(c, desde, ata)]
     orde_cultivo = {c.id: i for i, c in enumerate(cultivos, 1)}
     persoas = session.query(Persoa).filter_by(horta_id=horta_id).order_by(Persoa.id).all()
+    persoas_por_id = {p.id: p for p in persoas}
     # 1.2: persoas ou empresas que interveñen nos tratamentos (aplican, asesoran ou dan servizo)
     aplicadores = [p for p in persoas if p.ten_papel("aplicador", "asesor", "servizos")
                    and (p.ropo_numero or p.regfer_numero or p.ten_papel("aplicador"))]
@@ -370,6 +371,7 @@ def xerar_caderno(
         kg_ha = dose_kg_ha(ab.dose, ab.unidade, fe.densidade if fe else None) \
             if ab.dose is not None and ab.unidade else None
         persoa = session.get(Persoa, ab.persoa_id) if ab.persoa_id else None
+        provedor = persoas_por_id.get(fe.provedor_id or 0) if fe else None
         maquina = session.get(Maquina, ab.maquina_id) if ab.maquina_id else None
         filas_fert.append([
             _intervalo(ab.data_inicio, ab.data_fin), orde_cultivo.get(ab.cultivo_id, ""),
@@ -380,11 +382,11 @@ def xerar_caderno(
             if ab.tipo_fertilizacion else "",
             describir(session, "material_fertilizante", fe.material) if fe else
             "Abonado en verde",
-            fe.nome if fe else "", (fe.provedor_nome or "") if fe else "",
-            (fe.provedor_rega or fe.provedor_nif or fe.provedor_nima or "") if fe else "",
+            fe.nome if fe else "", nome_completo(provedor),
+            (provedor.rega or provedor.nif or provedor.nima or "") if provedor else "",
             describir(session, "metodo_fertilizacion", ab.metodo) if ab.metodo else "",
             maquina.alias if maquina else "",
-            ab.empresa_servizos_regfer or ((persoa.regfer_numero or "") if persoa else ""),
+            (persoa.regfer_numero or "") if persoa else "",
             _num(fe.n_pct) if fe else "", _num(fe.p2o5_pct) if fe else "",
             _num(fe.k2o_pct) if fe else "",
             *((_num(getattr(fe, c)) for c in FORMAS_N_P) if fe else ("",) * 5),

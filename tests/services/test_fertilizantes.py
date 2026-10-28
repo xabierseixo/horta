@@ -13,6 +13,7 @@ from horta.services.fertilizantes import (
     nutrientes_kg_ha,
 )
 from horta.services.hortas import crear_horta
+from horta.services.persoas import crear_contacto
 
 
 def _escenario(session):
@@ -43,16 +44,20 @@ def test_esterco_pide_provedor(session):
     ana, horta = _escenario(session)
     with pytest.raises(OperacionNonPermitidaError, match="de onde veñen"):
         crear_fertilizante(session, ana, horta.id, DatosFertilizante(nome="Esterco", material="5"))
+    casa = crear_contacto(session, ana, horta.id, "Casa do Monte", "provedor",
+                          rega="ES150000000009")
     abono = crear_fertilizante(session, ana, horta.id, DatosFertilizante(
-        nome="Esterco", material="5", provedor_nome="Casa", n_pct=0.6))
-    assert abono.provedor_nome == "Casa"
+        nome="Esterco", material="5", provedor_id=casa.id, n_pct=0.6))
+    assert abono.provedor_id == casa.id and casa.ten_papel("provedor")
 
 
-def test_so_un_identificador_do_provedor(session):
+def test_provedor_doutra_explotacion_non_vale(session):
     ana, horta = _escenario(session)
-    with pytest.raises(OperacionNonPermitidaError, match="só un"):
+    outra = crear_horta(session, ana, "Outra")
+    alleo = crear_contacto(session, ana, outra.id, "Granxa allea", "provedor")
+    with pytest.raises(OperacionNonPermitidaError, match="non é desta explotación"):
         crear_fertilizante(session, ana, horta.id, DatosFertilizante(
-            nome="E", material="5", provedor_nome="X", provedor_nif="1", provedor_rega="2"))
+            nome="E", material="5", provedor_id=alleo.id))
 
 
 def test_nome_repetido(session):

@@ -17,10 +17,10 @@ from horta.services.fertilizantes import (
     opcions_siex,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
-_IDENTIFICADORES = {"provedor_nif": "NIF", "provedor_rega": "REGA", "provedor_nima": "NIMA"}
 _FORMAS = (("n_organico_pct", "N orgánico %"), ("n_ureico_pct", "N ureico %"),
            ("n_nitrico_pct", "N nítrico %"), ("n_amoniacal_pct", "N amoniacal %"),
            ("p2o5_soluble_pct", "P₂O₅ soluble %"), ("materia_organica_pct",
@@ -52,16 +52,12 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
             n = ui.input("N %").classes("col")
             p = ui.input("P₂O₅ %").classes("col")
             k = ui.input("K₂O %").classes("col")
-        with ui.column().classes("w-full") as provedor:
-            provedor_nome = ui.input("De onde vén (casa, granxa ou empresa)").classes("w-full")
-            with ui.row().classes("w-full no-wrap"):
-                tipo_id = ui.select(_IDENTIFICADORES, value="provedor_nif",
-                                    label="Identificador").classes("col")
-                ident = ui.input("Número (opcional)").classes("col")
-            tratamento = ui.select(tratamentos, label="Tratamento do esterco (opcional)",
-                                   clearable=True).classes("w-full")
-        provedor.bind_visibility_from(material, "value",
-                                      backward=lambda v: v in ESTERCOS | RESIDUOS)
+        # De onde vén (empresa subministradora, granxa ou casa): obrigatorio nos estercos e
+        # residuos; os seus NIF, REGA ou NIMA van na súa ficha de Persoas
+        provedor = CampoPersoa(horta_id, "provedor", "De onde vén (empresa, granxa ou casa)")
+        tratamento = ui.select(tratamentos, label="Tratamento do esterco (opcional)",
+                               clearable=True).classes("w-full")
+        tratamento.bind_visibility_from(material, "value", backward=lambda v: v in ESTERCOS)
         with ui.expansion("Valor agronómico (se o sabes)").classes("w-full"):
             formas = {c: ui.input(e).classes("w-full") for c, e in _FORMAS}
         with ui.expansion("Metais pesados do residuo (mg/kg)").classes("w-full") as metais_bloque:
@@ -102,10 +98,8 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                 if datos.material in RESIDUOS:
                     for campo, entrada in metais.items():
                         setattr(datos, campo, parsear_decimal(entrada.value))
-                if datos.material in ESTERCOS | RESIDUOS:
-                    datos.provedor_nome = provedor_nome.value or None
-                    if ident.value:
-                        setattr(datos, tipo_id.value, ident.value)
+                datos.provedor_id = provedor.value
+                if datos.material in ESTERCOS:
                     datos.tratamento_estercos = tratamento.value
                 creado: dict[str, int] = {}
 

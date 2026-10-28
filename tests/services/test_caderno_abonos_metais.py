@@ -14,6 +14,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import DatosFertilizante, crear_fertilizante, datos_desde_siex
 from horta.services.hortas import crear_horta
 from horta.services.parcelas import crear_parcela
+from horta.services.persoas import crear_contacto
 
 
 def _escenario(session):
@@ -40,7 +41,8 @@ def test_formas_do_n_dende_o_catalogo(session):
 def test_metais_do_residuo_no_caderno(session):
     ana, horta = _escenario(session)
     compost = crear_fertilizante(session, ana, horta.id, DatosFertilizante(
-        nome="Compost de alperujo", material="20", provedor_nome="Planta X", n_pct=1.5,
+        nome="Compost de alperujo", material="20",
+        provedor_id=crear_contacto(session, ana, horta.id, "Planta X", "provedor").id, n_pct=1.5,
         materia_organica_pct=40, cadmio=0.7, chumbo=45))
     cultivo = crear_cultivo(session, ana, crear_parcela(session, ana, horta.id, "P").id, "Col")
     session.add(Abonado(horta_id=horta.id, cultivo_id=cultivo.id, data_inicio=date(2026, 3, 1),
@@ -61,4 +63,5 @@ def test_metal_negativo(session):
     ana, horta = _escenario(session)
     with pytest.raises(OperacionNonPermitidaError, match="metais"):
         crear_fertilizante(session, ana, horta.id, DatosFertilizante(
-            nome="X", material="20", provedor_nome="Y", zinc=-1))
+            nome="X", material="20",
+            provedor_id=crear_contacto(session, ana, horta.id, "Y", "provedor").id, zinc=-1))
