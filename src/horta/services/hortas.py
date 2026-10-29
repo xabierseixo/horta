@@ -14,6 +14,7 @@ from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor
 from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
+from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
 from horta.models.persoa import Persoa, PersoaPapel
@@ -192,6 +193,8 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
             "Esta explotación ten compras de produtos rexistradas e debe conservarse "
             "(obriga legal).")
     session.query(Produto).filter_by(horta_id=horta.id).delete()
+    # Os outros traballos non son de ningún libro oficial: bórranse coa explotación
+    session.query(OutroTraballo).filter_by(horta_id=horta.id).delete()
     session.query(Fertilizante).filter_by(horta_id=horta.id).delete()
     for analise in session.query(Analise).filter_by(horta_id=horta.id).all():
         session.delete(analise)

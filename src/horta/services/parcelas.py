@@ -10,6 +10,7 @@ from horta.models.analise import Analise
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.labor import LaborCultivo
+from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import PastoreoLeira
 from horta.models.rega import RegaCultivo
@@ -178,6 +179,7 @@ def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None
             "Esta parcela ten pastoreos rexistrados e debe conservarse (obriga legal)."
         )
     session.query(Tarefa).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
+    session.query(OutroTraballo).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
     session.query(Analise).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
     if ids_cultivos:
         session.query(Analise).filter(Analise.cultivo_id.in_(ids_cultivos)).update(

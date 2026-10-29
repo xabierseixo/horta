@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from horta.models.animal import Animal
 from horta.models.horta import RolHorta
 from horta.models.movemento_animal import MovementoAnimal
+from horta.models.outro_traballo import OutroTraballo
 from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
@@ -121,6 +122,7 @@ def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
             "Este grupo ten coidados, entradas e saídas, produción ou pastoreos apuntados e debe "
             "conservarse (obriga legal). Se xa non ten animais, apunta a súa saída ou morte")
     session.query(Tarefa).filter_by(animal_id=animal.id).update({"animal_id": None})
+    session.query(OutroTraballo).filter_by(animal_id=animal.id).update({"animal_id": None})
     session.query(MovementoAnimal).filter_by(animal_id=animal.id).delete()
     session.delete(animal)
     session.commit()
