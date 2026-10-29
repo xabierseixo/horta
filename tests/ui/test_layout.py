@@ -27,7 +27,7 @@ def test_grupos_en_orde():
 
 def test_menu_de_traballos_e_informes():
     claves = [s.clave for s in seccions_visibles(e_horta_admin=False)]
-    assert claves[:3] == ["resumo", "diario", "informes"]
+    assert claves[:4] == ["resumo", "diario", "calendario", "informes"]
     assert "tratamentos" not in claves and "explotacion" not in claves
     assert normalizar_seccion("tratamentos") == "tratamentos"
     assert "explotacion" in [s.clave for s in seccions_visibles(e_horta_admin=True)]

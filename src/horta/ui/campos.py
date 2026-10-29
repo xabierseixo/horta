@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from nicegui import ui
 
-_LOCALE_GL = {
+LOCALE_GL = {
     "days": ["Domingo", "Luns", "Martes", "Mércores", "Xoves", "Venres", "Sábado"],
     "daysShort": ["Dom", "Lun", "Mar", "Mér", "Xov", "Ven", "Sáb"],
     "months": [
@@ -24,7 +24,7 @@ def campo_data(etiqueta: str, valor: str = "") -> ui.input:
         with ui.menu().props("no-parent-event") as menu:
             calendario = ui.date(mask="YYYY-MM-DD", on_change=lambda: menu.close())
             calendario.bind_value(campo).props("minimal")
-            calendario._props["locale"] = _LOCALE_GL
+            calendario._props["locale"] = LOCALE_GL
         with campo.add_slot("append"):
             ui.icon("event").on("click", menu.open).classes("cursor-pointer")
     return campo

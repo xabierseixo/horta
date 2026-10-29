@@ -23,9 +23,11 @@ class Seccion:
 SECCIONS: tuple[Seccion, ...] = (
     Seccion("resumo", "Inicio", "home", None),
     Seccion("diario", "Diario", "event_note", None),
+    Seccion("calendario", "Calendario", "calendar_month", None),
     Seccion("informes", "Informes", "description", None),
     # Menú por áreas (deseño global §2bis e §2ter)
     Seccion("parcelas", "Parcelas", "map", "Produción"),
+    Seccion("mapa", "Mapa", "public", "Produción"),
     Seccion("cultivos", "Cultivos", "spa", "Produción"),
     Seccion("animais", "Animais", "pets", "Produción"),
     Seccion("equipo", "Equipo", "groups", "Xestión"),

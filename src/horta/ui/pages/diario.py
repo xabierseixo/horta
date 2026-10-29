@@ -182,7 +182,7 @@ def _data(t: Traballo) -> str:
     return f"{t.data:%d/%m/%Y}" if t.data else "sen data"
 
 
-def _tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
+def tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
              horta_id: int, pode_editar: bool, fotos: int) -> None:
     with ui.row().classes("tarxeta w-full items-center no-wrap gap-3 cursor-pointer q-pa-sm").on(
             "click", ao_premer):
@@ -263,10 +263,10 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
             with ui.column().classes("w-full gap-2"):
                 for t in grupo:
                     if formularios is not None:
-                        _tarxeta(t, partial(formularios.editar, t), persoas, horta_id, True,
+                        tarxeta(t, partial(formularios.editar, t), persoas, horta_id, True,
                                  fotos.get((t.tipo, t.id), 0))
                     else:
-                        _tarxeta(t, partial(ui.navigate.to,
+                        tarxeta(t, partial(ui.navigate.to,
                                             url_seccion(horta_id, SECCION_DO_TIPO[t.tipo])),
                                  persoas, horta_id, False, fotos.get((t.tipo, t.id), 0))
 
