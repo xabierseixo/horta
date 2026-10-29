@@ -18,6 +18,7 @@ from horta.models.cultivo import Cultivo
 from horta.models.labor import Labor
 from horta.models.lote import LoteSaida
 from horta.models.movemento_animal import MovementoAnimal
+from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
 from horta.models.producion_animal import ProducionAnimal
@@ -41,6 +42,7 @@ from horta.ui.pages.cultivos import dialogo_cultivo
 from horta.ui.pages.labores import dialogo_labor
 from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.pages.movementos_animais import dialogo_movemento
+from horta.ui.pages.outros_traballos import dialogo_outro_traballo
 from horta.ui.pages.pastoreos import dialogo_pastoreo
 from horta.ui.pages.producions_animais import dialogo_producion
 from horta.ui.pages.produtos import dialogo_entrada
@@ -54,7 +56,8 @@ ICONAS = {
     "colleita": "inventory_2", "sementeira": "spa", "analise": "science",
     "tratamento_instalacion": "warehouse", "coidado_animal": "pets",
     "movemento_animal": "swap_horiz", "producion_animal": "egg", "pastoreo": "landscape",
-    "lote_saida": "sell", "entrada_produto": "shopping_cart", "tarefa": "task_alt",
+    "lote_saida": "sell", "entrada_produto": "shopping_cart", "outro_traballo": "build",
+    "tarefa": "task_alt",
 }
 # A táboa de cada tipo, cos seus datos propios (p.ex. «non colleitar antes do»)
 SECCION_DO_TIPO = {
@@ -63,6 +66,8 @@ SECCION_DO_TIPO = {
     "tratamento_instalacion": "tratamentos", "coidado_animal": "coidados",
     "movemento_animal": "movementos", "producion_animal": "producion", "pastoreo": "pastoreo",
     "lote_saida": "lotes", "entrada_produto": "produtos", "tarefa": "tarefas",
+    # Sen táboa propia: a súa lista é o propio Diario
+    "outro_traballo": "diario",
 }
 _MODELOS: dict[str, type[Base]] = {
     "tratamento": TratamentoFito, "abonado": Abonado, "rega": Rega, "labor": Labor,
@@ -70,6 +75,7 @@ _MODELOS: dict[str, type[Base]] = {
     "tratamento_instalacion": TratamentoInstalacion, "coidado_animal": CoidadoAnimal,
     "movemento_animal": MovementoAnimal, "producion_animal": ProducionAnimal,
     "pastoreo": Pastoreo, "lote_saida": LoteSaida, "entrada_produto": EntradaProduto,
+    "outro_traballo": OutroTraballo,
 }
 _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "tratamento": dialogo_tratamento_fito, "abonado": dialogo_abonado, "rega": dialogo_rega,
@@ -78,6 +84,7 @@ _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "coidado_animal": dialogo_coidado, "movemento_animal": dialogo_movemento,
     "producion_animal": dialogo_producion, "pastoreo": dialogo_pastoreo,
     "lote_saida": dialogo_saida, "entrada_produto": dialogo_entrada,
+    "outro_traballo": dialogo_outro_traballo,
 }
 _DIAS_POR_DEFECTO = 90
 
@@ -213,7 +220,7 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
 
     @ui.refreshable
     def lista() -> None:
-        if tipo.value:
+        if tipo.value and SECCION_DO_TIPO[tipo.value] != "diario":
             ui.link(f"Ver a táboa de «{TIPOS[tipo.value]}» con todos os seus datos",
                     url_seccion(horta_id, SECCION_DO_TIPO[tipo.value]))
         with get_session() as session:
