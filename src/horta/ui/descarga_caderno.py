@@ -45,3 +45,39 @@ def boton_caderno(horta_id: int) -> None:
             ui.button("Descargar", icon="download", on_click=descargar)
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
     ui.button("Descargar o caderno", icon="download", on_click=dialogo.open).props("outline")
+
+
+def boton_libros_gandeiros(horta_id: int) -> None:
+    """Libro de rexistro gandeiro e rexistro de medicamentos veterinarios, nun Excel."""
+    from horta.services.libros_gandeiros import xerar_libros
+
+    hoxe = date.today()
+    with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
+        ui.label("Libros dos animais").classes("text-h6")
+        ui.label("Libro de rexistro gandeiro (censo, entradas e saídas, enfermidades, "
+                 "visitas) e rexistro de medicamentos veterinarios.").classes("text-caption")
+        desde = campo_data("Desde", date(hoxe.year, 1, 1).isoformat())
+        ata = campo_data("Ata", hoxe.isoformat())
+
+        def descargar() -> None:
+            inicio, fin = parsear_data(desde.value), parsear_data(ata.value)
+            if inicio is None or fin is None:
+                ui.notify("Indica as dúas datas", type="warning")
+                return
+            with get_session() as session:
+                actor = usuario_actual(session)
+                if actor is None:
+                    pechar_sesion()
+                    return
+                try:
+                    datos = xerar_libros(session, actor, horta_id, inicio, fin)
+                except OperacionNonPermitidaError as erro:
+                    ui.notify(str(erro), type="negative")
+                    return
+            ui.download.content(datos, f"libros-animais-{inicio:%Y%m%d}-{fin:%Y%m%d}.xlsx")
+            dialogo.close()
+
+        with ui.row():
+            ui.button("Descargar", icon="download", on_click=descargar)
+            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+    ui.button("Libros dos animais", icon="download", on_click=dialogo.open).props("outline")

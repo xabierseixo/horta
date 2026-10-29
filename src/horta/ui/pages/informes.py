@@ -10,7 +10,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.services.diario import TIPOS, sen_quen
 from horta.services.faltas_caderno import faltas_caderno
-from horta.ui.descarga_caderno import boton_caderno
+from horta.ui.descarga_caderno import boton_caderno, boton_libros_gandeiros
 from horta.ui.descarga_cue import seccion_cue
 from horta.ui.layout import url_seccion
 from horta.ui.pages.diario import SECCION_DO_TIPO
@@ -26,6 +26,12 @@ def seccion_informes(horta_id: int, uso_profesional: bool) -> None:
         ui.label("Modelo da Xunta en Excel, co período que escollas. Sae do que está apuntado."
                  ).classes("texto-suave")
         boton_caderno(horta_id)
+    with ui.column().classes("tarxeta w-full gap-2 q-pa-md q-mt-md"):
+        ui.label("Libros dos animais").classes("text-subtitle1 text-weight-bold")
+        ui.label("Libro de rexistro gandeiro e rexistro de medicamentos veterinarios, en "
+                 "Excel. Sae dos grupos, as entradas e saídas e os coidados.").classes(
+            "texto-suave")
+        boton_libros_gandeiros(horta_id)
     _sen_quen(horta_id)
     if not uso_profesional:
         ui.label("Explotación non profesional: o caderno non é obrigatorio, pero podes "

@@ -58,7 +58,7 @@ def _num(valor: float | None) -> float | str:
     return "" if valor is None else round(valor, 3)
 
 
-def _folla(wb: Workbook, nome: str, titulo: str, cabeceira_explotacion: str,
+def folla(wb: Workbook, nome: str, titulo: str, cabeceira_explotacion: str,
            cabeceiras: Sequence[str], filas: Iterable[Sequence[Any]]) -> Worksheet:
     ws = wb.create_sheet(nome)
     ws.append([titulo])
@@ -189,7 +189,7 @@ def xerar_caderno(
                 describir(session, "sistema_cultivo", c.sistema_cultivo)
                 if c.sistema_cultivo else "", xip, p.nome]
 
-    _folla(wb, "2 Parcelas", "2.1 DATOS IDENTIFICATIVOS E AGRONÓMICOS DAS PARCELAS", cab,
+    folla(wb, "2 Parcelas", "2.1 DATOS IDENTIFICATIVOS E AGRONÓMICOS DAS PARCELAS", cab,
            ["Nº de orde", "Provincia", "Termo municipal", "Agregado", "Zona", "Polígono",
             "Parcela", "Recinto", "Uso SIXPAC", "Superficie SIXPAC (ha)",
             "Superficie cultivada (ha)", "Especie", "Variedade", "Secano/Regadío",
@@ -238,7 +238,7 @@ def xerar_caderno(
                     if pr and pr.dose is not None else "",
                     describir(session, "eficacia", t.eficacia) if t.eficacia else "",
                     t.notas or ""])
-    _folla(wb, "3 Tratamentos", "3.1 REXISTRO DE ACTUACIÓNS FITOSANITARIAS DA PARCELA", cab,
+    folla(wb, "3 Tratamentos", "3.1 REXISTRO DE ACTUACIÓNS FITOSANITARIAS DA PARCELA", cab,
            ["Id. parcelas (nº de orde)", "Especie", "Variedade", "Intervalo de datas",
             "Sup. tratada (ha)", "Problema fitosanitario", "Aplicador (nº de orde)",
             "Equipo (nº de orde)", "Nome comercial", "Nº Rexistro", "Dose", "Eficacia",
@@ -323,7 +323,7 @@ def xerar_caderno(
 
     analises = [a for a in listar_analises(session, actor, horta_id)
                 if no_periodo(a.data_mostraxe)]
-    _folla(wb, "4 Análises", "4. REXISTRO DE ANÁLISE DE PRODUTOS FITOSANITARIOS "
+    folla(wb, "4 Análises", "4. REXISTRO DE ANÁLISE DE PRODUTOS FITOSANITARIOS "
            "(en caso de realizarse)", cab,
            ["Data", "Material analizado", "Cultivo ou colleita mostrado/s", "Nº Boletín",
             "Laboratorio", "Sustancias activas detectadas"],
@@ -354,12 +354,12 @@ def xerar_caderno(
             venda.albaran_factura or "", lote.codigo, nome_completo(cliente),
             (cliente.nif or "") if cliente else "", (cliente.enderezo or "") if cliente else "",
             (cliente.reaga or "") if cliente else ""])
-    _folla(wb, "5 Colleita", "5. REXISTRO DE COLLEITA COMERCIALIZADA", cab,
+    folla(wb, "5 Colleita", "5. REXISTRO DE COLLEITA COMERCIALIZADA", cab,
            ["Data", "Produto", "Cantidade de produto (kg)", "Nº de orde parcela/s de orixe",
             "Nº de albará ou factura", "Nº de lote", "Cliente: nome ou razón social",
             "NIF", "Dirección", "Nº de REAGA"], filas_colleita)
 
-    _folla(wb, "6 Solos", "6. CARACTERIZACIÓN DE SOLOS", cab,
+    folla(wb, "6 Solos", "6. CARACTERIZACIÓN DE SOLOS", cab,
            ["Id. parcelas", "Data", "pH", "Mat. orgánica (%)", "Nitróxeno (%)",
             "Fósforo (P₂O₅) asimilable (ppm)", "Potasio (K₂O) asimilable (ppm)", "Cadmio",
             "Cobre", "Níquel", "Chumbo", "Zinc", "Mercurio", "Cromo total"],
@@ -408,7 +408,7 @@ def xerar_caderno(
                 _num(kg_ha / 1000) if kg_ha is not None else "",
                 *(npk if npk else ("", "", "")),
                 (entrada.albaran_factura or "") if entrada else ""])
-    ws7 = _folla(wb, "7 Fertilización", "7. FERTILIZACIÓN", cab,
+    ws7 = folla(wb, "7 Fertilización", "7. FERTILIZACIÓN", cab,
                  ["Data aplicación", "Identificación parcelas (nº de orde)", "Secano/regadío",
                   "Cultivo", "Superficie fertilizada (ha)", "Tipo de tratamento",
                   "Tipo de material", "Material empregado", "Empresa subministradora",
@@ -475,7 +475,7 @@ def xerar_caderno(
                 _intervalo(r.data_inicio, r.data_fin), _num(m3_ha),
                 _num(acumulado.get(leira_rega.cultivo_id)),
                 _num(c.plan_auga_n_nitrico) if c else "", _num(c.plan_auga_p2o5) if c else ""])
-    _folla(wb, "8 Rega", "8. REGA", cab,
+    folla(wb, "8 Rega", "8. REGA", cab,
            ["Id. parcelas (nº de orde)", "Superficie regada (ha)", "Sistema de rega",
             "Data / intervalo rega", "Volume de rega (m³/ha)", "Volume acumulado (m³/ha)",
             "Auga: nitróxeno nítrico (mg/L)", "Auga: fósforo soluble (mg/L)"], filas_rega)
@@ -499,7 +499,7 @@ def xerar_caderno(
                 (m.tipo_une or "") if m else "", _num(m.potencia) if m else "",
                 describir(session, "tipo_enerxia", m.tipo_enerxia) if m and m.tipo_enerxia else "",
                 lab.num_repeticions or "", _num(lab.duracion_h)])
-    _folla(wb, "9 Labores (CUE)", "9. LABORES CULTURAIS (CUE, bloque 5)", cab,
+    folla(wb, "9 Labores (CUE)", "9. LABORES CULTURAIS (CUE, bloque 5)", cab,
            ["Id. parcelas (nº de orde)", "Superficie (ha)", "Tipo de labor", "Data / intervalo",
             "Restos de desbroce no solo", "Restos de poda no solo", "Cobertura do solo",
             "Maquinaria (tipo UNE)", "Potencia", "Tipo de enerxía", "Nº de repeticións",
