@@ -40,6 +40,7 @@ from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.fotos import abrir_fotos
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.clasificacions import (
+    abrir_trazabilidade,
     dialogo_clasificacion,
     dialogo_ficha,
     dialogo_mestura,
@@ -137,6 +138,9 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             ui.button("Mesturar lotes", icon="merge", on_click=lambda: abrir_mestura(None)
                       ).props("outline")
             ui.button("Ficha do produto", icon="tune", on_click=ficha).props("outline")
+            ui.button("Trazabilidade", icon="account_tree", on_click=lambda: (
+                abrir_trazabilidade(lid) if (lid := lote_escollido()) is not None else None)
+                      ).props("outline")
 
     ui.label("Saídas").classes("text-h6 q-mt-md")
     filas_saidas = [{

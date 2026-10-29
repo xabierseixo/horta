@@ -369,3 +369,33 @@ def dialogo_mestura(horta_id: int) -> Callable[..., None]:
         dialogo.open()
 
     return abrir
+
+
+def abrir_trazabilidade(lote_id: int) -> None:
+    """Ficha de trazabilidade e simulacro de retirada dun lote: de onde veu, que se lle fixo,
+    que pasou dentro e a onde foi. Pódese imprimir."""
+    from horta.services.trazabilidade import trazabilidade
+
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return
+        traz = trazabilidade(session, actor, lote_id)
+    with ui.dialog() as dialogo, ui.card().style("width: min(44rem, 96vw)"):
+        ui.label(f"Trazabilidade do lote {traz.lote.codigo}").classes("text-h6")
+        ui.label(f"{traz.lote.produto} · desde o {traz.lote.data:%d/%m/%Y}").classes(
+            "texto-suave")
+        for titulo, lineas in (("De onde veu", traz.orixe), ("Que se lle fixo", traz.fixose),
+                               ("Dentro do lote", traz.dentro), ("A onde foi", traz.saidas)):
+            ui.label(titulo).classes("text-subtitle1 text-weight-bold q-mt-sm")
+            if not lineas:
+                ui.label("Nada apuntado.").classes("texto-suave")
+            for linea in lineas:
+                data = f"{linea.data:%d/%m/%Y} · " if linea.data else ""
+                ui.label(f"{data}{linea.texto}")
+        with ui.row():
+            ui.button("Imprimir", icon="print",
+                      on_click=lambda: ui.run_javascript("window.print()")).props("outline")
+            ui.button("Pechar", on_click=dialogo.close).props("flat")
+    dialogo.open()

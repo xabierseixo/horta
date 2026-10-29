@@ -162,3 +162,27 @@ def test_codigo_segundo_a_agrupacion(session):
             lote=propor_lote(session, ana, horta.id, "ovos", dia_posta)), hoxe=HOXE)
     [lote] = session.query(Lote).all()
     assert lote.codigo == "2026-OVOS-S44" and queda(session, lote) == 16
+
+
+def test_trazabilidade_do_lote(session):
+    from horta.services.trazabilidade import trazabilidade
+
+    ana, horta, quen, cultivo = _escenario(session)
+    lote1 = _colleita(session, ana, cultivo, quen, "L-1", 100)
+    lote2 = _colleita(session, ana, cultivo, quen, "L-2", 50)
+    crear_clasificacion(session, ana, _clasificar(lote1, quen, {"Grande": 60}, refugo=0),
+                        hoxe=HOXE)
+    crear_saida(session, ana, _venda(lote1, quen, 20, "Grande"), hoxe=HOXE)
+    mestura = crear_mestura(session, ana, horta.id, DatosMestura(
+        data=date(2026, 9, 5), orixes=[OrixeMestura(lote_id=lote1, cantidade=10,
+                                                    clase="Grande"),
+                                       OrixeMestura(lote_id=lote2, cantidade=50)],
+        persoa_id=quen.id), hoxe=HOXE)
+    t1 = trazabilidade(session, ana, lote1)
+    assert [ln.texto for ln in t1.orixe] == ["Colleita de Pataca na leira Leira: 100 kg"]
+    assert t1.dentro[0].texto == "Clasificación: Grande 60"
+    assert [ln.texto.split(":")[0] for ln in t1.saidas] == ["Venda", "Mesturado"]
+    # O lote da mestura chega ata as colleitas de orixe
+    t2 = trazabilidade(session, ana, mestura.lote_id)
+    textos = " ".join(ln.texto for ln in t2.orixe)
+    assert "do lote L-1" in textos and "[L-2] Colleita de Pataca" in textos
