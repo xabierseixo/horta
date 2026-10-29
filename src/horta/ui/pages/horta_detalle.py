@@ -59,6 +59,7 @@ from horta.ui.nav import cabeceira_paxina
 from horta.ui.pages.abonados import seccion_abonados
 from horta.ui.pages.analises import seccion_analises
 from horta.ui.pages.animais import seccion_animais
+from horta.ui.pages.cartos import seccion_cartos
 from horta.ui.pages.coidados_animais import seccion_coidados
 from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
@@ -361,6 +362,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_equipo(horta_id, pode_editar, e_horta_admin, modo="contactos")
     elif seccion == "maquinaria":
         seccion_maquinaria(horta_id, pode_editar)
+    elif seccion == "cartos":
+        seccion_cartos(horta_id, pode_editar)
 
 
 def _seccion_dashboard(

@@ -17,7 +17,7 @@ _IDENTIFICADORES = ("num_roma", "num_reganip", "id_equipo_non_inscribible")
 CAMPOS_EDITABLES_MAQUINA = frozenset(
     {"alias", "tipo_une", "marca_modelo", "num_roma", "num_reganip", "id_equipo_non_inscribible",
      "propia", "potencia", "unidade_potencia", "tipo_enerxia", "data_ultima_inspeccion", "alugada",
-     "activa", "data_adquisicion"}
+     "activa", "data_adquisicion", "custo_hora"}
 )
 
 
@@ -31,6 +31,8 @@ def comprobar_maquina(session: Session, horta_id: int, maquina_id: int | None) -
 
 
 def _validar(datos: dict[str, Any]) -> None:
+    if datos.get("custo_hora") is not None and datos["custo_hora"] < 0:
+        raise OperacionNonPermitidaError("O custo da hora non pode ser negativo")
     if sum(1 for c in _IDENTIFICADORES if datos.get(c)) > 1:
         raise OperacionNonPermitidaError(
             "Indica só un identificador: nº ROMA, nº REGANIP ou identificador do equipo"

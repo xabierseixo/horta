@@ -52,6 +52,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
         ident = ui.input("Número / identificador")
         propia = ui.checkbox("Propia", value=True)
         potencia = ui.input("Potencia")
+        custo_hora = ui.input("Custo da hora (€)")
         inspeccion = campo_data("Data última inspección")
         adquisicion = campo_data("Data de adquisición")
 
@@ -68,6 +69,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
                     return
                 datos = {"marca_modelo": marca.value or None, "propia": propia.value,
                          "potencia": parsear_decimal(potencia.value),
+                         "custo_hora": parsear_decimal(custo_hora.value),
                          "data_ultima_inspeccion": parsear_data(inspeccion.value),
                          "data_adquisicion": parsear_data(adquisicion.value),
                          "activa": activa.value, "num_roma": None, "num_reganip": None,
@@ -98,6 +100,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
                        if m else "")
         propia.value, activa.value = (m.propia, m.activa) if m else (True, True)
         potencia.value = f"{m.potencia:g}" if m and m.potencia is not None else ""
+        custo_hora.value = f"{m.custo_hora:g}" if m and m.custo_hora is not None else ""
         inspeccion.value = (m.data_ultima_inspeccion.isoformat()
                             if m and m.data_ultima_inspeccion else "")
         adquisicion.value = m.data_adquisicion.isoformat() if m and m.data_adquisicion else ""

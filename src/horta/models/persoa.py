@@ -59,6 +59,8 @@ class Persoa(Base):
     email: Mapped[str | None] = mapped_column(String(255), default=None)
     vinculo: Mapped[str | None] = mapped_column(String(20), default=None)
     horas_ano: Mapped[float | None] = mapped_column(Float, default=None)
+    # €/hora: canto custa cada traballo (paso 10, cartos)
+    custo_hora: Mapped[float | None] = mapped_column(Float, default=None)
     formacion_agraria: Mapped[str | None] = mapped_column(String(200), default=None)
     xenero: Mapped[str | None] = mapped_column(String(10), default=None)
     data_nacemento: Mapped[date | None] = mapped_column(Date, default=None)

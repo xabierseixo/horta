@@ -193,6 +193,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             vinculo = ui.select(list(VINCULOS), label="Vínculo coa explotación",
                                 clearable=True).classes("w-full")
             horas_ano = ui.input("Horas ao ano").classes("w-full")
+            custo_hora = ui.input("Custo da hora (€)").classes("w-full")
             formacion = ui.input("Formación agraria").classes("w-full")
         with ui.expansion("Colectivo (opcional, para axudas ao emprego)").classes(
                 "w-full") as bloque_colectivo:
@@ -301,6 +302,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 ropo_caducidade=parsear_data(caducidade.value),
                 regfer_numero=regfer.value or None,
                 vinculo=vinculo.value, horas_ano=parsear_decimal(horas_ano.value),
+                custo_hora=parsear_decimal(custo_hora.value),
                 formacion_agraria=formacion.value or None,
                 xenero=xenero.value, data_nacemento=parsear_data(nacemento.value),
                 discapacidade=discapacidade.value,
@@ -342,7 +344,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
     textos = (nome, apelidos, nif, *contacto.values(), *rexistros.values(), ropo, caducidade,
-              regfer, horas_ano, formacion, nacemento)
+              regfer, horas_ano, custo_hora, formacion, nacemento)
 
     def en_equipo() -> bool:
         return equipo
@@ -382,7 +384,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             for f in feitos:
                 importe = f" · {f.importe:.2f} €" if f.importe is not None else ""
                 data = f"{f.data:%d/%m/%Y} · " if f.data else ""
-                ui.label(f"{data}{f.que}{importe}")
+                ui.label(f"{data}{f.que}{importe}{' · pendente' if f.pendente else ''}")
             ui.button("Pechar", on_click=ventá.close).props("flat")
         ventá.open()
 
@@ -435,6 +437,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         regfer.value = p.regfer_numero or ""
         vinculo.value = p.vinculo
         horas_ano.value = "" if p.horas_ano is None else f"{p.horas_ano:g}"
+        custo_hora.value = "" if p.custo_hora is None else f"{p.custo_hora:g}"
         formacion.value = p.formacion_agraria or ""
         xenero.value = p.xenero
         nacemento.value = p.data_nacemento.isoformat() if p.data_nacemento else ""

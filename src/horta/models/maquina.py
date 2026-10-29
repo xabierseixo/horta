@@ -27,3 +27,5 @@ class Maquina(Base):
     data_adquisicion: Mapped[date | None] = mapped_column(Date, default=None)
     alugada: Mapped[bool] = mapped_column(Boolean, default=False)
     activa: Mapped[bool] = mapped_column(Boolean, default=True)
+    # €/hora: canto custa cada traballo (paso 10, cartos)
+    custo_hora: Mapped[float | None] = mapped_column(Float, default=None)

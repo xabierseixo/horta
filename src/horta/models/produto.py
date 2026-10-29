@@ -53,6 +53,8 @@ class EntradaProduto(ParteComun, FeitoPor, Base):
     lote_provedor: Mapped[str | None] = mapped_column(String(50), default=None)
     albaran_factura: Mapped[str | None] = mapped_column(String(60), default=None)
     importe: Mapped[float | None] = mapped_column(Float, default=None)
+    # Cando se pagou; baleira = pendente (paso 10, cartos)
+    data_pago: Mapped[date | None] = mapped_column(Date, default=None)
     data_caducidade: Mapped[date | None] = mapped_column(Date, default=None)
     # Sementes e plantas (Reg. UE 2016/2031)
     pasaporte_fitosanitario: Mapped[str | None] = mapped_column(String(40), default=None)

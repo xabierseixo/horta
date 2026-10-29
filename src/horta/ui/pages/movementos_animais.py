@@ -27,6 +27,7 @@ from horta.services.movementos_animais import (
 )
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.ui.accions import executar_accion
+from horta.ui.campo_pago import CampoPago
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -138,6 +139,8 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
             # Titular e REGA da outra explotación: ficha en Persoas
             outra_parte = CampoPersoa(horta_id, "explotacion", "Explotación de destino")
             codigo = ui.input("Nº de guía ou do movemento").classes("w-full")
+            importe = ui.input("Prezo total (€)").classes("w-full")
+            pago = CampoPago("Pagado ou cobrado")
         causa = ui.input("Causa").classes("w-full")
         identificacion = ui.input("Identificación dos animais (crotais, anelas…)").classes(
             "w-full")
@@ -193,6 +196,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
                         persoa_id=persoa.value, identificacion=identificacion.value or None,
                         outra_parte_id=outra_parte.value,
                         codigo_movemento=codigo.value or None, causa=causa.value or None,
+                        importe=parsear_decimal(importe.value), data_pago=pago.valor(dia),
                         horas=parsear_decimal(horas.value),
                         maquina_id=maquina.value, notas=notas.value or None)
                     existente = (session.get(MovementoAnimal, editando["id"])
@@ -227,6 +231,8 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
         outra_parte.value = mo.outra_parte_id if mo else None
         codigo.value = (mo.codigo_movemento or "") if mo else ""
         causa.value = (mo.causa or "") if mo else ""
+        importe.value = f"{mo.importe:g}" if mo and mo.importe is not None else ""
+        pago.poñer(mo.data_pago if mo else None, mo is None)
         identificacion.value = (mo.identificacion or "") if mo else ""
         horas.value = f"{mo.horas:g}" if mo and mo.horas else ""
         maquina.value = mo.maquina_id if mo and mo.maquina_id in maquinas else None

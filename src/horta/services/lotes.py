@@ -20,6 +20,7 @@ from horta.models.horta import RolHorta
 from horta.models.lote import Lote, LoteSaida
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.usuario import Usuario
+from horta.services.cartos import comprobar_pago
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.maquinaria import comprobar_maquina
@@ -219,6 +220,7 @@ class DatosSaida:
     comprador_id: int | None = None
     albaran_factura: str | None = None
     importe: float | None = None
+    data_pago: date | None = None
     horas: float | None = None
     maquina_id: int | None = None
     notas: str | None = None
@@ -265,6 +267,7 @@ def _validar(session: Session, datos: DatosSaida, lote: Lote, hoxe: date,
         raise OperacionNonPermitidaError("Os ovos non se poden vender a tendas")
     if datos.importe is not None and datos.importe < 0:
         raise OperacionNonPermitidaError("O prezo non pode ser negativo")
+    comprobar_pago(fin, datos.data_pago, hoxe)
     persoa_co_papel(session, lote.horta_id, datos.comprador_id, "cliente")
 
 
@@ -283,6 +286,7 @@ def _copiar(saida: LoteSaida, datos: DatosSaida, lote: Lote) -> None:
     saida.comprador_id = datos.comprador_id if venda else None
     saida.albaran_factura = (datos.albaran_factura or None) if venda else None
     saida.importe = datos.importe if venda else None
+    saida.data_pago = datos.data_pago if venda else None
     saida.persoa_id = datos.persoa_id
     saida.horas = datos.horas
     saida.maquina_id = datos.maquina_id

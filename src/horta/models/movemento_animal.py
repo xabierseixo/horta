@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import Date, ForeignKey, Integer, String
+from sqlalchemy import Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -28,3 +28,7 @@ class MovementoAnimal(ParteComun, FeitoPor, ConMaquina, Base):
     codigo_movemento: Mapped[str | None] = mapped_column(String(50), default=None)
     # Morte ou sacrificio
     causa: Mapped[str | None] = mapped_column(String(300), default=None)
+    # Entrada ou saída: o prezo da compra ou da venda e cando se pagou ou cobrou (baleira =
+    # pendente). Paso 10, cartos
+    importe: Mapped[float | None] = mapped_column(Float, default=None)
+    data_pago: Mapped[date | None] = mapped_column(Date, default=None)

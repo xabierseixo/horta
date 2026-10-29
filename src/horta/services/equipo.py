@@ -224,7 +224,7 @@ _QUE_E = {"entrada_produto": "Compra", "lote_saida": "Venda", "analise": "Análi
           "tratamento_aplicador": "Tratamento (aplicou)",
           "tratamento_asesor": "Tratamento (asesorou)",
           "tratamento_instalacion": "Tratamento en instalación",
-          "producion_animal": "Produción dos animais"}
+          "producion_animal": "Produción dos animais", "apunte_cartos": "Outro gasto ou ingreso"}
 
 
 @dataclass(frozen=True)
@@ -232,6 +232,8 @@ class Feito:
     data: date | None
     que: str
     importe: float | None
+    # Con prezo e sen cobrar nin pagar (paso 10, cartos)
+    pendente: bool = False
 
 
 def historial(session: Session, actor: Usuario, persoa: Persoa) -> list[Feito]:
@@ -249,5 +251,8 @@ def historial(session: Session, actor: Usuario, persoa: Persoa) -> list[Feito]:
                 data = next((fila[c] for c in ("data_inicio", "data", "data_mostraxe")
                              if fila.get(c) is not None), None)
                 que = _QUE_E.get(taboa.name, taboa.name.replace("_", " ").capitalize())
-                feitos.append(Feito(data, que, fila.get("importe")))
+                importe = fila.get("importe")
+                pendente = ("data_pago" in fila and importe is not None
+                            and fila["data_pago"] is None)
+                feitos.append(Feito(data, que, importe, pendente))
     return sorted(feitos, key=lambda f: f.data or date.min, reverse=True)

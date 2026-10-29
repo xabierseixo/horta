@@ -16,6 +16,7 @@ from horta.models.horta import RolHorta
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.tratamento_fito import TratamentoFito, TratamentoProduto
 from horta.models.usuario import Usuario
+from horta.services.cartos import comprobar_pago
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import dose_kg_ha
 from horta.services.hortas import comprobar_rol_horta
@@ -117,6 +118,7 @@ class DatosEntrada:
     lote_provedor: str | None = None
     albaran_factura: str | None = None
     importe: float | None = None
+    data_pago: date | None = None
     data_caducidade: date | None = None
     pasaporte_fitosanitario: str | None = None
     horas: float | None = None
@@ -136,6 +138,7 @@ def _validar_entrada(session: Session, datos: DatosEntrada, produto: Produto,
             raise OperacionNonPermitidaError(f"Este produto cóntase en {produto.unidade}")
     if datos.importe is not None and datos.importe < 0:
         raise OperacionNonPermitidaError("O prezo non pode ser negativo")
+    comprobar_pago(datos.data, datos.data_pago, hoxe)
     if datos.data_caducidade is not None and datos.data_caducidade < datos.data:
         raise OperacionNonPermitidaError("A caducidade non pode ser anterior á entrada")
 
@@ -150,6 +153,7 @@ def _copiar_entrada(entrada: EntradaProduto, datos: DatosEntrada, produto: Produ
     entrada.lote_provedor = datos.lote_provedor or None
     entrada.albaran_factura = datos.albaran_factura or None
     entrada.importe = datos.importe
+    entrada.data_pago = datos.data_pago
     entrada.data_caducidade = datos.data_caducidade
     entrada.pasaporte_fitosanitario = (datos.pasaporte_fitosanitario or None
                                        if produto.tipo == "semente" else None)

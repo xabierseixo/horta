@@ -46,7 +46,7 @@ PAPEIS_QUEN = (*PAPEIS_EQUIPO, "servizos")
 CAMPOS_EDITABLES_PERSOA = frozenset(
     {"tipo", "nome", "apelidos", "nif", "ropo_numero", "ropo_tipo_carne", "ropo_caducidade",
      "regfer_numero", "activa", "telefono", "email", "vinculo", "horas_ano",
-     "formacion_agraria", "xenero", "data_nacemento", "discapacidade", "enderezo",
+     "formacion_agraria", "custo_hora", "xenero", "data_nacemento", "discapacidade", "enderezo",
      "localidade", "codigo_postal", "provincia", "concello_codigo", "pais", "rega", "reaga",
      "nima", "ropveg", "rexistro_dixital", "num_asesoramento"}
 )
@@ -83,6 +83,8 @@ def _normalizar_e_validar(datos: dict[str, Any], papeis: set[str]) -> None:
         raise OperacionNonPermitidaError(f"Vínculo non válido: {datos['vinculo']}")
     if datos.get("horas_ano") is not None and not 0 <= datos["horas_ano"] <= 4000:
         raise OperacionNonPermitidaError("As horas ao ano teñen que estar entre 0 e 4.000")
+    if datos.get("custo_hora") is not None and datos["custo_hora"] < 0:
+        raise OperacionNonPermitidaError("O custo da hora non pode ser negativo")
     if datos.get("xenero") not in (None, *XENEROS):
         raise OperacionNonPermitidaError(f"Xénero non válido: {datos['xenero']}")
     if datos.get("data_nacemento") is not None and datos["data_nacemento"] > date.today():

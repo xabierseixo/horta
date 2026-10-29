@@ -12,6 +12,7 @@ from horta.models.animal import Animal
 from horta.models.horta import RolHorta
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.usuario import Usuario
+from horta.services.cartos import comprobar_pago
 from horta.services.coidados_animais import en_tempo_espera
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
@@ -45,6 +46,8 @@ class DatosMovemento:
     outra_parte_id: int | None = None
     codigo_movemento: str | None = None
     causa: str | None = None
+    importe: float | None = None
+    data_pago: date | None = None
     horas: float | None = None
     notas: str | None = None
     maquina_id: int | None = None
@@ -109,6 +112,9 @@ def _validar(session: Session, datos: DatosMovemento, animal: Animal, hoxe: date
     comprobar_quen(session, animal.horta_id, datos.persoa_id, datos.horas)
     if datos.tipo in CON_OUTRA_EXPLOTACION:
         persoa_co_papel(session, animal.horta_id, datos.outra_parte_id, "explotacion")
+        if datos.importe is not None and datos.importe < 0:
+            raise OperacionNonPermitidaError("O prezo non pode ser negativo")
+        comprobar_pago(datos.data, datos.data_pago, hoxe)
     comprobar_maquina(session, animal.horta_id, datos.maquina_id)
 
 
@@ -124,6 +130,8 @@ def _copiar(mov: MovementoAnimal, datos: DatosMovemento, animal: Animal) -> None
     mov.outra_parte_id = datos.outra_parte_id if outra else None
     mov.codigo_movemento = (datos.codigo_movemento or None) if outra else None
     mov.causa = (datos.causa or None) if datos.tipo == "morte" else None
+    mov.importe = datos.importe if outra else None
+    mov.data_pago = datos.data_pago if outra and datos.importe is not None else None
     mov.persoa_id = datos.persoa_id
     mov.horas = datos.horas
     mov.maquina_id = datos.maquina_id

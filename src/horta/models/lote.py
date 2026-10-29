@@ -53,3 +53,5 @@ class LoteSaida(ParteComun, FeitoPor, ConMaquina, Base):
     comprador_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     albaran_factura: Mapped[str | None] = mapped_column(String(60), default=None)
     importe: Mapped[float | None] = mapped_column(Float, default=None)
+    # Cando se cobrou; baleira = pendente (paso 10, cartos)
+    data_pago: Mapped[date | None] = mapped_column(Date, default=None)

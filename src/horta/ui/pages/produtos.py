@@ -28,6 +28,7 @@ from horta.services.produtos import (
     listar_produtos,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.campo_pago import CampoPago
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -196,6 +197,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
         with ui.row().classes("w-full no-wrap"):
             albaran = ui.input("Albará ou factura").classes("col")
             importe = ui.input("Prezo total (€)").classes("col")
+        pago = CampoPago("Pagada")
         persoa = ui.select(persoas, label="Quen o recibiu").classes("w-full")
         with ui.expansion("Máis datos").classes("w-full"):
             lote = ui.input("Lote do provedor").classes("w-full")
@@ -228,7 +230,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
                         provedor_id=provedor.value, cantidade=parsear_decimal(cantidade.value),
                         unidade=unidade.value, lote_provedor=lote.value or None,
                         albaran_factura=albaran.value or None,
-                        importe=parsear_decimal(importe.value),
+                        importe=parsear_decimal(importe.value), data_pago=pago.valor(dia),
                         data_caducidade=parsear_data(caducidade.value),
                         pasaporte_fitosanitario=pasaporte.value or None,
                         horas=parsear_decimal(horas.value), notas=notas.value or None)
@@ -263,6 +265,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
         albaran.value = (entrada.albaran_factura or "") if entrada else ""
         importe.value = (f"{entrada.importe:g}" if entrada and entrada.importe is not None
                          else "")
+        pago.poñer(entrada.data_pago if entrada else None, entrada is None)
         lote.value = (entrada.lote_provedor or "") if entrada else ""
         caducidade.value = (entrada.data_caducidade.isoformat()
                             if entrada and entrada.data_caducidade else "")

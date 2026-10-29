@@ -31,6 +31,7 @@ from horta.services.lotes import (
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.ui.accions import executar_accion
+from horta.ui.campo_pago import CampoPago
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -243,6 +244,7 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
             with ui.row().classes("w-full no-wrap"):
                 albaran = ui.input("Nº de albará ou factura").classes("col")
                 importe = ui.input("Prezo total (€)").classes("col")
+            cobro = CampoPago("Cobrada")
         aviso = ui.label("").classes("etiqueta-aviso")
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         with ui.expansion("Máis datos").classes("w-full"):
@@ -261,6 +263,7 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
                 unidade=unidade.value, persoa_id=persoa.value, canle=canle.value,
                 lugar=lugar.value or None, comprador_id=comprador.value,
                 albaran_factura=albaran.value or None, importe=parsear_decimal(importe.value),
+                data_pago=cobro.valor(parsear_data(data_fin.value) or inicio),
                 horas=parsear_decimal(horas.value), maquina_id=maquina.value,
                 notas=notas.value or None)
 
@@ -340,6 +343,7 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
         comprador.value = saida.comprador_id if saida else None
         albaran.value = (saida.albaran_factura or "") if saida else ""
         importe.value = f"{saida.importe:g}" if saida and saida.importe is not None else ""
+        cobro.poñer(saida.data_pago if saida else None, saida is None)
         persoa.value = (saida.persoa_id if saida.persoa_id in persoas else None) if saida else (
             proposta_quen(horta_id, tarefa))
         horas.value = f"{saida.horas:g}" if saida and saida.horas else ""
