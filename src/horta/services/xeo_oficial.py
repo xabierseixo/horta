@@ -19,10 +19,12 @@ from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.parcelas import actualizar_parcela, crear_parcela, xeometria_debuxada
 
+# Ortofoto PNOA en teselas xa preparadas (WMTS do IGN): moito máis rápida ca o WMS
+PNOA_TESELAS = ("https://www.ign.es/wmts/pnoa-ma?service=WMTS&request=GetTile&version=1.0.0"
+                "&format=image/jpeg&layer=OI.OrthoimageCoverage&style=default"
+                "&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}")
 # (nome, url WMS, capa, atribución)
 CAPAS_WMS = {
-    "pnoa": ("Ortofoto (PNOA)", "https://www.ign.es/wms-inspire/pnoa-ma",
-             "OI.OrthoimageCoverage", "PNOA © IGN"),
     "sigpac": ("Recintos SIGPAC", "https://sigpac-hubcloud.es/wms", "recinto", "SIGPAC © FEGA"),
     "catastro": ("Catastro", "https://ovc.catastro.meh.es/cartografia/INSPIRE/spadgcwms.aspx",
                  "CP.CadastralParcel", "© Dirección Xeral do Catastro"),
@@ -139,3 +141,108 @@ def crear_parcela_do_recinto(session: Session, actor: Usuario, horta_id: int, no
 def completar_parcela_co_recinto(session: Session, actor: Usuario, parcela: Parcela,
                                  recinto: Recinto) -> Parcela:
     return actualizar_parcela(session, actor, parcela, **_campos_do_recinto(recinto))
+
+
+# --- Catastro: datos non protexidos e contorno dunha referencia
+
+_CATASTRO_DNPRC = ("https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/"
+                   "Consulta_DNPRC?Provincia=&Municipio=&RC={rc}")
+_CATASTRO_WFS = ("https://ovc.catastro.meh.es/INSPIRE/wfsCP.aspx?service=wfs&version=2.0.0&"
+                 "request=GetFeature&STOREDQUERIE_ID=GetParcel&refcat={rc}&srsname=EPSG:4326")
+_CLASES = {"RU": "Rústico", "UR": "Urbano"}
+
+
+@dataclass(frozen=True)
+class ParcelaCatastral:
+    referencia: str
+    localizacion: str | None = None
+    clase: str | None = None
+    uso: str | None = None
+    superficie_m2: float | None = None
+    # (cultivo, intensidade, m²) de cada subparcela
+    cultivos: tuple[tuple[str, str, float | None], ...] = ()
+    puntos: tuple[tuple[float, float], ...] = ()
+
+
+def _texto(raiz: ET.Element, etiqueta: str) -> str | None:
+    for el in raiz.iter():
+        if el.tag.rsplit("}", 1)[-1] == etiqueta and (el.text or "").strip():
+            return (el.text or "").strip()
+    return None
+
+
+def _numero(texto: str | None) -> float | None:
+    try:
+        return float(texto) if texto else None
+    except ValueError:
+        return None
+
+
+def ler_dnprc(xml: bytes, referencia: str) -> ParcelaCatastral:
+    """Datos non protexidos dun inmoble (Consulta_DNPRC). Se falla, só a referencia."""
+    try:
+        raiz = ET.fromstring(xml)
+    except ET.ParseError:
+        return ParcelaCatastral(referencia)
+    cultivos = []
+    for el in raiz.iter():
+        if el.tag.rsplit("}", 1)[-1] == "spr":
+            cultivos.append((_texto(el, "dcc") or _texto(el, "ccc") or "?",
+                             _texto(el, "ip") or "", _numero(_texto(el, "ssp"))))
+    clase = _texto(raiz, "cn")
+    return ParcelaCatastral(
+        referencia, _texto(raiz, "ldt"), _CLASES.get(clase or "", clase), _texto(raiz, "luso"),
+        _numero(_texto(raiz, "ssf") or _texto(raiz, "sfc")), tuple(cultivos))
+
+
+def ler_gml_parcela(xml: bytes) -> tuple[list[tuple[float, float]], float | None]:
+    """Contorno (lat, lon) e superficie (m²) da parcela no GML do WFS INSPIRE (EPSG:4326:
+    latitude primeiro)."""
+    try:
+        raiz = ET.fromstring(xml)
+    except ET.ParseError:
+        return [], None
+    lista = _texto(raiz, "posList")
+    puntos: list[tuple[float, float]] = []
+    if lista:
+        valores = [float(v) for v in lista.split()]
+        puntos = [(valores[i], valores[i + 1]) for i in range(0, len(valores) - 1, 2)]
+        if len(puntos) > 1 and puntos[0] == puntos[-1]:
+            puntos = puntos[:-1]
+    return puntos, _numero(_texto(raiz, "areaValue"))
+
+
+def parcela_catastral_no_punto(lat: float, lon: float) -> ParcelaCatastral | None:
+    referencia = referencia_catastral_no_punto(lat, lon)
+    if referencia is None:
+        return None
+    datos = ler_dnprc(_descargar(_CATASTRO_DNPRC.format(rc=referencia)), referencia)
+    try:
+        puntos, area = ler_gml_parcela(_descargar(_CATASTRO_WFS.format(rc=referencia)))
+    except SenConexion:
+        puntos, area = [], None
+    return ParcelaCatastral(datos.referencia, datos.localizacion, datos.clase, datos.uso,
+                            datos.superficie_m2 or area, datos.cultivos, tuple(puntos))
+
+
+def _campos_da_catastral(parcela: ParcelaCatastral) -> dict[str, Any]:
+    campos: dict[str, Any] = {"referencia_catastral": parcela.referencia}
+    if len(parcela.puntos) >= 3:
+        geojson, hectareas, centro = xeometria_debuxada(list(parcela.puntos))
+        campos |= {"geometria": geojson, "superficie": hectareas, "lat": centro[0],
+                   "lon": centro[1]}
+    elif parcela.superficie_m2:
+        campos["superficie"] = round(parcela.superficie_m2 / 10000, 4)
+    return campos
+
+
+def crear_parcela_do_catastro(session: Session, actor: Usuario, horta_id: int, nome: str,
+                              parcela: ParcelaCatastral) -> Parcela:
+    nova = crear_parcela(session, actor, horta_id, nome.strip() or parcela.localizacion
+                         or f"Parcela {parcela.referencia}")
+    return actualizar_parcela(session, actor, nova, **_campos_da_catastral(parcela))
+
+
+def completar_parcela_co_catastro(session: Session, actor: Usuario, parcela: Parcela,
+                                  datos: ParcelaCatastral) -> Parcela:
+    return actualizar_parcela(session, actor, parcela, **_campos_da_catastral(datos))

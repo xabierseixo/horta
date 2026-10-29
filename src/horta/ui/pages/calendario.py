@@ -23,12 +23,16 @@ from horta.services.parcelas import (
 from horta.services.persoas import listar_persoas
 from horta.services.xeo_oficial import (
     CAPAS_WMS,
+    PNOA_TESELAS,
+    ParcelaCatastral,
     Recinto,
     SenConexion,
+    completar_parcela_co_catastro,
     completar_parcela_co_recinto,
+    crear_parcela_do_catastro,
     crear_parcela_do_recinto,
+    parcela_catastral_no_punto,
     recinto_no_punto,
-    referencia_catastral_no_punto,
 )
 from horta.services.zonas import (
     TIPOS_ZONA,
@@ -125,12 +129,18 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         if not activa and clave in capas:
             mapa.remove_layer(capas.pop(clave))
         elif activa and clave not in capas:
+            if clave == "pnoa":
+                # Debaixo das capas SIGPAC e Catastro
+                capas[clave] = mapa.tile_layer(url_template=PNOA_TESELAS, options={
+                    "attribution": "PNOA © IGN", "maxZoom": 20, "zIndex": 1})
+                return
             _, url, nome_capa, atribucion = CAPAS_WMS[clave]
             capas[clave] = mapa.wms_layer(url_template=url, options={
                 "layers": nome_capa, "format": "image/png", "transparent": True,
-                "attribution": atribucion, "maxZoom": 21})
+                "attribution": atribucion, "maxZoom": 21, "zIndex": 10})
 
     with ui.row().classes("items-center gap-4 q-mt-sm"):
+        ui.checkbox("Ortofoto (PNOA)", on_change=lambda e: capa("pnoa", e.value))
         for clave, (nome, *_) in CAPAS_WMS.items():
             ui.checkbox(nome, on_change=lambda e, c=clave: capa(c, e.value))
     sen_situar = [p for p in parcelas if p.lat is None or p.lon is None]
@@ -141,9 +151,10 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         return
 
     with ui.row().classes("items-center gap-2 q-mt-sm"):
-        modo = ui.select({"sigpac": "Traer o recinto SIGPAC", "catastro": "Ver a referencia "
-                          "catastral", "situar": "Situar a parcela escollida"},
-                         value="sigpac", label="Ao premer no mapa").classes("w-64")
+        modo = ui.select({"nada": "Só mirar", "sigpac": "Traer o recinto SIGPAC",
+                          "catastro": "Traer a parcela do Catastro",
+                          "situar": "Situar a parcela escollida"},
+                         value="nada", label="Ao premer no mapa").classes("w-64")
         escoller = ui.select({p.id: p.nome for p in parcelas}, label="Parcela",
                              clearable=True).classes("w-64")
     with ui.dialog() as dividir_dialogo, ui.card().style("width: min(28rem, 94vw)"):
@@ -218,7 +229,7 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
     mapa.on("draw:drawstop", lambda: debuxando.update(si=False))
 
     def gardar(cambios: dict[str, Any] | None = None, recinto: Recinto | None = None,
-               nome: str | None = None) -> None:
+               nome: str | None = None, catastral: ParcelaCatastral | None = None) -> None:
         with get_session() as session:
             actor_actual = usuario_actual(session)
             if actor_actual is None:
@@ -228,10 +239,14 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             def accion() -> None:
                 if recinto is not None and nome is not None:
                     crear_parcela_do_recinto(session, actor_actual, horta_id, nome, recinto)
+                elif catastral is not None and nome is not None:
+                    crear_parcela_do_catastro(session, actor_actual, horta_id, nome, catastral)
                 elif parcela is None:
                     raise OperacionNonPermitidaError("Escolle primeiro a parcela")
                 elif recinto is not None:
                     completar_parcela_co_recinto(session, actor_actual, parcela, recinto)
+                elif catastral is not None:
+                    completar_parcela_co_catastro(session, actor_actual, parcela, catastral)
                 else:
                     actualizar_parcela(session, actor_actual, parcela, **(cambios or {}))
 
@@ -239,28 +254,51 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         if ok:
             ui.navigate.reload()
 
-    def amosar_recinto(recinto: Recinto) -> None:
-        with ui.dialog() as dialogo, ui.card().style("width: min(30rem, 94vw)"):
-            ui.label("Recinto SIGPAC").classes("text-h6")
-            ui.label(f"Referencia: {recinto.referencia}")
-            ui.label(f"Uso: {recinto.uso or '—'}")
-            if recinto.puntos:
-                mapa.generic_layer(name="polygon", args=[recinto.puntos,
-                                                         {"color": "#f9a825"}])
+    def amosar(titulo: str, lineas: list[str], puntos: Any, crear: Any, completar: Any) -> None:
+        """Ventá co que trae o SIGPAC ou o Catastro; o contorno queda realzado mentres está
+        aberta."""
+        realce = (mapa.generic_layer(name="polygon", args=[list(puntos), {"color": "#f9a825"}])
+                  if puntos else None)
+        with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
+            ui.label(titulo).classes("text-h6")
+            for linea in lineas:
+                ui.label(linea)
             nome = ui.input("Nome da parcela nova").classes("w-full")
             with ui.row():
                 ui.button("Crear parcela nova", icon="add",
-                          on_click=lambda: gardar(recinto=recinto, nome=nome.value or ""))
+                          on_click=lambda: crear(nome.value or ""))
                 ui.button("Completar a parcela escollida", icon="edit",
-                          on_click=lambda: gardar(recinto=recinto)).props("outline")
+                          on_click=completar).props("outline")
                 ui.button("Pechar", on_click=dialogo.close).props("flat")
+        dialogo.on("hide", lambda: mapa.remove_layer(realce) if realce else None)
         dialogo.open()
+
+    def amosar_recinto(recinto: Recinto) -> None:
+        amosar("Recinto SIGPAC", [f"Referencia: {recinto.referencia}",
+                                  f"Uso: {recinto.uso or '—'}"], recinto.puntos,
+               lambda nome: gardar(recinto=recinto, nome=nome),
+               lambda: gardar(recinto=recinto))
+
+    def amosar_catastro(datos: ParcelaCatastral) -> None:
+        lineas = [f"Referencia catastral: {datos.referencia}"]
+        lineas += [f"{t}: {v}" for t, v in (("Localización", datos.localizacion),
+                                             ("Clase", datos.clase), ("Uso", datos.uso)) if v]
+        if datos.superficie_m2:
+            lineas.append(f"Superficie: {datos.superficie_m2:,.0f} m²".replace(",", " "))
+        for cultivo, intensidade, m2 in datos.cultivos:
+            lineas.append(f"· {cultivo}{f' (intensidade {intensidade})' if intensidade else ''}"
+                          f"{f': {m2:,.0f} m²'.replace(',', ' ') if m2 else ''}")
+        amosar("Parcela do Catastro", lineas, datos.puntos,
+               lambda nome: gardar(catastral=datos, nome=nome),
+               lambda: gardar(catastral=datos))
 
     async def premer(e: events.GenericEventArguments) -> None:
         if debuxando["si"]:
             return
         punto = e.args["latlng"]
         lat, lon = round(punto["lat"], 6), round(punto["lng"], 6)
+        if modo.value == "nada":
+            return
         if modo.value == "situar":
             if escoller.value is None:
                 ui.notify("Escolle primeiro a parcela", type="warning")
@@ -274,18 +312,12 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
                     ui.notify("Non hai ningún recinto SIGPAC aí", type="warning")
                 else:
                     amosar_recinto(recinto)
-            else:
-                referencia = await run.io_bound(referencia_catastral_no_punto, lat, lon)
-                if referencia is None:
+            elif modo.value == "catastro":
+                datos = await run.io_bound(parcela_catastral_no_punto, lat, lon)
+                if datos is None:
                     ui.notify("O Catastro non devolveu ningunha parcela aí", type="warning")
-                    return
-                with ui.dialog() as dialogo, ui.card():
-                    ui.label(f"Referencia catastral: {referencia}").classes("text-h6")
-                    with ui.row():
-                        ui.button("Gardar na parcela escollida", icon="save", on_click=lambda: (
-                            gardar({"referencia_catastral": referencia})))
-                        ui.button("Pechar", on_click=dialogo.close).props("flat")
-                dialogo.open()
+                else:
+                    amosar_catastro(datos)
         except (SenConexion, ValueError) as erro:
             ui.notify(f"Non se puido consultar: {erro}", type="negative")
 
