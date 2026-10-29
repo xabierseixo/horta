@@ -50,6 +50,7 @@ from horta.ui.pages.regas import dialogo_rega
 from horta.ui.pages.tratamentos import dialogo_tratamento_fito
 from horta.ui.pages.tratamentos_instalacion import dialogo_tratamento_instalacion
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.tempo import encher_tempo_que_falta
 
 ICONAS = {
     "tratamento": "sanitizer", "abonado": "compost", "rega": "water_drop", "labor": "grass",
@@ -201,6 +202,7 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
         persoas = {p.id: p.nome
                    for p in listar_persoas(session, actor, horta_id, so_activas=False)}
 
+    encher_tempo_que_falta(horta_id)
     formularios = Formularios(horta_id) if pode_editar else None
     if formularios is not None:
         with ui.row().classes("q-mb-md"):

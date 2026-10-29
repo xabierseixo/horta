@@ -8,6 +8,9 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+# Rexistra o enlace de cada traballo co tempo do seu día (e a táboa tempo_dia)
+import horta.models.tempo  # noqa: F401
+
 
 class ParteComun:
     """Notas, baixa lóxica, identificador do móbil e quen o apuntou: en todos os traballos."""
@@ -21,6 +24,9 @@ class ParteComun:
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
+    # O tempo dese día na estación da primeira leira ou da explotación
+    #
+    tempo_id: Mapped[int | None] = mapped_column(ForeignKey("tempo_dia.id"), default=None)
 
 
 class FeitoPor:

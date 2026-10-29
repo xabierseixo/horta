@@ -37,6 +37,7 @@ from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
 from horta.ui.taboas import TEXTOS_TABOA
+from horta.ui.tempo import EtiquetaTempo
 
 
 def seccion_regas(horta_id: int, pode_editar: bool) -> None:
@@ -162,6 +163,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
                             multiple=True, value=[]).classes("w-full").props("use-chips")
         data_inicio = campo_data("Data", date.today().isoformat())
+        tempo = EtiquetaTempo(horta_id, "rega")
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
         superficie = CampoSuperficie("Superficie regada (baleiro = a do cultivo; só cunha leira)")
         sistema = ui.select(sistemas, label="Como se rega").classes("w-full")
@@ -186,8 +188,10 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
             if cultivo.value and sistema.value is None:
                 with get_session() as session:
                     sistema.value = ultimo_sistema_rega(session, cultivo.value[0])
+            tempo.actualizar(data_inicio.value, cultivo.value)
 
         cultivo.on_value_change(cambiar_leiras)
+        data_inicio.on_value_change(lambda: tempo.actualizar(data_inicio.value, cultivo.value))
 
         def gardar() -> None:
             if not cultivo.value:

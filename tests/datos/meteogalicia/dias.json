@@ -1,0 +1,342 @@
+{
+ "listDatosDiarios": [
+  {
+   "data": "2026-10-01T00:00:00",
+   "listaEstacions": [
+    {
+     "concello": "ABEGONDO",
+     "estacion": "Mabegondo",
+     "idEstacion": 10045,
+     "listaMedidas": [
+      {
+       "codigoParametro": "BH_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Balance hídrico",
+       "unidade": "L/m2",
+       "valor": -2.63
+      },
+      {
+       "codigoParametro": "DV_CONDICION_10m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Dirección do refacho a 10m",
+       "unidade": "º",
+       "valor": 302.0
+      },
+      {
+       "codigoParametro": "DVP_MODA_10m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Dirección do vento predominante a 10m",
+       "unidade": "º",
+       "valor": 0.0
+      },
+      {
+       "codigoParametro": "ET0_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Evapotraspiración de referencia",
+       "unidade": "L/m2",
+       "valor": 2.63
+      },
+      {
+       "codigoParametro": "HFRIO7_RECUENTO_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Horas de frío ( <=7ºC)",
+       "unidade": "h",
+       "valor": 0.0
+      },
+      {
+       "codigoParametro": "HR_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Humidade relativa media a 1.5m",
+       "unidade": "%",
+       "valor": 83.0
+      },
+      {
+       "codigoParametro": "HR_MAX_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Humidade relativa  máxima a 1.5m",
+       "unidade": "%",
+       "valor": 100.0
+      },
+      {
+       "codigoParametro": "HR_MIN_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Humidade relativa  mínima a 1.5m",
+       "unidade": "%",
+       "valor": 54.0
+      },
+      {
+       "codigoParametro": "HSOL_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Horas de sol",
+       "unidade": "h",
+       "valor": 9.8019
+      },
+      {
+       "codigoParametro": "INS_RATIO_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Insolación",
+       "unidade": "%",
+       "valor": 84.2
+      },
+      {
+       "codigoParametro": "IRD_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Irradiación global diaria",
+       "unidade": "10kJ/(m2.día)",
+       "valor": 1872.0
+      },
+      {
+       "codigoParametro": "PP_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Chuvia",
+       "unidade": "L/m2",
+       "valor": 0.0
+      },
+      {
+       "codigoParametro": "PR_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Presión",
+       "unidade": "hPa",
+       "valor": 1016.85
+      },
+      {
+       "codigoParametro": "PRED_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Presión reducida",
+       "unidade": "hPa",
+       "valor": 1028.34
+      },
+      {
+       "codigoParametro": "TA_MIN_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura mínima a 1.5m",
+       "unidade": "ºC",
+       "valor": 8.55
+      },
+      {
+       "codigoParametro": "TA_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura media a 1.5m",
+       "unidade": "ºC",
+       "valor": 13.94
+      },
+      {
+       "codigoParametro": "TA_MAX_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura máxima a 1.5m",
+       "unidade": "ºC",
+       "valor": 20.46
+      },
+      {
+       "codigoParametro": "TA_AVG_0.1m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura media a 0.1m",
+       "unidade": "ºC",
+       "valor": 14.72
+      },
+      {
+       "codigoParametro": "TO_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura de orballo a 1.5m",
+       "unidade": "ºC",
+       "valor": 10.71
+      },
+      {
+       "codigoParametro": "TS_AVG_-0.1m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura do solo a -0.1m",
+       "unidade": "ºC",
+       "valor": 17.87
+      },
+      {
+       "codigoParametro": "VV_MAX_10m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Refacho máximo a 10m",
+       "unidade": "m/s",
+       "valor": 8.5
+      },
+      {
+       "codigoParametro": "VV_AVG_10m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Velocidade do vento a 10m",
+       "unidade": "m/s",
+       "valor": 1.14
+      }
+     ],
+     "provincia": "A Coruña",
+     "utmx": "559899.0",
+     "utmy": "4787883.0"
+    }
+   ]
+  },
+  {
+   "data": "2026-10-02T00:00:00",
+   "listaEstacions": [
+    {
+     "concello": "ABEGONDO",
+     "estacion": "Mabegondo",
+     "idEstacion": 10045,
+     "listaMedidas": [
+      {
+       "codigoParametro": "BH_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Balance hídrico",
+       "unidade": "L/m2",
+       "valor": -1.79
+      },
+      {
+       "codigoParametro": "DV_CONDICION_10m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Dirección do refacho a 10m",
+       "unidade": "º",
+       "valor": 29.0
+      },
+      {
+       "codigoParametro": "DVP_MODA_10m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Dirección do vento predominante a 10m",
+       "unidade": "º",
+       "valor": 315.0
+      },
+      {
+       "codigoParametro": "ET0_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Evapotraspiración de referencia",
+       "unidade": "L/m2",
+       "valor": 1.79
+      },
+      {
+       "codigoParametro": "HFRIO7_RECUENTO_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Horas de frío ( <=7ºC)",
+       "unidade": "h",
+       "valor": 3.5
+      },
+      {
+       "codigoParametro": "HR_MIN_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Humidade relativa  mínima a 1.5m",
+       "unidade": "%",
+       "valor": 59.0
+      },
+      {
+       "codigoParametro": "HR_MAX_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Humidade relativa  máxima a 1.5m",
+       "unidade": "%",
+       "valor": 100.0
+      },
+      {
+       "codigoParametro": "HR_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Humidade relativa media a 1.5m",
+       "unidade": "%",
+       "valor": 84.0
+      },
+      {
+       "codigoParametro": "HSOL_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Horas de sol",
+       "unidade": "h",
+       "valor": 9.3851
+      },
+      {
+       "codigoParametro": "INS_RATIO_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Insolación",
+       "unidade": "%",
+       "valor": 81.0
+      },
+      {
+       "codigoParametro": "IRD_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Irradiación global diaria",
+       "unidade": "10kJ/(m2.día)",
+       "valor": 1504.0
+      },
+      {
+       "codigoParametro": "PP_SUM_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Chuvia",
+       "unidade": "L/m2",
+       "valor": 0.0
+      },
+      {
+       "codigoParametro": "PR_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Presión",
+       "unidade": "hPa",
+       "valor": 1014.14
+      },
+      {
+       "codigoParametro": "PRED_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Presión reducida",
+       "unidade": "hPa",
+       "valor": 1025.55
+      },
+      {
+       "codigoParametro": "TA_MIN_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura mínima a 1.5m",
+       "unidade": "ºC",
+       "valor": 5.76
+      },
+      {
+       "codigoParametro": "TA_MAX_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura máxima a 1.5m",
+       "unidade": "ºC",
+       "valor": 23.8
+      },
+      {
+       "codigoParametro": "TA_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura media a 1.5m",
+       "unidade": "ºC",
+       "valor": 15.05
+      },
+      {
+       "codigoParametro": "TA_AVG_0.1m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura media a 0.1m",
+       "unidade": "ºC",
+       "valor": 15.91
+      },
+      {
+       "codigoParametro": "TO_AVG_1.5m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura de orballo a 1.5m",
+       "unidade": "ºC",
+       "valor": 11.99
+      },
+      {
+       "codigoParametro": "TS_AVG_-0.1m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Temperatura do solo a -0.1m",
+       "unidade": "ºC",
+       "valor": 17.3
+      },
+      {
+       "codigoParametro": "VV_MAX_10m",
+       "lnCodigoValidacion": 3,
+       "nomeParametro": "Refacho máximo a 10m",
+       "unidade": "m/s",
+       "valor": 6.37
+      },
+      {
+       "codigoParametro": "VV_AVG_10m",
+       "lnCodigoValidacion": 1,
+       "nomeParametro": "Velocidade do vento a 10m",
+       "unidade": "m/s",
+       "valor": 0.86
+      }
+     ],
+     "provincia": "A Coruña",
+     "utmx": "559899.0",
+     "utmy": "4787883.0"
+    }
+   ]
+  }
+ ]
+}

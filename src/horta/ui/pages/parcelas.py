@@ -15,6 +15,7 @@ from horta.services.parcelas import (
     eliminar_parcela,
     listar_parcelas,
 )
+from horta.services.tempo import gardar_lugar
 from horta.ui.accions import executar_accion
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
@@ -23,6 +24,7 @@ from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
 from horta.ui.taboas import TEXTOS_TABOA
+from horta.ui.tempo import CampoLugarTempo
 
 _CATALOGOS = {
     "rexime_tenencia": "rexime_tenencia",
@@ -114,6 +116,17 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             lat = ui.input("Latitude").classes("w-full")
             lon = ui.input("Lonxitude").classes("w-full")
             notas = ui.textarea("Notas").classes("w-full")
+        with ui.expansion("O tempo").classes("w-full"):
+            lugar = CampoLugarTempo("O da explotación")
+
+        def situar() -> None:
+            try:
+                lugar.situar(parsear_decimal(lat.value), parsear_decimal(lon.value))
+            except ValueError:
+                lugar.situar(None, None)
+
+        for coordenada in (lat, lon):
+            coordenada.on_value_change(situar)
 
         def gardar() -> None:
             if not nome.value:
@@ -145,11 +158,15 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
                 def accion() -> None:
                     if editando["id"] is None:
-                        crear_parcela(session, actor, horta_id, nome.value, **datos)
+                        parcela = crear_parcela(session, actor, horta_id, nome.value, **datos)
                     else:
-                        parcela = session.get(Parcela, editando["id"])
-                        if parcela is not None:
-                            actualizar_parcela(session, actor, parcela, nome=nome.value, **datos)
+                        existente = session.get(Parcela, editando["id"])
+                        if existente is None:
+                            return
+                        parcela = actualizar_parcela(session, actor, existente, nome=nome.value,
+                                                     **datos)
+                    gardar_lugar(session, actor, parcela, lugar.concello_ine,
+                                 lugar.estacion_escollida)
 
                 ok = executar_accion(session, accion)
             if ok:
@@ -173,6 +190,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
         arrendador.value = None
         pequena.value = auga.value = auga_dentro.value = False
         superficie.establecer(None)
+        lugar.cargar(None, None, None, None)
         dialogo.open()
 
     def _texto(valor: Any) -> str:
@@ -208,6 +226,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
         auga_nome.value = _texto(p.auga_consumo_denominacion)
         zona.value = p.zona_especifica
         zona_ha.value = _texto(p.zona_especifica_ha)
+        lugar.cargar(p.concello_ine, p.estacion_meteo_id, p.lat, p.lon)
         dialogo.open()
 
     def eliminar() -> None:

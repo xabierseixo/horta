@@ -40,6 +40,7 @@ from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
 from horta.ui.taboas import TEXTOS_TABOA
+from horta.ui.tempo import EtiquetaTempo
 
 
 def _nutrientes(npk: tuple[float, float, float] | None) -> str:
@@ -168,11 +169,14 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
                             multiple=True, value=[]).classes("w-full").props("use-chips")
         data_inicio = campo_data("Data", date.today().isoformat())
+        tempo = EtiquetaTempo(horta_id, "abonado")
         aplicador = ui.select(persoas, label="Quen o botou (persoa ou empresa de servizos)",
                               clearable=True).classes("w-full")
         superficie = CampoSuperficie("Superficie abonada (baleiro = a do cultivo; só cunha leira)")
         cultivo.on_value_change(
             lambda: superficie.set_visibility(len(cultivo.value or []) == 1))
+        for campo in (cultivo, data_inicio):
+            campo.on_value_change(lambda: tempo.actualizar(data_inicio.value, cultivo.value))
         with ui.row().classes("w-full no-wrap items-center"):
             abono = ui.select(abonos, label="Abono", with_input=True).classes("col")
             ui.button(icon="add", on_click=novo_abono.open).props(
@@ -283,6 +287,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         maquina.value = a.maquina_id if a else None
         notas.value = (a.notas or "") if a else ""
         calcular()
+        tempo.actualizar(data_inicio.value, cultivo.value)
         dialogo.open()
 
     return abrir

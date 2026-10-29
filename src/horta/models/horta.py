@@ -33,6 +33,11 @@ class Horta(Base):
     localidade: Mapped[str | None] = mapped_column(String(100), default=None)
     codigo_postal: Mapped[str | None] = mapped_column(String(10), default=None)
     provincia: Mapped[str | None] = mapped_column(String(50), default=None)
+    # O tempo: concello (código INE) e estación de MeteoGalicia da explotación
+    #
+    concello_ine: Mapped[str | None] = mapped_column(String(5), default=None)
+    estacion_meteo_id: Mapped[int | None] = mapped_column(ForeignKey("estacion_meteo.id"),
+                                                          default=None)
     email: Mapped[str | None] = mapped_column(String(200), default=None)
     tipo_representacion: Mapped[str | None] = mapped_column(String(100), default=None)
     tipo_xip: Mapped[str | None] = mapped_column(String(10), default=None)

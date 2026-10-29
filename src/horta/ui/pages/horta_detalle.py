@@ -37,6 +37,7 @@ from horta.services.tarefas import (
     listar_tarefas_proximas,
     marcar_pendente,
 )
+from horta.services.tempo import gardar_lugar
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -77,6 +78,7 @@ from horta.ui.pages.tratamentos import seccion_tratamentos_fito
 from horta.ui.pages.tratamentos_instalacion import seccion_tratamentos_instalacion
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
+from horta.ui.tempo import CampoLugarTempo
 
 _PROPS_TABOA = f'flat bordered no-data-label="Aínda non hai rexistros" {TEXTOS_TABOA}'
 
@@ -143,6 +145,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         nome_titular = nome_completo(titular)
         horta_codigo_reaga = horta.codigo_reaga or ""
         horta_codigo_rega = horta.codigo_rega or ""
+        lugar_tempo = (horta.concello_ine, horta.estacion_meteo_id, horta.lat, horta.lon)
         estado = estado_rexistro(session, horta)
         requisitos = requisitos_en_regra(session, actor, horta)
         hortas_usuario = {h.id: h.nome for h, _ in listar_hortas_usuario(session, actor)}
@@ -186,6 +189,14 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                                                   value=horta_fertilizacion)
             ui.label("O titular, o representante e o asesor indícanse en Persoas.").classes(
                 "text-caption texto-suave")
+            with ui.expansion("O tempo").classes("w-full"):
+                lugar = CampoLugarTempo()
+                ui.label("A estación vale para os traballos sen parcela e para as parcelas "
+                         "sen estación propia.").classes("text-caption texto-suave")
+
+            def abrir_config_horta() -> None:
+                lugar.cargar(*lugar_tempo)
+                dialog_config_horta.open()
 
             def gardar_horta() -> None:
                 if not nome_horta_input.value:
@@ -200,9 +211,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                     if horta_obxectivo is None:
                         ui.notify("Esta explotación xa non existe", type="negative")
                         return
-                    gardado = executar_accion(
-                        session,
-                        lambda: actualizar_horta(
+                    def accion() -> None:
+                        actualizar_horta(
                             session,
                             actor_actual,
                             horta_obxectivo,
@@ -214,8 +224,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                             **{c: (i.value or None) for c, i in datos_inputs.items()},
                             codigo_reaga=reaga_input.value or None,
                             codigo_rega=rega_input.value or None,
-                        ),
-                    )
+                        )
+                        gardar_lugar(session, actor_actual, horta_obxectivo,
+                                     lugar.concello_ine, lugar.estacion_escollida)
+
+                    gardado = executar_accion(session, accion)
                 if not gardado:
                     return
                 ui.navigate.reload()
@@ -304,7 +317,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                  else "Aínda non se indicou o titular").classes("q-mb-sm")
         with ui.row().classes("gap-2"):
             ui.button("Editar datos da explotación", icon="settings",
-                      on_click=dialog_config_horta.open).props("outline")
+                      on_click=abrir_config_horta).props("outline")
             ui.button("Titular e asesor en Persoas", icon="groups", on_click=lambda: ui.navigate.to(
                 url_seccion(horta_id, "equipo"))).props("outline")
     elif seccion == "parcelas":

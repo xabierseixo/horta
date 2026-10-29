@@ -34,6 +34,7 @@ from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.rega import Rega, RegaBoaPractica, RegaCultivo
 from horta.models.tarefa import Tarefa
+from horta.models.tempo import EstacionMeteo, TempoDia
 from horta.models.tratamento_fito import (
     TratamentoAplicador,
     TratamentoAsesor,
@@ -99,6 +100,8 @@ __all__ = [
     "Lote",
     "LoteSaida",
     "OutroTraballo",
+    "EstacionMeteo",
+    "TempoDia",
     "Maquina",
     "TratamentoFito",
     "TratamentoCultivo",

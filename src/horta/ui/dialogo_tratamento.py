@@ -32,6 +32,7 @@ from horta.ui.campos import campo_data
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal, parsear_hora
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.tempo import EtiquetaTempo
 
 ETIQUETA_PROBLEMA = {"enfermidade": "Enfermidade", "praga": "Praga (artrópodos/gasterópodos)",
                      "mala_herba": "Mala herba", "regulador": "Regulador / outros"}
@@ -108,6 +109,13 @@ def crear_dialogo_tratamento(
                     data_inicio = campo_data("Data de inicio").classes("grow")
                     data_fin = campo_data("Data de fin").classes("grow")
                 hora = ui.input("Hora de inicio (HH:MM, opcional)").classes("w-full")
+                tempo = EtiquetaTempo(horta_id, "tratamento")
+
+                def mirar_tempo() -> None:
+                    cultivos = [f["cultivo_id"] for f in estado["cultivos"] if f["cultivo_id"]]
+                    tempo.actualizar(data_inicio.value, cultivos)
+
+                data_inicio.on_value_change(mirar_tempo)
                 ui.label("Cultivos tratados (mesmo cultivo e variedade)").classes("text-bold")
 
                 @ui.refreshable
@@ -115,8 +123,8 @@ def crear_dialogo_tratamento(
                     for fila in estado["cultivos"]:
                         with ui.row().classes("w-full items-end gap-2"):
                             ui.select(op.cultivos, label="Cultivo e parcela",
-                                      with_input=True).bind_value(fila, "cultivo_id").classes(
-                                "grow")
+                                      with_input=True, on_change=mirar_tempo).bind_value(
+                                fila, "cultivo_id").classes("grow")
                             ui.input("Superficie (ha)").bind_value(fila, "superficie").classes(
                                 "w-28")
                             ui.select(op.estados, label="Estado fenolóxico").bind_value(
@@ -400,6 +408,7 @@ def crear_dialogo_tratamento(
                           orixinais):
             refrescar.refresh()
         pasos.set_value("1. Que e onde")
+        mirar_tempo()
         dialogo.open()
 
     return abrir

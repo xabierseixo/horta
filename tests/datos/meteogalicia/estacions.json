@@ -1,0 +1,38 @@
+{
+ "idTipo": null,
+ "listaEstacionsMeteo": [
+  {
+   "altitude": 21.0,
+   "concello": "A CORUÑA",
+   "estacion": "Coruña-Torre de Hércules",
+   "idEstacion": 10157,
+   "lat": 43.382763,
+   "lon": -8.409202,
+   "provincia": "A Coruña",
+   "utmx": "547855.0",
+   "utmy": "4803491.0"
+  },
+  {
+   "altitude": 94.0,
+   "concello": "ABEGONDO",
+   "estacion": "Mabegondo",
+   "idEstacion": 10045,
+   "lat": 43.241367,
+   "lon": -8.262225,
+   "provincia": "A Coruña",
+   "utmx": "559899.0",
+   "utmy": "4787883.0"
+  },
+  {
+   "altitude": 789.0,
+   "concello": "A FONSAGRADA",
+   "estacion": "O Xipro",
+   "idEstacion": 10136,
+   "lat": 43.17712,
+   "lon": -7.047859,
+   "provincia": "Lugo",
+   "utmx": "658660.0",
+   "utmy": "4782334.0"
+  }
+ ]
+}

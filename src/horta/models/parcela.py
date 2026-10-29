@@ -27,6 +27,10 @@ class Parcela(Base):
     lon: Mapped[float | None] = mapped_column(Float, default=None)
     uso_aproveitamento: Mapped[str | None] = mapped_column(String(120), default=None)
     secano_regadio: Mapped[SecanoRegadio | None] = mapped_column(Enum(SecanoRegadio), default=None)
+    # O tempo: concello (código INE) e estación de MeteoGalicia; baleiros = os da explotación
+    concello_ine: Mapped[str | None] = mapped_column(String(5), default=None)
+    estacion_meteo_id: Mapped[int | None] = mapped_column(ForeignKey("estacion_meteo.id"),
+                                                          default=None)
     sigpac_provincia: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_concello: Mapped[str | None] = mapped_column(String(10), default=None)
     sigpac_poligono: Mapped[str | None] = mapped_column(String(10), default=None)
