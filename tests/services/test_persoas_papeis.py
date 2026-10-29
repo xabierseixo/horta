@@ -109,16 +109,15 @@ def test_caderno_titular_entidade_e_o_seu_representante(session):
     assert ["Nome e apelidos", "Rosa Vilar"] in filas
 
 
-def test_o_medicamento_garda_veterinario_e_provedor(session):
+def test_o_medicamento_garda_veterinario(session):
     ana, horta = _escenario(session)
     galinas = crear_animal(session, ana, horta.id, "Galiñas", date(2026, 1, 1), cantidade=10)
     marta = crear_contacto(session, ana, horta.id, "Marta Vázquez", None)
-    agrovet = crear_contacto(session, ana, horta.id, "Agrovet Lalín", None)
     [quen] = listar_persoas(session, ana, horta.id, papel="traballador")
     co = crear_coidado(session, ana, DatosCoidado(
         animal_id=galinas.id, data_inicio=date(2026, 10, 20), tipo="medicamento",
         persoa_id=quen.id, medicamento="Oxitetraciclina", tempo_espera_dias=7,
-        veterinario_id=marta.id, provedor_id=agrovet.id), hoxe=date(2026, 10, 28))
-    assert (co.veterinario_id, co.provedor_id) == (marta.id, agrovet.id)
-    # Quedan co papel que fixeron, para atopalos despois en Contactos
-    assert marta.papeis == {"veterinario"} and agrovet.papeis == {"provedor"}
+        veterinario_id=marta.id), hoxe=date(2026, 10, 28))
+    assert co.veterinario_id == marta.id
+    # Queda co papel que fixo, para atopalo despois en Contactos
+    assert marta.papeis == {"veterinario"}

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from horta.models.abonado import Abonado, AbonadoBoaPractica, AbonadoCultivo, Fertilizante
 from horta.models.horta import RolHorta
+from horta.models.produto import Produto
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
@@ -17,6 +18,7 @@ from horta.services.hortas import comprobar_rol_horta
 from horta.services.leiras import LeiraTraballo, LeiraValida, as_leiras, validar_leiras
 from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
+from horta.services.produtos import comprobar_entrada_do_produto
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -40,7 +42,8 @@ class DatosAbonado:
     superficie_ha: float | None = None
     xestion_sostible: bool = False
     aplicacion_lodos: bool = False
-    albaran_factura: str | None = None
+    # De que compra saíu o abono (alí van o provedor e o albará)
+    entrada_id: int | None = None
     persoa_id: int | None = None
     horas: float | None = None
     maquina_id: int | None = None
@@ -72,6 +75,9 @@ def _validar(session: Session, datos: DatosAbonado, horta_id: int, hoxe: date) -
     fertilizante = session.get(Fertilizante, datos.fertilizante_id)
     if fertilizante is None or fertilizante.horta_id != horta_id:
         raise OperacionNonPermitidaError("Ese abono non é desta explotación")
+    produto = session.query(Produto).filter_by(fertilizante_id=fertilizante.id).one_or_none()
+    comprobar_entrada_do_produto(session, horta_id, datos.entrada_id,
+                                 produto.id if produto else -1)
     if datos.dose is None:
         return
     if datos.dose <= 0:
@@ -94,7 +100,7 @@ def _copiar(abonado: Abonado, datos: DatosAbonado, horta_id: int,
     abonado.metodo = datos.metodo or None
     abonado.xestion_sostible = datos.xestion_sostible
     abonado.aplicacion_lodos = datos.aplicacion_lodos
-    abonado.albaran_factura = datos.albaran_factura or None
+    abonado.entrada_id = datos.entrada_id if datos.fertilizante_id else None
     abonado.persoa_id = datos.persoa_id
     abonado.horas = datos.horas
     abonado.maquina_id = datos.maquina_id

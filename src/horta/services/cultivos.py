@@ -14,6 +14,7 @@ from horta.models.horta import RolHorta
 from horta.models.labor import LaborCultivo
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import PastoreoLeira
+from horta.models.produto import Produto
 from horta.models.rega import RegaCultivo
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoCultivo
@@ -21,7 +22,8 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import comprobar_quen, persoa_co_papel
+from horta.services.persoas import comprobar_quen
+from horta.services.produtos import comprobar_entrada_do_produto
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -51,9 +53,7 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "data_inicio_conversion",
         "producion_integrada",
         "procedencia_material",
-        "provedor_material_id",
-        "lote_material",
-        "pasaporte_fitosanitario",
+        "entrada_semente_id",
         "num_arbores",
         "marco_plantacion",
         "ano_plantacion",
@@ -86,8 +86,6 @@ CAMPOS_EDITABLES_CULTIVO = frozenset(
         "material_tratado",
         "semente_tratamento_produto",
         "semente_tratamento_num_rexistro",
-        "material_adquirido",
-        "data_adquisicion_material",
         "sementeira_persoa_id",
         "sementeira_horas",
     }
@@ -113,7 +111,7 @@ _CAMPOS_REA = (
     "superficie_ha", "tipo_inicio", "data_inicio", "data_fin", "data_colleita_prevista",
     "num_arbores", "marco_plantacion", "data_inicio_conversion", "data_fin_sementeira",
     "cantidade_semente_kg", "dose_sementeira_kg_ha", "densidade_plantas_ha",
-    "material_adquirido", "data_adquisicion_material", "lote_material", *_CATALOGOS_CULTIVO,
+    *_CATALOGOS_CULTIVO,
 )
 
 
@@ -174,8 +172,6 @@ def _validar_rea(session: Session, valores: dict[str, Any], parcela: Parcela | N
             "Indica só un: cantidade de semente, dose por hectárea, plantas por hectárea "
             "ou marco de plantación"
         )
-    if valores["material_adquirido"] and valores["data_adquisicion_material"] is None:
-        raise OperacionNonPermitidaError("Indica a data en que se adquiriu a semente ou planta")
     if valores["num_arbores"] is not None and valores["marco_plantacion"]:
         raise OperacionNonPermitidaError(
             "Indica o número de árbores ou o marco de plantación, non os dous"
@@ -193,6 +189,15 @@ def _validar_rea(session: Session, valores: dict[str, Any], parcela: Parcela | N
             validar_codigo(session, catalogo, str(valores[campo]), na_data)
 
 
+def _comprobar_semente(session: Session, horta_id: int, entrada_id: int | None) -> None:
+    """A compra da semente ou planta: unha entrada dun produto de tipo semente."""
+    entrada = comprobar_entrada_do_produto(session, horta_id, entrada_id, None)
+    if entrada is not None:
+        produto = session.get(Produto, entrada.produto_id)
+        if produto is None or produto.tipo != "semente":
+            raise OperacionNonPermitidaError("Esa compra non é dunha semente ou planta")
+
+
 def crear_cultivo(
     session: Session,
     actor: Usuario,
@@ -207,7 +212,7 @@ def crear_cultivo(
     _validar_rea(session, _valores_rea(None, campos), session.get(Parcela, parcela_id))
     comprobar_quen(session, horta_id, campos.get("sementeira_persoa_id"),
                    campos.get("sementeira_horas"), obrigatoria=False)
-    persoa_co_papel(session, horta_id, campos.get("provedor_material_id"), "provedor")
+    _comprobar_semente(session, horta_id, campos.get("entrada_semente_id"))
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, **campos)
     session.add(cultivo)
     session.commit()
@@ -231,7 +236,7 @@ def actualizar_cultivo(
     _validar_rea(session, _valores_rea(cultivo, cambios), parcela)
     comprobar_quen(session, horta_id, cambios.get("sementeira_persoa_id"),
                    cambios.get("sementeira_horas"), obrigatoria=False)
-    persoa_co_papel(session, horta_id, cambios.get("provedor_material_id"), "provedor")
+    _comprobar_semente(session, horta_id, cambios.get("entrada_semente_id"))
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
     session.commit()

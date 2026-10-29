@@ -87,7 +87,7 @@ def test_cada_tipo_garda_so_os_seus_datos(session):
         animal_id=galinas.id, data_inicio=HOXE, tipo="visita", persoa_id=persoa.id,
         visitante_id=ads.id, descricion="Revisión", matricula="1234ABC",
         medicamento="Non vai", num_animais=2), hoxe=HOXE)
-    assert (co.visitante_id, co.matricula, co.medicamento, co.num_animais) == (
+    assert (co.visitante_id, co.matricula, co.produto_id, co.num_animais) == (
         ads.id, "1234ABC", None, None)
     with pytest.raises(OperacionNonPermitidaError, match="quen veu"):
         crear_coidado(session, ana, DatosCoidado(

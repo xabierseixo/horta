@@ -10,11 +10,11 @@ from sqlalchemy.orm import Session
 from horta.models.abonado import Fertilizante
 from horta.models.fertilizante import FertilizanteSiex
 from horta.models.horta import RolHorta
+from horta.models.produto import Produto
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import persoa_co_papel
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -57,8 +57,6 @@ class DatosFertilizante:
     liquido: bool = False
     densidade: float | None = None
     tratamento_estercos: str | None = None
-    # De onde vén: persoa ou entidade co papel «provedor» (co seu NIF, REGA ou NIMA)
-    provedor_id: int | None = None
 
 
 def _validar(session: Session, horta_id: int, datos: DatosFertilizante) -> None:
@@ -74,9 +72,6 @@ def _validar(session: Session, horta_id: int, datos: DatosFertilizante) -> None:
         raise OperacionNonPermitidaError("Os metais pesados non poden ser negativos")
     if datos.densidade is not None and datos.densidade <= 0:
         raise OperacionNonPermitidaError("A densidade ten que ser maior que 0")
-    persoa_co_papel(session, horta_id, datos.provedor_id, "provedor")
-    if datos.material in ESTERCOS | RESIDUOS and datos.provedor_id is None:
-        raise OperacionNonPermitidaError("Nos estercos e residuos indica de onde veñen")
     if datos.tratamento_estercos:
         if datos.material not in ESTERCOS:
             raise OperacionNonPermitidaError("O tratamento só se indica nos estercos")
@@ -93,6 +88,11 @@ def crear_fertilizante(
         raise OperacionNonPermitidaError(f"Xa tes un abono chamado {nome}")
     fertilizante = Fertilizante(horta_id=horta_id, **{**vars(datos), "nome": nome})
     session.add(fertilizante)
+    session.flush()
+    # O abono é un produto da explotación: as súas compras (e o provedor) son entradas
+    session.add(Produto(horta_id=horta_id, tipo="abono", nome=nome,
+                        unidade="litros" if datos.liquido else "kg",
+                        fertilizante_id=fertilizante.id))
     session.commit()
     return fertilizante
 

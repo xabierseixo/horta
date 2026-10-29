@@ -40,9 +40,9 @@ class Cultivo(Base):
     data_inicio_conversion: Mapped[date | None] = mapped_column(Date, default=None)
     producion_integrada: Mapped[bool] = mapped_column(Boolean, default=False)
     procedencia_material: Mapped[str | None] = mapped_column(String(20), default=None)
-    provedor_material_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    lote_material: Mapped[str | None] = mapped_column(String(40), default=None)
-    pasaporte_fitosanitario: Mapped[str | None] = mapped_column(String(40), default=None)
+    # A compra da semente ou planta: provedor, lote, data e pasaporte fitosanitario
+    entrada_semente_id: Mapped[int | None] = mapped_column(
+        ForeignKey("entrada_produto.id"), default=None)
     num_arbores: Mapped[int | None] = mapped_column(Integer, default=None)
     marco_plantacion: Mapped[str | None] = mapped_column(String(20), default=None)
     ano_plantacion: Mapped[int | None] = mapped_column(Integer, default=None)
@@ -78,8 +78,6 @@ class Cultivo(Base):
     # Caderno 3.2 (semente tratada): produto co que vén tratada
     semente_tratamento_produto: Mapped[str | None] = mapped_column(String(250), default=None)
     semente_tratamento_num_rexistro: Mapped[str | None] = mapped_column(String(50), default=None)
-    material_adquirido: Mapped[bool] = mapped_column(Boolean, default=False)
-    data_adquisicion_material: Mapped[date | None] = mapped_column(Date, default=None)
     # Quen fixo a sementeira ou plantación e cantas horas
     sementeira_persoa_id: Mapped[int | None] = mapped_column(
         ForeignKey("persoa.id"), default=None

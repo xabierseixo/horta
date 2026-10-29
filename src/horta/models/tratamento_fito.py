@@ -82,6 +82,9 @@ class TratamentoProduto(Base):
     dose: Mapped[float | None] = mapped_column(Float, default=None)
     cantidade: Mapped[float | None] = mapped_column(Float, default=None)
     unidade: Mapped[str] = mapped_column(String(20))
+    # O produto da explotación e de que compra saíu, se se sabe
+    produto_id: Mapped[int | None] = mapped_column(ForeignKey("produto.id"), default=None)
+    entrada_id: Mapped[int | None] = mapped_column(ForeignKey("entrada_produto.id"), default=None)
 
 
 class TratamentoMedida(Base):

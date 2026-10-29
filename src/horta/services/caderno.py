@@ -23,6 +23,7 @@ from horta.models.lote import Lote
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa, TipoCarne
+from horta.models.produto import EntradaProduto
 from horta.models.tratamento_fito import TratamentoProduto
 from horta.models.usuario import Usuario
 from horta.services.abonados import listar_abonados, nutrientes_do_abonado
@@ -378,7 +379,9 @@ def xerar_caderno(
         kg_ha = dose_kg_ha(ab.dose, ab.unidade, fe.densidade if fe else None) \
             if ab.dose is not None and ab.unidade else None
         persoa = session.get(Persoa, ab.persoa_id) if ab.persoa_id else None
-        provedor = persoas_por_id.get(fe.provedor_id or 0) if fe else None
+        # O provedor e o albará saen da compra (entrada) do abono
+        entrada = session.get(EntradaProduto, ab.entrada_id) if ab.entrada_id else None
+        provedor = persoas_por_id.get(entrada.provedor_id or 0) if entrada else None
         maquina = session.get(Maquina, ab.maquina_id) if ab.maquina_id else None
         # Unha fila por leira, coa súa superficie
         for le in ab.leiras:
@@ -404,7 +407,7 @@ def xerar_caderno(
                 _num(fe.materia_organica_pct) if fe else "",
                 _num(kg_ha / 1000) if kg_ha is not None else "",
                 *(npk if npk else ("", "", "")),
-                ab.albaran_factura or ""])
+                (entrada.albaran_factura or "") if entrada else ""])
     ws7 = _folla(wb, "7 Fertilización", "7. FERTILIZACIÓN", cab,
                  ["Data aplicación", "Identificación parcelas (nº de orde)", "Secano/regadío",
                   "Cultivo", "Superficie fertilizada (ha)", "Tipo de tratamento",

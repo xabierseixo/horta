@@ -176,7 +176,6 @@ def _parcela_de_proba(session):
         ({"data_inicio_conversion": date(2026, 1, 1)}, "en conversión"),
         ({"sistema_cultivo": "999"}, "non existe"),
         ({"dose_sementeira_kg_ha": 200, "densidade_plantas_ha": 40000}, "Indica só un"),
-        ({"material_adquirido": True}, "data en que se adquiriu"),
     ],
 )
 def test_validacions_rea_do_cultivo(session, campos, mensaxe):

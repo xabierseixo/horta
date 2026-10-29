@@ -13,7 +13,7 @@ from horta.services.fertilizantes import (
     nutrientes_kg_ha,
 )
 from horta.services.hortas import crear_horta
-from horta.services.persoas import crear_contacto
+from horta.services.produtos import listar_produtos
 
 
 def _escenario(session):
@@ -40,24 +40,14 @@ def test_crear_desde_o_catalogo_oficial(session):
         "NITRATO (34,5-00-00)"]
 
 
-def test_esterco_pide_provedor(session):
+def test_o_abono_e_un_produto(session):
+    """O abono é un produto da explotación: o provedor vai en cada compra (entrada)."""
     ana, horta = _escenario(session)
-    with pytest.raises(OperacionNonPermitidaError, match="de onde veñen"):
-        crear_fertilizante(session, ana, horta.id, DatosFertilizante(nome="Esterco", material="5"))
-    casa = crear_contacto(session, ana, horta.id, "Casa do Monte", "provedor",
-                          rega="ES150000000009")
     abono = crear_fertilizante(session, ana, horta.id, DatosFertilizante(
-        nome="Esterco", material="5", provedor_id=casa.id, n_pct=0.6))
-    assert abono.provedor_id == casa.id and casa.ten_papel("provedor")
-
-
-def test_provedor_doutra_explotacion_non_vale(session):
-    ana, horta = _escenario(session)
-    outra = crear_horta(session, ana, "Outra")
-    alleo = crear_contacto(session, ana, outra.id, "Granxa allea", "provedor")
-    with pytest.raises(OperacionNonPermitidaError, match="non é desta explotación"):
-        crear_fertilizante(session, ana, horta.id, DatosFertilizante(
-            nome="E", material="5", provedor_id=alleo.id))
+        nome="Esterco", material="5", n_pct=0.6, liquido=True))
+    [produto] = listar_produtos(session, ana, horta.id, tipo="abono")
+    assert (produto.fertilizante_id, produto.nome, produto.unidade) == (abono.id, "Esterco",
+                                                                        "litros")
 
 
 def test_nome_repetido(session):

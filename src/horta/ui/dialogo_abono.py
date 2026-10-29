@@ -17,7 +17,6 @@ from horta.services.fertilizantes import (
     opcions_siex,
 )
 from horta.ui.accions import executar_accion
-from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
@@ -52,9 +51,7 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
             n = ui.input("N %").classes("col")
             p = ui.input("P₂O₅ %").classes("col")
             k = ui.input("K₂O %").classes("col")
-        # De onde vén (empresa subministradora, granxa ou casa): obrigatorio nos estercos e
-        # residuos; os seus NIF, REGA ou NIMA van na súa ficha de Persoas
-        provedor = CampoPersoa(horta_id, "provedor", "De onde vén (empresa, granxa ou casa)")
+        # De onde vén (empresa, granxa ou casa) apúntase en cada compra (Produtos)
         tratamento = ui.select(tratamentos, label="Tratamento do esterco (opcional)",
                                clearable=True).classes("w-full")
         tratamento.bind_visibility_from(material, "value", backward=lambda v: v in ESTERCOS)
@@ -98,7 +95,6 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                 if datos.material in RESIDUOS:
                     for campo, entrada in metais.items():
                         setattr(datos, campo, parsear_decimal(entrada.value))
-                datos.provedor_id = provedor.value
                 if datos.material in ESTERCOS:
                     datos.tratamento_estercos = tratamento.value
                 creado: dict[str, int] = {}

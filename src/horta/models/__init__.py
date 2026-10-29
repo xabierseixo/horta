@@ -30,6 +30,7 @@ from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.pastoreo import Pastoreo, PastoreoAnimal, PastoreoLeira
 from horta.models.persoa import Persoa, PersoaPapel, TipoCarne
 from horta.models.producion_animal import ProducionAnimal
+from horta.models.produto import EntradaProduto, Produto
 from horta.models.rega import Rega, RegaBoaPractica, RegaCultivo
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import (
@@ -57,6 +58,7 @@ __all__ = [
     "CoidadoAnimal",
     "MovementoAnimal",
     "ProducionAnimal",
+    "Produto",
     "Pastoreo",
     "PastoreoLeira",
     "PastoreoAnimal",
@@ -89,6 +91,7 @@ __all__ = [
     "TratamentoInstalacion",
     "NomeGalego",
     "VariedadeLocal",
+    "EntradaProduto",
     "Persoa",
     "PersoaPapel",
     "TipoCarne",

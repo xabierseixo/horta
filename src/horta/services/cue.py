@@ -26,6 +26,7 @@ from horta.models.lote import Lote
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa
+from horta.models.produto import EntradaProduto
 from horta.models.usuario import Usuario
 from horta.services.abonados import listar_abonados
 from horta.services.analises import listar_analises
@@ -171,6 +172,9 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
         if not no_periodo(c.data_inicio, c.data_fin_sementeira or c.data_inicio):
             continue
         plantacion = c.tipo_inicio == "plantacion"
+        # A compra da semente ou planta (paso 7): provedor, lote e data
+        semente = session.get(EntradaProduto, c.entrada_semente_id) if c.entrada_semente_id \
+            else None
         engadir("SiembraPlantacion", {
             "IdAjenaSiembraPlant": c.id, "SiembraPlantacion": 0 if plantacion else 1,
             "FechaInicio": _data(c.data_inicio),
@@ -178,10 +182,9 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
             "SiembraDirecta": c.sementeira_directa,
             "DosisSiembra": c.dose_sementeira_kg_ha,
             "UnidadDosisSiembra": 17 if c.dose_sementeira_kg_ha else None,
-            "MaterialTratado": c.material_tratado, "MaterialAdquirido": c.material_adquirido,
-            "FechaAdquisicion": _data(c.data_adquisicion_material) if c.material_adquirido
-            else _data(c.data_inicio),
-            "NumLote": c.lote_material,
+            "MaterialTratado": c.material_tratado, "MaterialAdquirido": semente is not None,
+            "FechaAdquisicion": _data(semente.data if semente else c.data_inicio),
+            "NumLote": semente.lote_provedor if semente else None,
             "DGCs": [dgc(c.id, SuperficieCultivada=_ha(c.superficie_ha))],
             "Cantidad": c.cantidade_semente_kg, "MarcoPlantacion": c.marco_plantacion,
             "DensidadPlantacion": c.densidade_plantas_ha,
@@ -251,7 +254,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
         if not no_periodo(ab.data_inicio, ab.data_fin):
             continue
         fe = session.get(Fertilizante, ab.fertilizante_id) if ab.fertilizante_id else None
-        provedor = persoas.get(fe.provedor_id or 0) if fe else None
+        entrada = session.get(EntradaProduto, ab.entrada_id) if ab.entrada_id else None
+        provedor = persoas.get(entrada.provedor_id or 0) if entrada else None
         quen = persoas.get(ab.persoa_id or 0)
         m = maquinas.get(ab.maquina_id or 0)
         orixe = Orixe("abonado", ab.id, f"Abonado do {ab.data_inicio:%d/%m/%Y}")
@@ -276,7 +280,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
                     "AplicacionLodos": ab.aplicacion_lodos,
                     "TipoFertilizacion": _num(ab.tipo_fertilizacion),
                     "MetodoFertilizacion": _num(ab.metodo), "Dosis": ab.dose,
-                    "Unidad": _num(ab.unidade), "AlbaranFactura": ab.albaran_factura,
+                    "Unidad": _num(ab.unidade),
+                    "AlbaranFactura": entrada.albaran_factura if entrada else None,
                     "EmpresaServicios": quen.regfer_numero if quen and quen.ten_papel(
                         "servizos") else None,
                     "NifAplicador": quen.nif if quen else None}),

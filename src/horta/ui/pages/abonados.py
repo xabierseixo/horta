@@ -26,7 +26,9 @@ from horta.services.fertilizantes import UNIDADES_DOSE, listar_fertilizantes, nu
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
 from horta.services.plan_abonado import balance_do_cultivo
+from horta.services.produtos import listar_produtos
 from horta.ui.accions import executar_accion
+from horta.ui.campo_produto import opcions_entradas
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -139,6 +141,8 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                     for c in listar_cultivos(session, actor, horta_id)}
         abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
+        produtos_abono = {p.fertilizante_id: p.id for p in listar_produtos(
+            session, actor, horta_id, tipo="abono") if p.fertilizante_id}
         unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat[c] for c in UNIDADES_DOSE if c in unidades_cat}
         tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_fertilizacion")}
@@ -186,9 +190,18 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
             horas = ui.input("Horas de traballo").classes("w-full")
             xestion = ui.checkbox("Xestión sostible dos insumos")
             lodos = ui.checkbox("Leva documento de aplicación de lodos de depuradora")
-            albaran = ui.input("Albará ou factura").classes("w-full")
+            # A compra do abono: alí van o provedor e o albará
+            compra = ui.select({}, label="De que compra (opcional)", clearable=True).classes(
+                "w-full")
             maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
             notas = ui.textarea("Notas").classes("w-full")
+
+        def cambiar_compras() -> None:
+            produto = produtos_abono.get(abono.value or 0)
+            compra.set_options(opcions_entradas(horta_id, produto) if produto else {},
+                               value=None)
+
+        abono.on_value_change(cambiar_compras)
 
         def calcular() -> None:
             valor = parsear_decimal(dose.value)
@@ -226,7 +239,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                         boas_practicas=list(boas.value or []), fertilizante_id=abono.value,
                         dose=parsear_decimal(dose.value), unidade=unidade.value,
                         xestion_sostible=xestion.value, aplicacion_lodos=lodos.value,
-                        albaran_factura=albaran.value or None, persoa_id=aplicador.value,
+                        entrada_id=compra.value, persoa_id=aplicador.value,
                         maquina_id=maquina.value,
                         horas=parsear_decimal(horas.value), notas=notas.value or None)
                     existente = session.get(Abonado, editando["id"]) if editando["id"] else None
@@ -262,7 +275,8 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         boas.value = [b.codigo for b in a.boas_practicas] if a else []
         xestion.value = a.xestion_sostible if a else False
         lodos.value = a.aplicacion_lodos if a else False
-        albaran.value = (a.albaran_factura or "") if a else ""
+        cambiar_compras()
+        compra.value = a.entrada_id if a and a.entrada_id in compra.options else None
         aplicador.value = (a.persoa_id if a.persoa_id in persoas
                            else None) if a else proposta_quen(horta_id, tarefa)
         horas.value = f"{a.horas:g}" if a and a.horas else ""

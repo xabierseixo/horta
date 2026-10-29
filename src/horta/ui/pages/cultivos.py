@@ -25,7 +25,7 @@ from horta.services.cultivos import (
 from horta.services.parcelas import listar_parcelas
 from horta.services.persoas import listar_quen
 from horta.ui.accions import executar_accion
-from horta.ui.campo_persoa import CampoPersoa
+from horta.ui.campo_produto import opcions_entradas
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.numeros import parsear_data, parsear_decimal
@@ -195,16 +195,14 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 semente_produto = ui.input("Produto do tratamento (nome comercial ou materia "
                                            "activa)").classes("w-full")
                 semente_rexistro = ui.input("Nº de rexistro do produto").classes("w-full")
-            material_adquirido = ui.checkbox("A semente ou planta comprouse")
-            data_adquisicion = campo_data("Data de compra")
 
         with ui.expansion("Orixe da semente ou planta").classes("w-full"):
             procedencia = ui.select(opcions["procedencia_material"], label="Procedencia",
                                     clearable=True).classes("w-full")
-            # O provedor e o seu ROPVEG: ficha en Persoas
-            provedor = CampoPersoa(horta_id, "provedor", "Provedor")
-            lote_material = ui.input("Lote da semente ou planta").classes("w-full")
-            pasaporte = ui.input("Pasaporte fitosanitario").classes("w-full")
+            # A compra (provedor, lote, data e pasaporte): apúntase en Produtos → Nova entrada
+            compra_semente = ui.select(opcions_entradas(horta_id, tipo="semente"),
+                                       label="De que compra (se se mercou)", clearable=True
+                                       ).classes("w-full")
         with ui.expansion("Árbores e viña").classes("w-full"):
             num_arbores = ui.input("Número de árbores").classes("w-full")
             marco = ui.input("Marco de plantación (p.ex. 4x4)").classes("w-full")
@@ -294,9 +292,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 data_inicio_conversion=parsear_data(data_conversion.value),
                 producion_integrada=integrada.value,
                 procedencia_material=procedencia.value,
-                provedor_material_id=provedor.value,
-                lote_material=lote_material.value or None,
-                pasaporte_fitosanitario=pasaporte.value or None,
+                entrada_semente_id=compra_semente.value,
                 num_arbores=_enteiro(num_arbores.value),
                 marco_plantacion=marco.value or None,
                 ano_plantacion=_enteiro(ano_plantacion.value),
@@ -326,8 +322,6 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 if material_tratado.value else None,
                 semente_tratamento_num_rexistro=(semente_rexistro.value or None)
                 if material_tratado.value else None,
-                material_adquirido=material_adquirido.value,
-                data_adquisicion_material=parsear_data(data_adquisicion.value),
                 num_castineiros=_enteiro(castineiros.value),
                 num_abeleiras=_enteiro(abeleiras.value),
                 num_nogueiras=_enteiro(nogueiras.value),
@@ -358,15 +352,15 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
     campos_texto = (variedade_texto, data_inicio, data_prevista, data_fin, data_conversion,
-                    lote_material, pasaporte, num_arbores, marco,
+                    num_arbores, marco,
                     ano_plantacion, unidades, ciclos, duracion, obxectivo, notas,
                     necesidade_n, necesidade_p, necesidade_k, plan_data, auga_n, auga_p,
                     semente_produto, semente_rexistro,
                     data_fin_sementeira, cantidade_semente, dose_sementeira, densidade,
-                    data_adquisicion, castineiros, abeleiras, nogueiras, amendoeiras, outros_casca,
+                    castineiros, abeleiras, nogueiras, amendoeiras, outros_casca,
                     horas_sementeira)
     campos_select = (variedade_oficial, secano, procedencia, anterior, causa_baixa, cobertura)
-    casillas = (sementeira_directa, material_tratado, material_adquirido, ferramenta)
+    casillas = (sementeira_directa, material_tratado, ferramenta)
 
     def _texto(valor: Any) -> str:
         return "" if valor is None else str(valor)
@@ -380,7 +374,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 campo.value = ""
             for selector in campos_select:
                 selector.value = None
-            provedor.value = None
+            compra_semente.value = None
             superficie.establecer(None)
             tipo_inicio.value = "sementeira"
             quen.value = proposta_quen(horta_id)
@@ -412,9 +406,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         data_conversion.value = _texto(c.data_inicio_conversion)
         integrada.value = bool(c.producion_integrada)
         procedencia.value = c.procedencia_material
-        provedor.value = c.provedor_material_id
-        lote_material.value = _texto(c.lote_material)
-        pasaporte.value = _texto(c.pasaporte_fitosanitario)
+        compra_semente.value = (c.entrada_semente_id if c.entrada_semente_id
+                                in compra_semente.options else None)
         num_arbores.value = _texto(c.num_arbores)
         marco.value = _texto(c.marco_plantacion)
         ano_plantacion.value = _texto(c.ano_plantacion)
@@ -441,8 +434,6 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         material_tratado.value = bool(c.material_tratado)
         semente_produto.value = _texto(c.semente_tratamento_produto)
         semente_rexistro.value = _texto(c.semente_tratamento_num_rexistro)
-        material_adquirido.value = bool(c.material_adquirido)
-        data_adquisicion.value = _texto(c.data_adquisicion_material)
         castineiros.value = _texto(c.num_castineiros)
         abeleiras.value = _texto(c.num_abeleiras)
         nogueiras.value = _texto(c.num_nogueiras)

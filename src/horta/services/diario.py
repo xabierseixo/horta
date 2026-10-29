@@ -25,6 +25,7 @@ from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
 from horta.services.pastoreos import listar_pastoreos
 from horta.services.persoas import listar_persoas
 from horta.services.producions_animais import PRODUTOS, listar_producions
+from horta.services.produtos import listar_entradas, listar_produtos
 from horta.services.regas import listar_regas
 from horta.services.tarefas import listar_tarefas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
@@ -45,6 +46,7 @@ TIPOS: dict[str, str] = {
     "producion_animal": "Produción dos animais",
     "pastoreo": "Pastoreo",
     "lote_saida": "Saída de produto (venda, casa...)",
+    "entrada_produto": "Entrada de produto (compra)",
     "tarefa": "Tarefa",
 }
 
@@ -83,6 +85,8 @@ def listar_traballos(
     parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
     grupos = {a.id: nome_grupo(a.especie, a.raza) for a in listar_animais(session, actor, horta_id)}
     nomes = {p.id: p.nome for p in listar_persoas(session, actor, horta_id, so_activas=False)}
+    nomes_produtos = {p.id: p.nome
+                      for p in listar_produtos(session, actor, horta_id, so_activos=False)}
 
     def onde(cultivo_id: int | None) -> str:
         c = cultivos.get(cultivo_id) if cultivo_id else None
@@ -162,7 +166,7 @@ def listar_traballos(
                                   sen_quen=ti.persoa_id is None))
     for co in listar_coidados(session, actor, horta_id):
         que = TIPOS_COIDADO[co.tipo].split(" (")[0]
-        detalle = co.medicamento if co.tipo == "medicamento" else (
+        detalle = nomes_produtos.get(co.produto_id or 0) if co.tipo == "medicamento" else (
             nomes.get(co.visitante_id or 0) if co.tipo == "visita" else co.descricion)
         traballos.append(Traballo("coidado_animal", co.id, co.data_inicio, True,
                                   f"{que} — {detalle}" if detalle else que,
@@ -193,6 +197,13 @@ def listar_traballos(
                                   onde(ids[0]) if len(ids) == 1 else f"{len(ids)} leiras",
                                   frozenset().union(*(parcela_de(i) for i in ids)),
                                   persoas=_quen(pa.persoa_id), sen_quen=pa.persoa_id is None))
+    for en in listar_entradas(session, actor, horta_id):
+        cantidade = f"{en.cantidade:g} {en.unidade} de " if en.cantidade else ""
+        traballos.append(Traballo(
+            "entrada_produto", en.id, en.data, True,
+            f"Entrada: {cantidade}{nomes_produtos.get(en.produto_id, '')}",
+            nomes.get(en.provedor_id or 0, ""), frozenset(), persoas=_quen(en.persoa_id),
+            sen_quen=en.persoa_id is None))
     lotes = {lo.id: lo for lo in listar_lotes(session, actor, horta_id)}
     for sa in listar_saidas(session, actor, horta_id):
         lote = lotes.get(sa.lote_id)

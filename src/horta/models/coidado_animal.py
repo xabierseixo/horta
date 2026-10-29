@@ -28,11 +28,11 @@ class CoidadoAnimal(ParteComun, FeitoPor, ConMaquina, Base):
     num_animais: Mapped[int | None] = mapped_column(Integer, default=None)
     identificacion: Mapped[str | None] = mapped_column(String(500), default=None)
     # Medicamento
-    medicamento: Mapped[str | None] = mapped_column(String(250), default=None)
+    # O medicamento (produto) e de que compra saíu: alí van o provedor e a proba de compra
+    produto_id: Mapped[int | None] = mapped_column(ForeignKey("produto.id"), default=None)
+    entrada_id: Mapped[int | None] = mapped_column(ForeignKey("entrada_produto.id"), default=None)
     cantidade: Mapped[float | None] = mapped_column(Float, default=None)
     unidade: Mapped[str | None] = mapped_column(String(20), default=None)
-    provedor_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
-    proba_compra: Mapped[str | None] = mapped_column(String(100), default=None)
     veterinario_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"), default=None)
     receita: Mapped[str | None] = mapped_column(String(50), default=None)
     tempo_espera_dias: Mapped[int | None] = mapped_column(Integer, default=None)

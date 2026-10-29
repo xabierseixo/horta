@@ -26,6 +26,7 @@ from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import ropo_vixente
+from horta.services.produtos import comprobar_entrada_do_produto, produto_ou_novo
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -53,6 +54,8 @@ class LinhaProduto:
     materia_activa: str | None = None
     dose: float | None = None
     cantidade: float | None = None
+    # De que compra saíu, se se sabe (o produto lígase só polo nº de rexistro ou o nome)
+    entrada_id: int | None = None
 
 
 @dataclass
@@ -207,6 +210,20 @@ def _aplicar(tratamento: TratamentoFito, datos: DatosTratamento) -> None:
     tratamento.asesor = TratamentoAsesor(**vars(datos.asesor)) if datos.asesor else None
 
 
+def _ligar_produtos(session: Session, actor: Usuario, horta_id: int,
+                    tratamento: TratamentoFito) -> None:
+    """Cada fitosanitario do tratamento é un produto da explotación (polo nº de rexistro ou o
+    nome): así se contan as existencias. A compra, se se indicou, ten que ser dese produto."""
+    for linha in tratamento.produtos:
+        if not (linha.num_rexistro or linha.nome_comercial):
+            continue
+        produto = produto_ou_novo(session, actor, horta_id, "fitosanitario",
+                                  linha.nome_comercial or linha.num_rexistro or "",
+                                  "litros", num_rexistro=linha.num_rexistro)
+        linha.produto_id = produto.id
+        comprobar_entrada_do_produto(session, horta_id, linha.entrada_id, produto.id)
+
+
 def crear_tratamento_fito(
     session: Session, actor: Usuario, horta_id: int, datos: DatosTratamento
 ) -> TratamentoFito:
@@ -217,6 +234,7 @@ def crear_tratamento_fito(
     tratamento = TratamentoFito(horta_id=horta_id, data_inicio=datos.data_inicio,
                                 data_fin=datos.data_fin, creado_por=actor.id)
     _aplicar(tratamento, datos)
+    _ligar_produtos(session, actor, horta_id, tratamento)
     session.add(tratamento)
     session.commit()
     return tratamento
@@ -230,6 +248,7 @@ def actualizar_tratamento_fito(
     assert horta is not None
     _validar(session, horta, datos)
     _aplicar(tratamento, datos)
+    _ligar_produtos(session, actor, tratamento.horta_id, tratamento)
     session.commit()
     return tratamento
 

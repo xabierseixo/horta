@@ -18,6 +18,7 @@ from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
 from horta.models.persoa import Persoa, PersoaPapel
 from horta.models.producion_animal import ProducionAnimal
+from horta.models.produto import EntradaProduto, Produto
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
@@ -186,6 +187,11 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
         raise OperacionNonPermitidaError(
             "Esta explotación ten pastoreos rexistrados e debe conservarse (obriga legal)."
         )
+    if session.query(EntradaProduto).filter_by(horta_id=horta.id).first():
+        raise OperacionNonPermitidaError(
+            "Esta explotación ten compras de produtos rexistradas e debe conservarse "
+            "(obriga legal).")
+    session.query(Produto).filter_by(horta_id=horta.id).delete()
     session.query(Fertilizante).filter_by(horta_id=horta.id).delete()
     for analise in session.query(Analise).filter_by(horta_id=horta.id).all():
         session.delete(analise)

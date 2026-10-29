@@ -13,11 +13,13 @@ from horta.models.animal import Animal
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.horta import RolHorta
 from horta.models.maquina import Maquina
+from horta.models.produto import Produto
 from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import comprobar_quen, persoa_co_papel
+from horta.services.produtos import comprobar_entrada_do_produto, produto_ou_novo
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -43,11 +45,13 @@ class DatosCoidado:
     data_fin: date | None = None
     num_animais: int | None = None
     identificacion: str | None = None
+    # O medicamento: o produto (ou o seu nome, e créase) e de que compra saíu, se se sabe.
+    # O provedor e a proba de compra van na compra (entrada do produto)
     medicamento: str | None = None
+    produto_id: int | None = None
+    entrada_id: int | None = None
     cantidade: float | None = None
     unidade: str | None = None
-    provedor_id: int | None = None
-    proba_compra: str | None = None
     veterinario_id: int | None = None
     receita: str | None = None
     tempo_espera_dias: int | None = None
@@ -87,7 +91,7 @@ def _validar(session: Session, datos: DatosCoidado, animal: Animal, hoxe: date) 
             raise OperacionNonPermitidaError(
                 f"O grupo só ten {animal.cantidade} animais")
     if datos.tipo == "medicamento":
-        if not datos.medicamento:
+        if not datos.medicamento and datos.produto_id is None:
             raise OperacionNonPermitidaError("Indica o medicamento")
         if datos.tempo_espera_dias is None:
             raise OperacionNonPermitidaError(
@@ -96,7 +100,6 @@ def _validar(session: Session, datos: DatosCoidado, animal: Animal, hoxe: date) 
             raise OperacionNonPermitidaError("A cantidade ten que ser maior que 0")
         if datos.unidade:
             validar_codigo(session, "unidade_medida", datos.unidade, datos.data_inicio)
-        persoa_co_papel(session, animal.horta_id, datos.provedor_id, "provedor")
         persoa_co_papel(session, animal.horta_id, datos.veterinario_id, "veterinario")
     elif datos.tipo == "visita":
         if datos.visitante_id is None:
@@ -122,11 +125,10 @@ def _copiar(coidado: CoidadoAnimal, datos: DatosCoidado, animal: Animal) -> None
     con_animais = datos.tipo in CON_ANIMAIS
     coidado.num_animais = datos.num_animais if con_animais else None
     coidado.identificacion = (datos.identificacion or None) if con_animais else None
-    coidado.medicamento = datos.medicamento if medicamento else None
+    coidado.produto_id = datos.produto_id if medicamento else None
+    coidado.entrada_id = datos.entrada_id if medicamento else None
     coidado.cantidade = datos.cantidade if medicamento else None
     coidado.unidade = (datos.unidade or None) if medicamento else None
-    coidado.provedor_id = datos.provedor_id if medicamento else None
-    coidado.proba_compra = (datos.proba_compra or None) if medicamento else None
     coidado.veterinario_id = datos.veterinario_id if medicamento else None
     coidado.receita = (datos.receita or None) if medicamento else None
     coidado.tempo_espera_dias = datos.tempo_espera_dias if medicamento else None
@@ -139,12 +141,26 @@ def _copiar(coidado: CoidadoAnimal, datos: DatosCoidado, animal: Animal) -> None
     coidado.notas = datos.notas or None
 
 
+def _medicamento(session: Session, actor: Usuario, datos: DatosCoidado, horta_id: int) -> None:
+    """O medicamento é un produto da explotación: o escollido, ou o do nome (créase)."""
+    if datos.tipo != "medicamento":
+        return
+    if datos.produto_id is None:
+        datos.produto_id = produto_ou_novo(session, actor, horta_id, "medicamento",
+                                           datos.medicamento or "").id
+    produto = session.get(Produto, datos.produto_id)
+    if produto is None or produto.horta_id != horta_id or produto.tipo != "medicamento":
+        raise OperacionNonPermitidaError("Ese medicamento non é desta explotación")
+    comprobar_entrada_do_produto(session, horta_id, datos.entrada_id, produto.id)
+
+
 def crear_coidado(
     session: Session, actor: Usuario, datos: DatosCoidado, hoxe: date | None = None
 ) -> CoidadoAnimal:
     animal = _animal(session, datos.animal_id)
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
     _validar(session, datos, animal, hoxe or date.today())
+    _medicamento(session, actor, datos, animal.horta_id)
     coidado = CoidadoAnimal(creado_por=actor.id)
     _copiar(coidado, datos, animal)
     session.add(coidado)
@@ -163,6 +179,7 @@ def actualizar_coidado(
     if animal.horta_id != coidado.horta_id:
         raise OperacionNonPermitidaError("Ese grupo de animais non é desta explotación")
     _validar(session, datos, animal, hoxe or date.today())
+    _medicamento(session, actor, datos, animal.horta_id)
     _copiar(coidado, datos, animal)
     session.commit()
     return coidado
