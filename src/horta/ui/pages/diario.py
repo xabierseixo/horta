@@ -21,6 +21,7 @@ from horta.models.movemento_animal import MovementoAnimal
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
 from horta.models.producion_animal import ProducionAnimal
+from horta.models.produto import EntradaProduto
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
@@ -42,6 +43,7 @@ from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.pages.movementos_animais import dialogo_movemento
 from horta.ui.pages.pastoreos import dialogo_pastoreo
 from horta.ui.pages.producions_animais import dialogo_producion
+from horta.ui.pages.produtos import dialogo_entrada
 from horta.ui.pages.regas import dialogo_rega
 from horta.ui.pages.tratamentos import dialogo_tratamento_fito
 from horta.ui.pages.tratamentos_instalacion import dialogo_tratamento_instalacion
@@ -52,7 +54,7 @@ ICONAS = {
     "colleita": "inventory_2", "sementeira": "spa", "analise": "science",
     "tratamento_instalacion": "warehouse", "coidado_animal": "pets",
     "movemento_animal": "swap_horiz", "producion_animal": "egg", "pastoreo": "landscape",
-    "lote_saida": "sell", "tarefa": "task_alt",
+    "lote_saida": "sell", "entrada_produto": "shopping_cart", "tarefa": "task_alt",
 }
 # A táboa de cada tipo, cos seus datos propios (p.ex. «non colleitar antes do»)
 SECCION_DO_TIPO = {
@@ -60,14 +62,14 @@ SECCION_DO_TIPO = {
     "colleita": "colleitas", "sementeira": "cultivos", "analise": "analises",
     "tratamento_instalacion": "tratamentos", "coidado_animal": "coidados",
     "movemento_animal": "movementos", "producion_animal": "producion", "pastoreo": "pastoreo",
-    "lote_saida": "lotes", "tarefa": "tarefas",
+    "lote_saida": "lotes", "entrada_produto": "produtos", "tarefa": "tarefas",
 }
 _MODELOS: dict[str, type[Base]] = {
     "tratamento": TratamentoFito, "abonado": Abonado, "rega": Rega, "labor": Labor,
     "colleita": Colleita, "sementeira": Cultivo, "analise": Analise,
     "tratamento_instalacion": TratamentoInstalacion, "coidado_animal": CoidadoAnimal,
     "movemento_animal": MovementoAnimal, "producion_animal": ProducionAnimal,
-    "pastoreo": Pastoreo, "lote_saida": LoteSaida,
+    "pastoreo": Pastoreo, "lote_saida": LoteSaida, "entrada_produto": EntradaProduto,
 }
 _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "tratamento": dialogo_tratamento_fito, "abonado": dialogo_abonado, "rega": dialogo_rega,
@@ -75,7 +77,7 @@ _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "analise": dialogo_analise, "tratamento_instalacion": dialogo_tratamento_instalacion,
     "coidado_animal": dialogo_coidado, "movemento_animal": dialogo_movemento,
     "producion_animal": dialogo_producion, "pastoreo": dialogo_pastoreo,
-    "lote_saida": dialogo_saida,
+    "lote_saida": dialogo_saida, "entrada_produto": dialogo_entrada,
 }
 _DIAS_POR_DEFECTO = 90
 

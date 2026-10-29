@@ -71,6 +71,7 @@ from horta.ui.pages.movementos_animais import seccion_movementos
 from horta.ui.pages.parcelas import seccion_parcelas
 from horta.ui.pages.pastoreos import seccion_pastoreo
 from horta.ui.pages.producions_animais import seccion_producion
+from horta.ui.pages.produtos import seccion_produtos
 from horta.ui.pages.regas import seccion_regas
 from horta.ui.pages.tratamentos import seccion_tratamentos_fito
 from horta.ui.pages.tratamentos_instalacion import seccion_tratamentos_instalacion
@@ -335,6 +336,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_pastoreo(horta_id, pode_editar)
     elif seccion == "lotes":
         seccion_lotes(horta_id, pode_editar)
+    elif seccion == "produtos":
+        seccion_produtos(horta_id, pode_editar)
     elif seccion == "coidados":
         seccion_coidados(horta_id, pode_editar)
     elif seccion == "equipo":
