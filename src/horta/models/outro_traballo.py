@@ -23,3 +23,5 @@ class OutroTraballo(ParteComun, FeitoPor, ConMaquina, Base):
     # A que se refire: unha parcela, uns animais ou (sen ningún) a explotación enteira
     parcela_id: Mapped[int | None] = mapped_column(ForeignKey("parcela.id"), default=None)
     animal_id: Mapped[int | None] = mapped_column(ForeignKey("animal.id"), default=None)
+    instalacion_id: Mapped[int | None] = mapped_column(ForeignKey("instalacion.id"),
+                                                      default=None)

@@ -28,7 +28,8 @@ def test_libros_dos_animais(session):
     session.commit()
     libro = load_workbook(BytesIO(xerar_libros(session, ana, horta.id, date(2026, 1, 1),
                                                date(2026, 12, 31))))
-    assert libro.sheetnames == ["Censo", "Entradas e saídas", "Enfermidades e produción",
+    assert libro.sheetnames == ["Censo", "Identificación", "Entradas e saídas",
+                                "Enfermidades e produción",
                                 "Visitas", "Medicamentos"]
     # Fila 5: a primeira de datos (título, explotación, baleira, cabeceiras)
     assert libro["Entradas e saídas"]["D5"].value == 10

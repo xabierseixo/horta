@@ -11,7 +11,7 @@ from io import BytesIO
 from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
-from horta.models.animal import Animal
+from horta.models.animal import Animal, AnimalIdentificado
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.horta import Horta, RolHorta
 from horta.models.movemento_animal import MovementoAnimal
@@ -57,6 +57,13 @@ def xerar_libros(session: Session, actor: Usuario, horta_id: int, desde: date, a
           cab, ("Grupo", "Especie (código)", "Raza", "Animais hoxe", "Alta", "Baixa"),
           [(a.especie, a.especie_codigo or "", a.raza or "", a.cantidade, _d(a.data_alta),
             _d(a.data_baixa)) for a in grupos.values()])
+    identificados = (session.query(AnimalIdentificado)
+                     .filter(AnimalIdentificado.animal_id.in_(grupos))
+                     .order_by(AnimalIdentificado.animal_id, AnimalIdentificado.identificador))
+    folla(wb, "Identificación", "Animais identificados individualmente (RD 787/2023, anexo V)",
+          cab, ("Grupo", "Identificador", "Nome", "Sexo", "Nacemento", "Alta", "Baixa"),
+          [(grupo(i.animal_id), i.identificador, i.nome or "", i.sexo or "",
+            _d(i.data_nacemento), _d(i.data_alta), _d(i.data_baixa)) for i in identificados])
     movementos = (session.query(MovementoAnimal)
                   .filter(MovementoAnimal.horta_id == horta_id,
                           MovementoAnimal.baixa.is_(False), MovementoAnimal.data >= desde,

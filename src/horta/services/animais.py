@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from horta.models.animal import Animal
+from horta.models.animal import Animal, AnimalIdentificado
 from horta.models.horta import RolHorta
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.outro_traballo import OutroTraballo
@@ -15,6 +15,7 @@ from horta.services.catalogos import validar_codigo
 from horta.services.coidados_animais import ten_coidados
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.instalacions import comprobar_instalacion
 from horta.services.movementos_animais import (
     INICIAL,
     cambiar_data_alta,
@@ -33,7 +34,7 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 # de permisos, que se fai coa horta_id actual. A cantidade, a baixa e o
 # estado saen das entradas e saídas (services.movementos_animais).
 CAMPOS_EDITABLES_ANIMAL = frozenset(
-    {"especie", "especie_codigo", "raza", "data_alta", "notas"}
+    {"especie", "especie_codigo", "raza", "data_alta", "notas", "instalacion_id"}
 )
 
 # As especies de granxa do catálogo oficial ESPECIE_ANIMAL, en galego
@@ -72,6 +73,7 @@ def crear_animal(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_cantidade(campos)
     _validar_especie(session, campos.get("especie_codigo"), data_alta)
+    comprobar_instalacion(session, horta_id, campos.get("instalacion_id"))
     cantidade = campos.pop("cantidade", 1)
     for derivado in ("estado", "data_baixa"):
         campos.pop(derivado, None)
@@ -97,6 +99,7 @@ def actualizar_animal(
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
     data_alta = cambios.pop("data_alta", animal.data_alta)
     _validar_especie(session, cambios.get("especie_codigo"), data_alta)
+    comprobar_instalacion(session, animal.horta_id, cambios.get("instalacion_id"))
     if data_alta != animal.data_alta:
         primeiro = (session.query(MovementoAnimal)
                     .filter(MovementoAnimal.animal_id == animal.id,
@@ -131,3 +134,76 @@ def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
 def listar_animais(session: Session, actor: Usuario, horta_id: int) -> list[Animal]:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
     return list(session.query(Animal).filter_by(horta_id=horta_id).order_by(Animal.especie).all())
+
+
+# --- Animais identificados (opcional en todas as especies)
+
+SEXOS = {"femia": "Femia", "macho": "Macho"}
+CAMPOS_IDENTIFICADO = frozenset(
+    {"identificador", "nome", "sexo", "data_nacemento", "data_alta", "data_baixa", "notas"})
+
+
+def _validar_identificado(session: Session, animal: Animal, campos: dict[str, Any],
+                          excepto_id: int | None) -> None:
+    if set(campos) - CAMPOS_IDENTIFICADO:
+        raise ValueError("Campos non editables nun animal identificado")
+    identificador = (campos.get("identificador") or "").strip()
+    if not identificador:
+        raise OperacionNonPermitidaError("Indica o crotal, microchip ou anela")
+    if campos.get("sexo") not in (None, *SEXOS):
+        raise OperacionNonPermitidaError("Sexo non válido")
+    alta, baixa = campos.get("data_alta"), campos.get("data_baixa")
+    if alta is None:
+        raise OperacionNonPermitidaError("Indica a data de alta")
+    if baixa is not None and baixa < alta:
+        raise OperacionNonPermitidaError("A baixa non pode ser anterior á alta")
+    if campos.get("data_nacemento") and campos["data_nacemento"] > alta:
+        raise OperacionNonPermitidaError("O nacemento non pode ser posterior á alta")
+    repetido = (session.query(AnimalIdentificado).join(Animal, Animal.id ==
+                                                       AnimalIdentificado.animal_id)
+                .filter(Animal.horta_id == animal.horta_id,
+                        AnimalIdentificado.identificador == identificador,
+                        AnimalIdentificado.data_baixa.is_(None)))
+    if any(r.id != excepto_id for r in repetido):
+        raise OperacionNonPermitidaError(f"Xa hai un animal de alta co identificador "
+                                         f"{identificador}")
+    campos["identificador"] = identificador
+
+
+def crear_identificado(session: Session, actor: Usuario, animal: Animal,
+                       **campos: Any) -> AnimalIdentificado:
+    comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
+    _validar_identificado(session, animal, campos, None)
+    individuo = AnimalIdentificado(animal_id=animal.id, **campos)
+    session.add(individuo)
+    session.commit()
+    return individuo
+
+
+def actualizar_identificado(session: Session, actor: Usuario, individuo: AnimalIdentificado,
+                            **campos: Any) -> AnimalIdentificado:
+    animal = session.get(Animal, individuo.animal_id)
+    assert animal is not None
+    comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
+    _validar_identificado(session, animal, campos, individuo.id)
+    for campo, valor in campos.items():
+        setattr(individuo, campo, valor)
+    session.commit()
+    return individuo
+
+
+def listar_identificados(session: Session, actor: Usuario, animal: Animal
+                         ) -> list[AnimalIdentificado]:
+    comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_LECTURA)
+    return list(session.query(AnimalIdentificado).filter_by(animal_id=animal.id)
+                .order_by(AnimalIdentificado.data_baixa.is_not(None),
+                          AnimalIdentificado.identificador))
+
+
+def aviso_identificados(session: Session, animal: Animal) -> str | None:
+    """Se o grupo ten animais identificados e non coinciden cos que hai. Nunca bloquea."""
+    de_alta = session.query(AnimalIdentificado).filter_by(animal_id=animal.id,
+                                                          data_baixa=None).count()
+    if de_alta and de_alta != animal.cantidade:
+        return (f"No grupo hai {animal.cantidade} animais e {de_alta} identificados de alta")
+    return None

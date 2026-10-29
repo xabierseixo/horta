@@ -19,6 +19,7 @@ from horta.services.animais import (
 from horta.services.catalogos import valores_vixentes
 from horta.services.coidados_animais import en_tempo_espera
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.instalacions import listar_instalacions
 from horta.services.pastoreos import no_pasto, nomes_leiras
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
@@ -26,6 +27,7 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.filtros import filtrar_filas
 from horta.ui.fotos import abrir_fotos
 from horta.ui.historial import abrir_historial
+from horta.ui.identificados import abrir_identificados
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.movementos_animais import dialogo_movemento
@@ -114,6 +116,8 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         with ui.row().classes("w-full no-wrap") as fila_inicio:
             cantidade = ui.input("Cantos animais hai").classes("col")
         data_alta = campo_data("Data de alta", date.today().isoformat())
+        instalacion = ui.select({}, label="Onde están (instalación)", clearable=True).classes(
+            "w-full")
         cantos_actuais = ui.label("").classes("texto-suave")
         notas = ui.textarea("Notas").classes("w-full")
 
@@ -145,12 +149,14 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                         crear_animal(session, actor_actual, horta_id, nome.value, alta,
                                      especie_codigo=especie.value, raza=raza.value or None,
                                      cantidade=int(cantos) if cantos is not None else 0,
-                                     notas=notas.value or None)
+                                     notas=notas.value or None,
+                                     instalacion_id=instalacion.value)
                     else:
                         actualizar_animal(session, actor_actual, existente, especie=nome.value,
                                           especie_codigo=especie.value,
                                           raza=raza.value or None, data_alta=alta,
-                                          notas=notas.value or None)
+                                          notas=notas.value or None,
+                                          instalacion_id=instalacion.value)
 
                 ok = executar_accion(session, accion)
             if ok:
@@ -173,6 +179,12 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                                "entrada ou saída." if animal else "")
         cantos_actuais.set_visibility(animal is not None)
         data_alta.value = (animal.data_alta if animal else date.today()).isoformat()
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            opcions = ({i.id: i.nome for i in listar_instalacions(session, actor_actual, horta_id)
+                        if i.activa or (animal and i.id == animal.instalacion_id)}
+                       if actor_actual else {})
+        instalacion.set_options(opcions, value=animal.instalacion_id if animal else None)
         notas.value = (animal.notas or "") if animal else ""
         dialogo.open()
 
@@ -233,6 +245,9 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         ui.button("Ao pasto", icon="landscape", on_click=ao_pasto).props("outline")
         ui.button("Saíron do pasto", icon="logout", on_click=saida_do_pasto).props("outline")
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Identificados", icon="badge", on_click=lambda: abrir_identificados(
+            horta_id, taboa.selected[0]["id"]) if taboa.selected else ui.notify(
+            "Escolle primeiro un grupo na táboa", type="warning")).props("outline")
         ui.button("Historial", icon="history", on_click=lambda: abrir_historial(
             "animal", taboa.selected[0]["id"]) if taboa.selected else ui.notify(
             "Escolle primeiro un grupo na táboa", type="warning")).props("outline")

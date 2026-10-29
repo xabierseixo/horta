@@ -9,6 +9,8 @@ from nicegui import ui
 
 from horta.db import get_session
 from horta.models.animal import Animal
+from horta.models.horta import RolHorta
+from horta.models.instalacion import Instalacion
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela
 from horta.services.diario import TIPOS
@@ -16,9 +18,13 @@ from horta.services.historial import (
     historial_animal,
     historial_maquina,
     historial_parcela,
+    por_referencia,
     rotacion,
 )
+from horta.services.hortas import comprobar_rol_horta
 from horta.ui.sesion import pechar_sesion, usuario_actual
+
+_ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 
 def _data(d: date | None) -> str:
@@ -26,7 +32,7 @@ def _data(d: date | None) -> str:
 
 
 def abrir_historial(que: str, ref_id: int) -> None:
-    """que: parcela, animal ou maquina."""
+    """que: parcela, animal, maquina ou instalacion."""
     with get_session() as session:
         actor = usuario_actual(session)
         if actor is None:
@@ -51,6 +57,13 @@ def abrir_historial(que: str, ref_id: int) -> None:
                 if animal is None:
                     return
                 titulo, feitos = animal.especie, historial_animal(session, actor, animal)
+            elif que == "instalacion":
+                instalacion = session.get(Instalacion, ref_id)
+                if instalacion is None:
+                    return
+                comprobar_rol_horta(session, instalacion.horta_id, actor, _ROLES_LECTURA)
+                titulo = instalacion.nome
+                feitos = por_referencia(session, "instalacion", instalacion.id)
             else:
                 maquina = session.get(Maquina, ref_id)
                 if maquina is None:

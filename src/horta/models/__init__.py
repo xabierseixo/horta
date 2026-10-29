@@ -1,6 +1,6 @@
 from horta.models.abonado import Abonado, AbonadoBoaPractica, AbonadoCultivo, Fertilizante
 from horta.models.analise import Analise, AnaliseSubstancia, AnaliseTipo
-from horta.models.animal import Animal
+from horta.models.animal import Animal, AnimalIdentificado
 from horta.models.cartos import ApunteCartos
 from horta.models.catalogo import (
     CatalogoValor,
@@ -26,6 +26,7 @@ from horta.models.fito_rexistro import (
 )
 from horta.models.foto import Foto
 from horta.models.horta import Horta, HortaMembro, RolHorta
+from horta.models.instalacion import Instalacion
 from horta.models.labor import Labor, LaborCultivo
 from horta.models.lote import (
     Clasificacion,
@@ -120,6 +121,8 @@ __all__ = [
     "Convite",
     "ApunteCartos",
     "Categoria",
+    "AnimalIdentificado",
+    "Instalacion",
     "Foto",
     "EstacionMeteo",
     "TempoDia",

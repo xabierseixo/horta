@@ -14,6 +14,7 @@ from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.instalacions import listar_instalacions
 from horta.services.maquinaria import listar_maquinas
 from horta.services.outros_traballos import (
     DatosOutroTraballo,
@@ -45,6 +46,8 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
                    for a in listar_animais(session, actor, horta_id)}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
+        instalacions = {i.id: i.nome
+                        for i in listar_instalacions(session, actor, horta_id, so_activas=True)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
@@ -57,7 +60,10 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
             "w-full")
         animal = ui.select(animais, label="Animais (se foi con eles)", clearable=True).classes(
             "w-full")
-        ui.label("Sen parcela nin animais, é un traballo da explotación enteira.").classes(
+        instalacion = ui.select(instalacions, label="Instalación (se foi nunha)",
+                                clearable=True).classes("w-full")
+        ui.label("Sen parcela, animais nin instalación, é un traballo da explotación enteira."
+                 ).classes(
             "text-caption texto-suave")
         with ui.row().classes("w-full no-wrap"):
             persoa = ui.select(persoas, label="Quen o fixo").classes("col")
@@ -81,7 +87,8 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
                         horta_id=horta_id, data_inicio=dia,
                         data_fin=parsear_data(data_fin.value),
                         descricion=descricion.value or "", parcela_id=parcela.value,
-                        animal_id=animal.value, persoa_id=persoa.value,
+                        animal_id=animal.value, instalacion_id=instalacion.value,
+                        persoa_id=persoa.value,
                         horas=parsear_decimal(horas.value), maquina_id=maquina.value,
                         notas=notas.value or None)
                     existente = (session.get(OutroTraballo, editando["id"])
@@ -132,7 +139,10 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
         if traballo:
             parcela.value = traballo.parcela_id if traballo.parcela_id in parcelas else None
             animal.value = traballo.animal_id if traballo.animal_id in animais else None
+            instalacion.value = (traballo.instalacion_id
+                                 if traballo.instalacion_id in instalacions else None)
         else:
+            instalacion.value = None
             parcela.value = tarefa.parcela_id if tarefa and tarefa.parcela_id in parcelas \
                 else None
             animal.value = tarefa.animal_id if tarefa and tarefa.animal_id in animais else None

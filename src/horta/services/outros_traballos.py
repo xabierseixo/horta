@@ -16,6 +16,7 @@ from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.instalacions import comprobar_instalacion
 from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
@@ -31,6 +32,7 @@ class DatosOutroTraballo:
     data_fin: date | None = None
     parcela_id: int | None = None
     animal_id: int | None = None
+    instalacion_id: int | None = None
     persoa_id: int | None = None
     horas: float | None = None
     maquina_id: int | None = None
@@ -52,6 +54,7 @@ def _validar(session: Session, datos: DatosOutroTraballo, hoxe: date) -> None:
         animal = session.get(Animal, datos.animal_id)
         if animal is None or animal.horta_id != datos.horta_id:
             raise OperacionNonPermitidaError("O grupo de animais non é desta explotación")
+    comprobar_instalacion(session, datos.horta_id, datos.instalacion_id)
     comprobar_quen(session, datos.horta_id, datos.persoa_id, datos.horas)
     comprobar_maquina(session, datos.horta_id, datos.maquina_id)
 
@@ -63,6 +66,7 @@ def _copiar(traballo: OutroTraballo, datos: DatosOutroTraballo) -> None:
     traballo.descricion = datos.descricion.strip()
     traballo.parcela_id = datos.parcela_id
     traballo.animal_id = datos.animal_id
+    traballo.instalacion_id = datos.instalacion_id
     traballo.persoa_id = datos.persoa_id
     traballo.horas = datos.horas
     traballo.maquina_id = datos.maquina_id

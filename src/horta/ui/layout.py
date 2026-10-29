@@ -33,6 +33,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("equipo", "Equipo", "groups", "Xestión"),
     Seccion("contactos", "Contactos", "contacts", "Xestión"),
     Seccion("maquinaria", "Maquinaria", "agriculture", "Xestión"),
+    Seccion("instalacions", "Instalacións", "warehouse", "Xestión"),
     Seccion("produtos", "Produtos", "shopping_basket", "Xestión"),
     Seccion("lotes", "Lotes", "inventory", "Xestión"),
     Seccion("cartos", "Cartos", "euro", "Xestión"),

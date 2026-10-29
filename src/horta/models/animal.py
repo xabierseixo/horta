@@ -23,6 +23,27 @@ class Animal(Base):
     data_baixa: Mapped[date | None] = mapped_column(Date, default=None)
     estado: Mapped[str] = mapped_column(String(50), default="activo")
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
+    # Onde están (paso 14)
+    instalacion_id: Mapped[int | None] = mapped_column(ForeignKey("instalacion.id"),
+                                                      default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )
+
+
+class AnimalIdentificado(Base):
+    """Un animal identificado dentro dun grupo (opcional en todas as especies; obrigatorio no
+    vacún, ovino, caprino e équidos: Reg. UE 2016/429 e Reg. Delegado 2019/2035)."""
+
+    __tablename__ = "animal_identificado"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    animal_id: Mapped[int] = mapped_column(ForeignKey("animal.id"), index=True)
+    # Crotal, microchip, anela…
+    identificador: Mapped[str] = mapped_column(String(50))
+    nome: Mapped[str | None] = mapped_column(String(80), default=None)
+    sexo: Mapped[str | None] = mapped_column(String(10), default=None)
+    data_nacemento: Mapped[date | None] = mapped_column(Date, default=None)
+    data_alta: Mapped[date] = mapped_column(Date)
+    data_baixa: Mapped[date | None] = mapped_column(Date, default=None)
+    notas: Mapped[str | None] = mapped_column(String(500), default=None)
