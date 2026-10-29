@@ -213,7 +213,7 @@ class Custos:
     sen_custo: int = 0
 
 
-def _horas_dos_traballos(session: Session, horta_id: int, desde: date, ata: date
+def horas_dos_traballos(session: Session, horta_id: int, desde: date, ata: date
                          ) -> list[tuple[int | None, int | None, float]]:
     """(persoa, máquina, horas) de cada traballo feito entre dúas datas."""
     horas: list[tuple[int | None, int | None, float]] = []
@@ -256,7 +256,7 @@ def custos(session: Session, horta_id: int, desde: date, ata: date) -> Custos:
     persoas = {p.id: p for p in session.query(Persoa).filter_by(horta_id=horta_id)}
     maquinas = {m.id: m for m in session.query(Maquina).filter_by(horta_id=horta_id)}
     total = Custos()
-    for persoa_id, maquina_id, horas in _horas_dos_traballos(session, horta_id, desde, ata):
+    for persoa_id, maquina_id, horas in horas_dos_traballos(session, horta_id, desde, ata):
         persoa = persoas.get(persoa_id or 0)
         maquina = maquinas.get(maquina_id or 0)
         if persoa is not None and persoa.custo_hora is not None:

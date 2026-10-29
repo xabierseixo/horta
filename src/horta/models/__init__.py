@@ -43,6 +43,12 @@ from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.pastoreo import Pastoreo, PastoreoAnimal, PastoreoLeira
 from horta.models.persoa import Persoa, PersoaPapel, TipoCarne
+from horta.models.plan_empresa import (
+    PlanAno,
+    PlanEmpresa,
+    PlanFinanciamento,
+    PlanInvestimento,
+)
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.rega import Rega, RegaBoaPractica, RegaCultivo
@@ -121,6 +127,10 @@ __all__ = [
     "Convite",
     "ApunteCartos",
     "Categoria",
+    "PlanEmpresa",
+    "PlanInvestimento",
+    "PlanFinanciamento",
+    "PlanAno",
     "AnimalIdentificado",
     "Instalacion",
     "Foto",
