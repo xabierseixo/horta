@@ -7,8 +7,7 @@ por usuario_id. Deseño: o deseño
 from __future__ import annotations
 
 import secrets
-from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.orm import Session
@@ -21,6 +20,7 @@ from horta.models.persoa import Persoa, PersoaPapel
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.auth import hash_password, normalizar_email
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.historial import Feito, por_referencia
 from horta.services.hortas import (
     cambiar_rol_membro,
     comprobar_rol_horta,
@@ -215,44 +215,8 @@ def xuntar_persoas(session: Session, actor: Usuario, queda: Persoa, sae: Persoa)
     return queda
 
 
-# Historial de cada contacto (CRM): sae do que xa se apunta, sen escribir nada a maiores
-_QUE_E = {"entrada_produto": "Compra", "lote_saida": "Venda", "analise": "Análise",
-          "coidado_animal": "Coidado de animais", "movemento_animal": "Entrada ou saída de animais",
-          "pastoreo": "Pastoreo", "parcela": "Parcela arrendada ou cedida",
-          "tarefa": "Tarefa", "cultivo": "Sementeira", "labor": "Labor", "rega": "Rega",
-          "abonado": "Abonado", "colleita": "Colleita", "outro_traballo": "Outro traballo",
-          "tratamento_aplicador": "Tratamento (aplicou)",
-          "tratamento_asesor": "Tratamento (asesorou)",
-          "tratamento_instalacion": "Tratamento en instalación",
-          "producion_animal": "Produción dos animais", "apunte_cartos": "Outro gasto ou ingreso"}
-
-
-@dataclass(frozen=True)
-class Feito:
-    data: date | None
-    que: str
-    importe: float | None
-    # Con prezo e sen cobrar nin pagar (paso 10, cartos)
-    pendente: bool = False
-
-
 def historial(session: Session, actor: Usuario, persoa: Persoa) -> list[Feito]:
+    """Historial de cada contacto (CRM): sae do que xa se apunta, sen escribir nada a maiores."""
     comprobar_rol_horta(session, persoa.horta_id, actor, _ROLES_LECTURA)
-    feitos: list[Feito] = []
-    for taboa in Base.metadata.sorted_tables:
-        if taboa.name in ("persoa_papel", "convite", "persoa_categoria"):
-            continue
-        for fk in taboa.foreign_keys:
-            if fk.column.table.name != "persoa":
-                continue
-            for fila in session.execute(select(taboa).where(fk.parent == persoa.id)).mappings():
-                if fila.get("baixa"):
-                    continue
-                data = next((fila[c] for c in ("data_inicio", "data", "data_mostraxe")
-                             if fila.get(c) is not None), None)
-                que = _QUE_E.get(taboa.name, taboa.name.replace("_", " ").capitalize())
-                importe = fila.get("importe")
-                pendente = ("data_pago" in fila and importe is not None
-                            and fila["data_pago"] is None)
-                feitos.append(Feito(data, que, importe, pendente))
-    return sorted(feitos, key=lambda f: f.data or date.min, reverse=True)
+    return por_referencia(session, "persoa", persoa.id,
+                          excluir=("persoa_papel", "convite", "persoa_categoria"))

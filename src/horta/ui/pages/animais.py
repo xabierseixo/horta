@@ -25,6 +25,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.filtros import filtrar_filas
 from horta.ui.fotos import abrir_fotos
+from horta.ui.historial import abrir_historial
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.movementos_animais import dialogo_movemento
@@ -232,6 +233,9 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         ui.button("Ao pasto", icon="landscape", on_click=ao_pasto).props("outline")
         ui.button("Saíron do pasto", icon="logout", on_click=saida_do_pasto).props("outline")
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Historial", icon="history", on_click=lambda: abrir_historial(
+            "animal", taboa.selected[0]["id"]) if taboa.selected else ui.notify(
+            "Escolle primeiro un grupo na táboa", type="warning")).props("outline")
         ui.button("Fotos", icon="photo_camera", on_click=lambda: abrir_fotos(
             horta_id, "animal", taboa.selected[0]["id"], "grupo de animais", pode_editar)
             if taboa.selected else ui.notify("Escolle primeiro un grupo na táboa",

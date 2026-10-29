@@ -7,6 +7,7 @@ from horta.models.maquina import Maquina
 from horta.services.maquinaria import actualizar_maquina, crear_maquina, listar_maquinas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
+from horta.ui.historial import abrir_historial
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -115,3 +116,6 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
     with ui.row():
         ui.button("Nova máquina", icon="agriculture", on_click=lambda: abrir(None))
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
+        ui.button("Historial", icon="history", on_click=lambda: abrir_historial(
+            "maquina", taboa.selected[0]["id"]) if taboa.selected else ui.notify(
+            "Escolle primeiro unha máquina na táboa", type="warning")).props("outline")

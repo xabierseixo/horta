@@ -22,6 +22,7 @@ from horta.services.cultivos import (
     estados_cultivos,
     listar_cultivos,
 )
+from horta.services.historial import aviso_rotacion
 from horta.services.parcelas import listar_parcelas
 from horta.services.persoas import listar_quen
 from horta.ui.accions import executar_accion
@@ -334,18 +335,28 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                     pechar_sesion()
                     return
 
+                gardado: list[Cultivo] = []
+
                 def accion() -> None:
                     if editando["id"] is None:
                         especie = datos.pop("especie")
-                        crear_cultivo(session, actor, parcela.value, especie, **datos)
+                        gardado.append(crear_cultivo(session, actor, parcela.value, especie,
+                                                     **datos))
                     else:
                         cultivo = session.get(Cultivo, editando["id"])
                         if cultivo is not None:
-                            actualizar_cultivo(session, actor, cultivo, **datos)
+                            gardado.append(actualizar_cultivo(session, actor, cultivo, **datos))
 
                 ok = executar_accion(session, accion)
+                # Rotación (paso 12): avisa, nunca bloquea
+                aviso = (aviso_rotacion(list(session.query(Cultivo).filter_by(
+                    parcela_id=gardado[0].parcela_id)), gardado[0]) if ok and gardado else None)
             if ok:
-                ui.navigate.reload()
+                if aviso:
+                    ui.notify(aviso, type="warning", timeout=4000)
+                    ui.timer(3, ui.navigate.reload, once=True)
+                else:
+                    ui.navigate.reload()
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)
