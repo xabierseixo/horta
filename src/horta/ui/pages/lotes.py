@@ -36,6 +36,7 @@ from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
+from horta.ui.fotos import abrir_fotos
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -105,8 +106,14 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             if lote_id is not None:
                 abrir_categoria(por_id[lote_id])
 
+        def fotos() -> None:
+            lote_id = lote_escollido()
+            if lote_id is not None:
+                abrir_fotos(horta_id, "lote", lote_id, por_id[lote_id].codigo, pode_editar)
+
         with ui.row():
             ui.button("Vender", icon="sell", on_click=vender)
+            ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
             ui.button("Outra saída", icon="output", on_click=outra).props("outline")
             ui.button("Tipo para a venda directa", icon="gavel", on_click=categoria).props(
                 "outline")

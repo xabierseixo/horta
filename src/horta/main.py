@@ -4,7 +4,7 @@ import os
 import re
 
 from fastapi import Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from loguru import logger
 from nicegui import Client, app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -54,6 +54,27 @@ async def manexador_500(request: Request, exc: Exception) -> HTMLResponse:
     return pagina_erro_html(
         "Ocorreu un erro", "Algo saíu mal. Téntao de novo máis tarde.", 500
     )
+
+
+@app.get("/fotos/{foto_id}")
+def ver_foto(foto_id: int) -> Response:
+    """Unha foto, só para quen pode ver a súa explotación (paso 11a)."""
+    from horta.db import get_session
+    from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
+    from horta.services.fotos import ficheiro_da_foto
+    from horta.ui.sesion import usuario_actual
+
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            return Response(status_code=401)
+        try:
+            ruta = ficheiro_da_foto(session, actor, foto_id)
+        except (OperacionNonPermitidaError, PermisoDenegadoError):
+            return Response(status_code=404)
+    if not ruta.is_file():
+        return Response(status_code=404)
+    return FileResponse(ruta, headers={"Cache-Control": "private, max-age=86400"})
 
 
 import horta.ui.admin.catalogos  # noqa: E402,F401

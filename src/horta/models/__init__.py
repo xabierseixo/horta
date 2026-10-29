@@ -24,6 +24,7 @@ from horta.models.fito_rexistro import (
     FitoProduto,
     FitoUso,
 )
+from horta.models.foto import Foto
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor, LaborCultivo
 from horta.models.lote import Lote, LoteSaida
@@ -106,6 +107,7 @@ __all__ = [
     "Convite",
     "ApunteCartos",
     "Categoria",
+    "Foto",
     "EstacionMeteo",
     "TempoDia",
     "Maquina",

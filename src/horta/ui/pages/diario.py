@@ -28,10 +28,12 @@ from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.services.diario import TIPOS, Traballo, listar_traballos
+from horta.services.fotos import contar_fotos
 from horta.services.persoas import listar_persoas
 from horta.ui.campos import campo_data
 from horta.ui.dialogo_tarefa import dialogo_nova_tarefa
 from horta.ui.facer_tarefa import dialogo_tarefa_feita
+from horta.ui.fotos import boton_fotos
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data
 from horta.ui.pages.abonados import dialogo_abonado
@@ -175,7 +177,8 @@ def _data(t: Traballo) -> str:
     return f"{t.data:%d/%m/%Y}" if t.data else "sen data"
 
 
-def _tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str]) -> None:
+def _tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
+             horta_id: int, pode_editar: bool, fotos: int) -> None:
     with ui.row().classes("tarxeta w-full items-center no-wrap gap-3 cursor-pointer q-pa-sm").on(
             "click", ao_premer):
         ui.icon(ICONAS[t.tipo]).classes("text-h5 text-primary")
@@ -190,6 +193,8 @@ def _tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str]) 
             ui.label(_data(t)).classes("text-caption")
             if t.atrasado:
                 ui.label("atrasada").classes("etiqueta-aviso")
+        boton_fotos(horta_id, t.tipo, t.id, TIPOS[t.tipo] + (f": {t.que}" if t.que else ""),
+                    pode_editar, fotos)
 
 
 def seccion_diario(horta_id: int, pode_editar: bool) -> None:
@@ -234,6 +239,7 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
             except ValueError:
                 inicio = fin = None
             traballos = listar_traballos(session, actor_actual, horta_id, inicio, fin)
+            fotos = contar_fotos(session, actor_actual, horta_id)
         traballos = [
             t for t in traballos
             if (not tipo.value or t.tipo == tipo.value)
@@ -252,11 +258,12 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
             with ui.column().classes("w-full gap-2"):
                 for t in grupo:
                     if formularios is not None:
-                        _tarxeta(t, partial(formularios.editar, t), persoas)
+                        _tarxeta(t, partial(formularios.editar, t), persoas, horta_id, True,
+                                 fotos.get((t.tipo, t.id), 0))
                     else:
                         _tarxeta(t, partial(ui.navigate.to,
                                             url_seccion(horta_id, SECCION_DO_TIPO[t.tipo])),
-                                 persoas)
+                                 persoas, horta_id, False, fotos.get((t.tipo, t.id), 0))
 
     for filtro in (tipo, parcela, quen, estado, desde, ata):
         filtro.on_value_change(lista.refresh)

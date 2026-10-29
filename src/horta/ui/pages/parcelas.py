@@ -20,6 +20,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.fotos import abrir_fotos
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
@@ -250,4 +251,8 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
     with ui.row():
         ui.button("Nova parcela", icon="add", on_click=abrir_nova)
         ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
+        ui.button("Fotos", icon="photo_camera", on_click=lambda: abrir_fotos(
+            horta_id, "parcela", taboa.selected[0]["id"], "parcela", pode_editar)
+            if taboa.selected else ui.notify("Selecciona unha parcela na táboa",
+                                             type="warning")).props("outline")
         ui.button("Eliminar", icon="delete", on_click=eliminar).props("outline color=negative")
