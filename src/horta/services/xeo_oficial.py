@@ -1,6 +1,5 @@
-"""Cartografía oficial no mapa: SIGPAC (recintos agrarios, FEGA), Catastro e ortofoto PNOA (IGN).
-As capas WMS pídeas o navegador; as consultas dun punto fanse desde aquí, ao premer no mapa.
-Os nomes das capas WMS do SIGPAC están por comprobar contra o seu GetCapabilities."""
+"""Consultas á cartografía oficial ao premer no mapa: recinto SIGPAC (FEGA) e parcela do
+Catastro. As imaxes do mapa van por services.teselas (con caché)."""
 
 from __future__ import annotations
 
@@ -19,16 +18,6 @@ from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.parcelas import actualizar_parcela, crear_parcela, xeometria_debuxada
 
-# Ortofoto PNOA en teselas xa preparadas (WMTS do IGN): moito máis rápida ca o WMS
-PNOA_TESELAS = ("https://www.ign.es/wmts/pnoa-ma?service=WMTS&request=GetTile&version=1.0.0"
-                "&format=image/jpeg&layer=OI.OrthoimageCoverage&style=default"
-                "&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}")
-# (nome, url WMS, capa, atribución)
-CAPAS_WMS = {
-    "sigpac": ("Recintos SIGPAC", "https://sigpac-hubcloud.es/wms", "recinto", "SIGPAC © FEGA"),
-    "catastro": ("Catastro", "https://ovc.catastro.meh.es/cartografia/INSPIRE/spadgcwms.aspx",
-                 "CP.CadastralParcel", "© Dirección Xeral do Catastro"),
-}
 _SIGPAC_PUNTO = ("https://sigpac-hubcloud.es/servicioconsultassigpac/query/recinfobypoint/4326/"
                  "{lon}/{lat}.json")
 _CATASTRO_PUNTO = ("https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/"

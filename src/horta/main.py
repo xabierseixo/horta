@@ -78,6 +78,20 @@ def ver_foto(foto_id: int) -> Response:
     return FileResponse(ruta, headers={"Cache-Control": "private, max-age=86400"})
 
 
+@app.get("/teselas/{capa}/{z}/{x}/{y}")
+def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
+    """Tesela do mapa (PNOA, SIGPAC, Catastro) desde a caché do ordenador ou descargada."""
+    from horta.services.teselas import tesela
+
+    if app.storage.user.get("usuario_id") is None:
+        return Response(status_code=401)
+    resultado = tesela(capa, z, x, y)
+    if resultado is None:
+        return Response(status_code=404)
+    datos, mime = resultado
+    return Response(datos, media_type=mime, headers={"Cache-Control": "private, max-age=604800"})
+
+
 import horta.ui.admin.catalogos  # noqa: E402,F401
 import horta.ui.admin.usuarios  # noqa: E402,F401
 import horta.ui.pages.convite  # noqa: E402,F401

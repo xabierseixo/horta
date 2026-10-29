@@ -21,9 +21,8 @@ from horta.services.parcelas import (
     xeometria_debuxada,
 )
 from horta.services.persoas import listar_persoas
+from horta.services.teselas import gardar_zona
 from horta.services.xeo_oficial import (
-    CAPAS_WMS,
-    PNOA_TESELAS,
     ParcelaCatastral,
     Recinto,
     SenConexion,
@@ -47,6 +46,12 @@ from horta.ui.campos import LOCALE_GL
 from horta.ui.pages.diario import Formularios, tarxeta
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
+# capa → (nome, atribución, orde, zoom mínimo)
+CAPAS = {
+    "pnoa": ("Ortofoto (PNOA)", "PNOA © IGN", 1, 0),
+    "sigpac": ("Recintos SIGPAC", "SIGPAC © FEGA", 10, 15),
+    "catastro": ("Catastro", "© Dirección Xeral do Catastro", 11, 15),
+}
 # Centro de Galicia, se a explotación non ten coordenadas
 _GALICIA = (42.75, -8.0)
 
@@ -125,24 +130,44 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
     # Capas oficiais (as imaxes pídeas o navegador)
     capas: dict[str, Any] = {}
 
+    # Todas pasan pola caché da app (/teselas): sen conexión vese o xa descargado. A ortofoto
+    # vai debaixo; SIGPAC e Catastro por riba (e só con zoom, que é cando os debuxan)
     def capa(clave: str, activa: bool) -> None:
         if not activa and clave in capas:
             mapa.remove_layer(capas.pop(clave))
         elif activa and clave not in capas:
-            if clave == "pnoa":
-                # Debaixo das capas SIGPAC e Catastro
-                capas[clave] = mapa.tile_layer(url_template=PNOA_TESELAS, options={
-                    "attribution": "PNOA © IGN", "maxZoom": 20, "zIndex": 1})
-                return
-            _, url, nome_capa, atribucion = CAPAS_WMS[clave]
-            capas[clave] = mapa.wms_layer(url_template=url, options={
-                "layers": nome_capa, "format": "image/png", "transparent": True,
-                "attribution": atribucion, "maxZoom": 21, "zIndex": 10})
+            nome, atribucion, zindex, zoom_min = CAPAS[clave]
+            capas[clave] = mapa.tile_layer(url_template=f"/teselas/{clave}/{{z}}/{{x}}/{{y}}",
+                                           options={"attribution": atribucion, "maxZoom": 21,
+                                                    "maxNativeZoom": 19, "minZoom": zoom_min,
+                                                    "zIndex": zindex})
 
     with ui.row().classes("items-center gap-4 q-mt-sm"):
-        ui.checkbox("Ortofoto (PNOA)", on_change=lambda e: capa("pnoa", e.value))
-        for clave, (nome, *_) in CAPAS_WMS.items():
+        for clave, (nome, *_) in CAPAS.items():
             ui.checkbox(nome, on_change=lambda e, c=clave: capa(c, e.value))
+        ui.button("Gardar a zona para usar sen conexión", icon="download_for_offline",
+                  on_click=lambda: gardar_sen_conexion()).props("outline dense")
+    ui.label("Os recintos SIGPAC e o Catastro vense ao achegarse (zoom 15 ou máis)."
+             ).classes("texto-suave text-caption")
+
+    async def gardar_sen_conexion() -> None:
+        puntos = [pt for p in parcelas for pt in (puntos_da_xeometria(p.geometria) or (
+            [(p.lat, p.lon)] if p.lat is not None and p.lon is not None else []))]
+        if not puntos:
+            ui.notify("Sitúa antes algunha parcela no mapa", type="warning")
+            return
+        ui.notify("Descargando a zona… pode levar uns minutos")
+        try:
+            resultado = await run.io_bound(gardar_zona, puntos, tuple(CAPAS))
+        except ValueError as erro:
+            ui.notify(str(erro), type="warning")
+            return
+        if resultado is None:  # o cliente marchou da páxina
+            return
+        gardadas, fallidas = resultado
+        ui.notify(f"Gardadas {gardadas} teselas para usar sen conexión"
+                  + (f" ({fallidas} non se puideron descargar)" if fallidas else ""),
+                  type="positive" if not fallidas else "warning")
     sen_situar = [p for p in parcelas if p.lat is None or p.lon is None]
     if sen_situar:
         ui.label("Sen situar no mapa: " + ", ".join(p.nome for p in sen_situar)).classes(
