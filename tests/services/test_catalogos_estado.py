@@ -43,7 +43,10 @@ def test_sen_catalogos_avisa_de_que_faltan(session):
 
 def test_aviso_aos_60_dias_e_subida_reinicia(session, tmp_path):
     admin = _usuario(session, RolGlobal.ADMIN)
-    revisar_ficheiros(session, admin, [_pragas(tmp_path / "PLAGAS.xlsx")], aplicar=True,
+    # O mesmo ficheiro as dúas veces: se se volvese xerar, o Excel levaría outra hora de
+    # creación (outro sha256) se cambiase o segundo entre as dúas, e sería outra versión
+    pragas = _pragas(tmp_path / "PLAGAS.xlsx")
+    revisar_ficheiros(session, admin, [pragas], aplicar=True,
                       agora=AGORA - timedelta(days=61))
     version = session.query(CatalogoVersion).filter_by(catalogo="praga").one()
     version.data_importacion = AGORA - timedelta(days=61)
@@ -52,8 +55,7 @@ def test_aviso_aos_60_dias_e_subida_reinicia(session, tmp_path):
     assert estado["praga"].codigos == 1
     assert any("levan 61 días sen revisar" in a for a in avisos_catalogos(session, AGORA))
     # Volver subir o mesmo ficheiro (sen cambios) conta como revisión
-    revisar_ficheiros(session, admin, [_pragas(tmp_path / "PLAGAS.xlsx")], aplicar=True,
-                      agora=AGORA)
+    revisar_ficheiros(session, admin, [pragas], aplicar=True, agora=AGORA)
     assert ultima_revision_fega(session) == AGORA
     assert not any("sen revisar" in a for a in avisos_catalogos(session, AGORA))
 
