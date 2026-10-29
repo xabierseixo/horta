@@ -10,10 +10,11 @@ import secrets
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.orm import Session
 
 from horta.db import Base
+from horta.models.categoria import persoa_categoria
 from horta.models.convite import Convite
 from horta.models.horta import HortaMembro, RolHorta
 from horta.models.persoa import Persoa, PersoaPapel
@@ -197,9 +198,18 @@ def xuntar_persoas(session: Session, actor: Usuario, queda: Persoa, sae: Persoa)
     session.flush()
     for taboa in Base.metadata.sorted_tables:
         for fk in taboa.foreign_keys:
-            if fk.column.table.name == "persoa" and taboa.name != "persoa_papel":
+            if fk.column.table.name == "persoa" and taboa.name not in ("persoa_papel",
+                                                                       "persoa_categoria"):
                 session.execute(update(taboa).where(fk.parent == sae.id)
                                 .values({fk.parent.name: queda.id}))
+    # As categorías libres: as da outra que aínda non ten
+    tenta = set(session.scalars(select(persoa_categoria.c.categoria_id).where(
+        persoa_categoria.c.persoa_id == queda.id)))
+    for categoria_id in set(session.scalars(select(persoa_categoria.c.categoria_id).where(
+            persoa_categoria.c.persoa_id == sae.id))) - tenta:
+        session.execute(insert(persoa_categoria).values(persoa_id=queda.id,
+                                                       categoria_id=categoria_id))
+    session.execute(delete(persoa_categoria).where(persoa_categoria.c.persoa_id == sae.id))
     session.delete(sae)
     session.commit()
     return queda
@@ -228,7 +238,7 @@ def historial(session: Session, actor: Usuario, persoa: Persoa) -> list[Feito]:
     comprobar_rol_horta(session, persoa.horta_id, actor, _ROLES_LECTURA)
     feitos: list[Feito] = []
     for taboa in Base.metadata.sorted_tables:
-        if taboa.name in ("persoa_papel", "convite"):
+        if taboa.name in ("persoa_papel", "convite", "persoa_categoria"):
             continue
         for fk in taboa.foreign_keys:
             if fk.column.table.name != "persoa":

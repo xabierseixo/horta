@@ -3,12 +3,15 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from horta.models.abonado import Abonado, Fertilizante
 from horta.models.analise import Analise
 from horta.models.animal import Animal
+from horta.models.categoria import Categoria, persoa_categoria
 from horta.models.coidado_animal import CoidadoAnimal
+from horta.models.convite import Convite
 from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor
@@ -223,6 +226,12 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
         session.delete(animal)
     for membro in session.query(HortaMembro).filter_by(horta_id=horta.id).all():
         session.delete(membro)
+    ids_persoas = [p.id for p in session.query(Persoa).filter_by(horta_id=horta.id)]
+    if ids_persoas:
+        session.execute(delete(persoa_categoria).where(
+            persoa_categoria.c.persoa_id.in_(ids_persoas)))
+    session.query(Categoria).filter_by(horta_id=horta.id).delete()
+    session.query(Convite).filter_by(horta_id=horta.id).delete()
     for persoa in session.query(Persoa).filter_by(horta_id=horta.id).all():
         session.delete(persoa)
     for maquina in session.query(Maquina).filter_by(horta_id=horta.id).all():

@@ -187,7 +187,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                     value=horta_tipo_xip).classes("w-full")
                 fertilizacion_input = ui.checkbox("Recibe asesoramento en fertilización",
                                                   value=horta_fertilizacion)
-            ui.label("O titular, o representante e o asesor indícanse en Persoas.").classes(
+            ui.label("O titular, o representante e o asesor indícanse en Equipo.").classes(
                 "text-caption texto-suave")
             with ui.expansion("O tempo").classes("w-full"):
                 lugar = CampoLugarTempo()
@@ -319,7 +319,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         with ui.row().classes("gap-2"):
             ui.button("Editar datos da explotación", icon="settings",
                       on_click=abrir_config_horta).props("outline")
-            ui.button("Titular e asesor en Persoas", icon="groups", on_click=lambda: ui.navigate.to(
+            ui.button("Titular e asesor en Equipo", icon="groups", on_click=lambda: ui.navigate.to(
                 url_seccion(horta_id, "equipo"))).props("outline")
     elif seccion == "parcelas":
         seccion_parcelas(horta_id, pode_editar)
@@ -356,6 +356,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_coidados(horta_id, pode_editar)
     elif seccion == "equipo":
         seccion_equipo(horta_id, pode_editar, e_horta_admin)
+    elif seccion == "contactos":
+        seccion_equipo(horta_id, pode_editar, e_horta_admin, modo="contactos")
     elif seccion == "maquinaria":
         seccion_maquinaria(horta_id, pode_editar)
 

@@ -1,6 +1,6 @@
-"""Sección Persoas: toda a xente e as empresas coas que trata a explotación, cos seus papeis.
-Pestana Equipo (quen traballa nela, coas horas e o acceso á app) e pestana Contactos (o resto:
-clientes, provedores, laboratorios...). É unha soa lista: quen ten papeis dos dous lados sae
+"""Equipo (quen traballa na explotación, coas horas e o acceso á app) e Contactos (clientes,
+provedores, quen fai traballos..., con categorías libres): dúas entradas do menú sobre a mesma
+táboa de persoas (deseño global §2bis). Quen ten papeis dos dous lados sae
 nas dúas."""
 
 from __future__ import annotations
@@ -11,9 +11,18 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.models.categoria import Categoria
 from horta.models.horta import RolHorta
 from horta.models.persoa import Persoa, TipoCarne
 from horta.models.usuario import Usuario
+from horta.services.categorias import (
+    asignar_categorias,
+    borrar_categoria,
+    categorias_da_persoa,
+    crear_categoria,
+    listar_categorias,
+    renomear_categoria,
+)
 from horta.services.equipo import (
     HORAS_UTA,
     acceso_da_persoa,
@@ -25,7 +34,6 @@ from horta.services.equipo import (
     xuntar_persoas,
 )
 from horta.services.persoas import (
-    PAPEIS,
     PAPEIS_CONTACTO,
     PAPEIS_EQUIPO,
     TIPOS_PERSOA,
@@ -73,13 +81,19 @@ def _clave_acceso(rol: RolHorta | None) -> str:
     return rol.value if rol is not None else ""
 
 
-def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
+def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
+                   modo: str = "equipo") -> None:
+    equipo = modo == "equipo"
     with get_session() as session:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
             return
         persoas = listar_persoas(session, actor, horta_id, so_activas=False)
+        categorias = {c.id: c.nome for c in listar_categorias(session, actor, horta_id)}
+        papel_da_categoria = {c.id: c.papel for c in listar_categorias(session, actor, horta_id)
+                              if c.papel}
+        das_persoas = {p.id: categorias_da_persoa(session, p) for p in persoas}
         accesos = {p.id: acceso_da_persoa(session, p) for p in persoas}
         contas = {p.id: u.email for p in persoas if p.usuario_id
                   and (u := session.get(Usuario, p.usuario_id)) is not None}
@@ -106,37 +120,46 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
          "activa": "si" if p.activa else "non"}
         for p in persoas if _e_equipo(p)
     ]
-    filas_contactos = [
+    filas_contactos: list[dict[str, Any]] = [
         {"id": p.id, "nome": f"{p.nome} {p.apelidos or ''}".strip(),
-         "papeis": _papeis(p, PAPEIS_CONTACTO), "nif": p.nif or "",
+         "papeis": ", ".join(sorted(categorias[i] for i in das_persoas[p.id])),
+         "categorias": sorted(das_persoas[p.id]), "nif": p.nif or "",
          "telefono": p.telefono or "", "activa": "si" if p.activa else "non"}
         for p in persoas if _e_contacto(p)
     ]
-    with ui.tabs().classes("w-full") as pestanas:
-        pestana_equipo = ui.tab("Equipo", icon="groups")
-        pestana_contactos = ui.tab("Contactos", icon="contacts")
-    with ui.tab_panels(pestanas, value=pestana_equipo).classes("w-full"):
-        with ui.tab_panel(pestana_equipo):
-            ui.label(f"Traballo ao ano: {horas:g} horas = {horas / HORAS_UTA:.2f} UTA").classes(
-                "texto-suave")
-            taboa_equipo = ui.table(
-                columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-                    ("nome", "Nome"), ("funcions", "Funcións"), ("ropo", "Carné ROPO ata"),
-                    ("acceso", "Acceso á app"), ("activa", "Activa"))],
-                rows=filas_equipo, row_key="id",
-                selection="single" if pode_editar else None,
-            ).classes("w-full taboa").props(
-                f'flat bordered no-data-label="Aínda non hai ninguén no equipo" {TEXTOS_TABOA}')
-        with ui.tab_panel(pestana_contactos):
-            taboa_contactos = ui.table(
-                columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-                    ("nome", "Nome"), ("papeis", "Que é"), ("nif", "NIF"),
-                    ("telefono", "Teléfono"), ("activa", "Activa"))],
-                rows=filas_contactos, row_key="id",
-                selection="single" if pode_editar else None,
-            ).classes("w-full taboa").props(
-                'flat bordered no-data-label="Aínda non hai clientes, provedores nin outros '
-                f'contactos" {TEXTOS_TABOA}')
+    if equipo:
+        ui.label(f"Traballo ao ano: {horas:g} horas = {horas / HORAS_UTA:.2f} UTA").classes(
+            "texto-suave")
+        taboa = ui.table(
+            columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
+                ("nome", "Nome"), ("funcions", "Funcións"), ("ropo", "Carné ROPO ata"),
+                ("acceso", "Acceso á app"), ("activa", "Activa"))],
+            rows=filas_equipo, row_key="id",
+            selection="single" if pode_editar else None,
+        ).classes("w-full taboa").props(
+            f'flat bordered no-data-label="Aínda non hai ninguén no equipo" {TEXTOS_TABOA}')
+    else:
+        with ui.row().classes("w-full items-center gap-2"):
+            filtro = ui.select({0: "Todas as categorías", **categorias}, value=0,
+                               label="Categoría").classes("w-64")
+            if pode_editar:
+                ui.button("Categorías", icon="label",
+                          on_click=lambda: _dialogo_categorias(horta_id)).props("flat")
+        taboa = ui.table(
+            columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
+                ("nome", "Nome"), ("papeis", "Categorías"), ("nif", "NIF"),
+                ("telefono", "Teléfono"), ("activa", "Activa"))],
+            rows=filas_contactos, row_key="id",
+            selection="single" if pode_editar else None,
+        ).classes("w-full taboa").props(
+            'flat bordered no-data-label="Aínda non hai clientes, provedores nin outros '
+            f'contactos" {TEXTOS_TABOA}')
+
+        def filtrar() -> None:
+            taboa.rows = [f for f in filas_contactos
+                          if not filtro.value or filtro.value in das_persoas[int(f["id"])]]
+
+        filtro.on_value_change(filtrar)
 
     if not pode_editar:
         return
@@ -150,7 +173,9 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         apelidos = ui.input("Apelidos").classes("w-full")
         apelidos.bind_visibility_from(tipo_persoa, "value", value="persoa")
         nif = ui.input("NIF").classes("w-full")
-        papeis = ui.select(PAPEIS, label="Que é (pode ser varias cousas)", multiple=True,
+        papeis = ui.select(PAPEIS_EQUIPO if equipo else categorias,
+                           label="Que fai (pode ser varias cousas)" if equipo else "Categorías",
+                           multiple=True,
                            value=[]).classes("w-full").props("use-chips")
         with ui.expansion("Contacto e enderezo").classes("w-full"):
             contacto = {campo: ui.input(etiqueta).classes("w-full")
@@ -232,13 +257,14 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         boton_quitar.on_click(quitar)
 
         def mostrar_bloques() -> None:
-            escollidos = set(papeis.value or [])
+            escollidos = (set(papeis.value or []) if equipo else
+                          {papel_da_categoria.get(i) for i in papeis.value or []})
             bloque_ropo.set_visibility(bool(escollidos & set(_CON_ROPO)))
-            equipo = bool(escollidos & set(PAPEIS_EQUIPO))
-            bloque_traballo.set_visibility(equipo)
-            bloque_colectivo.set_visibility(equipo and tipo_persoa.value == "persoa")
+            do_equipo = bool(escollidos & set(PAPEIS_EQUIPO))
+            bloque_traballo.set_visibility(do_equipo)
+            bloque_colectivo.set_visibility(do_equipo and tipo_persoa.value == "persoa")
             # O acceso á app só para quen traballa na explotación (e só o dá quen administra)
-            bloque_acceso.set_visibility(e_admin and equipo)
+            bloque_acceso.set_visibility(e_admin and do_equipo)
 
         papeis.on_value_change(mostrar_bloques)
         tipo_persoa.on_value_change(mostrar_bloques)
@@ -286,17 +312,23 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
                     return
 
                 def accion() -> None:
-                    if editando["id"] is None:
-                        persoa = crear_persoa(session, actor, horta_id, nome.value,
-                                              papeis=set(papeis.value or []), **datos)
+                    existente = (session.get(Persoa, editando["id"]) if editando["id"]
+                                 else None)
+                    antes = existente.papeis if existente else set()
+                    # Cada pantalla toca só os seus papeis: o resto consérvanse
+                    if equipo:
+                        novos = set(papeis.value or []) | (antes - set(PAPEIS_EQUIPO))
                     else:
-                        existente = session.get(Persoa, editando["id"])
-                        if existente is None:
-                            return
+                        novos = antes & set(PAPEIS_EQUIPO)
+                    if existente is None:
+                        persoa = crear_persoa(session, actor, horta_id, nome.value,
+                                              papeis=novos, **datos)
+                    else:
                         persoa = existente
                         actualizar_persoa(session, actor, persoa, nome=nome.value,
-                                          papeis=set(papeis.value or []), activa=activa.value,
-                                          **datos)
+                                          papeis=novos, activa=activa.value, **datos)
+                    if not equipo:
+                        asignar_categorias(session, actor, persoa, set(papeis.value or []))
                     rol = accesos.get(persoa.id)
                     if e_admin and rol is not None and acceso.value != rol.value:
                         cambiar_permiso(session, actor, persoa, _ROL[acceso.value])
@@ -313,7 +345,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
               regfer, horas_ano, formacion, nacemento)
 
     def en_equipo() -> bool:
-        return pestanas.value in (None, pestana_equipo, pestana_equipo.props["name"])
+        return equipo
 
     def abrir_nova() -> None:
         editando["id"] = None
@@ -331,7 +363,6 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         dialogo.open()
 
     def escollida() -> Persoa | None:
-        taboa = taboa_equipo if en_equipo() else taboa_contactos
         if not taboa.selected:
             ui.notify("Selecciona unha persoa na táboa", type="warning")
             return None
@@ -384,7 +415,6 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         ventá.open()
 
     def abrir_edicion() -> None:
-        taboa = taboa_equipo if en_equipo() else taboa_contactos
         if not taboa.selected:
             ui.notify("Selecciona unha persoa na táboa", type="warning")
             return
@@ -397,7 +427,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         nif.value = p.nif or ""
         for campo, entrada in {**contacto, **rexistros}.items():
             entrada.value = getattr(p, campo) or ""
-        papeis.value = [clave for clave in PAPEIS if p.ten_papel(clave)]
+        papeis.value = ([clave for clave in PAPEIS_EQUIPO if p.ten_papel(clave)] if equipo
+                        else sorted(das_persoas[p.id]))
         ropo.value = p.ropo_numero or ""
         tipo.value = p.ropo_tipo_carne.value if p.ropo_tipo_carne else None
         caducidade.value = p.ropo_caducidade.isoformat() if p.ropo_caducidade else ""
@@ -416,8 +447,45 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         dialogo.open()
 
     with ui.row():
-        ui.button("Nova persoa ou entidade", icon="person_add", on_click=abrir_nova)
+        ui.button("Nova persoa no equipo" if equipo else "Novo contacto", icon="person_add",
+                  on_click=abrir_nova)
         ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
         ui.button("Historial", icon="history", on_click=ver_historial).props("outline")
         if e_admin:
             ui.button("Xuntar con outra", icon="merge", on_click=xuntar).props("outline")
+
+
+def _dialogo_categorias(horta_id: int) -> None:
+    """Crear, cambiar o nome e borrar categorías. As da app non se borran."""
+    with get_session() as session:
+        actor = usuario_actual(session)
+        cats = listar_categorias(session, actor, horta_id) if actor else []
+    with ui.dialog() as ventá, ui.card().style("width: min(30rem, 94vw)"):
+        ui.label("Categorías dos contactos").classes("text-h6")
+        nomes = {c.id: ui.input(value=c.nome).classes("w-full") for c in cats}
+        borrar = {c.id: ui.checkbox("Borrar") for c in cats if c.papel is None}
+        nova = ui.input("Nova categoría (p.ex. Vendedores)").classes("w-full")
+
+        def gardar() -> None:
+            with get_session() as session:
+                actor = usuario_actual(session)
+                if actor is None:
+                    return
+
+                def accion() -> None:
+                    for c in session.query(Categoria).filter_by(horta_id=horta_id):
+                        if c.id in borrar and borrar[c.id].value:
+                            borrar_categoria(session, actor, c)
+                        elif c.id in nomes and nomes[c.id].value != c.nome:
+                            renomear_categoria(session, actor, c, nomes[c.id].value or "")
+                    if nova.value:
+                        crear_categoria(session, actor, horta_id, nova.value)
+
+                ok = executar_accion(session, accion)
+            if ok:
+                ui.navigate.reload()
+
+        with ui.row():
+            ui.button("Gardar", icon="check", on_click=gardar)
+            ui.button("Cancelar", on_click=ventá.close).props("flat")
+    ventá.open()

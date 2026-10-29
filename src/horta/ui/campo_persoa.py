@@ -62,7 +62,7 @@ class CampoPersoa:
             self.datos = {campo: ui.input(etiqueta).classes("w-full")
                           for campo, etiqueta in _DATOS_DO_PAPEL.get(self.papel,
                                                                      _DATOS_DO_PAPEL[None])}
-            ui.label("O resto dos datos complétanse despois en Explotación → Persoas.").classes(
+            ui.label("O resto dos datos complétanse despois en Equipo ou Contactos.").classes(
                 "text-caption texto-suave")
             with ui.row():
                 ui.button("Gardar", icon="check", on_click=self._gardar)

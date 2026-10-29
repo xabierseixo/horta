@@ -22,7 +22,7 @@ def test_grupos_en_orde():
     for s in seccions_visibles(e_horta_admin=True):
         if s.grupo and s.grupo not in grupos:
             grupos.append(s.grupo)
-    assert grupos == ["Explotación"]
+    assert grupos == ["Produción", "Xestión", "Explotación"]
 
 
 def test_menu_de_traballos_e_informes():

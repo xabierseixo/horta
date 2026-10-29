@@ -103,3 +103,34 @@ def test_historial_dun_contacto(session):
     assert historial(session, ana, coop) == []
     with pytest.raises(OperacionNonPermitidaError, match="distintas"):
         xuntar_persoas(session, ana, coop, coop)
+
+
+def test_categorias_libres_coas_da_app(session):
+    from horta.models.categoria import Categoria
+    from horta.services.categorias import (
+        asignar_categorias,
+        borrar_categoria,
+        categorias_da_persoa,
+        crear_categoria,
+        listar_categorias,
+        renomear_categoria,
+    )
+
+    ana, horta, xan = _escenario(session)
+    iniciais = {c.papel: c for c in listar_categorias(session, ana, horta.id)}
+    assert iniciais["servizos"].nome == "Fai traballos (persoa ou empresa)"
+    feira = crear_categoria(session, ana, horta.id, "Feira de Lalín")
+    renomear_categoria(session, ana, iniciais["cliente"], "Compradores")
+    coop = crear_contacto(session, ana, horta.id, "Coop", "provedor", tipo="entidade")
+    asignar_categorias(session, ana, coop, {iniciais["cliente"].id, feira.id})
+    # O papel segue a categoría da app; a libre gárdase á parte
+    assert coop.papeis == {"cliente"}
+    assert categorias_da_persoa(session, coop) == {iniciais["cliente"].id, feira.id}
+    with pytest.raises(OperacionNonPermitidaError, match="non borrala"):
+        borrar_categoria(session, ana, iniciais["provedor"])
+    borrar_categoria(session, ana, feira)
+    assert categorias_da_persoa(session, coop) == {iniciais["cliente"].id}
+    # Os papeis do equipo non se tocan
+    asignar_categorias(session, ana, xan, set())
+    assert xan.papeis == {"traballador"}
+    assert session.query(Categoria).filter_by(horta_id=horta.id).count() == len(iniciais)
