@@ -12,6 +12,7 @@ from horta.models.catalogo import (
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.comprobacion_catalogo import ComprobacionCatalogo
+from horta.models.convite import Convite
 from horta.models.cultivo import Cultivo
 from horta.models.fertilizante import FertilizanteSiex
 from horta.models.fito_rexistro import (
@@ -100,6 +101,7 @@ __all__ = [
     "Lote",
     "LoteSaida",
     "OutroTraballo",
+    "Convite",
     "EstacionMeteo",
     "TempoDia",
     "Maquina",

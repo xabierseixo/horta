@@ -14,14 +14,16 @@ from horta.db import get_session
 from horta.models.horta import RolHorta
 from horta.models.persoa import Persoa, TipoCarne
 from horta.models.usuario import Usuario
-from horta.services.auth import normalizar_email
 from horta.services.equipo import (
     HORAS_UTA,
     acceso_da_persoa,
-    conceder_acceso,
+    cambiar_permiso,
+    crear_convite,
+    duplicados,
+    historial,
     retirar_acceso,
+    xuntar_persoas,
 )
-from horta.services.errors import OperacionNonPermitidaError
 from horta.services.persoas import (
     PAPEIS,
     PAPEIS_CONTACTO,
@@ -79,6 +81,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
             return
         persoas = listar_persoas(session, actor, horta_id, so_activas=False)
         accesos = {p.id: acceso_da_persoa(session, p) for p in persoas}
+        contas = {p.id: u.email for p in persoas if p.usuario_id
+                  and (u := session.get(Usuario, p.usuario_id)) is not None}
 
     hoxe = date.today()
     for p in persoas:
@@ -171,10 +175,61 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
             nacemento = campo_data("Data de nacemento")
             discapacidade = ui.checkbox("Persoa con discapacidade")
         activa = ui.checkbox("Activa", value=True)
+        # Acceso á app (deseño global §2bis): por convite, sen escribir correos de contas
         with ui.column().classes("w-full gap-1") as bloque_acceso:
             ui.label("Acceso á app").classes("text-subtitle2 q-mt-sm")
-            acceso = ui.select(_ACCESOS, value="", label="Permiso").classes("w-full")
-            email_conta = ui.input("Email da súa conta na app").classes("w-full")
+            estado_acceso = ui.label("").classes("text-caption texto-suave")
+            acceso = ui.select({k: v for k, v in _ACCESOS.items() if k}, value="editor",
+                               label="Permiso").classes("w-full")
+            with ui.row():
+                boton_convite = ui.button("Crear convite", icon="link").props("outline")
+                boton_quitar = ui.button("Quitar acceso", icon="block").props(
+                    "flat color=negative")
+            ligazon = ui.input("Ligazón para mandarlle (vale 7 días)").props(
+                "readonly").classes("w-full")
+
+        def mostrar_acceso() -> None:
+            persoa_id = editando["id"]
+            ligada = persoa_id is not None and persoa_id in contas
+            if persoa_id is None:
+                estado_acceso.text = "Garda primeiro a persoa para darlle acceso"
+            elif ligada:
+                estado_acceso.text = f"Entra coa conta {contas[persoa_id]}"
+            else:
+                estado_acceso.text = ("Non ten acceso. Escolle o permiso e crea un convite: "
+                                      "unha ligazón para mandarlle")
+            acceso.set_visibility(persoa_id is not None)
+            boton_convite.set_visibility(persoa_id is not None and not ligada)
+            boton_quitar.set_visibility(ligada)
+            ligazon.set_visibility(False)
+
+        def convidar() -> None:
+            with get_session() as session:
+                actor = usuario_actual(session)
+                persoa = session.get(Persoa, editando["id"] or 0)
+                if actor is None or persoa is None:
+                    return
+                creado: list[str] = []
+                ok = executar_accion(session, lambda: creado.append(crear_convite(
+                    session, actor, persoa, _ROL[acceso.value]).token))
+            if ok and creado:
+                base = str(ui.context.client.request.base_url).rstrip("/")
+                ligazon.value = f"{base}/convite/{creado[0]}"
+                ligazon.set_visibility(True)
+                ui.notify("Copia a ligazón e mándalla (WhatsApp, correo…)", type="positive")
+
+        def quitar() -> None:
+            with get_session() as session:
+                actor = usuario_actual(session)
+                persoa = session.get(Persoa, editando["id"] or 0)
+                if actor is None or persoa is None:
+                    return
+                ok = executar_accion(session, lambda: retirar_acceso(session, actor, persoa))
+            if ok:
+                ui.navigate.reload()
+
+        boton_convite.on_click(convidar)
+        boton_quitar.on_click(quitar)
 
         def mostrar_bloques() -> None:
             escollidos = set(papeis.value or [])
@@ -188,10 +243,28 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         papeis.on_value_change(mostrar_bloques)
         tipo_persoa.on_value_change(mostrar_bloques)
 
-        def gardar() -> None:
+        def gardar(confirmado: bool = False) -> None:
             if not nome.value:
                 ui.notify("O nome é obrigatorio", type="negative")
                 return
+            if not confirmado:
+                with get_session() as session:
+                    iguais = duplicados(session, horta_id, nome.value, apelidos.value,
+                                        nif.value, contacto["email"].value, editando["id"])
+                if iguais:
+                    with ui.dialog() as aviso, ui.card():
+                        ui.label("Xa hai alguén igual: " + ", ".join(
+                            f"{p.nome} {p.apelidos or ''}".strip() for p in iguais)
+                            + ". Se é a mesma persoa, edita esa ou xúntaas.")
+                        with ui.row():
+                            def igual() -> None:
+                                aviso.close()
+                                gardar(True)
+
+                            ui.button("Gardar igual", on_click=igual)
+                            ui.button("Cancelar", on_click=aviso.close).props("flat")
+                    aviso.open()
+                    return
             datos: dict[str, Any] = dict(
                 tipo=tipo_persoa.value,
                 apelidos=(apelidos.value or None) if tipo_persoa.value == "persoa" else None,
@@ -213,18 +286,6 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
                     return
 
                 def accion() -> None:
-                    if e_admin and acceso.value:
-                        if not email_conta.value:
-                            raise OperacionNonPermitidaError(
-                                "Indica o email da conta para darlle acceso"
-                            )
-                        conta = session.query(Usuario).filter_by(
-                            email=normalizar_email(email_conta.value)).one_or_none()
-                        if conta is None:
-                            raise OperacionNonPermitidaError(
-                                "Non hai ningunha conta con ese email. "
-                                "Pídelle ao administrador que a cree."
-                            )
                     if editando["id"] is None:
                         persoa = crear_persoa(session, actor, horta_id, nome.value,
                                               papeis=set(papeis.value or []), **datos)
@@ -236,24 +297,20 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
                         actualizar_persoa(session, actor, persoa, nome=nome.value,
                                           papeis=set(papeis.value or []), activa=activa.value,
                                           **datos)
-                    if not e_admin:
-                        return
-                    if acceso.value:
-                        conceder_acceso(session, actor, persoa, email_conta.value,
-                                        _ROL[acceso.value])
-                    elif persoa.usuario_id is not None:
-                        retirar_acceso(session, actor, persoa)
+                    rol = accesos.get(persoa.id)
+                    if e_admin and rol is not None and acceso.value != rol.value:
+                        cambiar_permiso(session, actor, persoa, _ROL[acceso.value])
 
                 ok = executar_accion(session, accion)
             if ok:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
+            ui.button("Gardar", icon="check", on_click=lambda: gardar())
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
     textos = (nome, apelidos, nif, *contacto.values(), *rexistros.values(), ropo, caducidade,
-              regfer, horas_ano, formacion, nacemento, email_conta)
+              regfer, horas_ano, formacion, nacemento)
 
     def en_equipo() -> bool:
         return pestanas.value in (None, pestana_equipo, pestana_equipo.props["name"])
@@ -268,9 +325,63 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         discapacidade.value = False
         tipo.value = vinculo.value = xenero.value = None
         activa.value = True
-        acceso.value = ""
+        acceso.value = "editor"
         mostrar_bloques()
+        mostrar_acceso()
         dialogo.open()
+
+    def escollida() -> Persoa | None:
+        taboa = taboa_equipo if en_equipo() else taboa_contactos
+        if not taboa.selected:
+            ui.notify("Selecciona unha persoa na táboa", type="warning")
+            return None
+        return next(x for x in persoas if x.id == taboa.selected[0]["id"])
+
+    def ver_historial() -> None:
+        p = escollida()
+        if p is None:
+            return
+        with get_session() as session:
+            actor = usuario_actual(session)
+            feitos = historial(session, actor, p) if actor else []
+        with ui.dialog() as ventá, ui.card().style("width: min(36rem, 94vw)"):
+            ui.label(f"Historial: {p.nome} {p.apelidos or ''}".strip()).classes("text-h6")
+            if not feitos:
+                ui.label("Aínda non hai nada apuntado con esta persoa.").classes("texto-suave")
+            for f in feitos:
+                importe = f" · {f.importe:.2f} €" if f.importe is not None else ""
+                data = f"{f.data:%d/%m/%Y} · " if f.data else ""
+                ui.label(f"{data}{f.que}{importe}")
+            ui.button("Pechar", on_click=ventá.close).props("flat")
+        ventá.open()
+
+    def xuntar() -> None:
+        queda = escollida()
+        if queda is None:
+            return
+        outras = {p.id: f"{p.nome} {p.apelidos or ''}".strip() for p in persoas
+                  if p.id != queda.id}
+        with ui.dialog() as ventá, ui.card().style("width: min(30rem, 94vw)"):
+            ui.label(f"Xuntar con {queda.nome}").classes("text-h6")
+            ui.label("Todo o da outra (traballos, compras, vendas, papeis, conta) pasa a "
+                     f"{queda.nome}, e a outra bórrase.").classes("text-caption")
+            sae = ui.select(outras, label="A outra (a repetida)", with_input=True).classes(
+                "w-full")
+
+            def confirmar() -> None:
+                with get_session() as session:
+                    actor = usuario_actual(session)
+                    q, s = session.get(Persoa, queda.id), session.get(Persoa, sae.value or 0)
+                    if actor is None or q is None or s is None:
+                        return
+                    ok = executar_accion(session, lambda: xuntar_persoas(session, actor, q, s))
+                if ok:
+                    ui.navigate.reload()
+
+            with ui.row():
+                ui.button("Xuntar", icon="merge", on_click=confirmar)
+                ui.button("Cancelar", on_click=ventá.close).props("flat")
+        ventá.open()
 
     def abrir_edicion() -> None:
         taboa = taboa_equipo if en_equipo() else taboa_contactos
@@ -299,11 +410,14 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool) -> None:
         discapacidade.value = p.discapacidade
         activa.value = p.activa
         rol = accesos[p.id]
-        acceso.value = rol.value if rol else ""
-        email_conta.value = p.email or ""
+        acceso.value = rol.value if rol else "editor"
         mostrar_bloques()
+        mostrar_acceso()
         dialogo.open()
 
     with ui.row():
         ui.button("Nova persoa ou entidade", icon="person_add", on_click=abrir_nova)
         ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
+        ui.button("Historial", icon="history", on_click=ver_historial).props("outline")
+        if e_admin:
+            ui.button("Xuntar con outra", icon="merge", on_click=xuntar).props("outline")

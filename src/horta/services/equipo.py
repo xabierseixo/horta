@@ -6,12 +6,19 @@ por usuario_id. Deseño: o deseño
 
 from __future__ import annotations
 
+import secrets
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta, timezone
+
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from horta.db import Base
+from horta.models.convite import Convite
 from horta.models.horta import HortaMembro, RolHorta
-from horta.models.persoa import Persoa
-from horta.models.usuario import Usuario
-from horta.services.auth import normalizar_email
+from horta.models.persoa import Persoa, PersoaPapel
+from horta.models.usuario import RolGlobal, Usuario
+from horta.services.auth import hash_password, normalizar_email
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import (
     cambiar_rol_membro,
@@ -73,3 +80,164 @@ def uta_equipo(session: Session, actor: Usuario, horta_id: int) -> float:
         for p in session.query(Persoa).filter_by(horta_id=horta_id, activa=True)
     )
     return round(horas / HORAS_UTA, 2)
+
+
+# Convites (deseño global §2bis): unha ligazón para entrar, sen escribir correos de contas alleas
+DIAS_CONVITE = 7
+
+
+def crear_convite(session: Session, actor: Usuario, persoa: Persoa, rol: RolHorta,
+                  agora: datetime | None = None) -> Convite:
+    comprobar_rol_horta(session, persoa.horta_id, actor, {RolHorta.ADMIN})
+    if persoa.usuario_id is not None:
+        raise OperacionNonPermitidaError(f"{persoa.nome} xa ten acceso á app")
+    agora = agora or datetime.now(timezone.utc).replace(tzinfo=None)
+    # Só vale o último convite de cada persoa
+    session.query(Convite).filter_by(persoa_id=persoa.id, usado=None).delete()
+    convite = Convite(token=secrets.token_urlsafe(32), horta_id=persoa.horta_id,
+                      persoa_id=persoa.id, rol=rol, creado_por=actor.id,
+                      caduca=agora + timedelta(days=DIAS_CONVITE))
+    session.add(convite)
+    session.commit()
+    return convite
+
+
+def convite_valido(session: Session, token: str, agora: datetime | None = None) -> Convite:
+    agora = agora or datetime.now(timezone.utc).replace(tzinfo=None)
+    convite = session.query(Convite).filter_by(token=token).one_or_none()
+    if convite is None or convite.usado is not None or convite.caduca < agora:
+        raise OperacionNonPermitidaError(
+            "Este convite non vale (xa se usou ou caducou). Pide outro a quen administra "
+            "a explotación")
+    return convite
+
+
+def aceptar_convite(session: Session, token: str, usuario: Usuario,
+                    agora: datetime | None = None) -> Persoa:
+    """A conta entra na explotación co permiso do convite e queda ligada á súa ficha."""
+    convite = convite_valido(session, token, agora)
+    persoa = session.get(Persoa, convite.persoa_id)
+    if persoa is None or persoa.usuario_id is not None:
+        raise OperacionNonPermitidaError("Esa persoa xa ten acceso á app")
+    outra = session.query(Persoa).filter_by(horta_id=convite.horta_id,
+                                            usuario_id=usuario.id).first()
+    if outra is not None:
+        raise OperacionNonPermitidaError(
+            f"A túa conta xa está nesta explotación como {outra.nome}")
+    membro = session.get(HortaMembro, (convite.horta_id, usuario.id))
+    if membro is None:
+        session.add(HortaMembro(horta_id=convite.horta_id, usuario_id=usuario.id,
+                                rol=convite.rol))
+    else:
+        membro.rol = convite.rol
+    persoa.usuario_id = usuario.id
+    convite.usado = agora or datetime.now(timezone.utc).replace(tzinfo=None)
+    session.commit()
+    return persoa
+
+
+def crear_conta_con_convite(session: Session, token: str, email: str, contrasinal: str,
+                            agora: datetime | None = None) -> Usuario:
+    """Quen non ten conta créaa co seu propio contrasinal ao abrir o convite."""
+    convite = convite_valido(session, token, agora)
+    email = normalizar_email(email)
+    if session.query(Usuario).filter_by(email=email).first() is not None:
+        raise OperacionNonPermitidaError(
+            "Xa hai unha conta con ese email: entra con ela e volve abrir a ligazón")
+    if len(contrasinal) < 8:
+        raise OperacionNonPermitidaError("O contrasinal ten que ter polo menos 8 caracteres")
+    persoa = session.get(Persoa, convite.persoa_id)
+    usuario = Usuario(nome=persoa.nome if persoa else email, email=email,
+                      password_hash=hash_password(contrasinal), rol=RolGlobal.USUARIO,
+                      activo=True)
+    session.add(usuario)
+    session.flush()
+    aceptar_convite(session, token, usuario, agora)
+    return usuario
+
+
+def cambiar_permiso(session: Session, actor: Usuario, persoa: Persoa, rol: RolHorta) -> None:
+    if persoa.usuario_id is None:
+        raise OperacionNonPermitidaError(f"{persoa.nome} non ten acceso á app")
+    cambiar_rol_membro(session, actor, persoa.horta_id, persoa.usuario_id, rol)
+
+
+# Duplicados e xuntar (deseño global §2bis): a mesma persoa nunca dúas veces
+
+def duplicados(session: Session, horta_id: int, nome: str, apelidos: str | None,
+               nif: str | None, email: str | None, excepto: int | None = None) -> list[Persoa]:
+    def igual(a: str | None, b: str | None) -> bool:
+        return bool(a and b and a.strip().casefold() == b.strip().casefold())
+
+    return [p for p in session.query(Persoa).filter(Persoa.horta_id == horta_id)
+            if p.id != excepto and (
+                igual(p.nif, nif) or igual(p.email, email)
+                or (igual(p.nome, nome) and igual(p.apelidos or "-", apelidos or "-")))]
+
+
+def xuntar_persoas(session: Session, actor: Usuario, queda: Persoa, sae: Persoa) -> Persoa:
+    """Pasa todo o de «sae» a «queda» (traballos, compras, vendas, papeis, conta) e bórraa.
+    Os datos baleiros de «queda» énchense cos de «sae»."""
+    comprobar_rol_horta(session, queda.horta_id, actor, {RolHorta.ADMIN})
+    if queda.id == sae.id or queda.horta_id != sae.horta_id:
+        raise OperacionNonPermitidaError("Escolle dúas persoas distintas da explotación")
+    if queda.usuario_id is not None and sae.usuario_id is not None:
+        raise OperacionNonPermitidaError("As dúas teñen conta na app: quítalle o acceso a unha")
+    for columna in Persoa.__table__.columns:
+        if columna.name not in ("id", "horta_id", "created_at") \
+                and getattr(queda, columna.key) in (None, "") \
+                and getattr(sae, columna.key) not in (None, ""):
+            setattr(queda, columna.key, getattr(sae, columna.key))
+    usuario_id, sae.usuario_id = sae.usuario_id, None
+    session.flush()
+    if usuario_id is not None:
+        queda.usuario_id = usuario_id
+    for papel in sae.papeis - queda.papeis:
+        queda.papeis_rexistro.append(PersoaPapel(papel=papel))
+    session.flush()
+    for taboa in Base.metadata.sorted_tables:
+        for fk in taboa.foreign_keys:
+            if fk.column.table.name == "persoa" and taboa.name != "persoa_papel":
+                session.execute(update(taboa).where(fk.parent == sae.id)
+                                .values({fk.parent.name: queda.id}))
+    session.delete(sae)
+    session.commit()
+    return queda
+
+
+# Historial de cada contacto (CRM): sae do que xa se apunta, sen escribir nada a maiores
+_QUE_E = {"entrada_produto": "Compra", "lote_saida": "Venda", "analise": "Análise",
+          "coidado_animal": "Coidado de animais", "movemento_animal": "Entrada ou saída de animais",
+          "pastoreo": "Pastoreo", "parcela": "Parcela arrendada ou cedida",
+          "tarefa": "Tarefa", "cultivo": "Sementeira", "labor": "Labor", "rega": "Rega",
+          "abonado": "Abonado", "colleita": "Colleita", "outro_traballo": "Outro traballo",
+          "tratamento_aplicador": "Tratamento (aplicou)",
+          "tratamento_asesor": "Tratamento (asesorou)",
+          "tratamento_instalacion": "Tratamento en instalación",
+          "producion_animal": "Produción dos animais"}
+
+
+@dataclass(frozen=True)
+class Feito:
+    data: date | None
+    que: str
+    importe: float | None
+
+
+def historial(session: Session, actor: Usuario, persoa: Persoa) -> list[Feito]:
+    comprobar_rol_horta(session, persoa.horta_id, actor, _ROLES_LECTURA)
+    feitos: list[Feito] = []
+    for taboa in Base.metadata.sorted_tables:
+        if taboa.name in ("persoa_papel", "convite"):
+            continue
+        for fk in taboa.foreign_keys:
+            if fk.column.table.name != "persoa":
+                continue
+            for fila in session.execute(select(taboa).where(fk.parent == persoa.id)).mappings():
+                if fila.get("baixa"):
+                    continue
+                data = next((fila[c] for c in ("data_inicio", "data", "data_mostraxe")
+                             if fila.get(c) is not None), None)
+                que = _QUE_E.get(taboa.name, taboa.name.replace("_", " ").capitalize())
+                feitos.append(Feito(data, que, fila.get("importe")))
+    return sorted(feitos, key=lambda f: f.data or date.min, reverse=True)

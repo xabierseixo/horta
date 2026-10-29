@@ -32,6 +32,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             not usuario_autenticado
             and ruta_e_paxina_rexistrada
             and request.url.path not in RUTAS_PUBLICAS
+            and not request.url.path.startswith("/convite/")
         ):
             return RedirectResponse("/login")
         return await call_next(request)
@@ -57,6 +58,7 @@ async def manexador_500(request: Request, exc: Exception) -> HTMLResponse:
 
 import horta.ui.admin.catalogos  # noqa: E402,F401
 import horta.ui.admin.usuarios  # noqa: E402,F401
+import horta.ui.pages.convite  # noqa: E402,F401
 import horta.ui.pages.dashboard  # noqa: E402,F401
 import horta.ui.pages.horta_detalle  # noqa: E402,F401
 import horta.ui.pages.login  # noqa: E402,F401
