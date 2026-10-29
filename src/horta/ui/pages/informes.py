@@ -1,5 +1,5 @@
-"""Informes: o que sae do traballo apuntado. Hoxe, o caderno de explotación, o que lle falta e
-os traballos sen quen o fixo."""
+"""Informes: o que sae do traballo apuntado. O caderno de explotación, o caderno dixital (CUE),
+o que lles falta e os traballos sen quen o fixo."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from horta.db import get_session
 from horta.services.diario import TIPOS, sen_quen
 from horta.services.faltas_caderno import faltas_caderno
 from horta.ui.descarga_caderno import boton_caderno
+from horta.ui.descarga_cue import seccion_cue
 from horta.ui.layout import url_seccion
 from horta.ui.pages.diario import SECCION_DO_TIPO
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -31,6 +32,7 @@ def seccion_informes(horta_id: int, uso_profesional: bool) -> None:
                  "descargalo se che serve.").classes("texto-suave q-mt-md")
         return
     inicio_ano = date(date.today().year, 1, 1)
+    seccion_cue(horta_id)
     with get_session() as session:
         actor = usuario_actual(session)
         if actor is None:
