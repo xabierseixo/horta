@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -133,13 +133,15 @@ def dar_de_baixa_apunte(session: Session, actor: Usuario, apunte: ApunteCartos) 
 
 
 def listar_apuntes(session: Session, actor: Usuario, horta_id: int,
-                   ano: int | None = None) -> list[ApunteCartos]:
+                   desde: date | None = None, ata: date | None = None
+                   ) -> list[ApunteCartos]:
     """Do máis recente ao máis antigo."""
     comprobar_rol_horta(session, horta_id, actor, _ROLES)
     consulta = session.query(ApunteCartos).filter_by(horta_id=horta_id, baixa=False)
-    if ano is not None:
-        consulta = consulta.filter(ApunteCartos.data >= date(ano, 1, 1),
-                                   ApunteCartos.data <= date(ano, 12, 31))
+    if desde is not None:
+        consulta = consulta.filter(ApunteCartos.data >= desde)
+    if ata is not None:
+        consulta = consulta.filter(ApunteCartos.data <= ata)
     return list(consulta.order_by(ApunteCartos.data.desc(), ApunteCartos.id.desc()))
 
 
@@ -274,9 +276,51 @@ def custos(session: Session, horta_id: int, desde: date, ata: date) -> Custos:
 
 # --- Resumo do ano
 
+# --- Períodos do resumo
+
+PERIODOS = {"semana": "Semana", "mes": "Mes", "trimestre": "Trimestre", "ano": "Ano"}
+_MESES = ("xaneiro", "febreiro", "marzo", "abril", "maio", "xuño", "xullo", "agosto",
+          "setembro", "outubro", "novembro", "decembro")
+
+
+@dataclass(frozen=True)
+class Periodo:
+    desde: date
+    ata: date
+    nome: str
+
+
+def periodo(tipo: str, dia: date) -> Periodo:
+    """A semana (de luns a domingo), o mes, o trimestre ou o ano onde cae ese día."""
+    if tipo == "semana":
+        luns = dia - timedelta(days=dia.weekday())
+        domingo = luns + timedelta(days=6)
+        return Periodo(luns, domingo, f"Semana do {luns:%d/%m/%Y} ao {domingo:%d/%m/%Y}")
+    if tipo == "mes":
+        seguinte = date(dia.year + dia.month // 12, dia.month % 12 + 1, 1)
+        return Periodo(date(dia.year, dia.month, 1), seguinte - timedelta(days=1),
+                       f"{_MESES[dia.month - 1].capitalize()} de {dia.year}")
+    if tipo == "trimestre":
+        t = (dia.month - 1) // 3
+        inicio = date(dia.year, 3 * t + 1, 1)
+        fin = periodo("mes", date(dia.year, 3 * t + 3, 1)).ata
+        return Periodo(inicio, fin, f"{t + 1}.º trimestre de {dia.year}")
+    if tipo == "ano":
+        return Periodo(date(dia.year, 1, 1), date(dia.year, 12, 31), str(dia.year))
+    raise OperacionNonPermitidaError("Período descoñecido")
+
+
+def periodos_recentes(tipo: str, hoxe: date, cantos: int = 12) -> list[Periodo]:
+    """O período actual e os anteriores, do máis recente ao máis antigo."""
+    lista = [periodo(tipo, hoxe)]
+    while len(lista) < cantos:
+        lista.append(periodo(tipo, lista[-1].desde - timedelta(days=1)))
+    return lista
+
+
 @dataclass
 class Resumo:
-    ano: int
+    periodo: Periodo
     ingresos: dict[str, float] = field(default_factory=dict)
     gastos: dict[str, float] = field(default_factory=dict)
     custos: Custos = field(default_factory=Custos)
@@ -300,9 +344,14 @@ class Resumo:
 
 
 def resumo_ano(session: Session, actor: Usuario, horta_id: int, ano: int) -> Resumo:
+    return resumo_periodo(session, actor, horta_id, periodo("ano", date(ano, 1, 1)))
+
+
+def resumo_periodo(session: Session, actor: Usuario, horta_id: int, periodo: Periodo
+                   ) -> Resumo:
     comprobar_rol_horta(session, horta_id, actor, _ROLES)
-    desde, ata = date(ano, 1, 1), date(ano, 12, 31)
-    resumo = Resumo(ano)
+    desde, ata = periodo.desde, periodo.ata
+    resumo = Resumo(periodo)
 
     def suma(valores: Any) -> float:
         return round(sum(v or 0 for (v,) in valores), 2)

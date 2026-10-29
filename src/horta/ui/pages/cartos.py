@@ -4,6 +4,7 @@ pendente de cobrar e de pagar por persoa, e os outros gastos e ingresos."""
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 from nicegui import ui
 
@@ -11,6 +12,7 @@ from horta.db import get_session
 from horta.models.cartos import ApunteCartos
 from horta.services.cartos import (
     CATEGORIAS,
+    PERIODOS,
     TIPOS,
     DatosApunte,
     actualizar_apunte,
@@ -18,7 +20,9 @@ from horta.services.cartos import (
     dar_de_baixa_apunte,
     listar_apuntes,
     pendente_por_persoa,
-    resumo_ano,
+    periodo,
+    periodos_recentes,
+    resumo_periodo,
 )
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.persoas import listar_persoas, nome_completo
@@ -39,7 +43,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
     if not pode_editar:
         ui.label("Só quen pode editar a explotación ve os cartos.").classes("texto-suave")
         return
-    estado = {"ano": date.today().year}
+    estado: dict[str, Any] = {"tipo": "ano", "periodo": periodo("ano", date.today())}
 
     @ui.refreshable
     def contido() -> None:
@@ -48,9 +52,10 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
             if actor is None:
                 pechar_sesion()
                 return
-            resumo = resumo_ano(session, actor, horta_id, estado["ano"])
+            actual = estado["periodo"]
+            resumo = resumo_periodo(session, actor, horta_id, actual)
             saldos = pendente_por_persoa(session, actor, horta_id)
-            apuntes = listar_apuntes(session, actor, horta_id, estado["ano"])
+            apuntes = listar_apuntes(session, actor, horta_id, actual.desde, actual.ata)
             nomes = {p.id: nome_completo(p)
                      for p in listar_persoas(session, actor, horta_id, so_activas=False)}
 
@@ -60,7 +65,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                 with ui.column().classes("tarxeta col gap-1"):
                     ui.label(titulo).classes("text-subtitle1 text-weight-bold")
                     if not partidas:
-                        ui.label("Nada apuntado este ano").classes("texto-suave")
+                        ui.label("Nada apuntado neste período").classes("texto-suave")
                     for nome, valor in partidas.items():
                         with ui.row().classes("w-full justify-between"):
                             ui.label(nome)
@@ -69,7 +74,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                         ui.label("Total")
                         ui.label(_euros(total))
         with ui.column().classes("tarxeta w-full gap-1 q-mt-md"):
-            ui.label(f"Resultado de {resumo.ano}: {_euros(resumo.resultado)}").classes(
+            ui.label(f"Resultado ({resumo.periodo.nome}): {_euros(resumo.resultado)}").classes(
                 "text-subtitle1 text-weight-bold")
             if resumo.custos.man_de_obra_propia:
                 ui.label(f"Sen contar as horas do titular e a familia (non se pagan): "
@@ -109,9 +114,25 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                  ).classes("w-full").props(TEXTOS_TABOA)
 
     with ui.row().classes("items-center gap-2"):
-        anos = list(range(date.today().year, date.today().year - 10, -1))
-        ui.select(anos, label="Ano", value=estado["ano"],
-                  on_change=lambda e: (estado.update(ano=e.value), contido.refresh()))
+        def opcions() -> dict[str, str]:
+            return {p.desde.isoformat(): p.nome
+                    for p in periodos_recentes(estado["tipo"], date.today())}
+
+        def cambiar_tipo(tipo: str) -> None:
+            estado["tipo"] = tipo
+            escoller.options = opcions()
+            escoller.value = periodo(tipo, date.today()).desde.isoformat()
+            escoller.update()
+
+        def cambiar_periodo(desde: str | None) -> None:
+            if desde is not None:
+                estado["periodo"] = periodo(estado["tipo"], date.fromisoformat(desde))
+                contido.refresh()
+
+        ui.select(PERIODOS, label="Resumo por", value="ano",
+                  on_change=lambda e: cambiar_tipo(e.value)).classes("min-w-32")
+        escoller = ui.select(opcions(), label="Período", value=estado["periodo"].desde.isoformat(),
+                             on_change=lambda e: cambiar_periodo(e.value)).classes("min-w-64")
 
     with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         titulo = ui.label("").classes("text-h6")

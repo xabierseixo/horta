@@ -14,7 +14,10 @@ from horta.services.cartos import (
     dar_de_baixa_apunte,
     listar_apuntes,
     pendente_por_persoa,
+    periodo,
+    periodos_recentes,
     resumo_ano,
+    resumo_periodo,
 )
 from horta.services.colleitas import DatosColleita, crear_colleita
 from horta.services.cultivos import crear_cultivo
@@ -157,3 +160,26 @@ def test_resumo_do_ano(session):
     assert resumo.resultado == 310.0
     assert resumo.resultado_sen_man_propia == 330.0
     assert resumo.custos.sen_custo == 0
+
+
+def test_periodos():
+    dia = date(2026, 10, 29)  # xoves
+    semana = periodo("semana", dia)
+    assert (semana.desde, semana.ata) == (date(2026, 10, 26), date(2026, 11, 1))
+    decembro = periodo("mes", date(2026, 12, 5))
+    assert (decembro.desde, decembro.ata) == (date(2026, 12, 1), date(2026, 12, 31))
+    assert periodo("mes", date(2028, 2, 5)).ata == date(2028, 2, 29)
+    trimestre = periodo("trimestre", dia)
+    assert (trimestre.desde, trimestre.ata, trimestre.nome) == (
+        date(2026, 10, 1), date(2026, 12, 31), "4.º trimestre de 2026")
+    assert [p.desde for p in periodos_recentes("trimestre", dia, 3)] == [
+        date(2026, 10, 1), date(2026, 7, 1), date(2026, 4, 1)]
+
+
+def test_resumo_dun_mes(session):
+    ana, horta, _ = _escenario(session)
+    crear_apunte(session, ana, horta.id, _apunte(data=date(2026, 3, 1)), hoxe=HOXE)
+    crear_apunte(session, ana, horta.id, _apunte(data=date(2026, 4, 1), importe=7.0),
+                 hoxe=HOXE)
+    marzo = resumo_periodo(session, ana, horta.id, periodo("mes", date(2026, 3, 15)))
+    assert marzo.gastos == {"Seguro": 120.0}
