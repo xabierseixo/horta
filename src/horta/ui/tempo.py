@@ -287,16 +287,23 @@ def predicion_inicio(concello_ine: str | None, estacion_id: int | None,
             if not dias:
                 ui.label("Sen conexión con MeteoGalicia agora mesmo.").classes("texto-suave")
                 return
+            if avisos_oficiais:
+                ui.label("Avisos").classes("text-subtitle2 q-mt-sm")
             for aviso in avisos_oficiais:
                 ui.label(f"Aviso {NIVEIS_AVISO[aviso.nivel]}: {aviso.tipo.lower()}, "
                          f"{aviso.inicio:%d/%m %H:%M}–{aviso.fin:%H:%M}").classes(
                     "etiqueta-aviso")
+            ui.label("Próximos días").classes("text-subtitle2 q-mt-sm")
             with ui.row().classes("w-full gap-2"):
                 for d in dias:
                     _tarxeta_dia(d)
-            for aviso_tarefa in avisos_tarefas(tarefas, dias):
+            avisos_das_tarefas = avisos_tarefas(tarefas, dias)
+            if avisos_das_tarefas:
+                ui.label("As túas tarefas").classes("text-subtitle2 q-mt-sm")
+            for aviso_tarefa in avisos_das_tarefas:
                 ui.label(aviso_tarefa).classes("etiqueta-aviso")
             if frio is not None:
+                ui.label("Froiteiros").classes("text-subtitle2 q-mt-sm")
                 ui.label(f"Horas de frío desde o 1 de novembro: {frio:.0f} h (para os "
                          "froiteiros)").classes("text-caption")
 

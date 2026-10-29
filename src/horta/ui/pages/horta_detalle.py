@@ -275,6 +275,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             "en_preparacion": ("En preparación", "etiqueta-aviso"),
             "non_profesional": ("Non profesional", "etiqueta-ok"),
         }[estado]
+        ui.label("Estado da explotación").classes("text-subtitle1 text-weight-bold q-mt-md")
         ui.label(texto_estado).classes(clase_estado)
         for aviso in avisos_admin:
             with ui.row().classes("items-center gap-2 q-mt-sm"):
@@ -371,6 +372,7 @@ def _seccion_dashboard(
     tarefas_proximas: list,
     tarefas_atrasadas: list,
 ) -> None:
+    ui.label("A explotación en números").classes("text-subtitle1 text-weight-bold q-mt-md")
     with ui.row().classes("w-full q-gutter-md q-mb-md"):
         with ui.card().classes("items-center"):
             ui.label(str(n_parcelas)).classes("text-h4 font-bold")
@@ -392,14 +394,14 @@ def _seccion_dashboard(
 
     with ui.row().classes("w-full q-gutter-md"):
         with ui.column().classes("col"):
-            ui.label("Tarefas de hoxe").classes("text-md font-bold")
+            ui.label("Tarefas de hoxe").classes("text-subtitle1 text-weight-bold")
             if tarefas_hoxe:
                 for tarefa in tarefas_hoxe:
                     ui.label(f"☐ {tarefa.descricion}").classes("text-body2")
             else:
                 ui.label("Non hai tarefas para hoxe.").classes("text-caption text-grey")
         with ui.column().classes("col"):
-            ui.label("Próximas actividades").classes("text-md font-bold")
+            ui.label("Próximas actividades").classes("text-subtitle1 text-weight-bold")
             if tarefas_proximas:
                 for tarefa in tarefas_proximas:
                     data_texto = tarefa.data.isoformat() if tarefa.data else "?"

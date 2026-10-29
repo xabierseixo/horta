@@ -44,7 +44,7 @@ def requisitos_en_regra(
         Requisito(
             "NIF do titular",
             bool(titular and titular.nif),
-            "Indica en «Persoas» quen é o titular e o seu NIF.",
+            "Indica en «Equipo» quen é o titular e o seu NIF.",
         ),
         Requisito(
             "Inscrición no REAGA",
@@ -54,7 +54,7 @@ def requisitos_en_regra(
         Requisito(
             "Aplicador con carné ROPO en vigor",
             bool(aplicadores),
-            "Dáo de alta na sección «Persoas».",
+            "Dáo de alta na sección «Equipo».",
         ),
     ]
     if ten_animais:
