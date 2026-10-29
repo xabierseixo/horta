@@ -42,6 +42,10 @@ class TempoDia(Base):
     refacho: Mapped[float | None] = mapped_column(Float, default=None)  # m/s
     humidade: Mapped[float | None] = mapped_column(Float, default=None)  # %
     et0: Mapped[float | None] = mapped_column(Float, default=None)  # l/m²
+    t_chan: Mapped[float | None] = mapped_column(Float, default=None)  # ºC a 10 cm de fondo
+    horas_frio: Mapped[float | None] = mapped_column(Float, default=None)  # horas a ≤ 7 ºC
+    horas_sol: Mapped[float | None] = mapped_column(Float, default=None)
+    balance_hidrico: Mapped[float | None] = mapped_column(Float, default=None)  # l/m²
     fonte: Mapped[str] = mapped_column(String(50), default="MeteoGalicia")
     consultado: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)

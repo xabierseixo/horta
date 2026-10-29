@@ -7,7 +7,7 @@ from __future__ import annotations
 import csv
 import math
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from functools import cache
 from pathlib import Path
@@ -100,27 +100,48 @@ def _gardar_dia(session: Session, estacion_id: int, data: date,
     return tempo
 
 
+def consultar_dias(session: Session, fonte: Fonte, estacion_id: int, desde: date, ata: date,
+                   hoxe: date | None = None) -> dict[date, TempoDia]:
+    """O tempo dos días rematados entre dúas datas nunha estación: o gardado e, o que falte,
+    de MeteoGalicia nunha soa consulta (e gárdase). Sen conexión, só o gardado."""
+    ata = min(ata, (hoxe or date.today()) - timedelta(days=1))
+    if ata < desde or session.get(EstacionMeteo, estacion_id) is None:
+        return {}
+    gardados = {t.data: t for t in session.query(TempoDia).filter(
+        TempoDia.estacion_id == estacion_id, TempoDia.data >= desde, TempoDia.data <= ata)}
+    faltan = [desde + timedelta(days=n) for n in range((ata - desde).days + 1)
+              if desde + timedelta(days=n) not in gardados]
+    if faltan:
+        try:
+            dias = fonte.dias(estacion_id, faltan[0], faltan[-1])
+        except SenTempo:
+            dias = []
+        for dia in dias:
+            if dia.estacion_id == estacion_id and dia.data in faltan \
+                    and dia.data not in gardados:
+                gardados[dia.data] = _gardar_dia(session, estacion_id, dia.data, dia.medidas)
+        session.commit()
+    return gardados
+
+
 def consultar_tempo(session: Session, fonte: Fonte, estacion_id: int, data: date,
                     hoxe: date | None = None) -> TempoDia | None:
     """O tempo dun día rematado nunha estación: o gardado ou, se non o hai, de MeteoGalicia
     (e gárdase). None se o día non rematou ou se non hai conexión."""
-    if data >= (hoxe or date.today()):
+    return consultar_dias(session, fonte, estacion_id, data, data, hoxe).get(data)
+
+
+def horas_frio(session: Session, fonte: Fonte, estacion_id: int | None,
+               hoxe: date | None = None) -> float | None:
+    """Horas a 7 ºC ou menos desde o 1 de novembro (o que piden os froiteiros para
+    florecer ben). Só de novembro a marzo."""
+    hoxe = hoxe or date.today()
+    if estacion_id is None or hoxe.month not in (11, 12, 1, 2, 3):
         return None
-    tempo = session.query(TempoDia).filter_by(estacion_id=estacion_id, data=data).first()
-    if tempo is not None:
-        return tempo
-    if session.get(EstacionMeteo, estacion_id) is None:
-        return None
-    try:
-        dias = fonte.dias(estacion_id, data, data)
-    except SenTempo:
-        return None
-    dia = next((d for d in dias if d.estacion_id == estacion_id and d.data == data), None)
-    if dia is None:
-        return None
-    tempo = _gardar_dia(session, estacion_id, data, dia.medidas)
-    session.commit()
-    return tempo
+    inicio = date(hoxe.year if hoxe.month >= 11 else hoxe.year - 1, 11, 1)
+    dias = consultar_dias(session, fonte, estacion_id, inicio, hoxe, hoxe)
+    horas = [t.horas_frio for t in dias.values() if t.horas_frio is not None]
+    return sum(horas) if horas else None
 
 
 def _modelos_con_parte_comun() -> list[type[Any]]:
@@ -169,6 +190,7 @@ class TempoDoTraballo:
 
     resumo: str
     avisos: list[str]
+    info: list[str] = field(default_factory=list)
 
 
 def _n(valor: float | None, unidade: str) -> str:
@@ -178,7 +200,8 @@ def _n(valor: float | None, unidade: str) -> str:
 def resumo(tempo: TempoDia, estacion: str) -> str:
     return (f"{estacion}, {tempo.data:%d/%m}: {_n(tempo.t_min, '')}–{_n(tempo.t_max, ' ºC')}, "
             f"{_n(tempo.choiva, ' l/m²')}, vento {_n(tempo.vento_medio, ' m/s')} "
-            f"(refacho {_n(tempo.refacho, '')})")
+            f"(refacho {_n(tempo.refacho, '')}), humidade {_n(tempo.humidade, ' %')}, "
+            f"chan {_n(tempo.t_chan, ' ºC')}")
 
 
 def avisos(tipo: str, tempo: TempoDia, choiva_antes: float | None = None) -> list[str]:
@@ -209,16 +232,28 @@ def tempo_do_traballo(session: Session, fonte: Fonte, tipo: str, estacion_id: in
     """O tempo dese día na estación, para mostralo no formulario mentres se apunta."""
     if estacion_id is None or data is None:
         return None
-    tempo = consultar_tempo(session, fonte, estacion_id, data, hoxe)
+    # Na rega mírase a semana enteira: unha soa consulta
+    semana = (consultar_dias(session, fonte, estacion_id, data - timedelta(days=6), data, hoxe)
+              if tipo == "rega" else {})
+    tempo = semana.get(data) if tipo == "rega" else consultar_tempo(session, fonte, estacion_id,
+                                                                     data, hoxe)
     estacion = session.get(EstacionMeteo, estacion_id)
     if tempo is None or estacion is None:
         return None
     choiva_antes = None
+    info: list[str] = []
     if tipo == "rega":
-        antes = [consultar_tempo(session, fonte, estacion_id, data - timedelta(days=d), hoxe)
-                 for d in (1, 2)]
-        choiva_antes = sum(t.choiva or 0 for t in antes if t is not None)
-    return TempoDoTraballo(resumo(tempo, estacion.nome), avisos(tipo, tempo, choiva_antes))
+        choiva_antes = sum(semana[d].choiva or 0 for d in
+                           (data - timedelta(days=1), data - timedelta(days=2)) if d in semana)
+        if tempo.et0 is not None:
+            info.append(f"Evapotranspiración ese día: {_n(tempo.et0, ' l/m²')} (a auga que "
+                        "perden o chan e as plantas)")
+        balance = [t.balance_hidrico for t in semana.values() if t.balance_hidrico is not None]
+        if balance:
+            info.append(f"Balance hídrico dos 7 días: {_n(sum(balance), ' l/m²')} "
+                        "(negativo: falta auga)")
+    return TempoDoTraballo(resumo(tempo, estacion.nome), avisos(tipo, tempo, choiva_antes),
+                           info)
 
 
 def estacion_do_lugar(session: Session, horta_id: int, parcela_id: int | None) -> int | None:

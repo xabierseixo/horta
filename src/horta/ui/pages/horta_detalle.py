@@ -293,7 +293,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                         ui.label(requisito.texto)
                         if not requisito.cumprido:
                             ui.label(requisito.axuda).classes("texto-suave text-caption")
-        predicion_inicio(lugar_tempo[0], tarefas)
+        predicion_inicio(lugar_tempo[0], lugar_tempo[1], tarefas)
         _seccion_dashboard(
             len(parcelas),
             len(cultivos),

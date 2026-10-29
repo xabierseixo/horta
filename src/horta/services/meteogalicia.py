@@ -23,7 +23,44 @@ MEDIDAS = {
     "VV_MAX_10m": "refacho",
     "HR_AVG_1.5m": "humidade",
     "ET0_SUM_1.5m": "et0",
+    "TS_AVG_-0.1m": "t_chan",
+    "HFRIO7_RECUENTO_1.5m": "horas_frio",
+    "HSOL_SUM_1.5m": "horas_sol",
+    "BH_SUM_1.5m": "balance_hidrico",
 }
+_SEN_DATO = -9999
+# Estado do ceo (JSON_Pred_Concello, anexo II): 1xx de día e 2xx de noite, co mesmo texto
+CEO = {1: "Despexado", 2: "Nubes altas", 3: "Nubes e claros", 4: "Nubrado", 5: "Moi nubrado",
+       6: "Néboas", 7: "Chuvascos", 8: "Nubrado e chuvascos", 9: "Chuvascos e neve",
+       10: "Orballo", 11: "Choiva", 12: "Neve", 13: "Treboada", 14: "Brétema",
+       15: "Bancos de néboa", 16: "Nubes medias", 17: "Choiva débil",
+       18: "Chuvascos débiles", 19: "Treboada con poucas nubes", 20: "Auga neve",
+       21: "Sarabia", 22: "Anubrado con chuvascos débiles", 23: "Anubrado con neve",
+       24: "Calima", 25: "Cuberto"}
+# Vento (anexo III): 299 calma, 300 variable; 301–332 forza × dirección
+_FORZAS = ("frouxo", "moderado", "forte", "moi forte")
+_DIRECCIONS = ("Norte", "Nordés", "Leste", "Sueste", "Sur", "Sudoeste", "Oeste", "Noroeste")
+# Avisos (JSON_Pred_AvisoConcello, anexo II e niveis)
+NIVEIS_AVISO = {1: "amarelo", 2: "laranxa", 3: "vermello"}
+
+
+def ceo_texto(codigo: int | None) -> str | None:
+    return CEO.get(codigo % 100) if codigo and codigo > 0 else None
+
+
+def vento_texto(codigo: int | None) -> str | None:
+    if codigo == 299:
+        return "Calma"
+    if codigo == 300:
+        return "Vento variable"
+    if codigo is None or not 301 <= codigo <= 332:
+        return None
+    forza, direccion = divmod(codigo - 301, 8)
+    return f"Vento {_FORZAS[forza]} do {_DIRECCIONS[direccion]}"
+
+
+def _valor(valor: Any) -> Any:
+    return None if valor == _SEN_DATO else valor
 _VALIDADO = 1  # lnCodigoValidacion dun dato válido
 
 
@@ -58,6 +95,19 @@ class DiaPredicion:
     # Probabilidade de choiva (%): a maior da mañá, a tarde e a noite
     choiva_pct: int | None
     nivel_aviso: int | None
+    ceo: str | None = None
+    vento: str | None = None
+    uv: int | None = None
+
+
+@dataclass(frozen=True)
+class Aviso:
+    """Aviso de MeteoGalicia para un concello (nivel 1 amarelo, 2 laranxa, 3 vermello)."""
+
+    inicio: datetime
+    fin: datetime
+    nivel: int
+    tipo: str
 
 
 def ler_estacions(datos: dict[str, Any]) -> list[Estacion]:
@@ -84,10 +134,22 @@ def ler_predicion(datos: dict[str, Any]) -> list[DiaPredicion]:
     dias: list[DiaPredicion] = []
     for dia in (datos.get("predConcello") or {}).get("listaPredDiaConcello") or []:
         choiva = [v for v in (dia.get("pchoiva") or {}).values() if v is not None and v >= 0]
+        vento = dia.get("vento") or {}
         dias.append(DiaPredicion(
-            datetime.fromisoformat(dia["dataPredicion"]).date(), dia.get("tMin"),
-            dia.get("tMax"), max(choiva) if choiva else None, dia.get("nivelAviso")))
+            datetime.fromisoformat(dia["dataPredicion"]).date(), _valor(dia.get("tMin")),
+            _valor(dia.get("tMax")), max(choiva) if choiva else None, dia.get("nivelAviso"),
+            ceo_texto(_valor(dia.get("ceoDia"))),
+            vento_texto(_valor(vento.get("tarde") or vento.get("manha"))),
+            _valor(dia.get("uvMax"))))
     return dias
+
+
+def ler_avisos(datos: dict[str, Any]) -> list[Aviso]:
+    return sorted((Aviso(datetime.fromisoformat(a["dataIni"]), datetime.fromisoformat(a["dataFin"]),
+                         a["idNivel"], a.get("tipoalerta_gl") or "")
+                   for dia in datos.get("listaDiaConcellos") or []
+                   for a in dia.get("listaAvisosConcellos") or []
+                   if a.get("idNivel") in NIVEIS_AVISO), key=lambda a: a.inicio)
 
 
 class Fonte(Protocol):
@@ -98,6 +160,8 @@ class Fonte(Protocol):
     def dias(self, estacion_id: int, desde: date, ata: date) -> list[Dia]: ...
 
     def predicion(self, concello_ine: str) -> list[DiaPredicion]: ...
+
+    def avisos(self, concello_ine: str) -> list[Aviso]: ...
 
 
 class MeteoGalicia:
@@ -120,3 +184,8 @@ class MeteoGalicia:
     def predicion(self, concello_ine: str) -> list[DiaPredicion]:
         return ler_predicion(self._ler(
             f"predicion/jsonPredConcellos.action?idConc={int(concello_ine)}"))
+
+    def avisos(self, concello_ine: str) -> list[Aviso]:
+        return ler_avisos(self._ler(
+            f"predicion/adversos/jsonAvisosConcellos.action?idConcello={int(concello_ine)}"
+            "&dia=-1"))

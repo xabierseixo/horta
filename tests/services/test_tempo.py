@@ -16,6 +16,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta
 from horta.services.meteogalicia import (
     SenTempo,
+    ler_avisos,
     ler_dias,
     ler_estacions,
     ler_predicion,
@@ -63,6 +64,9 @@ class Exemplo:
     def predicion(self, concello_ine):
         return ler_predicion(_ler("predicion.json"))
 
+    def avisos(self, concello_ine):
+        return ler_avisos(_ler("avisos.json"))
+
 
 def _estacion(id_):
     return next(e for e in Exemplo().estacions() if e.id == id_)
@@ -83,7 +87,8 @@ def test_le_os_datos_de_meteogalicia():
     assert (dia1.estacion_id, dia1.data) == (MABEGONDO, date(2026, 10, 1))
     assert dia1.medidas == {"t_min": 8.55, "t_max": 20.46, "t_media": 13.94, "choiva": 0.0,
                             "vento_medio": 1.14, "refacho": 8.5, "humidade": 83.0,
-                            "et0": 2.63}
+                            "et0": 2.63, "t_chan": 17.87, "horas_frio": 0.0,
+                            "horas_sol": 9.8019, "balance_hidrico": -2.63}
     # O refacho do día 2 non está validado: queda baleiro
     assert dia2.medidas["refacho"] is None and dia2.medidas["vento_medio"] == 0.86
     assert {e.id for e in Exemplo().estacions()} == {MABEGONDO, TORRE, XIPRO}
@@ -185,3 +190,33 @@ def test_avisos_das_tarefas_coa_predicion():
                       estado="pendente")]
     assert avisos_tarefas(tarefas, predicion) == [
         "«Cobre» o 29/10: probabilidade de choiva do 80 %"]
+
+
+def test_ceo_vento_uv_avisos_e_lua():
+    from horta.services.lua import fase_lua
+    from horta.services.meteogalicia import vento_texto
+
+    [hoxe, _] = ler_predicion(_ler("predicion.json"))
+    assert (hoxe.ceo, hoxe.vento, hoxe.uv) == ("Nubes altas", "Vento frouxo do Sudoeste", 3)
+    assert (vento_texto(299), vento_texto(332), vento_texto(-9999)) == (
+        "Calma", "Vento moi forte do Noroeste", None)
+    # O nivel 0 (normalidade) non é aviso
+    [aviso] = Exemplo().avisos("15078")
+    assert (aviso.nivel, aviso.tipo, aviso.inicio.hour) == (1, "Refacho máximo de vento", 6)
+    assert (fase_lua(date(2026, 10, 26)), fase_lua(date(2026, 11, 9))) == ("Lúa chea",
+                                                                            "Lúa nova")
+
+
+def test_rega_con_evapotranspiracion_e_horas_de_frio(session):
+    from horta.services.tempo import horas_frio
+
+    ana, horta, _ = _escenario(session)
+    gardar_lugar(session, ana, horta, None, _estacion(MABEGONDO))
+    fonte = Exemplo()
+    tempo = tempo_do_traballo(session, fonte, "rega", MABEGONDO, date(2026, 10, 2), HOXE)
+    assert tempo.info == [
+        "Evapotranspiración ese día: 1.8 l/m² (a auga que perden o chan e as plantas)",
+        "Balance hídrico dos 7 días: -4.4 l/m² (negativo: falta auga)"]
+    # Unha soa consulta para os 7 días
+    assert len(fonte.consultas) == 1
+    assert horas_frio(session, fonte, MABEGONDO, HOXE) is None  # en outubro, aínda non

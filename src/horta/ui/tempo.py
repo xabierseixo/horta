@@ -15,7 +15,15 @@ from horta.models.tarefa import Tarefa
 from horta.models.tempo import EstacionMeteo
 from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.meteogalicia import DiaPredicion, Estacion, MeteoGalicia, SenTempo
+from horta.services.lua import fase_lua
+from horta.services.meteogalicia import (
+    NIVEIS_AVISO,
+    Aviso,
+    DiaPredicion,
+    Estacion,
+    MeteoGalicia,
+    SenTempo,
+)
 from horta.services.tempo import (
     LONXE_KM,
     TempoDoTraballo,
@@ -24,6 +32,7 @@ from horta.services.tempo import (
     distancia_km,
     encher_tempo,
     estacion_do_lugar,
+    horas_frio,
     tempo_do_traballo,
 )
 from horta.ui.numeros import parsear_data
@@ -191,6 +200,8 @@ class EtiquetaTempo:
         with self.avisos:
             for aviso in tempo.avisos:
                 ui.label(aviso).classes("etiqueta-aviso")
+            for texto in tempo.info:
+                ui.label(texto).classes("text-caption texto-suave")
         self.caixa.set_visibility(True)
 
 
@@ -211,14 +222,20 @@ def encher_tempo_que_falta(horta_id: int) -> None:
 _DIAS_SEMANA = ("Luns", "Martes", "Mércores", "Xoves", "Venres", "Sábado", "Domingo")
 
 
-def _predicion(concello_ine: str) -> list[DiaPredicion]:
+def _predicion(concello_ine: str) -> tuple[list[DiaPredicion], list[Aviso]]:
     try:
-        return MeteoGalicia().predicion(concello_ine)
+        return MeteoGalicia().predicion(concello_ine), MeteoGalicia().avisos(concello_ine)
     except SenTempo:
-        return []
+        return [], []
 
 
-def predicion_inicio(concello_ine: str | None, tarefas: list[Tarefa]) -> None:
+def _horas_frio(estacion_id: int | None) -> float | None:
+    with get_session() as session:
+        return horas_frio(session, MeteoGalicia(), estacion_id)
+
+
+def predicion_inicio(concello_ine: str | None, estacion_id: int | None,
+                     tarefas: list[Tarefa]) -> None:
     """Inicio: a predición do concello da explotación e os avisos das tarefas de tratamento.
     Non se garda: consúltase ao abrir, sen bloquear a pantalla."""
     if not concello_ine:
@@ -234,21 +251,29 @@ def predicion_inicio(concello_ine: str | None, tarefas: list[Tarefa]) -> None:
         ui.label("Fonte: MeteoGalicia").classes("text-caption texto-suave")
 
     async def cargar() -> None:
-        dias = await run.io_bound(_predicion, concello_ine)
+        resultado = await run.io_bound(_predicion, concello_ine)
+        dias, avisos_oficiais = resultado if resultado else ([], [])
+        frio = await run.io_bound(_horas_frio, estacion_id)
         corpo.clear()
         with corpo:
             if not dias:
                 ui.label("Sen conexión con MeteoGalicia agora mesmo.").classes("texto-suave")
                 return
+            for aviso in avisos_oficiais:
+                ui.label(f"Aviso {NIVEIS_AVISO[aviso.nivel]}: {aviso.tipo.lower()}, "
+                         f"{aviso.inicio:%d/%m %H:%M}–{aviso.fin:%H:%M}").classes(
+                    "etiqueta-aviso")
             for d in dias:
-                partes = [f"{_DIAS_SEMANA[d.data.weekday()]} {d.data:%d/%m}",
+                partes = [f"{_DIAS_SEMANA[d.data.weekday()]} {d.data:%d/%m}", d.ceo or "",
                           f"{d.t_min}–{d.t_max} ºC" if d.t_min is not None else "",
-                          f"choiva {d.choiva_pct} %" if d.choiva_pct is not None else ""]
+                          f"choiva {d.choiva_pct} %" if d.choiva_pct is not None else "",
+                          (d.vento or "").lower(),
+                          f"UV {d.uv}" if d.uv is not None else "", fase_lua(d.data)]
                 ui.label(" · ".join(p for p in partes if p))
-                if d.nivel_aviso:
-                    ui.label(f"Aviso meteorolóxico (nivel {d.nivel_aviso}): mira "
-                             "meteogalicia.gal").classes("etiqueta-aviso")
-            for aviso in avisos_tarefas(tarefas, dias):
-                ui.label(aviso).classes("etiqueta-aviso")
+            for aviso_tarefa in avisos_tarefas(tarefas, dias):
+                ui.label(aviso_tarefa).classes("etiqueta-aviso")
+            if frio is not None:
+                ui.label(f"Horas de frío desde o 1 de novembro: {frio:.0f} h (para os "
+                         "froiteiros)").classes("text-caption")
 
     background_tasks.create(cargar())
