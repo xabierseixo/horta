@@ -69,6 +69,7 @@ from horta.models.tratamento_fito import (
 )
 from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.models.usuario import RolGlobal, Usuario
+from horta.models.zona import ParcelaZona
 
 __all__ = [
     "RolGlobal",
@@ -133,6 +134,7 @@ __all__ = [
     "Convite",
     "ApunteCartos",
     "Categoria",
+    "ParcelaZona",
     "PlanEmpresa",
     "PlanInvestimento",
     "PlanFinanciamento",

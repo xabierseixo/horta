@@ -25,6 +25,7 @@ from horta.services.cultivos import (
 from horta.services.historial import aviso_rotacion
 from horta.services.parcelas import listar_parcelas
 from horta.services.persoas import listar_quen
+from horta.services.zonas import listar_zonas
 from horta.ui.accions import executar_accion
 from horta.ui.campo_produto import opcions_entradas
 from horta.ui.campos import campo_data
@@ -139,6 +140,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             return lambda _: None
         cultivos = listar_cultivos(session, actor, horta_id)
         parcelas = listar_parcelas(session, actor, horta_id)
+        zonas = {p.id: {z.id: z.nome for z in listar_zonas(session, actor, p)}
+                 for p in parcelas}
         opcions_cultivo = {c.codigo: nome for c, nome in buscar_cultivos(session, "", 2000)}
         opcions = {
             campo: {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
@@ -153,6 +156,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         titulo = ui.label("Novo cultivo").classes("text-h6")
         ui.label("Que e onde").classes("text-subtitle2")
         parcela = ui.select(nome_parcela, label="Parcela").classes("w-full")
+        zona = ui.select({}, label="Zona da parcela (bancal, sector…)", clearable=True).classes(
+            "w-full")
         cultivo_oficial = ui.select(
             opcions_cultivo, label="Cultivo (lista oficial)", with_input=True
         ).classes("w-full")
@@ -265,6 +270,13 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
 
         parcela.on_value_change(propor_da_parcela)
 
+        def zonas_da_parcela() -> None:
+            opcions = zonas.get(parcela.value or 0, {})
+            zona.set_options(opcions, value=zona.value if zona.value in opcions else None)
+            zona.set_visibility(bool(opcions))
+
+        parcela.on_value_change(zonas_da_parcela)
+
         def gardar() -> None:
             if not parcela.value or cultivo_oficial.value is None:
                 ui.notify("Parcela e cultivo son obrigatorios", type="negative")
@@ -294,6 +306,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 producion_integrada=integrada.value,
                 procedencia_material=procedencia.value,
                 entrada_semente_id=compra_semente.value,
+                zona_id=zona.value,
                 num_arbores=_enteiro(num_arbores.value),
                 marco_plantacion=marco.value or None,
                 ano_plantacion=_enteiro(ano_plantacion.value),
@@ -380,7 +393,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         if c is None:
             editando["id"] = None
             titulo.text = "Novo cultivo"
-            parcela.value = cultivo_oficial.value = None
+            parcela.value = cultivo_oficial.value = zona.value = None
             for campo in campos_texto:
                 campo.value = ""
             for selector in campos_select:
@@ -400,6 +413,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         editando["id"] = c.id
         titulo.text = "Editar cultivo"
         parcela.value = c.parcela_id
+        zonas_da_parcela()
+        zona.value = c.zona_id
         cultivo_oficial.value = c.cultivo_siex_codigo
         variedade_oficial.value = c.variedade_siex_id
         variedade_texto.value = "" if c.variedade_siex_id else _texto(c.variedade)

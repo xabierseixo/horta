@@ -12,6 +12,7 @@ from nicegui import events, run, ui
 from horta.db import get_session
 from horta.models.horta import Horta
 from horta.models.parcela import Parcela
+from horta.models.zona import ParcelaZona
 from horta.services.diario import listar_traballos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.parcelas import (
@@ -28,6 +29,14 @@ from horta.services.xeo_oficial import (
     crear_parcela_do_recinto,
     recinto_no_punto,
     referencia_catastral_no_punto,
+)
+from horta.services.zonas import (
+    TIPOS_ZONA,
+    aviso_superficie,
+    borrar_zona,
+    crear_zona,
+    dividir_en_bancais,
+    listar_zonas,
 )
 from horta.ui.accions import executar_accion
 from horta.ui.campos import LOCALE_GL
@@ -85,6 +94,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             return
         horta = session.get(Horta, horta_id)
         parcelas = list(session.query(Parcela).filter_by(horta_id=horta_id))
+        zonas = {p.id: listar_zonas(session, actor, p) for p in parcelas}
+        avisos = [a for p in parcelas if (a := aviso_superficie(session, p))]
     situadas = [(p, (p.lat, p.lon)) for p in parcelas if p.lat is not None and p.lon is not None]
     centro = (situadas[0][1] if situadas
               else (horta.lat, horta.lon) if horta and horta.lat and horta.lon else _GALICIA)
@@ -100,6 +111,12 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         if forma:
             mapa.generic_layer(name="polygon", args=[forma, {"color": "#2e7d32"}]
                                ).run_method("bindTooltip", p.nome)
+        for z in zonas[p.id]:
+            forma_z = puntos_da_xeometria(z.geometria)
+            if forma_z:
+                mapa.generic_layer(name="polygon", args=[forma_z, {
+                    "color": "#ef6c00", "weight": 1, "dashArray": "4"}]).run_method(
+                    "bindTooltip", f"{p.nome} · {z.nome}")
 
     # Capas oficiais (as imaxes pídeas o navegador)
     capas: dict[str, Any] = {}
@@ -129,8 +146,71 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
                          value="sigpac", label="Ao premer no mapa").classes("w-64")
         escoller = ui.select({p.id: p.nome for p in parcelas}, label="Parcela",
                              clearable=True).classes("w-64")
-    ui.label("Tamén podes debuxar o contorno da parcela escollida co botón do polígono."
-             ).classes("texto-suave text-caption")
+    with ui.dialog() as dividir_dialogo, ui.card().style("width: min(28rem, 94vw)"):
+        ui.label("Dividir a parcela escollida en bancais iguais").classes("text-h6")
+        cantos = ui.number("Cantos bancais", value=4, min=1, step=1).classes("w-full")
+        orientacion = ui.number("Dirección dos bancais (graos desde o norte: 0 = norte–sur, "
+                                "90 = leste–oeste)", value=0, min=0, max=180).classes("w-full")
+        paso = ui.number("Paso entre bancais (m)", value=0.5, min=0, step=0.1).classes(
+            "w-full")
+        base = ui.input("Nome", value="Bancal").classes("w-full")
+
+        def dividir() -> None:
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                parcela = session.get(Parcela, escoller.value) if escoller.value else None
+                if actor_actual is None:
+                    return
+
+                def accion() -> None:
+                    if parcela is None:
+                        raise OperacionNonPermitidaError("Escolle primeiro a parcela")
+                    dividir_en_bancais(session, actor_actual, parcela, int(cantos.value or 0),
+                                       float(orientacion.value or 0), float(paso.value or 0),
+                                       base.value or "")
+
+                ok = executar_accion(session, accion)
+            if ok:
+                ui.navigate.reload()
+
+        with ui.row():
+            ui.button("Dividir", icon="view_week", on_click=dividir)
+            ui.button("Cancelar", on_click=dividir_dialogo.close).props("flat")
+
+    with ui.row().classes("items-center gap-2"):
+        destino = ui.select({"contorno": "O contorno da parcela", "zona": "Unha zona dentro "
+                             "dela"}, value="contorno", label="O que debuxas co polígono é"
+                            ).classes("w-64")
+        tipo_zona = ui.select(TIPOS_ZONA, value="bancal", label="Tipo de zona").classes("w-48")
+        nome_zona = ui.input("Nome da zona").classes("w-48")
+        ui.button("Dividir en bancais", icon="view_week",
+                  on_click=lambda: dividir_dialogo.open()).props("outline")
+    tipo_zona.bind_visibility_from(destino, "value", value="zona")
+    nome_zona.bind_visibility_from(destino, "value", value="zona")
+    for aviso in avisos:
+        ui.label(aviso).classes("etiqueta-aviso")
+
+    # As zonas de cada parcela, para borralas
+    with ui.expansion("Zonas das parcelas", icon="grid_view").classes("w-full q-mt-sm"):
+        for p in parcelas:
+            for z in zonas[p.id]:
+                with ui.row().classes("items-center gap-2"):
+                    ui.label(f"{p.nome} · {z.nome} ({TIPOS_ZONA[z.tipo]}): "
+                             f"{(z.superficie or 0) * 10000:.0f} m²")
+                    ui.button(icon="delete", on_click=lambda z=z: borrar(z.id)).props(
+                        "flat dense round size=sm color=negative")
+        if not any(zonas.values()):
+            ui.label("Aínda non hai zonas.").classes("texto-suave")
+
+    def borrar(zona_id: int) -> None:
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            zona = session.get(ParcelaZona, zona_id)
+            if actor_actual is None or zona is None:
+                return
+            ok = executar_accion(session, lambda: borrar_zona(session, actor_actual, zona))
+        if ok:
+            ui.navigate.reload()
 
     # Mentres se debuxa un contorno, os clics son os seus puntos
     debuxando = {"si": False}
@@ -214,6 +294,21 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
     def contorno(e: events.GenericEventArguments) -> None:
         aneis = e.args.get("layer", {}).get("_latlngs") or [[]]
         puntos = [(p["lat"], p["lng"]) for p in aneis[0]]
+        if destino.value == "zona":
+            with get_session() as session:
+                actor_actual = usuario_actual(session)
+                parcela = session.get(Parcela, escoller.value) if escoller.value else None
+                if actor_actual is None:
+                    return
+                if parcela is None:
+                    ui.notify("Escolle primeiro a parcela", type="warning")
+                    return
+                ok = executar_accion(session, lambda: crear_zona(
+                    session, actor_actual, parcela, nome_zona.value or "", tipo_zona.value,
+                    puntos))
+            if ok:
+                ui.navigate.reload()
+            return
         try:
             geojson, hectareas, centro_p = xeometria_debuxada(puntos)
         except OperacionNonPermitidaError as erro:

@@ -13,6 +13,8 @@ class Cultivo(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     parcela_id: Mapped[int] = mapped_column(ForeignKey("parcela.id"))
+    # Bancal ou sector da parcela (opcional)
+    zona_id: Mapped[int | None] = mapped_column(ForeignKey("parcela_zona.id"), default=None)
     especie: Mapped[str] = mapped_column(String(120))
     variedade: Mapped[str | None] = mapped_column(String(120), default=None)
     cultivo_siex_codigo: Mapped[int | None] = mapped_column(

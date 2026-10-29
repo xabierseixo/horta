@@ -24,6 +24,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import comprobar_quen
 from horta.services.produtos import comprobar_entrada_do_produto
+from horta.services.zonas import comprobar_zona
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -33,6 +34,7 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 # control de permisos, que se fai coa parcela_id actual.
 CAMPOS_EDITABLES_CULTIVO = frozenset(
     {
+        "zona_id",
         "especie",
         "variedade",
         "data_colleita_prevista",
@@ -213,6 +215,7 @@ def crear_cultivo(
     comprobar_quen(session, horta_id, campos.get("sementeira_persoa_id"),
                    campos.get("sementeira_horas"), obrigatoria=False)
     _comprobar_semente(session, horta_id, campos.get("entrada_semente_id"))
+    comprobar_zona(session, parcela_id, campos.get("zona_id"))
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, **campos)
     session.add(cultivo)
     session.commit()
@@ -237,6 +240,7 @@ def actualizar_cultivo(
     comprobar_quen(session, horta_id, cambios.get("sementeira_persoa_id"),
                    cambios.get("sementeira_horas"), obrigatoria=False)
     _comprobar_semente(session, horta_id, cambios.get("entrada_semente_id"))
+    comprobar_zona(session, cultivo.parcela_id, cambios.get("zona_id"))
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
     session.commit()
