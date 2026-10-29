@@ -15,7 +15,12 @@ from horta.models.usuario import Usuario
 from horta.services.coidados_animais import fin_tempo_espera, listar_coidados
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.lotes import comprobar_entrada, lote_para_entrada, propor_codigo
+from horta.services.lotes import (
+    codigo_por_agrupacion,
+    comprobar_entrada,
+    ficha_para,
+    lote_para_entrada,
+)
 from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
@@ -78,7 +83,9 @@ def propor_lote(session: Session, actor: Usuario, horta_id: int, produto: str,
                 data: date) -> str:
     """Primeiro lote libre do tipo AAAA-PRODUTO-NNN (p.ex. 2026-OVOS-001)."""
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
-    return propor_codigo(session, horta_id, PRODUTOS.get(produto, "Outro"), data)
+    ficha = ficha_para(session, horta_id, PRODUTOS.get(produto, "Outro"),
+                       UNIDADE_PRODUTO.get(produto, "kg"), produto_animal=produto, crear=False)
+    return codigo_por_agrupacion(session, ficha, data)
 
 
 def _validar(session: Session, datos: DatosProducion, animal: Animal, hoxe: date,

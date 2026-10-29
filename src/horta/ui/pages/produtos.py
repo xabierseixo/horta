@@ -13,6 +13,12 @@ from horta.db import get_session
 from horta.models.produto import EntradaProduto
 from horta.models.tarefa import Tarefa
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.lotes import (
+    AGRUPACIONS,
+    CATEGORIAS_VENDA_DIRECTA,
+    clases_da_ficha,
+    listar_fichas,
+)
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.services.produtos import (
     TIPOS_PRODUTO,
@@ -34,12 +40,53 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.pages.clasificacions import dialogo_ficha
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
 
 def seccion_produtos(horta_id: int, pode_editar: bool) -> None:
+    """Dúas pestanas, como Persoas: o que mercas (insumos) e o que vendes (fichas dos
+    produtos que saen, a documentación)."""
+    with ui.tabs().classes("w-full") as pestanas:
+        mercas = ui.tab("O que mercas")
+        vendes = ui.tab("O que vendes")
+    with ui.tab_panels(pestanas, value=mercas).classes("w-full"):
+        with ui.tab_panel(mercas):
+            _seccion_mercas(horta_id, pode_editar)
+        with ui.tab_panel(vendes):
+            _seccion_vendes(horta_id, pode_editar)
+
+
+def _seccion_vendes(horta_id: int, pode_editar: bool) -> None:
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            pechar_sesion()
+            return
+        fichas = listar_fichas(session, actor, horta_id)
+    categorias = {c: nome for c, (nome, *_) in CATEGORIAS_VENDA_DIRECTA.items()}
+    taboa = ui.table(
+        columns=[{"name": k, "label": etiqueta, "field": k, "align": "left"}
+                 for k, etiqueta in (("nome", "Produto"), ("lotes", "Como fas os lotes"),
+                                     ("clases", "Clases"), ("venda", "Venda directa"))],
+        rows=[{"id": f.id, "nome": f.nome, "lotes": AGRUPACIONS[f.agrupacion],
+               "clases": ", ".join(clases_da_ficha(f)),
+               "venda": categorias.get(f.categoria_venda_directa or "", "")} for f in fichas],
+        row_key="id", selection="single" if pode_editar else None,
+    ).classes("w-full taboa").props(
+        'flat bordered no-data-label="Aparecen soas coa primeira colleita ou produción" '
+        f'{TEXTOS_TABOA}')
+    if pode_editar:
+        abrir_ficha = dialogo_ficha()
+        por_id = {f.id: f for f in fichas}
+        ui.button("Editar", icon="edit", on_click=lambda: abrir_ficha(
+            por_id[taboa.selected[0]["id"]], None) if taboa.selected else ui.notify(
+            "Escolle primeiro un produto na táboa", type="warning")).props("outline")
+
+
+def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
     with get_session() as session:
         actor = usuario_actual(session)
         if actor is None:

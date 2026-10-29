@@ -4,6 +4,7 @@ from datetime import date
 
 import pytest
 
+from horta.models.lote import ProdutoVenda
 from horta.models.persoa import Persoa
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.animais import crear_animal
@@ -20,6 +21,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta
 from horta.services.lotes import (
     DatosSaida,
+    actualizar_ficha,
     actualizar_lote,
     avisos_saida,
     converter,
@@ -130,11 +132,13 @@ def test_maximo_en_invernadoiro(session):
     ana, horta, quen, cultivo = _escenario(session)
     colleita = _colleita(session, ana, cultivo, quen, cantidade=25, unidade="t")
     [lote] = listar_lotes(session, ana, horta.id)
-    actualizar_lote(session, ana, lote, "hortalizas", protexido=False)
+    ficha = session.get(ProdutoVenda, lote.produto_venda_id)
+    actualizar_ficha(session, ana, ficha, ficha.nome, "hortalizas", [], "colleita")
+    actualizar_lote(session, ana, lote, protexido=False)
     venda = _saida(colleita, quen, tipo="venda", canle="explotacion", cantidade=21,
                    unidade="t")
     assert avisos_saida(session, ana, venda)
-    actualizar_lote(session, ana, lote, "hortalizas", protexido=True)
+    actualizar_lote(session, ana, lote, protexido=True)
     assert avisos_saida(session, ana, venda) == []
 
 

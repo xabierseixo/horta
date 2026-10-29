@@ -17,10 +17,11 @@ from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.lotes import (
+    codigo_por_agrupacion,
     comprobar_entrada,
     cultivo_protexido,
+    ficha_para,
     lote_para_entrada,
-    propor_codigo,
 )
 from horta.services.persoas import comprobar_quen
 
@@ -240,7 +241,9 @@ def propor_lote(session: Session, actor: Usuario, cultivo_id: int, data: date) -
     """Primeiro lote libre do tipo AAAA-CULTIVO-NNN (p.ex. 2026-PATACA-001)."""
     cultivo, horta_id = _cultivo_e_horta(session, cultivo_id)
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
-    return propor_codigo(session, horta_id, cultivo.especie, data)
+    ficha = ficha_para(session, horta_id, cultivo.especie, "kg", cultivo.cultivo_siex_codigo,
+                       crear=False)
+    return codigo_por_agrupacion(session, ficha, data)
 
 
 def rendemento_kg_ha(session: Session, actor: Usuario, cultivo_id: int) -> float | None:

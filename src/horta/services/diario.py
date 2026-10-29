@@ -16,6 +16,7 @@ from horta.services.abonados import listar_abonados
 from horta.services.analises import listar_analises
 from horta.services.animais import ESPECIES, listar_animais
 from horta.services.catalogos import describir
+from horta.services.clasificacions import listar_clasificacions, listar_mesturas
 from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
@@ -47,6 +48,8 @@ TIPOS: dict[str, str] = {
     "producion_animal": "Produción dos animais",
     "pastoreo": "Pastoreo",
     "lote_saida": "Saída de produto (venda, casa...)",
+    "clasificacion": "Clasificación dun lote (tamaños, calidades)",
+    "mestura": "Mestura de lotes",
     "entrada_produto": "Entrada de produto (compra)",
     "outro_traballo": "Outro traballo (mantemento, limpeza…)",
     "tarefa": "Tarefa",
@@ -217,6 +220,21 @@ def listar_traballos(
             f"{codigo}",
             nomes.get(sa.comprador_id or 0) or sa.lugar or CANLES.get(sa.canle or "", "") or "",
             frozenset(), persoas=_quen(sa.persoa_id), sen_quen=sa.persoa_id is None))
+    for cl in listar_clasificacions(session, actor, horta_id):
+        lote = lotes.get(cl.lote_id)
+        clases = ", ".join(f"{c.clase} {c.cantidade:g}" for c in cl.clases)
+        traballos.append(Traballo(
+            "clasificacion", cl.id, cl.data, True,
+            f"{lote.codigo if lote else ''}: {clases}"
+            + (f", refugo {cl.refugo:g}" if cl.refugo else ""),
+            "", frozenset(), persoas=_quen(cl.persoa_id), sen_quen=cl.persoa_id is None))
+    for me in listar_mesturas(session, actor, horta_id):
+        lote = lotes.get(me.lote_id)
+        orixes = ", ".join(lotes[o.lote_id].codigo for o in me.orixes if o.lote_id in lotes)
+        traballos.append(Traballo(
+            "mestura", me.id, me.data, True,
+            f"{orixes} → {lote.codigo if lote else ''}", "", frozenset(),
+            persoas=_quen(me.persoa_id), sen_quen=me.persoa_id is None))
     for ou in listar_outros_traballos(session, actor, horta_id):
         traballos.append(Traballo(
             "outro_traballo", ou.id, ou.data_inicio, True, ou.descricion,

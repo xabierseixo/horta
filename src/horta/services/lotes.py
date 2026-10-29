@@ -17,7 +17,14 @@ from sqlalchemy.orm import Session
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
-from horta.models.lote import Lote, LoteSaida
+from horta.models.lote import (
+    Clasificacion,
+    Lote,
+    LoteSaida,
+    Mestura,
+    MesturaOrixe,
+    ProdutoVenda,
+)
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.usuario import Usuario
 from horta.services.cartos import comprobar_pago
@@ -70,6 +77,15 @@ SISTEMAS_PROTEXIDOS = ("4", "19", "26", "27", "28")
 _BASE = {"kg": ("kg", 1.0), "t": ("kg", 1000.0), "unidades": ("unidades", 1.0),
          "ducias": ("unidades", 12.0), "litros": ("litros", 1.0), "mazos": ("mazos", 1.0)}
 _CON_COMPRADOR = ("tenda", "almacen")
+# Como se agrupa cada produto en lotes: a lei
+# (Directiva 2011/91/UE) deixa decidir ao produtor; o sector fai un por colleita
+AGRUPACIONS: dict[str, str] = {
+    "colleita": "Un lote por colleita",
+    "dia": "Un lote por día",
+    "semana": "Un lote por semana",
+    "mes": "Un lote por mes",
+    "man": "Escríboo eu",
+}
 
 
 def converter(cantidade: float, de: str, a: str) -> float | None:
@@ -112,10 +128,12 @@ def lote_para_entrada(
         raise OperacionNonPermitidaError("O lote non pode quedar baleiro")
     lote = session.query(Lote).filter_by(horta_id=horta_id, codigo=codigo).one_or_none()
     if lote is None:
+        ficha = ficha_para(session, horta_id, produto, unidade, cultivo_siex_codigo,
+                           produto_animal)
         lote = Lote(horta_id=horta_id, codigo=codigo, produto=produto, unidade=unidade,
                     data=data, cultivo_siex_codigo=cultivo_siex_codigo,
                     produto_animal=produto_animal, protexido=protexido,
-                    categoria_venda_directa=_CATEGORIA_ANIMAL.get(produto_animal or ""))
+                    produto_venda_id=ficha.id)
         session.add(lote)
         session.flush()
         return lote
@@ -133,13 +151,112 @@ def lote_para_entrada(
     return lote
 
 
+def ficha_para(session: Session, horta_id: int, nome: str, unidade: str,
+               cultivo_siex_codigo: int | None = None, produto_animal: str | None = None,
+               crear: bool = True) -> ProdutoVenda:
+    """A ficha do produto que sae: a do mesmo cultivo oficial, produto animal ou nome; se non
+    hai, unha nova (non garda: faino quen apunta; con crear=False non se engade á sesión)."""
+    consulta = session.query(ProdutoVenda).filter_by(horta_id=horta_id)
+    if cultivo_siex_codigo:
+        ficha = consulta.filter_by(cultivo_siex_codigo=cultivo_siex_codigo).first()
+    elif produto_animal:
+        ficha = consulta.filter_by(produto_animal=produto_animal).first()
+    else:
+        ficha = next((f for f in consulta.filter_by(cultivo_siex_codigo=None,
+                                                    produto_animal=None)
+                      if f.nome.strip().lower() == nome.strip().lower()), None)
+    if ficha is None:
+        ficha = ProdutoVenda(horta_id=horta_id, nome=nome.strip(), unidade=unidade,
+                             cultivo_siex_codigo=cultivo_siex_codigo,
+                             produto_animal=produto_animal, agrupacion="colleita",
+                             categoria_venda_directa=_CATEGORIA_ANIMAL.get(produto_animal or ""))
+        if crear:
+            session.add(ficha)
+            session.flush()
+    return ficha
+
+
+def codigo_por_agrupacion(session: Session, ficha: ProdutoVenda, data: date) -> str:
+    """O código que lle toca a unha colleita ou produción segundo como se agrupa o produto:
+    se é por día, semana ou mes, o mesmo código ata que cambie o período."""
+    base = f"{data.year}-{nome_para_codigo(ficha.nome)}-"
+    if ficha.agrupacion == "dia":
+        return f"{base}{data:%m%d}"
+    if ficha.agrupacion == "semana":
+        ano, semana, _ = data.isocalendar()
+        return f"{ano}-{nome_para_codigo(ficha.nome)}-S{semana:02d}"
+    if ficha.agrupacion == "mes":
+        return f"{base}M{data:%m}"
+    return propor_codigo(session, ficha.horta_id, ficha.nome, data)
+
+
+def ficha_do_lote(session: Session, lote: Lote) -> ProdutoVenda:
+    ficha = session.get(ProdutoVenda, lote.produto_venda_id)
+    assert ficha is not None
+    return ficha
+
+
+def clases_da_ficha(ficha: ProdutoVenda) -> list[str]:
+    return [c.strip() for c in (ficha.clases or "").split(";") if c.strip()]
+
+
 def _entradas(session: Session, lote_id: int) -> list[tuple[float, str]]:
     colleitas = session.query(Colleita.cantidade, Colleita.unidade).filter_by(
         lote_id=lote_id, baixa=False)
     producions = session.query(ProducionAnimal.cantidade - func.coalesce(
         ProducionAnimal.retirada, 0), ProducionAnimal.unidade).filter_by(
         lote_id=lote_id, baixa=False)
-    return [(float(c), u) for c, u in [*colleitas, *producions]]
+    lista = [(float(c), u) for c, u in [*colleitas, *producions]]
+    # O que entrou dunha mestura, na unidade de cada lote de orixe
+    for cantidade, unidade in (session.query(MesturaOrixe.cantidade, Lote.unidade)
+                               .join(Mestura, Mestura.id == MesturaOrixe.mestura_id)
+                               .join(Lote, Lote.id == MesturaOrixe.lote_id)
+                               .filter(Mestura.lote_id == lote_id, Mestura.baixa.is_(False))):
+        lista.append((float(cantidade), unidade))
+    return lista
+
+
+@dataclass
+class Movementos:
+    """O que saíu dun lote, por clase (None = sen clase)."""
+
+    clasificado: dict[str, float]
+    refugo: float
+    saido: dict[str | None, float]
+
+
+def _movementos(session: Session, lote: Lote, excepto_saida: int | None = None,
+                excepto_clasificacion: int | None = None) -> Movementos:
+    clasificado: dict[str, float] = {}
+    refugo = 0.0
+    for cl in session.query(Clasificacion).filter_by(lote_id=lote.id, baixa=False):
+        if cl.id == excepto_clasificacion:
+            continue
+        refugo += cl.refugo or 0
+        for linea in cl.clases:
+            clasificado[linea.clase] = clasificado.get(linea.clase, 0) + linea.cantidade
+    saido: dict[str | None, float] = {}
+    for s in session.query(LoteSaida).filter_by(lote_id=lote.id, baixa=False):
+        if s.id != excepto_saida:
+            saido[s.clase] = saido.get(s.clase, 0) + (
+                converter(s.cantidade, s.unidade, lote.unidade) or 0)
+    for orixe in (session.query(MesturaOrixe)
+                  .join(Mestura, Mestura.id == MesturaOrixe.mestura_id)
+                  .filter(MesturaOrixe.lote_id == lote.id, Mestura.baixa.is_(False))):
+        saido[orixe.clase] = saido.get(orixe.clase, 0) + orixe.cantidade
+    return Movementos(clasificado, refugo, saido)
+
+
+def queda_por_clase(session: Session, lote: Lote, excepto_saida: int | None = None,
+                    excepto_clasificacion: int | None = None) -> dict[str | None, float]:
+    """O que queda de cada clase e sen clasificar (None), na unidade do lote."""
+    mov = _movementos(session, lote, excepto_saida, excepto_clasificacion)
+    queda: dict[str | None, float] = {
+        None: entrado(session, lote) - sum(mov.clasificado.values()) - mov.refugo
+        - mov.saido.get(None, 0)}
+    for clase in {*mov.clasificado, *(c for c in mov.saido if c is not None)}:
+        queda[clase] = mov.clasificado.get(clase, 0) - mov.saido.get(clase, 0)
+    return {k: round(v, 6) for k, v in queda.items()}
 
 
 def _na_unidade(lote: Lote, cantidades: list[tuple[float, str]]) -> float:
@@ -151,11 +268,9 @@ def entrado(session: Session, lote: Lote) -> float:
 
 
 def saido(session: Session, lote: Lote, excepto_saida: int | None = None) -> float:
-    consulta = session.query(LoteSaida.cantidade, LoteSaida.unidade).filter_by(
-        lote_id=lote.id, baixa=False)
-    if excepto_saida is not None:
-        consulta = consulta.filter(LoteSaida.id != excepto_saida)
-    return _na_unidade(lote, [(float(c), u) for c, u in consulta])
+    """Saídas, mesturas noutros lotes e refugo das clasificacións."""
+    mov = _movementos(session, lote, excepto_saida)
+    return sum(mov.saido.values()) + mov.refugo
 
 
 def queda(session: Session, lote: Lote) -> float:
@@ -194,16 +309,40 @@ def resumo_lotes(session: Session, actor: Usuario, horta_id: int
     return resumo
 
 
-def actualizar_lote(session: Session, actor: Usuario, lote: Lote,
-                    categoria_venda_directa: str | None, protexido: bool) -> Lote:
-    """A categoría da venda directa e se é de invernadoiro (para os máximos do anexo II)."""
+def actualizar_lote(session: Session, actor: Usuario, lote: Lote, protexido: bool) -> Lote:
+    """Se é de invernadoiro (para os máximos do anexo II)."""
     comprobar_rol_horta(session, lote.horta_id, actor, _ROLES_ESCRITURA)
-    if categoria_venda_directa not in (None, *CATEGORIAS_VENDA_DIRECTA):
-        raise OperacionNonPermitidaError("Categoría da venda directa descoñecida")
-    lote.categoria_venda_directa = categoria_venda_directa
     lote.protexido = protexido
     session.commit()
     return lote
+
+
+def listar_fichas(session: Session, actor: Usuario, horta_id: int) -> list[ProdutoVenda]:
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
+    return sorted(session.query(ProdutoVenda).filter_by(horta_id=horta_id),
+                  key=lambda f: f.nome.lower())
+
+
+def actualizar_ficha(session: Session, actor: Usuario, ficha: ProdutoVenda, nome: str,
+                     categoria_venda_directa: str | None, clases: list[str],
+                     agrupacion: str) -> ProdutoVenda:
+    """Nome, categoría da venda directa, clases e como se agrupa en lotes."""
+    comprobar_rol_horta(session, ficha.horta_id, actor, _ROLES_ESCRITURA)
+    if not nome.strip():
+        raise OperacionNonPermitidaError("O nome non pode quedar baleiro")
+    if categoria_venda_directa not in (None, *CATEGORIAS_VENDA_DIRECTA):
+        raise OperacionNonPermitidaError("Categoría da venda directa descoñecida")
+    if agrupacion not in AGRUPACIONS:
+        raise OperacionNonPermitidaError("Escolle como se fan os lotes")
+    limpas = list(dict.fromkeys(c.strip() for c in clases if c.strip()))
+    if any(";" in c or len(c) > 60 for c in limpas):
+        raise OperacionNonPermitidaError("Cada clase, sen «;» e ata 60 letras")
+    ficha.nome = nome.strip()
+    ficha.categoria_venda_directa = categoria_venda_directa
+    ficha.clases = ";".join(limpas) or None
+    ficha.agrupacion = agrupacion
+    session.commit()
+    return ficha
 
 
 @dataclass
@@ -221,6 +360,7 @@ class DatosSaida:
     albaran_factura: str | None = None
     importe: float | None = None
     data_pago: date | None = None
+    clase: str | None = None
     horas: float | None = None
     maquina_id: int | None = None
     notas: str | None = None
@@ -250,10 +390,15 @@ def _validar(session: Session, datos: DatosSaida, lote: Lote, hoxe: date,
     if datos.data < lote.data:
         raise OperacionNonPermitidaError(
             f"O lote empezou o {lote.data:%d/%m/%Y}: a saída non pode ser anterior")
-    disponible = entrado(session, lote) - saido(session, lote, excepto_id)
+    queda_clases = queda_por_clase(session, lote, excepto_id)
+    disponible = queda_clases.get(datos.clase)
+    if disponible is None:
+        raise OperacionNonPermitidaError(f"O lote {lote.codigo} non ten a clase «{datos.clase}»")
     if cantidade > disponible + 1e-9:
+        de = f" de {datos.clase}" if datos.clase else (
+            " sen clasificar" if len(queda_clases) > 1 else "")
         raise OperacionNonPermitidaError(
-            f"Do lote {lote.codigo} só quedan {disponible:g} {lote.unidade}")
+            f"Do lote {lote.codigo} só quedan {disponible:g} {lote.unidade}{de}")
     comprobar_quen(session, lote.horta_id, datos.persoa_id, datos.horas)
     comprobar_maquina(session, lote.horta_id, datos.maquina_id)
     if datos.tipo != "venda":
@@ -263,7 +408,7 @@ def _validar(session: Session, datos: DatosSaida, lote: Lote, hoxe: date,
     if datos.canle in _CON_COMPRADOR and datos.comprador_id is None:
         raise OperacionNonPermitidaError("Indica a que tenda, almacén ou cooperativa")
     # Decreto 125/2014 art. 7.3
-    if datos.canle == "tenda" and lote.categoria_venda_directa == "ovos":
+    if datos.canle == "tenda" and ficha_do_lote(session, lote).categoria_venda_directa == "ovos":
         raise OperacionNonPermitidaError("Os ovos non se poden vender a tendas")
     if datos.importe is not None and datos.importe < 0:
         raise OperacionNonPermitidaError("O prezo non pode ser negativo")
@@ -286,6 +431,7 @@ def _copiar(saida: LoteSaida, datos: DatosSaida, lote: Lote) -> None:
     saida.comprador_id = datos.comprador_id if venda else None
     saida.albaran_factura = (datos.albaran_factura or None) if venda else None
     saida.importe = datos.importe if venda else None
+    saida.clase = datos.clase or None
     saida.data_pago = datos.data_pago if venda else None
     saida.persoa_id = datos.persoa_id
     saida.horas = datos.horas
@@ -341,9 +487,10 @@ def vendido_no_ano(session: Session, horta_id: int, categoria: str, ano: int,
     unidade = CATEGORIAS_VENDA_DIRECTA[categoria][3]
     consulta = (session.query(LoteSaida.cantidade, LoteSaida.unidade)
                 .join(Lote, Lote.id == LoteSaida.lote_id)
+                .join(ProdutoVenda, ProdutoVenda.id == Lote.produto_venda_id)
                 .filter(LoteSaida.horta_id == horta_id, LoteSaida.baixa.is_(False),
                         LoteSaida.tipo == "venda", LoteSaida.canle.in_(CANLES_DIRECTAS),
-                        Lote.categoria_venda_directa == categoria,
+                        ProdutoVenda.categoria_venda_directa == categoria,
                         LoteSaida.data >= date(ano, 1, 1), LoteSaida.data <= date(ano, 12, 31)))
     if excepto_id is not None:
         consulta = consulta.filter(LoteSaida.id != excepto_id)
@@ -361,7 +508,7 @@ def avisos_saida(session: Session, actor: Usuario, datos: DatosSaida,
     if lote is None:
         return []
     avisos = []
-    categoria = lote.categoria_venda_directa
+    categoria = ficha_do_lote(session, lote).categoria_venda_directa
     if (datos.tipo == "venda" and datos.canle in CANLES_DIRECTAS and categoria
             and datos.cantidade):
         nome, maximo, maximo_protexido, unidade = CATEGORIAS_VENDA_DIRECTA[categoria]

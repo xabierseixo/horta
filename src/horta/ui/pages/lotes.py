@@ -18,14 +18,15 @@ from horta.services.lotes import (
     CATEGORIAS_VENDA_DIRECTA,
     TIPOS_SAIDA,
     DatosSaida,
-    actualizar_lote,
     actualizar_saida,
     avisos_saida,
     converter,
     crear_saida,
     dar_de_baixa_saida,
+    listar_fichas,
     listar_lotes,
     listar_saidas,
+    queda_por_clase,
     resumo_lotes,
 )
 from horta.services.maquinaria import listar_maquinas
@@ -38,6 +39,12 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.fotos import abrir_fotos
 from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.pages.clasificacions import (
+    dialogo_clasificacion,
+    dialogo_ficha,
+    dialogo_mestura,
+    texto_queda,
+)
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -59,6 +66,8 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
         lotes = listar_lotes(session, actor, horta_id)
         resumo = resumo_lotes(session, actor, horta_id)
         saidas = listar_saidas(session, actor, horta_id)
+        fichas = {f.id: f for f in listar_fichas(session, actor, horta_id)}
+        por_clase = {lote.id: queda_por_clase(session, lote) for lote in lotes}
         nomes = {p.id: p.nome for p in listar_persoas(session, actor, horta_id,
                                                        so_activas=False)}
     por_id = {lote.id: lote for lote in lotes}
@@ -69,8 +78,9 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
         "produto": lote.produto,
         "entrou": _canto(resumo[lote.id][0], lote.unidade),
         "saiu": _canto(resumo[lote.id][1], lote.unidade),
-        "queda": _canto(resumo[lote.id][2], lote.unidade),
-        "categoria": _CATEGORIAS.get(lote.categoria_venda_directa or "", ""),
+        "queda": texto_queda(por_clase[lote.id], lote.unidade),
+        "categoria": _CATEGORIAS.get(
+            fichas[lote.produto_venda_id].categoria_venda_directa or "", ""),
     } for lote in lotes]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
@@ -83,7 +93,9 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
 
     abrir = dialogo_saida(horta_id) if pode_editar else None
     if pode_editar and abrir is not None:
-        abrir_categoria = _dialogo_categoria()
+        abrir_ficha = dialogo_ficha()
+        abrir_clasificacion = dialogo_clasificacion(horta_id)
+        abrir_mestura = dialogo_mestura(horta_id)
 
         def lote_escollido() -> int | None:
             if not taboa.selected:
@@ -101,10 +113,16 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             if lote_id is not None:
                 abrir(None, None, lote_id, "casa")
 
-        def categoria() -> None:
+        def ficha() -> None:
             lote_id = lote_escollido()
             if lote_id is not None:
-                abrir_categoria(por_id[lote_id])
+                lote = por_id[lote_id]
+                abrir_ficha(fichas[lote.produto_venda_id], lote)
+
+        def clasificar() -> None:
+            lote_id = lote_escollido()
+            if lote_id is not None:
+                abrir_clasificacion(None, None, lote_id)
 
         def fotos() -> None:
             lote_id = lote_escollido()
@@ -115,8 +133,10 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             ui.button("Vender", icon="sell", on_click=vender)
             ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
             ui.button("Outra saída", icon="output", on_click=outra).props("outline")
-            ui.button("Tipo para a venda directa", icon="gavel", on_click=categoria).props(
-                "outline")
+            ui.button("Clasificar", icon="filter_list", on_click=clasificar).props("outline")
+            ui.button("Mesturar lotes", icon="merge", on_click=lambda: abrir_mestura(None)
+                      ).props("outline")
+            ui.button("Ficha do produto", icon="tune", on_click=ficha).props("outline")
 
     ui.label("Saídas").classes("text-h6 q-mt-md")
     filas_saidas = [{
@@ -176,41 +196,6 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
         ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
 
 
-def _dialogo_categoria() -> Callable[[Lote], None]:
-    """A categoría da venda directa dun lote e se é de invernadoiro (anexo II)."""
-    lote_id: dict[str, int] = {}
-    with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
-        ui.label("Venda directa (Decreto 125/2014)").classes("text-h6")
-        ui.label("Para avisar cando a venda directa do ano pase do máximo.").classes(
-            "text-caption")
-        categoria = ui.select(_CATEGORIAS, label="Que produto é", clearable=True).classes(
-            "w-full")
-        protexido = ui.checkbox("En invernadoiro ou túnel")
-
-        def gardar() -> None:
-            with get_session() as session:
-                actor = usuario_actual(session)
-                lote = session.get(Lote, lote_id.get("id", 0))
-                if actor is None or lote is None:
-                    return
-                ok = executar_accion(session, lambda: actualizar_lote(
-                    session, actor, lote, categoria.value, protexido.value))
-            if ok:
-                ui.navigate.reload()
-
-        with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
-
-    def abrir(lote: Lote) -> None:
-        lote_id["id"] = lote.id
-        categoria.value = lote.categoria_venda_directa
-        protexido.value = lote.protexido
-        dialogo.open()
-
-    return abrir
-
-
 def dialogo_saida(horta_id: int) -> Callable[..., None]:
     """Constrúe o diálogo de apuntar ou editar unha saída de produto e devolve a función que o
     abre: abrir(saida, tarefa=None, lote_id=None, tipo=None)."""
@@ -236,6 +221,8 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
                      ).classes("text-warning text-caption")
         lote = ui.select(opcions_lote, label="Lote", with_input=True).classes("w-full")
         tipo = ui.select(TIPOS_SAIDA, label="A onde vai", value="venda").classes("w-full")
+        clase = ui.select({}, label="Clase (tamaño, calidade…)", clearable=True).classes(
+            "w-full")
         with ui.row().classes("w-full no-wrap"):
             data = campo_data("Data", date.today().isoformat()).classes(
                 remove="w-full", add="col")
@@ -268,6 +255,7 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
                 lote_id=lote.value, data=inicio, data_fin=parsear_data(data_fin.value),
                 tipo=tipo.value, cantidade=canto if canto is not None else 0,
                 unidade=unidade.value, persoa_id=persoa.value, canle=canle.value,
+                clase=clase.value or None,
                 lugar=lugar.value or None, comprador_id=comprador.value,
                 albaran_factura=albaran.value or None, importe=parsear_decimal(importe.value),
                 data_pago=cobro.valor(parsear_data(data_fin.value) or inicio),
@@ -292,6 +280,13 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
             aviso.set_visibility(bool(textos))
 
         def cambiar_lote() -> None:
+            # As clases do lote, se se clasificou
+            with get_session() as session:
+                escollido = session.get(Lote, lote.value or 0)
+                quedan = queda_por_clase(session, escollido, editando["id"]) if escollido else {}
+            clases = {c: f"{c} (quedan {v:g})" for c, v in quedan.items() if c is not None}
+            clase.set_options(clases, value=clase.value if clase.value in clases else None)
+            clase.set_visibility(bool(clases))
             # A unidade do lote, ou unha que se poida converter a ela
             if lote.value in unidades_lote:
                 base = unidades_lote[lote.value]
@@ -342,7 +337,9 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
         data_fin.value = (saida.data_fin.isoformat()
                           if saida and saida.data_fin != saida.data else "")
         cantidade.value = f"{saida.cantidade:g}" if saida else ""
+        clase.value = None
         cambiar_lote()
+        clase.value = saida.clase if saida and saida.clase in clase.options else None
         if saida:
             unidade.value = saida.unidade
         canle.value = (saida.canle if saida and saida.canle else "explotacion")

@@ -27,7 +27,15 @@ from horta.models.fito_rexistro import (
 from horta.models.foto import Foto
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.labor import Labor, LaborCultivo
-from horta.models.lote import Lote, LoteSaida
+from horta.models.lote import (
+    Clasificacion,
+    ClasificacionClase,
+    Lote,
+    LoteSaida,
+    Mestura,
+    MesturaOrixe,
+    ProdutoVenda,
+)
 from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.outro_traballo import OutroTraballo
@@ -103,6 +111,11 @@ __all__ = [
     "TipoCarne",
     "Lote",
     "LoteSaida",
+    "ProdutoVenda",
+    "Clasificacion",
+    "ClasificacionClase",
+    "Mestura",
+    "MesturaOrixe",
     "OutroTraballo",
     "Convite",
     "ApunteCartos",

@@ -14,7 +14,7 @@ from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.labor import Labor
-from horta.models.lote import LoteSaida
+from horta.models.lote import Clasificacion, LoteSaida, Mestura
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
@@ -66,6 +66,8 @@ _TABOA_E_DATA: dict[str, tuple[type[Base], str]] = {
     "producion_animal": (ProducionAnimal, "data"),
     "pastoreo": (Pastoreo, "data_inicio"),
     "lote_saida": (LoteSaida, "data"),
+    "clasificacion": (Clasificacion, "data"),
+    "mestura": (Mestura, "data"),
     "entrada_produto": (EntradaProduto, "data"),
     "outro_traballo": (OutroTraballo, "data_inicio"),
 }
