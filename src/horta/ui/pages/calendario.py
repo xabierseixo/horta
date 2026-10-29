@@ -323,6 +323,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         punto = e.args["latlng"]
         lat, lon = round(punto["lat"], 6), round(punto["lng"], 6)
         if modo.value == "nada":
+            ui.notify("Para escoller unha parcela, cambia «Ao premer no mapa» (debaixo do mapa) "
+                      "a SIGPAC ou Catastro")
             return
         if modo.value == "situar":
             if escoller.value is None:
@@ -330,6 +332,7 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             else:
                 gardar({"lat": lat, "lon": lon})
             return
+        ui.notify("Consultando…", timeout=1500)
         try:
             if modo.value == "sigpac":
                 recinto = await run.io_bound(recinto_no_punto, lat, lon)
