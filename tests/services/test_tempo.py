@@ -25,6 +25,7 @@ from horta.services.parcelas import crear_parcela
 from horta.services.tempo import (
     aviso_distancia,
     avisos,
+    avisos_tarefas,
     concellos,
     consultar_tempo,
     encher_tempo,
@@ -170,3 +171,17 @@ def test_avisos():
     assert avisos("rega", tempo(), choiva_antes=8.5) == [
         "Choveron 8.5 l/m² nos dous días anteriores"]
     assert avisos("rega", tempo(), choiva_antes=0) == []
+
+
+def test_avisos_das_tarefas_coa_predicion():
+    from horta.models.tarefa import Tarefa
+    from horta.services.meteogalicia import DiaPredicion
+
+    predicion = [DiaPredicion(HOXE, 10, 20, 80, None), DiaPredicion(date(2026, 10, 30), 8, 21,
+                                                                       10, None)]
+    tarefas = [Tarefa(descricion="Cobre", tipo="tratamento", data=HOXE, estado="pendente"),
+               Tarefa(descricion="Rega", tipo="rega", data=HOXE, estado="pendente"),
+               Tarefa(descricion="Xofre", tipo="tratamento", data=date(2026, 10, 30),
+                      estado="pendente")]
+    assert avisos_tarefas(tarefas, predicion) == [
+        "«Cobre» o 29/10: probabilidade de choiva do 80 %"]

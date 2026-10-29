@@ -78,7 +78,7 @@ from horta.ui.pages.tratamentos import seccion_tratamentos_fito
 from horta.ui.pages.tratamentos_instalacion import seccion_tratamentos_instalacion
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
-from horta.ui.tempo import CampoLugarTempo
+from horta.ui.tempo import CampoLugarTempo, predicion_inicio
 
 _PROPS_TABOA = f'flat bordered no-data-label="Aínda non hai rexistros" {TEXTOS_TABOA}'
 
@@ -293,6 +293,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                         ui.label(requisito.texto)
                         if not requisito.cumprido:
                             ui.label(requisito.axuda).classes("texto-suave text-caption")
+        predicion_inicio(lugar_tempo[0], tarefas)
         _seccion_dashboard(
             len(parcelas),
             len(cultivos),

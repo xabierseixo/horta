@@ -18,12 +18,13 @@ from sqlalchemy.orm import Session
 from horta.db import Base
 from horta.models.horta import Horta, RolHorta
 from horta.models.parcela import Parcela
+from horta.models.tarefa import Tarefa
 from horta.models.tempo import EstacionMeteo, TempoDia, ligar_tempo, onde_e_cando
 from horta.models.traballo import ParteComun
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.meteogalicia import FONTE, Estacion, Fonte, SenTempo
+from horta.services.meteogalicia import FONTE, DiaPredicion, Estacion, Fonte, SenTempo
 
 # Guías de extensión agraria: para decidir no campo, a estación a menos de ~10 km
 #
@@ -226,3 +227,20 @@ def estacion_do_lugar(session: Session, horta_id: int, parcela_id: int | None) -
     horta = session.get(Horta, horta_id)
     return ((parcela.estacion_meteo_id if parcela else None)
             or (horta.estacion_meteo_id if horta else None))
+
+
+# Predición (paso 9b): non se garda, consúltase ao abrir Inicio
+CHOIVA_PREVISTA_PCT = 70  # deseño do tempo: aviso nas tarefas de tratamento
+
+
+def avisos_tarefas(tarefas: list[Tarefa], predicion: list[DiaPredicion]) -> list[str]:
+    """As tarefas de tratamento por facer nun día con choiva prevista. Nunca bloquean."""
+    por_dia = {d.data: d for d in predicion}
+    avisos_: list[str] = []
+    for tarefa in tarefas:
+        dia = por_dia.get(tarefa.data) if tarefa.data else None
+        if (tarefa.tipo == "tratamento" and tarefa.estado != "feito" and dia is not None
+                and dia.choiva_pct is not None and dia.choiva_pct >= CHOIVA_PREVISTA_PCT):
+            avisos_.append(f"«{tarefa.descricion}» o {dia.data:%d/%m}: probabilidade de choiva "
+                           f"do {dia.choiva_pct} %")
+    return avisos_

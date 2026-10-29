@@ -11,13 +11,15 @@ from nicegui import background_tasks, run, ui
 from horta.db import get_session
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
+from horta.models.tarefa import Tarefa
 from horta.models.tempo import EstacionMeteo
 from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.meteogalicia import Estacion, MeteoGalicia, SenTempo
+from horta.services.meteogalicia import DiaPredicion, Estacion, MeteoGalicia, SenTempo
 from horta.services.tempo import (
     LONXE_KM,
     TempoDoTraballo,
+    avisos_tarefas,
     concellos,
     distancia_km,
     encher_tempo,
@@ -204,3 +206,49 @@ def encher_tempo_que_falta(horta_id: int) -> None:
     usuario_id = _id_usuario()
     if usuario_id is not None:
         background_tasks.create(run.io_bound(_encher, usuario_id, horta_id))
+
+
+_DIAS_SEMANA = ("Luns", "Martes", "Mércores", "Xoves", "Venres", "Sábado", "Domingo")
+
+
+def _predicion(concello_ine: str) -> list[DiaPredicion]:
+    try:
+        return MeteoGalicia().predicion(concello_ine)
+    except SenTempo:
+        return []
+
+
+def predicion_inicio(concello_ine: str | None, tarefas: list[Tarefa]) -> None:
+    """Inicio: a predición do concello da explotación e os avisos das tarefas de tratamento.
+    Non se garda: consúltase ao abrir, sen bloquear a pantalla."""
+    if not concello_ine:
+        ui.label("Para ver a predición do tempo, escolle o concello en Datos da explotación "
+                 "→ O tempo.").classes("text-caption texto-suave q-my-sm")
+        return
+    with ui.column().classes("tarxeta w-full gap-1 q-my-md"):
+        ui.label(f"O tempo en {concellos().get(concello_ine, concello_ine)}").classes(
+            "text-subtitle1 text-weight-bold")
+        corpo = ui.column().classes("w-full gap-0")
+        with corpo:
+            ui.label("Consultando MeteoGalicia…").classes("texto-suave")
+        ui.label("Fonte: MeteoGalicia").classes("text-caption texto-suave")
+
+    async def cargar() -> None:
+        dias = await run.io_bound(_predicion, concello_ine)
+        corpo.clear()
+        with corpo:
+            if not dias:
+                ui.label("Sen conexión con MeteoGalicia agora mesmo.").classes("texto-suave")
+                return
+            for d in dias:
+                partes = [f"{_DIAS_SEMANA[d.data.weekday()]} {d.data:%d/%m}",
+                          f"{d.t_min}–{d.t_max} ºC" if d.t_min is not None else "",
+                          f"choiva {d.choiva_pct} %" if d.choiva_pct is not None else ""]
+                ui.label(" · ".join(p for p in partes if p))
+                if d.nivel_aviso:
+                    ui.label(f"Aviso meteorolóxico (nivel {d.nivel_aviso}): mira "
+                             "meteogalicia.gal").classes("etiqueta-aviso")
+            for aviso in avisos_tarefas(tarefas, dias):
+                ui.label(aviso).classes("etiqueta-aviso")
+
+    background_tasks.create(cargar())
