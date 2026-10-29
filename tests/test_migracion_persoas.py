@@ -44,7 +44,8 @@ def test_os_textos_pasan_a_persoas(tmp_path):
             "INSERT INTO analise (id, horta_id, material_analizado, data_mostraxe, "
             "laboratorio, laboratorio_nif, baixa, created_at) VALUES "
             "(1, 1, '3', '2026-03-01', 'Laboratorio Agrario', 'Q1500000A', 0, '2026-01-01')"))
-    _alembic(url, "upgrade", "head")
+    # Ata o último paso das persoas (despois, os provedores pasan ás compras: paso 7)
+    _alembic(url, "upgrade", "e1b3d5f7a9c4")
     with engine.connect() as conn:
         persoas = {fila.nome: fila for fila in conn.execute(text(
             "SELECT p.id, p.nome, p.tipo, p.nif, p.num_asesoramento, "
