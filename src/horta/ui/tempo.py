@@ -234,6 +234,34 @@ def _horas_frio(estacion_id: int | None) -> float | None:
         return horas_frio(session, MeteoGalicia(), estacion_id)
 
 
+# Icona de cada estado do ceo (código de MeteoGalicia sen a centena)
+_ICONAS_CEO = {1: "wb_sunny", 2: "filter_drama", 3: "filter_drama", 16: "filter_drama",
+               4: "cloud", 5: "cloud", 25: "cloud", 6: "blur_on", 14: "blur_on",
+               15: "blur_on", 24: "blur_on", 11: "umbrella", 13: "flash_on", 19: "flash_on",
+               9: "ac_unit", 12: "ac_unit", 20: "ac_unit", 23: "ac_unit"}
+
+
+def _tarxeta_dia(d: DiaPredicion) -> None:
+    icona = _ICONAS_CEO.get((d.ceo_codigo or 0) % 100, "grain" if d.ceo_codigo else "help")
+    with ui.column().classes("items-center gap-0 q-pa-sm").style(
+            "min-width: 8.5rem; border: 1px solid rgba(0,0,0,.12); border-radius: 8px"):
+        ui.label(f"{_DIAS_SEMANA[d.data.weekday()]} {d.data:%d/%m}").classes(
+            "text-weight-bold")
+        ui.icon(icona, size="2rem").classes("text-primary")
+        ui.label(d.ceo or "").classes("text-caption text-center")
+        if d.t_min is not None and d.t_max is not None:
+            ui.label(f"{d.t_min}° / {d.t_max}°").classes("text-h6")
+        for icona_dato, texto in (("water_drop", f"{d.choiva_pct} %"
+                                   if d.choiva_pct is not None else ""),
+                                  ("air", (d.vento or "").replace("Vento ", "")),
+                                  ("light_mode", f"UV {d.uv}" if d.uv is not None else ""),
+                                  ("dark_mode", fase_lua(d.data))):
+            if texto:
+                with ui.row().classes("items-center gap-1 no-wrap"):
+                    ui.icon(icona_dato, size="1rem").classes("texto-suave")
+                    ui.label(texto).classes("text-caption")
+
+
 def predicion_inicio(concello_ine: str | None, estacion_id: int | None,
                      tarefas: list[Tarefa]) -> None:
     """Inicio: a predición do concello da explotación e os avisos das tarefas de tratamento.
@@ -263,13 +291,9 @@ def predicion_inicio(concello_ine: str | None, estacion_id: int | None,
                 ui.label(f"Aviso {NIVEIS_AVISO[aviso.nivel]}: {aviso.tipo.lower()}, "
                          f"{aviso.inicio:%d/%m %H:%M}–{aviso.fin:%H:%M}").classes(
                     "etiqueta-aviso")
-            for d in dias:
-                partes = [f"{_DIAS_SEMANA[d.data.weekday()]} {d.data:%d/%m}", d.ceo or "",
-                          f"{d.t_min}–{d.t_max} ºC" if d.t_min is not None else "",
-                          f"choiva {d.choiva_pct} %" if d.choiva_pct is not None else "",
-                          (d.vento or "").lower(),
-                          f"UV {d.uv}" if d.uv is not None else "", fase_lua(d.data)]
-                ui.label(" · ".join(p for p in partes if p))
+            with ui.row().classes("w-full gap-2"):
+                for d in dias:
+                    _tarxeta_dia(d)
             for aviso_tarefa in avisos_tarefas(tarefas, dias):
                 ui.label(aviso_tarefa).classes("etiqueta-aviso")
             if frio is not None:

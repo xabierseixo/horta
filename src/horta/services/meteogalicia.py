@@ -98,6 +98,7 @@ class DiaPredicion:
     ceo: str | None = None
     vento: str | None = None
     uv: int | None = None
+    ceo_codigo: int | None = None
 
 
 @dataclass(frozen=True)
@@ -140,7 +141,7 @@ def ler_predicion(datos: dict[str, Any]) -> list[DiaPredicion]:
             _valor(dia.get("tMax")), max(choiva) if choiva else None, dia.get("nivelAviso"),
             ceo_texto(_valor(dia.get("ceoDia"))),
             vento_texto(_valor(vento.get("tarde") or vento.get("manha"))),
-            _valor(dia.get("uvMax"))))
+            _valor(dia.get("uvMax")), _valor(dia.get("ceoDia"))))
     return dias
 
 
