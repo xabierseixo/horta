@@ -250,3 +250,14 @@ def test_parcela_garda_sigpac_completo(session):
     arrendador = crear_contacto(session, ana, horta.id, "Arrendador", None, nif="12345678Z")
     actualizar_parcela(session, ana, parcela, arrendador_id=arrendador.id)
     assert (parcela.sigpac_zona, parcela.arrendador_id) == ("0", arrendador.id)
+
+
+def test_xeometria_debuxada():
+    from horta.services.parcelas import puntos_da_xeometria, xeometria_debuxada
+
+    # Un cadrado de ~100 m de lado en Galicia (0,0009º de lat ≈ 100 m)
+    puntos = [(42.8, -8.0), (42.8009, -8.0), (42.8009, -7.99878), (42.8, -7.99878)]
+    geojson, hectareas, centro = xeometria_debuxada(puntos)
+    assert 0.95 < hectareas < 1.05
+    assert puntos_da_xeometria(geojson) == puntos
+    assert centro == (42.80045, -7.99939)

@@ -6,7 +6,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
+from io import BytesIO
 
+import segno
 from nicegui import ui
 
 from horta.db import get_session
@@ -594,11 +596,23 @@ def abrir_paxina_publica(lote_id: int) -> None:
         ui.label("Quen teña este enderezo ve de onde vén o produto e que se lle fixo (nunca a "
                  "quen se vendeu). Pódese poñer na etiqueta.").classes("text-caption")
         enderezo = ui.label("").classes("text-weight-bold")
+        qr = ui.image().style("width: 12rem")
+        ligazon: dict[str, str] = {}
+
         async def amosar() -> None:
-            url = await ui.run_javascript("window.location.origin")
-            enderezo.set_text(f"{url}/lote/{token}")
+            orixe = await ui.run_javascript("window.location.origin")
+            ligazon["url"] = f"{orixe}/lote/{token}"
+            enderezo.set_text(ligazon["url"])
+            qr.set_source(segno.make(ligazon["url"], error="m").svg_data_uri(scale=6))
 
         ui.timer(0.1, amosar, once=True)
+
+        def descargar_qr() -> None:
+            if "url" not in ligazon:
+                return
+            saida = BytesIO()
+            segno.make(ligazon["url"], error="m").save(saida, kind="png", scale=10)
+            ui.download.content(saida.getvalue(), f"qr-lote-{lote.codigo}.png")
 
         def retirar() -> None:
             with get_session() as session:
@@ -612,6 +626,7 @@ def abrir_paxina_publica(lote_id: int) -> None:
                 ui.notify("Retirada: o enderezo xa non funciona")
 
         with ui.row():
+            ui.button("Descargar o QR", icon="qr_code", on_click=descargar_qr)
             ui.button("Abrir", icon="open_in_new",
                       on_click=lambda: ui.navigate.to(f"/lote/{token}", new_tab=True))
             ui.button("Retirar", icon="link_off", on_click=retirar).props("flat color=negative")

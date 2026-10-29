@@ -41,7 +41,8 @@ def abrir_identificados(horta_id: int, animal_id: int) -> None:
     with ui.dialog() as dialogo, ui.card().style("width: min(44rem, 96vw)"):
         ui.label(f"Animais identificados: {animal.especie}").classes("text-h6")
         ui.label("Crotal, microchip ou anela de cada animal. Obrigatorio no vacún, ovellas, "
-                 "cabras e cabalos; opcional no resto.").classes("texto-suave text-caption")
+                 "cabras e cabalos (RD 787/2023); no porcino e nas aves a marca é da "
+                 "explotación. Opcional no resto.").classes("texto-suave text-caption")
         if aviso:
             ui.label(aviso).classes("etiqueta-aviso")
         taboa = ui.table(

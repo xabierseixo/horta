@@ -12,7 +12,11 @@ from horta.db import get_session
 from horta.models.horta import Horta
 from horta.models.parcela import Parcela
 from horta.services.diario import listar_traballos
-from horta.services.parcelas import actualizar_parcela
+from horta.services.parcelas import (
+    actualizar_parcela,
+    puntos_da_xeometria,
+    xeometria_debuxada,
+)
 from horta.services.persoas import listar_persoas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import LOCALE_GL
@@ -73,10 +77,18 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
     situadas = [(p, (p.lat, p.lon)) for p in parcelas if p.lat is not None and p.lon is not None]
     centro = (situadas[0][1] if situadas
               else (horta.lat, horta.lon) if horta and horta.lat and horta.lon else _GALICIA)
-    mapa = ui.leaflet(center=centro, zoom=15 if situadas else 8).classes("w-full").style(
-        "height: 60vh")
+    debuxo = ({"draw": {"polygon": True, "marker": False, "circlemarker": False,
+                        "polyline": False, "rectangle": False, "circle": False},
+               "edit": False} if pode_editar else False)
+    mapa = ui.leaflet(center=centro, zoom=15 if situadas else 8, draw_control=debuxo,
+                      hide_drawn_items=True).classes("w-full").style("height: 60vh")
     for p, punto in situadas:
         mapa.marker(latlng=punto).run_method("bindTooltip", p.nome)
+    for p in parcelas:
+        forma = puntos_da_xeometria(p.geometria)
+        if forma:
+            mapa.generic_layer(name="polygon", args=[forma, {"color": "#2e7d32"}]
+                               ).run_method("bindTooltip", p.nome)
     sen_situar = [p for p in parcelas if p.lat is None or p.lon is None]
     if sen_situar:
         ui.label("Sen situar no mapa: " + ", ".join(p.nome for p in sen_situar)).classes(
@@ -86,10 +98,16 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
     with ui.row().classes("items-center gap-2 q-mt-sm"):
         escoller = ui.select({p.id: p.nome for p in parcelas}, label="Situar a parcela"
                              ).classes("w-64")
-        ui.label("e preme no mapa onde está.").classes("texto-suave")
+        ui.label("e preme no mapa onde está, ou debuxa o seu contorno co botón do polígono."
+                 ).classes("texto-suave")
+
+    # Mentres se debuxa un contorno, os clics son os seus puntos, non «situar»
+    debuxando = {"si": False}
+    mapa.on("draw:drawstart", lambda: debuxando.update(si=True))
+    mapa.on("draw:drawstop", lambda: debuxando.update(si=False))
 
     def situar(e: events.GenericEventArguments) -> None:
-        if escoller.value is None:
+        if escoller.value is None or debuxando["si"]:
             return
         punto = e.args["latlng"]
         with get_session() as session:
@@ -104,3 +122,26 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             ui.navigate.reload()
 
     mapa.on("map-click", situar)
+
+    def contorno(e: events.GenericEventArguments) -> None:
+        if escoller.value is None:
+            ui.notify("Escolle primeiro a parcela", type="warning")
+            return
+        aneis = e.args.get("layer", {}).get("_latlngs") or [[]]
+        puntos = [(p["lat"], p["lng"]) for p in aneis[0]]
+        with get_session() as session:
+            actor_actual = usuario_actual(session)
+            parcela = session.get(Parcela, escoller.value)
+            if actor_actual is None or parcela is None:
+                return
+
+            def accion() -> None:
+                geojson, hectareas, centro_p = xeometria_debuxada(puntos)
+                actualizar_parcela(session, actor_actual, parcela, geometria=geojson,
+                                   lat=centro_p[0], lon=centro_p[1], superficie=hectareas)
+
+            ok = executar_accion(session, accion)
+        if ok:
+            ui.navigate.reload()
+
+    mapa.on("draw:created", contorno)

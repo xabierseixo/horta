@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import math
 from datetime import date
 from typing import Any
 
@@ -195,3 +197,31 @@ def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None
 def listar_parcelas(session: Session, actor: Usuario, horta_id: int) -> list[Parcela]:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
     return list(session.query(Parcela).filter_by(horta_id=horta_id).order_by(Parcela.nome).all())
+
+
+# --- Debuxo da parcela no mapa (paso 13)
+
+def xeometria_debuxada(puntos: list[tuple[float, float]]) -> tuple[str, float, tuple[float, float]]:
+    """De (lat, lon) dun polígono debuxado: GeoJSON, superficie en ha e centro.
+    Superficie aproximada (proxección local), abonda para unha leira."""
+    if len(puntos) < 3:
+        raise OperacionNonPermitidaError("Un polígono precisa polo menos tres puntos")
+    lat0 = sum(p[0] for p in puntos) / len(puntos)
+    lon0 = sum(p[1] for p in puntos) / len(puntos)
+    raio = 6371008.8
+    xy = [(math.radians(lon - lon0) * raio * math.cos(math.radians(lat0)),
+           math.radians(lat - lat0) * raio) for lat, lon in puntos]
+    area_m2 = abs(sum(x1 * y2 - x2 * y1
+                      for (x1, y1), (x2, y2) in zip(xy, xy[1:] + xy[:1], strict=True))) / 2
+    aneis = [[lon, lat] for lat, lon in puntos] + [[puntos[0][1], puntos[0][0]]]
+    geojson = json.dumps({"type": "Polygon", "coordinates": [aneis]})
+    return geojson, round(area_m2 / 10000, 4), (round(lat0, 6), round(lon0, 6))
+
+
+def puntos_da_xeometria(geometria: str | None) -> list[tuple[float, float]]:
+    """(lat, lon) do primeiro anel dun Polygon GeoJSON; [] se non o é."""
+    try:
+        datos = json.loads(geometria or "")
+        return [(lat, lon) for lon, lat in datos["coordinates"][0][:-1]]
+    except (ValueError, KeyError, IndexError, TypeError):
+        return []

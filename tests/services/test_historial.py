@@ -48,3 +48,13 @@ def test_rotacion(session):
         actualizar_cultivo(session, ana, cultivo, data_inicio=date(ano, 4, 1))
     avisos = [(c.cultivo.especie, c.aviso is not None) for c in rotacion(session, ana, parcela)]
     assert avisos == [("Millo", False), ("Pataca", True), ("Pataca", False)]
+
+
+def test_rotacion_por_familia(session):
+    ana, horta, _ = _escenario(session)
+    parcela = crear_parcela(session, ana, horta.id, "Leira")
+    for ano, especie in ((2025, "Pataca"), (2026, "Tomate de colgar")):
+        cultivo = crear_cultivo(session, ana, parcela.id, especie)
+        actualizar_cultivo(session, ana, cultivo, data_inicio=date(ano, 4, 1))
+    [tomate, pataca] = rotacion(session, ana, parcela)
+    assert "mesma familia (Solanáceas)" in (tomate.aviso or "") and pataca.aviso is None

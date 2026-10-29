@@ -13,6 +13,7 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pydantic>=2.13.5",
     "python-dateutil>=2.9.0.post0",
+    "segno>=1.6.6",
     "sqlalchemy>=2.0.54",
 ]
 

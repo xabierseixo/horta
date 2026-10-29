@@ -4,8 +4,12 @@ maiores). E a rotación de cultivos de cada parcela."""
 
 from __future__ import annotations
 
+import csv
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
+from functools import cache
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import Table, select
@@ -21,9 +25,10 @@ from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
-# Rotación: non repetir o mesmo cultivo na mesma leira antes de 3 anos (orientativo: as boas
-# prácticas falan de 3–4 anos e da mesma familia; aquí só se mira o mesmo cultivo)
+# Rotación: non repetir o mesmo cultivo nin a mesma familia na mesma leira antes de 3 anos
+# (orientativo: as boas prácticas falan de 3–4 anos). Familias dos cultivos de horta comúns
 ANOS_ROTACION = 3
+_FAMILIAS = Path(__file__).resolve().parents[1] / "data" / "familias_cultivos.csv"
 
 _QUE_E = {"entrada_produto": "Compra", "lote_saida": "Venda", "analise": "Análise",
           "coidado_animal": "Coidado de animais", "movemento_animal": "Entrada ou saída de animais",
@@ -123,16 +128,36 @@ def _mesmo(a: Cultivo, b: Cultivo) -> bool:
     return a.especie.strip().lower() == b.especie.strip().lower()
 
 
+@cache
+def _familias() -> dict[str, str]:
+    with _FAMILIAS.open(encoding="utf-8") as ficheiro:
+        return {fila["cultivo"]: fila["familia"] for fila in csv.DictReader(ficheiro)}
+
+
+def familia(especie: str) -> str | None:
+    """A familia botánica dun cultivo de horta común (pola primeira palabra, sen acentos)."""
+    texto = unicodedata.normalize("NFKD", especie).encode("ascii", "ignore").decode().lower()
+    palabras = texto.replace(",", " ").split()
+    return _familias().get(palabras[0]) if palabras else None
+
+
 def aviso_rotacion(anteriores: list[Cultivo], cultivo: Cultivo) -> str | None:
-    """O mesmo cultivo na mesma leira hai menos de 3 anos. Nunca bloquea."""
+    """O mesmo cultivo, ou outro da mesma familia, na mesma leira hai menos de 3 anos.
+    Nunca bloquea."""
     if cultivo.data_inicio is None:
         return None
     for antes in anteriores:
-        if (antes.id != cultivo.id and antes.data_inicio is not None and _mesmo(antes, cultivo)
-                and 0 <= (cultivo.data_inicio - antes.data_inicio).days
+        if (antes.id == cultivo.id or antes.data_inicio is None
+                or not 0 <= (cultivo.data_inicio - antes.data_inicio).days
                 < ANOS_ROTACION * 365):
+            continue
+        if _mesmo(antes, cultivo):
             return (f"{cultivo.especie} xa estivo nesta leira en {antes.data_inicio.year}: "
                     f"convén rotar polo menos {ANOS_ROTACION} anos")
+        fam = familia(cultivo.especie)
+        if fam and fam == familia(antes.especie):
+            return (f"{antes.especie} ({antes.data_inicio.year}) e {cultivo.especie} son da "
+                    f"mesma familia ({fam}): convén rotar polo menos {ANOS_ROTACION} anos")
     return None
 
 
