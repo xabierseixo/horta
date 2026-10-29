@@ -16,7 +16,11 @@ from horta.services.abonados import listar_abonados
 from horta.services.analises import listar_analises
 from horta.services.animais import ESPECIES, listar_animais
 from horta.services.catalogos import describir
-from horta.services.clasificacions import listar_clasificacions, listar_mesturas
+from horta.services.clasificacions import (
+    listar_clasificacions,
+    listar_mesturas,
+    listar_transformacions,
+)
 from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
@@ -50,6 +54,7 @@ TIPOS: dict[str, str] = {
     "lote_saida": "Saída de produto (venda, casa...)",
     "clasificacion": "Clasificación dun lote (tamaños, calidades)",
     "mestura": "Mestura de lotes",
+    "transformacion": "Transformación (conservas, queixo…)",
     "entrada_produto": "Entrada de produto (compra)",
     "outro_traballo": "Outro traballo (mantemento, limpeza…)",
     "tarefa": "Tarefa",
@@ -235,6 +240,14 @@ def listar_traballos(
             "mestura", me.id, me.data, True,
             f"{orixes} → {lote.codigo if lote else ''}", "", frozenset(),
             persoas=_quen(me.persoa_id), sen_quen=me.persoa_id is None))
+    for tr in listar_transformacions(session, actor, horta_id):
+        lote = lotes.get(tr.lote_id)
+        orixes = ", ".join(lotes[e.lote_id].codigo for e in tr.entradas if e.lote_id in lotes)
+        traballos.append(Traballo(
+            "transformacion", tr.id, tr.data, True,
+            f"{orixes} → {tr.cantidade:g} {lote.unidade if lote else ''} de "
+            f"{lote.produto if lote else ''} ({lote.codigo if lote else ''})", "", frozenset(),
+            persoas=_quen(tr.persoa_id), sen_quen=tr.persoa_id is None))
     for ou in listar_outros_traballos(session, actor, horta_id):
         traballos.append(Traballo(
             "outro_traballo", ou.id, ou.data_inicio, True, ou.descricion,

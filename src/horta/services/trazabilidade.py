@@ -5,6 +5,7 @@ fixo (tratamentos e abonados dos cultivos; medicamentos dos animais), que pasou 
 
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -15,12 +16,20 @@ from horta.models.animal import Animal
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
-from horta.models.horta import RolHorta
-from horta.models.lote import Clasificacion, Lote, LoteSaida, Mestura, MesturaOrixe
+from horta.models.horta import Horta, RolHorta
+from horta.models.lote import (
+    Clasificacion,
+    Lote,
+    LoteSaida,
+    Mestura,
+    MesturaOrixe,
+    Transformacion,
+    TransformacionEntrada,
+)
 from horta.models.parcela import Parcela
 from horta.models.persoa import Persoa
 from horta.models.producion_animal import ProducionAnimal
-from horta.models.produto import Produto
+from horta.models.produto import EntradaProduto, Produto
 from horta.models.tratamento_fito import TratamentoCultivo, TratamentoFito, TratamentoProduto
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError
@@ -78,6 +87,24 @@ def _orixe(session: Session, lote: Lote, traz: Trazabilidade, cultivos: set[int]
                                     f"{orixe.codigo}"))
             if fondo < _FONDO:
                 _orixe(session, orixe, traz, cultivos, animais, fondo + 1)
+    for tr in session.query(Transformacion).filter_by(lote_id=lote.id, baixa=False):
+        for e in tr.entradas:
+            orixe = session.get(Lote, e.lote_id)
+            if orixe is None:
+                continue
+            traz.orixe.append(Linea(tr.data, f"{prefixo}Elaborado con {e.cantidade:g} "
+                                    f"{orixe.unidade}{f' ({e.clase})' if e.clase else ''} "
+                                    f"do lote {orixe.codigo}"))
+            if fondo < _FONDO:
+                _orixe(session, orixe, traz, cultivos, animais, fondo + 1)
+        for i in tr.insumos:
+            produto = session.get(Produto, i.produto_id)
+            entrada = session.get(EntradaProduto, i.entrada_id) if i.entrada_id else None
+            lote_provedor = (f" · lote do provedor {entrada.lote_provedor}"
+                             if entrada and entrada.lote_provedor else "")
+            traz.orixe.append(Linea(tr.data, f"{prefixo}Ingrediente: "
+                                    f"{produto.nome if produto else '?'} {i.cantidade:g} "
+                                    f"{produto.unidade if produto else ''}{lote_provedor}"))
 
 
 def _fixose(session: Session, traz: Trazabilidade, cultivos: set[int], animais: set[int]
@@ -111,6 +138,10 @@ def trazabilidade(session: Session, actor: Usuario, lote_id: int) -> Trazabilida
     if lote is None:
         raise OperacionNonPermitidaError("Ese lote non existe")
     comprobar_rol_horta(session, lote.horta_id, actor, _ROLES_LECTURA)
+    return _construir(session, lote, con_saidas=True)
+
+
+def _construir(session: Session, lote: Lote, con_saidas: bool) -> Trazabilidade:
     traz = Trazabilidade(lote)
     cultivos: set[int] = set()
     animais: set[int] = set()
@@ -127,6 +158,15 @@ def trazabilidade(session: Session, actor: Usuario, lote_id: int) -> Trazabilida
                                  f"{sa.cantidade:g} {sa.unidade}"
                                  f"{f' ({sa.clase})' if sa.clase else ''}"
                                  f"{f' · {onde}' if onde else ''}"))
+    for te in (session.query(TransformacionEntrada)
+               .join(Transformacion, Transformacion.id == TransformacionEntrada.transformacion_id)
+               .filter(TransformacionEntrada.lote_id == lote.id,
+                       Transformacion.baixa.is_(False))):
+        tr = session.get(Transformacion, te.transformacion_id)
+        destino = session.get(Lote, tr.lote_id) if tr else None
+        traz.saidas.append(Linea(tr.data if tr else None,
+                                 f"Transformado: {te.cantidade:g} {lote.unidade} no lote "
+                                 f"{destino.codigo if destino else '?'}"))
     for o in (session.query(MesturaOrixe).join(Mestura, Mestura.id == MesturaOrixe.mestura_id)
               .filter(MesturaOrixe.lote_id == lote.id, Mestura.baixa.is_(False))):
         mestura = session.get(Mestura, o.mestura_id)
@@ -134,6 +174,35 @@ def trazabilidade(session: Session, actor: Usuario, lote_id: int) -> Trazabilida
         traz.saidas.append(Linea(mestura.data if mestura else None,
                                  f"Mesturado: {o.cantidade:g} {lote.unidade} no lote "
                                  f"{destino.codigo if destino else '?'}"))
+    if not con_saidas:
+        traz.saidas = []
     for lista in (traz.orixe, traz.fixose, traz.dentro, traz.saidas):
         lista.sort(key=lambda linea: linea.data or date.min)
     return traz
+
+
+# --- Páxina pública do lote (xemelgo dixital, paso 17)
+
+def publicar_lote(session: Session, actor: Usuario, lote: Lote) -> str:
+    """O enderezo secreto da páxina pública do lote (créase a primeira vez)."""
+    comprobar_rol_horta(session, lote.horta_id, actor, {RolHorta.ADMIN, RolHorta.EDITOR})
+    if lote.token_publico is None:
+        lote.token_publico = secrets.token_urlsafe(24)
+        session.commit()
+    return lote.token_publico
+
+
+def retirar_publicacion(session: Session, actor: Usuario, lote: Lote) -> None:
+    comprobar_rol_horta(session, lote.horta_id, actor, {RolHorta.ADMIN, RolHorta.EDITOR})
+    lote.token_publico = None
+    session.commit()
+
+
+def trazabilidade_publica(session: Session, token: str) -> tuple[Trazabilidade, str] | None:
+    """Para quen merca: de onde vén, que se lle fixo e dentro do lote; nunca a quen se
+    vendeu. Devolve tamén o nome da explotación."""
+    lote = session.query(Lote).filter_by(token_publico=token, baixa=False).one_or_none()
+    if lote is None:
+        return None
+    horta = session.get(Horta, lote.horta_id)
+    return _construir(session, lote, con_saidas=False), horta.nome if horta else ""

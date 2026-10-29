@@ -16,7 +16,7 @@ from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.labor import Labor
-from horta.models.lote import Clasificacion, LoteSaida, Mestura
+from horta.models.lote import Clasificacion, LoteSaida, Mestura, Transformacion
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
@@ -38,7 +38,11 @@ from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data
 from horta.ui.pages.abonados import dialogo_abonado
 from horta.ui.pages.analises import dialogo_analise
-from horta.ui.pages.clasificacions import dialogo_clasificacion, dialogo_mestura
+from horta.ui.pages.clasificacions import (
+    dialogo_clasificacion,
+    dialogo_mestura,
+    dialogo_transformacion,
+)
 from horta.ui.pages.coidados_animais import dialogo_coidado
 from horta.ui.pages.colleitas import dialogo_colleita
 from horta.ui.pages.cultivos import dialogo_cultivo
@@ -61,7 +65,7 @@ ICONAS = {
     "tratamento_instalacion": "warehouse", "coidado_animal": "pets",
     "movemento_animal": "swap_horiz", "producion_animal": "egg", "pastoreo": "landscape",
     "lote_saida": "sell", "entrada_produto": "shopping_cart", "outro_traballo": "build",
-    "clasificacion": "filter_list", "mestura": "merge",
+    "clasificacion": "filter_list", "mestura": "merge", "transformacion": "blender",
     "tarefa": "task_alt",
 }
 # A táboa de cada tipo, cos seus datos propios (p.ex. «non colleitar antes do»)
@@ -71,7 +75,7 @@ SECCION_DO_TIPO = {
     "tratamento_instalacion": "tratamentos", "coidado_animal": "coidados",
     "movemento_animal": "movementos", "producion_animal": "producion", "pastoreo": "pastoreo",
     "lote_saida": "lotes", "entrada_produto": "produtos", "tarefa": "tarefas",
-    "clasificacion": "lotes", "mestura": "lotes",
+    "clasificacion": "lotes", "mestura": "lotes", "transformacion": "lotes",
     # Sen táboa propia: a súa lista é o propio Diario
     "outro_traballo": "diario",
 }
@@ -81,7 +85,7 @@ _MODELOS: dict[str, type[Base]] = {
     "tratamento_instalacion": TratamentoInstalacion, "coidado_animal": CoidadoAnimal,
     "movemento_animal": MovementoAnimal, "producion_animal": ProducionAnimal,
     "pastoreo": Pastoreo, "lote_saida": LoteSaida, "entrada_produto": EntradaProduto,
-    "clasificacion": Clasificacion, "mestura": Mestura,
+    "clasificacion": Clasificacion, "mestura": Mestura, "transformacion": Transformacion,
     "outro_traballo": OutroTraballo,
 }
 _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
@@ -92,6 +96,7 @@ _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "producion_animal": dialogo_producion, "pastoreo": dialogo_pastoreo,
     "lote_saida": dialogo_saida, "entrada_produto": dialogo_entrada,
     "clasificacion": dialogo_clasificacion, "mestura": dialogo_mestura,
+    "transformacion": dialogo_transformacion,
     "outro_traballo": dialogo_outro_traballo,
 }
 _DIAS_POR_DEFECTO = 90

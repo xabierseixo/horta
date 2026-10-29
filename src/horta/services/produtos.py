@@ -13,6 +13,7 @@ from horta.models.abonado import Abonado, Fertilizante
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
+from horta.models.lote import Transformacion, TransformacionInsumo
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.tratamento_fito import TratamentoFito, TratamentoProduto
 from horta.models.usuario import Usuario
@@ -271,6 +272,11 @@ def _usos(session: Session, produto: Produto) -> list[tuple[float | None, str | 
     for co in session.query(CoidadoAnimal).filter_by(produto_id=produto.id, baixa=False):
         usos.append((co.cantidade, _ABSOLUTAS.get(co.unidade or ""))
                     if co.cantidade is not None else (None, None))
+    for ti in (session.query(TransformacionInsumo)
+               .join(Transformacion, Transformacion.id == TransformacionInsumo.transformacion_id)
+               .filter(TransformacionInsumo.produto_id == produto.id,
+                       Transformacion.baixa.is_(False))):
+        usos.append((ti.cantidade, produto.unidade))
     for cu in (session.query(Cultivo)
                .join(EntradaProduto, EntradaProduto.id == Cultivo.entrada_semente_id)
                .filter(EntradaProduto.produto_id == produto.id)):

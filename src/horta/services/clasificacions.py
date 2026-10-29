@@ -11,7 +11,16 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from horta.models.horta import RolHorta
-from horta.models.lote import Clasificacion, ClasificacionClase, Lote, Mestura, MesturaOrixe
+from horta.models.lote import (
+    Clasificacion,
+    ClasificacionClase,
+    Lote,
+    Mestura,
+    MesturaOrixe,
+    Transformacion,
+    TransformacionEntrada,
+    TransformacionInsumo,
+)
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
@@ -241,3 +250,107 @@ def orixes_do_lote(session: Session, lote_id: int) -> list[tuple[Lote, float, st
             .join(Mestura, Mestura.id == MesturaOrixe.mestura_id)
             .filter(Mestura.lote_id == lote_id, Mestura.baixa.is_(False))
             if (lote := session.get(Lote, o.lote_id)) is not None]
+
+
+# --- Transformación (paso 17)
+
+@dataclass(kw_only=True)
+class InsumoTransformacion:
+    produto_id: int
+    cantidade: float  # na unidade do produto
+    entrada_id: int | None = None  # de que compra (lote do provedor)
+
+
+@dataclass(kw_only=True)
+class DatosTransformacion:
+    data: date
+    produto: str  # o que sae (p.ex. «Conserva de pemento»)
+    unidade: str
+    cantidade: float
+    entradas: list[OrixeMestura] = field(default_factory=list)
+    insumos: list[InsumoTransformacion] = field(default_factory=list)
+    codigo: str | None = None  # baleiro: o que toque segundo a ficha do produto
+    instalacion_id: int | None = None
+    persoa_id: int | None = None
+    horas: float | None = None
+    maquina_id: int | None = None
+    notas: str | None = None
+
+
+def crear_transformacion(session: Session, actor: Usuario, horta_id: int,
+                         datos: DatosTransformacion, hoxe: date | None = None
+                         ) -> Transformacion:
+    """Os lotes e ingredientes que entran saen do que quedaba; sae un lote novo."""
+    from horta.models.produto import EntradaProduto, Produto
+    from horta.services.instalacions import comprobar_instalacion
+    from horta.services.lotes import ficha_para, lote_para_entrada
+
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
+    _comun(session, horta_id, datos.data, hoxe or date.today(), datos.persoa_id, datos.horas,
+           datos.maquina_id)
+    comprobar_instalacion(session, horta_id, datos.instalacion_id)
+    if not datos.produto.strip() or not datos.unidade:
+        raise OperacionNonPermitidaError("Indica que produto sae e en que unidade")
+    if datos.cantidade is None or datos.cantidade <= 0:
+        raise OperacionNonPermitidaError("Indica canto produto saíu")
+    if not datos.entradas:
+        raise OperacionNonPermitidaError("Escolle polo menos un lote que entra")
+    for orixe in datos.entradas:
+        lote = _lote(session, orixe.lote_id)
+        if lote.horta_id != horta_id:
+            raise OperacionNonPermitidaError("Ese lote non é desta explotación")
+        if datos.data < lote.data:
+            raise OperacionNonPermitidaError(
+                f"O lote {lote.codigo} empezou o {lote.data:%d/%m/%Y}")
+        queda = queda_por_clase(session, lote).get(orixe.clase)
+        if orixe.cantidade is None or orixe.cantidade <= 0 or queda is None \
+                or orixe.cantidade > queda + 1e-9:
+            raise OperacionNonPermitidaError(
+                f"Do lote {lote.codigo} só quedan {queda or 0:g} {lote.unidade}"
+                + (f" de {orixe.clase}" if orixe.clase else ""))
+    for insumo in datos.insumos:
+        produto = session.get(Produto, insumo.produto_id)
+        if produto is None or produto.horta_id != horta_id:
+            raise OperacionNonPermitidaError("Ese ingrediente non é desta explotación")
+        if insumo.cantidade is None or insumo.cantidade <= 0:
+            raise OperacionNonPermitidaError("Cada ingrediente precisa unha cantidade")
+        if insumo.entrada_id is not None:
+            entrada = session.get(EntradaProduto, insumo.entrada_id)
+            if entrada is None or entrada.produto_id != produto.id:
+                raise OperacionNonPermitidaError("Esa compra é doutro produto")
+    ficha = ficha_para(session, horta_id, datos.produto, datos.unidade, crear=False)
+    codigo = (datos.codigo or "").strip() or codigo_por_agrupacion(session, ficha, datos.data)
+    destino = lote_para_entrada(session, horta_id, codigo, datos.produto.strip(),
+                                datos.unidade, datos.data)
+    if destino.id in {o.lote_id for o in datos.entradas}:
+        raise OperacionNonPermitidaError("O lote que sae ten que ser outro")
+    transformacion = Transformacion(
+        horta_id=horta_id, data=datos.data, lote_id=destino.id, cantidade=datos.cantidade,
+        instalacion_id=datos.instalacion_id, persoa_id=datos.persoa_id, horas=datos.horas,
+        maquina_id=datos.maquina_id, notas=datos.notas or None, creado_por=actor.id,
+        entradas=[TransformacionEntrada(lote_id=o.lote_id, clase=o.clase or None,
+                                        cantidade=o.cantidade) for o in datos.entradas],
+        insumos=[TransformacionInsumo(produto_id=i.produto_id, entrada_id=i.entrada_id,
+                                      cantidade=i.cantidade) for i in datos.insumos])
+    session.add(transformacion)
+    session.commit()
+    return transformacion
+
+
+def listar_transformacions(session: Session, actor: Usuario, horta_id: int
+                           ) -> list[Transformacion]:
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
+    return list(session.query(Transformacion).filter_by(horta_id=horta_id, baixa=False)
+                .order_by(Transformacion.data.desc(), Transformacion.id.desc()))
+
+
+def dar_de_baixa_transformacion(session: Session, actor: Usuario,
+                                transformacion: Transformacion) -> None:
+    """Só se do lote que saíu aínda non saíu nada."""
+    from horta.services.lotes import saido
+
+    comprobar_rol_horta(session, transformacion.horta_id, actor, _ROLES_ESCRITURA)
+    if saido(session, _lote(session, transformacion.lote_id)) > 1e-9:
+        raise OperacionNonPermitidaError("Do lote da transformación xa saíu produto")
+    transformacion.baixa = True
+    session.commit()

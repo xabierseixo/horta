@@ -36,6 +36,9 @@ from horta.models.lote import (
     Mestura,
     MesturaOrixe,
     ProdutoVenda,
+    Transformacion,
+    TransformacionEntrada,
+    TransformacionInsumo,
 )
 from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
@@ -123,6 +126,9 @@ __all__ = [
     "ClasificacionClase",
     "Mestura",
     "MesturaOrixe",
+    "Transformacion",
+    "TransformacionEntrada",
+    "TransformacionInsumo",
     "OutroTraballo",
     "Convite",
     "ApunteCartos",

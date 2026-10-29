@@ -24,6 +24,8 @@ from horta.models.lote import (
     Mestura,
     MesturaOrixe,
     ProdutoVenda,
+    Transformacion,
+    TransformacionEntrada,
 )
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.usuario import Usuario
@@ -213,6 +215,12 @@ def _entradas(session: Session, lote_id: int) -> list[tuple[float, str]]:
                                .join(Lote, Lote.id == MesturaOrixe.lote_id)
                                .filter(Mestura.lote_id == lote_id, Mestura.baixa.is_(False))):
         lista.append((float(cantidade), unidade))
+    # O que saíu dunha transformación
+    for cantidade, unidade in (session.query(Transformacion.cantidade, Lote.unidade)
+                               .join(Lote, Lote.id == Transformacion.lote_id)
+                               .filter(Transformacion.lote_id == lote_id,
+                                       Transformacion.baixa.is_(False))):
+        lista.append((float(cantidade), unidade))
     return lista
 
 
@@ -244,6 +252,12 @@ def _movementos(session: Session, lote: Lote, excepto_saida: int | None = None,
                   .join(Mestura, Mestura.id == MesturaOrixe.mestura_id)
                   .filter(MesturaOrixe.lote_id == lote.id, Mestura.baixa.is_(False))):
         saido[orixe.clase] = saido.get(orixe.clase, 0) + orixe.cantidade
+    for entrada in (session.query(TransformacionEntrada)
+                    .join(Transformacion, Transformacion.id ==
+                          TransformacionEntrada.transformacion_id)
+                    .filter(TransformacionEntrada.lote_id == lote.id,
+                            Transformacion.baixa.is_(False))):
+        saido[entrada.clase] = saido.get(entrada.clase, 0) + entrada.cantidade
     return Movementos(clasificado, refugo, saido)
 
 

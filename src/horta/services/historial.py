@@ -36,6 +36,7 @@ _QUE_E = {"entrada_produto": "Compra", "lote_saida": "Venda", "analise": "Análi
           "tratamento_instalacion": "Tratamento en instalación",
           "producion_animal": "Produción dos animais", "apunte_cartos": "Outro gasto ou ingreso",
           "clasificacion": "Clasificación dun lote", "mestura": "Mestura de lotes",
+          "transformacion": "Transformación",
           "animal": "Grupo de animais"}
 _DATAS = ("data_inicio", "data", "data_mostraxe")
 

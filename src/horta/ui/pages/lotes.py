@@ -40,10 +40,12 @@ from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.fotos import abrir_fotos
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.clasificacions import (
+    abrir_paxina_publica,
     abrir_trazabilidade,
     dialogo_clasificacion,
     dialogo_ficha,
     dialogo_mestura,
+    dialogo_transformacion,
     texto_queda,
 )
 from horta.ui.quen import proposta_quen
@@ -97,6 +99,7 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
         abrir_ficha = dialogo_ficha()
         abrir_clasificacion = dialogo_clasificacion(horta_id)
         abrir_mestura = dialogo_mestura(horta_id)
+        abrir_transformacion = dialogo_transformacion(horta_id)
 
         def lote_escollido() -> int | None:
             if not taboa.selected:
@@ -138,6 +141,11 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             ui.button("Mesturar lotes", icon="merge", on_click=lambda: abrir_mestura(None)
                       ).props("outline")
             ui.button("Ficha do produto", icon="tune", on_click=ficha).props("outline")
+            ui.button("Transformar", icon="blender", on_click=lambda: abrir_transformacion(None)
+                      ).props("outline")
+            ui.button("Páxina pública", icon="qr_code", on_click=lambda: (
+                abrir_paxina_publica(lid) if (lid := lote_escollido()) is not None else None)
+                      ).props("outline")
             ui.button("Trazabilidade", icon="account_tree", on_click=lambda: (
                 abrir_trazabilidade(lid) if (lid := lote_escollido()) is not None else None)
                       ).props("outline")

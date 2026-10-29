@@ -53,6 +53,8 @@ class Lote(Base):
     protexido: Mapped[bool] = mapped_column(Boolean, default=False)
     data: Mapped[date] = mapped_column(Date)
     baixa: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Páxina pública do lote (xemelgo, paso 17): baleiro = non publicado
+    token_publico: Mapped[str | None] = mapped_column(String(40), unique=True, default=None)
 
 
 class LoteSaida(ParteComun, FeitoPor, ConMaquina, Base):
@@ -127,4 +129,51 @@ class MesturaOrixe(Base):
     lote_id: Mapped[int] = mapped_column(ForeignKey("lote.id"), index=True)
     clase: Mapped[str | None] = mapped_column(String(60), default=None)
     # Na unidade do lote de orixe
+    cantidade: Mapped[float] = mapped_column(Float)
+
+
+class Transformacion(ParteComun, FeitoPor, ConMaquina, Base):
+    """Elaborar un produto novo (conserva, queixo…) con lotes propios e ingredientes
+    mercados: sae un lote novo que garda as súas orixes (paso 17)."""
+
+    __tablename__ = "transformacion"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"), index=True)
+    data: Mapped[date] = mapped_column(Date)
+    # O lote que sae e canto (na súa unidade)
+    lote_id: Mapped[int] = mapped_column(ForeignKey("lote.id"), index=True)
+    cantidade: Mapped[float] = mapped_column(Float)
+    instalacion_id: Mapped[int | None] = mapped_column(ForeignKey("instalacion.id"),
+                                                      default=None)
+    entradas: Mapped[list[TransformacionEntrada]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin")
+    insumos: Mapped[list[TransformacionInsumo]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin")
+
+
+class TransformacionEntrada(Base):
+    """Un lote propio que entra na transformación (na unidade do lote)."""
+
+    __tablename__ = "transformacion_entrada"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    transformacion_id: Mapped[int] = mapped_column(ForeignKey("transformacion.id"),
+                                                   index=True)
+    lote_id: Mapped[int] = mapped_column(ForeignKey("lote.id"), index=True)
+    clase: Mapped[str | None] = mapped_column(String(60), default=None)
+    cantidade: Mapped[float] = mapped_column(Float)
+
+
+class TransformacionInsumo(Base):
+    """Un ingrediente ou envase mercado (na unidade do produto), e de que compra saíu."""
+
+    __tablename__ = "transformacion_insumo"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    transformacion_id: Mapped[int] = mapped_column(ForeignKey("transformacion.id"),
+                                                   index=True)
+    produto_id: Mapped[int] = mapped_column(ForeignKey("produto.id"))
+    entrada_id: Mapped[int | None] = mapped_column(ForeignKey("entrada_produto.id"),
+                                                   default=None)
     cantidade: Mapped[float] = mapped_column(Float)
