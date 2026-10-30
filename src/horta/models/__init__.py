@@ -73,6 +73,8 @@ from horta.models.usuario import RolGlobal, Usuario
 from horta.models.zona import ParcelaZona
 
 __all__ = [
+    "EnvioCue",
+    "RexistroCue",
     "RolGlobal",
     "Usuario",
     "Horta",
@@ -154,6 +156,4 @@ __all__ = [
     "TratamentoMedida",
     "TratamentoAplicador",
     "TratamentoAsesor",
-    "EnvioCue",
-    "RexistroCue",
 ]
