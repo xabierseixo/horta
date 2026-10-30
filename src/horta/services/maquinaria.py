@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from datetime import date
-
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from horta.models.horta import RolHorta
 from horta.models.maquina import Maquina
-
 from horta.models.tratamento_fito import TratamentoAplicador, TratamentoFito
 from horta.models.usuario import Usuario
 from horta.services.errors import OperacionNonPermitidaError

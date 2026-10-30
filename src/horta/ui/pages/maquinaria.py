@@ -6,9 +6,9 @@ from horta.db import get_session
 from horta.models.maquina import Maquina
 from horta.services.maquinaria import (
     actualizar_maquina,
+    aviso_inspeccion,
     crear_maquina,
     listar_maquinas,
-    aviso_inspeccion,
     maquinas_de_tratamento,
 )
 from horta.ui.accions import executar_accion
@@ -32,13 +32,15 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
         {"id": m.id, "alias": m.alias, "marca": m.marca_modelo or "",
          "ident": m.num_roma or m.num_reganip or m.id_equipo_non_inscribible or "",
          "inspeccion": f"{m.data_ultima_inspeccion:%d/%m/%Y}" if m.data_ultima_inspeccion else "",
+         "aviso": (aviso_inspeccion(m) or "") if m.id in de_tratamento else "",
          "propia": "si" if m.propia else "non", "activa": "si" if m.activa else "non"}
         for m in maquinas
     ]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("alias", "Nome"), ("marca", "Marca e modelo"), ("ident", "ROMA / REGANIP / ID"),
-            ("inspeccion", "Última inspección"), ("propia", "Propia"), ("inspeccion_rd", "Inspección RD"), ("activa", "Activa"))],
+            ("inspeccion", "Última inspección"), ("aviso", "Inspección (RD 1702/2011)"),
+            ("propia", "Propia"), ("activa", "Activa"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
         f'flat bordered no-data-label="Aínda non hai máquinas rexistradas" {TEXTOS_TABOA}'
