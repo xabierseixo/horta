@@ -130,3 +130,28 @@ def test_tratamentos_de_postcolleita_e_de_local_van_ao_cue(session):
     [edif] = actividades["TratamientosEdifInstalaciones"]
     assert edif["IdAjenaTratamEdif"] == local.id
     assert edif["Edificaciones"] == [{"IdEdificacion": alpendre.id, "Volumen": 30, "Unidad": 3}]
+
+
+def test_datas_da_leira_segundo_o_fega(session):
+    """DT 3.11 §3.4: empeza coa preparación do terreo e remata co último traballo."""
+    from horta.models.labor import Labor, LaborCultivo
+    from horta.services.cue import datas_dgc
+
+    ana, horta, quen, (uno, _) = _escenario(session)
+    for inicio, fin in ((date(2026, 3, 10), date(2026, 3, 12)),
+                        (date(2026, 9, 20), date(2026, 9, 25))):
+        session.add(Labor(horta_id=horta.id, data_inicio=inicio, data_fin=fin, tipo_labor="1",
+                          leiras=[LaborCultivo(cultivo_id=uno.id)]))
+    session.commit()
+    # Sen data de fin, o cultivo segue aberto
+    assert datas_dgc(session, uno.id) == (date(2026, 3, 10), None)
+    crear_colleita(session, ana, DatosColleita(
+        cultivo_id=uno.id, data=date(2026, 8, 1), cantidade=1.5, unidade="t", lote="T-1",
+        persoa_id=quen.id), hoxe=HOXE)
+    uno.data_fin = date(2026, 8, 31)
+    session.commit()
+    assert datas_dgc(session, uno.id) == (date(2026, 3, 10), date(2026, 9, 25))
+    cue = xerar_cue(session, ana, horta.id, DESDE, ATA)
+    alta = next(a for a in cue.datos["DatosExplotacion"]["AltaDGC"]
+                if a["CodigoDGCAjena"] == uno.id)
+    assert (alta["FechaInicio"], alta["FechaFin"]) == ("10/03/2026", "25/09/2026")
