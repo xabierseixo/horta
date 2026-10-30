@@ -43,9 +43,35 @@ PARTIDAS: dict[str, str] = {
     "1": "1. Adquisición de terreos ou inmobles",
     "2": "2. Obra civil e instalacións",
     "3": "3. Maquinaria e equipamento",
-    "4": "4. Outros investimentos (por confirmar)",
-    "5": "5. Estudos, proxectos e honorarios",
-    "6": "6. Gastos de constitución e outros",
+    "4": "4. Estudos, proxectos e honorarios",
+    "5": "5. Gastos de constitución",
+    "6": "6. Outros",
+}
+
+
+@dataclass(frozen=True)
+class Tipoloxia:
+    texto: str
+    axuda: str  # intensidade da axuda
+    max_investimento: float | None = None  # investimento subvencionable máximo
+
+
+# Arts. 11–15 da convocatoria
+TIPOLOXIAS: dict[str, Tipoloxia] = {
+    "primaria_enerxia": Tipoloxia(
+        "Art. 11.1 · Explotación agraria: eficiencia enerxética ou renovables", "15–50 %"),
+    "primaria_complementaria": Tipoloxia(
+        "Art. 11.2 · Actividade agraria complementaria dunha principal non agraria",
+        "15–50 %", 30000),
+    "primaria_terras": Tipoloxia("Art. 11.3 · Mobilización ou recuperación de terras",
+                                 "15–50 %"),
+    "transformacion": Tipoloxia(
+        "Art. 12 · Transformación e comercialización de produtos agrarios", "15–50 %", 60000),
+    "forestal": Tipoloxia("Art. 13 · Transformación de produtos forestais",
+                          "15–40 %, ata 200.000 € de axuda"),
+    "non_agraria": Tipoloxia("Art. 14 · Actividades non agrarias",
+                             "15–50 %, ata 200.000 € de axuda"),
+    "bono": Tipoloxia("Art. 15 · Bono Activa Rural", "ata 18.000 € a tanto global"),
 }
 FONTES: dict[str, str] = {
     "capital": "Capital social",
@@ -57,7 +83,10 @@ FONTES: dict[str, str] = {
 CAMPOS_PLAN = frozenset({
     "titulo", "ano_inicio", "empresa_nova", "cnae", "descricion", "proceso", "formacion",
     "uta_mantidas", "uta_creadas", "uta_mulleres", "uta_mozas", "uta_maiores",
-    "uta_discapacidade", "uta_outros", "taxa_desconto"})
+    "uta_discapacidade", "uta_outros", "taxa_desconto", "tipoloxia", "expediente",
+    "anualidade", "submedida", "gdr", "participada", "traballadores", "facturacion",
+    "balance", "iva_recuperable", "situacion_partida", "metodoloxia", "mercado",
+    "ofertas_autenticas", "sen_vinculo_promotor", "sen_vinculo_entre_provedores"})
 
 
 def _plan(session: Session, actor: Usuario, plan_id: int) -> PlanEmpresa:
@@ -105,6 +134,10 @@ def actualizar_plan(session: Session, actor: Usuario, plan: PlanEmpresa,
         raise OperacionNonPermitidaError("Pon un título ao plan")
     if any((v or 0) < 0 for k, v in cambios.items() if k.startswith("uta_")):
         raise OperacionNonPermitidaError("As UTA non poden ser negativas")
+    if any((cambios.get(k) or 0) < 0 for k in ("traballadores", "facturacion", "balance")):
+        raise OperacionNonPermitidaError("Os datos da empresa non poden ser negativos")
+    if cambios.get("tipoloxia") not in (None, *TIPOLOXIAS):
+        raise OperacionNonPermitidaError("Escolle a tipoloxía do proxecto")
     if not 0 <= (cambios.get("taxa_desconto", plan.taxa_desconto) or 0) < 1:
         raise OperacionNonPermitidaError("A taxa de desconto vai en tanto por un (p.ex. 0,03)")
     for campo, valor in cambios.items():
@@ -114,15 +147,16 @@ def actualizar_plan(session: Session, actor: Usuario, plan: PlanEmpresa,
 
 
 def gardar_anos(session: Session, actor: Usuario, plan: PlanEmpresa,
-                valores: dict[int, tuple[float, float, float]]) -> None:
-    """ano_n → (vendas, custos variables, custos fixos)."""
+                valores: dict[int, tuple[float, float, float, float]]) -> None:
+    """ano_n → (vendas, custos variables, custos fixos, ingresos financeiros)."""
     _plan(session, actor, plan.id)
     for ano in plan.anos:
         if ano.ano_n in valores:
-            vendas, variables, fixos = valores[ano.ano_n]
-            if min(vendas, variables, fixos) < 0:
+            vendas, variables, fixos, financeiros = valores[ano.ano_n]
+            if min(vendas, variables, fixos, financeiros) < 0:
                 raise OperacionNonPermitidaError("Os importes non poden ser negativos")
             ano.vendas, ano.custos_variables, ano.custos_fixos = vendas, variables, fixos
+            ano.ingresos_financeiros = financeiros
     session.commit()
 
 
