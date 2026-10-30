@@ -162,18 +162,19 @@ def gardar_anos(session: Session, actor: Usuario, plan: PlanEmpresa,
 
 def engadir_investimento(session: Session, actor: Usuario, plan: PlanEmpresa, partida: str,
                          concepto: str, importe_sen_iva: float, iva_pct: float = 21,
-                         vida_util_anos: int = 10, ofertas: int = 0) -> PlanInvestimento:
+                         vida_util_anos: int = 10,
+                         motivo_sen_ofertas: str | None = None) -> PlanInvestimento:
     _plan(session, actor, plan.id)
     if partida not in PARTIDAS:
         raise OperacionNonPermitidaError("Escolle a partida")
     if not concepto.strip() or importe_sen_iva <= 0:
         raise OperacionNonPermitidaError("Indica o concepto e un importe maior que 0")
-    if iva_pct < 0 or vida_util_anos < 0 or ofertas < 0:
+    if iva_pct < 0 or vida_util_anos < 0:
         raise OperacionNonPermitidaError("Valores negativos non")
     investimento = PlanInvestimento(
         partida=partida, concepto=concepto.strip(), importe_sen_iva=importe_sen_iva,
         iva_pct=iva_pct, vida_util_anos=0 if partida == "1" else vida_util_anos,
-        ofertas=ofertas)
+        motivo_sen_ofertas=(motivo_sen_ofertas or "").strip() or None)
     plan.investimentos.append(investimento)
     session.commit()
     return investimento
@@ -221,7 +222,7 @@ def engadir_financiamento(session: Session, actor: Usuario, plan: PlanEmpresa, t
 
 
 def quitar(session: Session, actor: Usuario, plan: PlanEmpresa,
-           elemento: PlanInvestimento | PlanFinanciamento) -> None:
+           elemento: PlanInvestimento | PlanFinanciamento | PlanOferta) -> None:
     _plan(session, actor, plan.id)
     session.delete(elemento)
     session.commit()
@@ -273,14 +274,22 @@ class AnoConta:
 class Indicadores:
     investimento: float
     investimento_con_iva: float
+    subvencionable: float  # sen IVE, ou con IVE se non é recuperable (art. 8.b)
     financiamento: float
     van: float
     tir: float | None
     payback: int | None
 
 
+def custo(plan: PlanEmpresa, investimento: PlanInvestimento) -> float:
+    """O que lle custa á empresa: o IVE só conta se non o recupera."""
+    if plan.iva_recuperable:
+        return investimento.importe_sen_iva
+    return investimento.importe_sen_iva * (1 + investimento.iva_pct / 100)
+
+
 def conta(plan: PlanEmpresa) -> list[AnoConta]:
-    amortizacion = sum(i.importe_sen_iva / i.vida_util_anos
+    amortizacion = sum(custo(plan, i) / i.vida_util_anos
                        for i in plan.investimentos if i.vida_util_anos)
     xuros_ano: dict[int, float] = defaultdict(float)
     for fonte in plan.financiamento:
@@ -290,7 +299,7 @@ def conta(plan: PlanEmpresa) -> list[AnoConta]:
     for ano in sorted(plan.anos, key=lambda a: a.ano_n):
         d = round(amortizacion, 2)
         e = round(ano.vendas - (ano.custos_variables + ano.custos_fixos + d), 2)
-        f = -round(xuros_ano.get(ano.ano_n, 0), 2)
+        f = round(ano.ingresos_financeiros - xuros_ano.get(ano.ano_n, 0), 2)
         g = round(e + f, 2)
         filas.append(AnoConta(ano.ano_n, plan.ano_inicio + ano.ano_n - 1, ano.vendas,
                               ano.custos_variables, ano.custos_fixos, d, e, f, g,
@@ -306,11 +315,12 @@ def indicadores(plan: PlanEmpresa) -> Indicadores:
     investimento = round(sum(i.importe_sen_iva for i in plan.investimentos), 2)
     con_iva = round(sum(i.importe_sen_iva * (1 + i.iva_pct / 100)
                         for i in plan.investimentos), 2)
-    fluxos = [-investimento, *(a.fluxo for a in conta(plan))]
+    subvencionable = round(sum(custo(plan, i) for i in plan.investimentos), 2)
+    fluxos = [-subvencionable, *(a.fluxo for a in conta(plan))]
     tir = None
     # TIR por bisección, se o signo cambia entre -99 % e 100 %
     baixo, alto = -0.99, 1.0
-    if investimento and _van(baixo, fluxos) * _van(alto, fluxos) < 0:
+    if subvencionable and _van(baixo, fluxos) * _van(alto, fluxos) < 0:
         for _ in range(100):
             medio = (baixo + alto) / 2
             if _van(baixo, fluxos) * _van(medio, fluxos) <= 0:
@@ -437,7 +447,7 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
     ind = indicadores(plan)
     wb = Workbook()
     wb.remove(wb.active)
-    folla(wb, "Anexo III", "Resumo do proxecto – plan de empresa (095c, Anexo III)", cab,
+    folla(wb, "Anexo III", "Resumo do proxecto – plan de empresa (AGADER, Anexo III)", cab,
           ("Apartado", "Valor"),
           [("Empresa", "Nova" if plan.empresa_nova else "Existente"),
            ("CNAE", plan.cnae or ""),
@@ -466,7 +476,7 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
            ("E) Marxe de explotación = A−(B+C+D)", *(a.marxe for a in filas)),
            ("F) Ingresos − custos financeiros", *(a.financeiro for a in filas)),
            ("G) Beneficio antes de imposto = E+F", *(a.beneficio for a in filas))])
-    folla(wb, "Anexo V", "Orzamento de gastos desagregados por partidas (095c, Anexo V)",
+    folla(wb, "Anexo V", "Orzamento de gastos desagregados por partidas (AGADER, Anexo V)",
           cab, ("Partida", "Concepto", "Importe sen IVE (€)", "IVE (%)",
                 "Importe con IVE (€)", "Ofertas"),
           [(PARTIDAS[i.partida], i.concepto, i.importe_sen_iva, i.iva_pct,
