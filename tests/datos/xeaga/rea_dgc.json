@@ -1,0 +1,16 @@
+{"resultado": {"codigoResultado": "OK", "detalleOperacion": []},
+ "EXPLOTACION": [{"codigoREA": "ES150010000001", "DGC": [
+   {"provincia": "15", "municipio": "078", "agregado": "0", "zona": "0", "poligono": "12",
+    "parcela": "101", "recinto": "1", "codigoDGC": 5001,
+    "datosGeneralesDGC": {"superficieDGC": 0.08},
+    "cultivos": [{"identificadorCultivo": 9001, "cultivo": 37, "variedad": 1,
+                  "fechaInicio": "01/03/2026"}]},
+   {"provincia": "15", "municipio": "078", "agregado": "0", "zona": "0", "poligono": "12",
+    "parcela": "102", "recinto": "1", "codigoDGC": 5002,
+    "datosGeneralesDGC": {"superficieDGC": 0.5},
+    "cultivos": [{"identificadorCultivo": 9002, "cultivo": 6, "variedad": 1,
+                  "fechaInicio": "01/01/2025"}]},
+   {"provincia": "15", "municipio": "078", "agregado": "0", "zona": "0", "poligono": "13",
+    "parcela": "7", "recinto": "2", "codigoDGC": 5003, "datosGeneralesDGC": {}},
+   {"provincia": "15", "municipio": "078", "agregado": "0", "zona": "0", "poligono": "13",
+    "parcela": "8", "recinto": "1", "codigoDGC": 5004, "fechaBaja": "01/01/2026"}]}]}

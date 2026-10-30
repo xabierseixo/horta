@@ -1,0 +1,5 @@
+{"codigoResultado": "PARCIAL", "detalleImportacion": [{"codigo": 12, "descripcion": "No se importa la actividad Fertilización porque para el código Rea: ES130888008847 con fecha de inicio: 19/12/2023, la referencia al recinto: 341806 no es válida"}],
+ "CUADERNO": [{"CAExplotacion": "12", "IdTitular": "9388850U", "CodigoRea": "ES130888008847", "DatosExplotacion": {},
+   "ActividadesExplotacion": {
+     "SiembraPlantacion": [{"esValida": true, "IdCuaderno": 36, "IdAjenaSiembraPlant": 64256, "FechaInicio": "22/08/2023"}],
+     "Fertilizacion": [{"esValida": false, "IdCuaderno": 36, "IdAjenaFerti": 700, "FechaInicio": "19/12/2023"}]}}]}
