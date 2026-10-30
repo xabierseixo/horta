@@ -14,6 +14,7 @@ from horta.models.usuario import Usuario
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
+from horta.services.instalacions import comprobar_instalacion
 from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
@@ -37,6 +38,9 @@ class DatosTratamentoInstalacion:
     materia_activa: str | None = None
     cantidade_utilizada: float | None = None
     unidade: str | None = None
+    produto_vexetal: int | None = None
+    instalacion_id: int | None = None
+    eficacia: str | None = None
     notas: str | None = None
     persoa_id: int | None = None
     horas: float | None = None
@@ -51,6 +55,7 @@ def _validar(session: Session, datos: DatosTratamentoInstalacion, horta_id: int,
         raise OperacionNonPermitidaError("A data do tratamento non pode ser futura")
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     comprobar_maquina(session, horta_id, datos.maquina_id)
+    comprobar_instalacion(session, horta_id, datos.instalacion_id)
     if not datos.obxecto.strip():
         raise OperacionNonPermitidaError("Indica que se tratou")
     if not (datos.nome_comercial or datos.materia_activa):
@@ -64,7 +69,8 @@ def _validar(session: Session, datos: DatosTratamentoInstalacion, horta_id: int,
         validar_codigo(session, datos.problema_tipo, datos.problema_codigo, datos.data)
     for catalogo, codigo in (("xustificacion", datos.xustificacion),
                              ("tipo_produto", datos.tipo_produto),
-                             ("unidade_medida", datos.unidade)):
+                             ("unidade_medida", datos.unidade),
+                            ("eficacia", datos.eficacia)):
         if codigo:
             validar_codigo(session, catalogo, codigo, datos.data)
 

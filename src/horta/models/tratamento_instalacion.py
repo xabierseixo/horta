@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import Date, Float, ForeignKey, String
+from sqlalchemy import Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -36,3 +36,9 @@ class TratamentoInstalacion(ParteComun, FeitoPor, ConMaquina, Base):
     materia_activa: Mapped[str | None] = mapped_column(String(250), default=None)
     cantidade_utilizada: Mapped[float | None] = mapped_column(Float, default=None)
     unidade: Mapped[str | None] = mapped_column(String(20), default=None)
+    # CUE 1.2–1.3: produto vexetal tratado (lista oficial de cultivos), instalación
+    # (local de almacenamento) e eficacia do tratamento
+    produto_vexetal: Mapped[int | None] = mapped_column(Integer, default=None)
+    instalacion_id: Mapped[int | None] = mapped_column(ForeignKey("instalacion.id"),
+                                                         default=None)
+    eficacia: Mapped[str | None] = mapped_column(String(20), default=None)
