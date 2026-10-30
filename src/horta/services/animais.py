@@ -76,7 +76,6 @@ def crear_animal(
     _validar_cantidade(campos)
     _validar_especie(session, campos.get("especie_codigo"), data_alta)
     comprobar_instalacion(session, horta_id, campos.get("instalacion_id"))
-    persoa_co_papel(session, horta_id, campos.get("titular_animais_id"), None)
     cantidade = campos.pop("cantidade", 1)
     for derivado in ("estado", "data_baixa"):
         campos.pop(derivado, None)
