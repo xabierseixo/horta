@@ -2,7 +2,8 @@
 
 A conta a 5 anos propónse desde o real (Cartos) e edítase; as amortizacións saen do
 investimento e os xuros dos préstamos. VAN, TIR e pay-back calcúlanse. Seguimento: o
-previsto de cada ano ao lado do real."""
+previsto de cada ano ao lado do real. Ofertas (Anexo VI-A), o que lle falta para
+presentalo e a documentación do art. 18 da convocatoria MR701L (DOG do 2/2/2026)."""
 
 from __future__ import annotations
 
@@ -15,21 +16,29 @@ from sqlalchemy.orm import Session
 
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
-from horta.models.horta import RolHorta
+from horta.models.horta import Horta, RolHorta
 from horta.models.lote import Clasificacion, Lote, LoteSaida
 from horta.models.parcela import Parcela
-from horta.models.plan_empresa import PlanAno, PlanEmpresa, PlanFinanciamento, PlanInvestimento
+from horta.models.persoa import Persoa
+from horta.models.plan_empresa import (
+    PlanAno,
+    PlanEmpresa,
+    PlanFinanciamento,
+    PlanInvestimento,
+    PlanOferta,
+)
 from horta.models.usuario import Usuario
 from horta.services.cartos import Resumo, horas_dos_traballos, resumo_ano
 from horta.services.equipo import HORAS_UTA
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.lotes import CANLES, converter
+from horta.services.persoas import con_papel, nome_completo, persoa_co_papel, titular_da_horta
 
 # Os cartos e o plan: quen só mira non os ve
 _ROLES = {RolHorta.ADMIN, RolHorta.EDITOR}
 ANOS = 5
-# Anexo V (a partida 4 está por confirmar no PDF oficial)
+# Anexo V, tal como está no DOG
 PARTIDAS: dict[str, str] = {
     "1": "1. Adquisición de terreos ou inmobles",
     "2": "2. Obra civil e instalacións",
