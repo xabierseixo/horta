@@ -151,7 +151,12 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
     usados: set[int] = set()
 
     def dgc(cultivo_id: int, **mais: Any) -> dict[str, Any]:
+        """A DGC do REA se o cultivo está emparellado; se non, a DGC allea (o id do cultivo)."""
         usados.add(cultivo_id)
+        c = cultivos.get(cultivo_id)
+        if c is not None and c.codigo_dgc is not None:
+            return _limpo({"CodigoDGC": c.codigo_dgc, **mais})
+        mais.pop("CodigoCultivo", None)
         return _limpo({"CodigoDGCAjena": cultivo_id, **mais})
 
     def grupos(leiras: list[tuple[int, float | None]]) -> list[list[tuple[int, float | None]]]:
@@ -187,7 +192,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
             "MaterialTratado": c.material_tratado, "MaterialAdquirido": semente is not None,
             "FechaAdquisicion": _data(semente.data if semente else c.data_inicio),
             "NumLote": semente.lote_provedor if semente else None,
-            "DGCs": [dgc(c.id, SuperficieCultivada=_ha(c.superficie_ha))],
+            "DGCs": [dgc(c.id, CodigoCultivo=c.codigo_cultivo_rea,
+                         SuperficieCultivada=_ha(c.superficie_ha))],
             "Cantidad": c.cantidade_semente_kg, "MarcoPlantacion": c.marco_plantacion,
             "DensidadPlantacion": c.densidade_plantas_ha,
         }, Orixe("sementeira", c.id, f"Sementeira ou plantación de {c.especie}"))
@@ -498,8 +504,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
             "FechaGeneracion": _data(c.plan_data), "DGCs": [dgc(c.id)],
         }, Orixe("cultivo", c.id, f"Plan de abonado de {c.especie}"))
 
-    # --- As leiras (DGC alleas) usadas nas actividades
-    altas = []
+    # --- As leiras usadas nas actividades: DGC allea, ou cambio de cultivo nunha DGC do REA
+    altas, cambios = [], []
     for cultivo_id in sorted(usados):
         alta = cultivos.get(cultivo_id) or session.get(Cultivo, cultivo_id)
         if alta is None:
@@ -508,6 +514,19 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
         parcela = parcelas.get(c.parcela_id)
         variedade = session.get(VariedadeSiex, c.variedade_siex_id) if c.variedade_siex_id \
             else None
+        sistema = ({SecanoRegadio.SECANO: "S", SecanoRegadio.REGADIO: "R"}.get(
+            parcela.secano_regadio) if parcela and parcela.secano_regadio else None)
+        if c.codigo_dgc is not None:
+            if c.codigo_cultivo_rea is None:
+                cambios.append(_limpo({
+                    "CodigoDGC": c.codigo_dgc, "FechaInicio": _data(c.data_inicio),
+                    "FechaFin": _data(c.data_fin), "Cultivo": c.cultivo_siex_codigo,
+                    "Variedad": variedade.codigo if variedade else None,
+                    "SistemaExplotacion": sistema, "SistCultivo": _num(c.sistema_cultivo)}))
+                orixes[f"CUADERNO/DatosExplotacion/CambioCultivoDGC[{len(cambios)}]"] = Orixe(
+                    "cultivo", c.id,
+                    f"Cultivo {c.especie} en {parcela.nome if parcela else ''}".strip())
+            continue
         altas.append(_limpo({
             "CodigoDGCAjena": c.id,
             "ReferenciaCatastral": parcela.referencia_catastral if parcela else None,
@@ -522,9 +541,7 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
             "FechaInicio": _data(c.data_inicio), "FechaFin": _data(c.data_fin),
             "Cultivo": c.cultivo_siex_codigo,
             "Variedad": variedade.codigo if variedade else None,
-            "SistemaExplotacion": (
-                {SecanoRegadio.SECANO: "S", SecanoRegadio.REGADIO: "R"}.get(parcela.secano_regadio)
-                if parcela and parcela.secano_regadio else None),
+            "SistemaExplotacion": sistema,
             "SistCultivo": _num(c.sistema_cultivo),
         }))
         orixes[f"CUADERNO/DatosExplotacion/AltaDGC[{len(altas)}]"] = Orixe(
@@ -534,7 +551,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
     cuaderno = _limpo({
         "CAExplotacion": CA_GALICIA, "IdTitular": nif, "UnidadGestora": nif,
         "CodigoRea": horta.codigo_reaga,
-        "DatosExplotacion": {"AltaDGC": altas} if altas else None,
+        "DatosExplotacion": _limpo({"AltaDGC": altas or None,
+                                    "CambioCultivoDGC": cambios or None}) or None,
         "ActividadesExplotacion": dict(actividades) or None,
     })
     return Cue(cuaderno, orixes)
@@ -542,7 +560,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
 
 # Nomes en galego dos bloques, como os formularios do caderno público (XEAGA)
 BLOQUES = {
-    "AltaDGC": "Leiras (DGC)", "SiembraPlantacion": "Sementeira e plantación",
+    "AltaDGC": "Leiras (DGC)", "CambioCultivoDGC": "Cambios de cultivo",
+    "SiembraPlantacion": "Sementeira e plantación",
     "TratamFito": "Tratamentos fitosanitarios", "Fertilizacion": "Fertilización",
     "Riego": "Rega", "LaboresCulturales": "Labores culturais", "Cosecha": "Colleita",
     "Pastoreo": "Pastoreo", "ComercializacionVD": "Venda directa e comercializada",
@@ -582,8 +601,10 @@ def excel_xeaga(cue: Cue) -> bytes:
     primeira = libro.active
     assert primeira is not None
     libro.remove(primeira)
-    altas = cue.datos.get("DatosExplotacion", {}).get("AltaDGC", [])
-    bloques = {"AltaDGC": altas, **cue.datos.get("ActividadesExplotacion", {})}
+    explotacion = cue.datos.get("DatosExplotacion", {})
+    bloques = {"AltaDGC": explotacion.get("AltaDGC", []),
+               "CambioCultivoDGC": explotacion.get("CambioCultivoDGC", []),
+               **cue.datos.get("ActividadesExplotacion", {})}
     for bloque, rexistros in bloques.items():
         if not rexistros:
             continue
