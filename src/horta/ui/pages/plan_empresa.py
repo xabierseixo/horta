@@ -167,10 +167,24 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                              ("uta_outros", "…outros"))}
     taxa = ui.input("Taxa para o VAN (p.ex. 0,03)", value=f"{plan.taxa_desconto:g}").classes(
         "w-48")
+    ui.label("Declaracións do Anexo VI-B").classes("text-weight-medium")
+    declaracions = {c: ui.checkbox(e, value=getattr(plan, c))
+                    for c, e in (("ofertas_autenticas", "As ofertas son auténticas"),
+                                 ("sen_vinculo_promotor", "Non hai vinculación cos provedores"),
+                                 ("sen_vinculo_entre_provedores",
+                                  "Os provedores de cada gasto non están vinculados entre "
+                                  "eles"))}
     ui.button("Gardar os datos", icon="check", on_click=lambda: _accion(
         lambda s, a: actualizar_plan(
             s, a, s.get(PlanEmpresa, plan.id), empresa_nova=nova.value,
-            cnae=cnae.value or None, **{c: t.value or None for c, t in textos.items()},
+            cnae=cnae.value or None, tipoloxia=tipoloxia.value or None,
+            expediente=proxecto["expediente"].value or None,
+            anualidade=int(parsear_decimal(proxecto["anualidade"].value) or 0) or None,
+            submedida=proxecto["submedida"].value or None, gdr=proxecto["gdr"].value or None,
+            participada=participada.value, iva_recuperable=recuperable.value,
+            **{c: parsear_decimal(e.value) for c, e in empresa.items()},
+            **{c: t.value or None for c, t in textos.items()},
+            **{c: d.value for c, d in declaracions.items()},
             **{c: parsear_decimal(u.value) or 0 for c, u in utas.items()},
             taxa_desconto=parsear_decimal(taxa.value) or 0))).props("outline")
 
@@ -180,12 +194,13 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
     with ui.grid(columns=6).classes("w-full gap-1 items-center"):
         for texto in ("", *(f"Ano {a.ano_n} ({a.ano})" for a in filas)):
             ui.label(texto).classes("text-weight-bold text-caption")
+        financeiros = {a.ano_n: a.ingresos_financeiros for a in plan.anos}
         for nome, campo in (("A) Vendas", "vendas"), ("B) Variables", "variables"),
-                            ("C) Fixos", "fixos")):
+                            ("C) Fixos", "fixos"), ("Ingresos financeiros", "")):
             ui.label(nome)
             for a in filas:
-                entradas[a.ano_n].append(
-                    ui.input(value=f"{getattr(a, campo):g}").props("dense"))
+                valor = getattr(a, campo) if campo else financeiros.get(a.ano_n, 0)
+                entradas[a.ano_n].append(ui.input(value=f"{valor:g}").props("dense"))
         for nome, campo in (("D) Amortizacións", "amortizacions"), ("E) Marxe", "marxe"),
                             ("F) Financeiro", "financeiro"), ("G) Beneficio", "beneficio")):
             ui.label(nome)
@@ -194,7 +209,8 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
 
     def gardar_conta(session: Any, actor: Any) -> None:
         valores = {n: (parsear_decimal(v.value) or 0, parsear_decimal(b.value) or 0,
-                       parsear_decimal(c.value) or 0) for n, (v, b, c) in entradas.items()}
+                       parsear_decimal(c.value) or 0, parsear_decimal(f.value) or 0)
+                   for n, (v, b, c, f) in entradas.items()}
         gardar_anos(session, actor, session.get(PlanEmpresa, plan.id), valores)
 
     ui.button("Gardar a conta", icon="check", on_click=lambda: _accion(gardar_conta)).props(
@@ -204,23 +220,24 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
     for i in sorted(plan.investimentos, key=lambda i: i.partida):
         with ui.row().classes("items-center gap-2"):
             ui.label(f"{PARTIDAS[i.partida]} · {i.concepto}: {_e(i.importe_sen_iva)} + "
-                     f"{i.iva_pct:g} % IVE · {i.ofertas} ofertas")
+                     f"{i.iva_pct:g} % IVE")
             ui.button(icon="delete", on_click=lambda i=i: _accion(
                 lambda s, a: quitar(s, a, s.get(PlanEmpresa, plan.id),
                                     s.get(PlanInvestimento, i.id)))).props(
                 "flat dense round size=sm color=negative")
+        _ofertas(plan, i, provedores, nomes)
     with ui.row().classes("items-end gap-2"):
         partida = ui.select(PARTIDAS, label="Partida", value="3").classes("w-56")
         concepto = ui.input("Concepto").classes("w-48")
         importe = ui.input("Sen IVE (€)").classes("w-28")
         iva = ui.input("IVE %", value="21").classes("w-20")
         vida = ui.input("Vida útil (anos)", value="10").classes("w-28")
-        ofertas = ui.input("Ofertas", value="3").classes("w-20")
+        motivo = ui.input("Se non hai tres ofertas, por que").classes("w-64")
         ui.button("Engadir", icon="add", on_click=lambda: _accion(
             lambda s, a: engadir_investimento(
                 s, a, s.get(PlanEmpresa, plan.id), partida.value, concepto.value or "",
                 parsear_decimal(importe.value) or 0, parsear_decimal(iva.value) or 0,
-                int(parsear_decimal(vida.value) or 0), int(parsear_decimal(ofertas.value) or 0)
+                int(parsear_decimal(vida.value) or 0), motivo.value or None
             ))).props("outline")
 
     ui.label("Financiamento (5)").classes("text-subtitle1 text-weight-bold q-mt-md")
@@ -242,6 +259,14 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                 s, a, s.get(PlanEmpresa, plan.id), fonte.value,
                 parsear_decimal(canto.value) or 0, parsear_decimal(xuro.value),
                 int(parsear_decimal(anos.value) or 0) or None))).props("outline")
+
+    ui.label("Documentación (art. 18)").classes("text-subtitle1 text-weight-bold q-mt-md")
+    for doc in docs:
+        with ui.row().classes("items-center gap-2 no-wrap"):
+            ui.icon("check_circle" if doc.da_app else "upload_file").classes(
+                "text-positive" if doc.da_app else "text-grey")
+            ui.label(f"{doc.letra}) {doc.texto}" + ("" if doc.da_app else " · achégao ti")
+                     ).classes("text-body2")
 
     if segue:
         ui.label("Seguimento: previsto e real").classes("text-subtitle1 text-weight-bold q-mt-md")
