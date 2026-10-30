@@ -194,6 +194,9 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
             horas = ui.input("Horas de traballo").classes("w-full")
             xestion = ui.checkbox("Xestión sostible dos insumos")
             lodos = ui.checkbox("Leva documento de aplicación de lodos de depuradora")
+            ui.label("Garda a copia do documento que che dá quen aplica os lodos: unha foto "
+                     "no traballo (icona da cámara no Diario). Consérvase 3 anos."
+                     ).classes("texto-suave text-caption").bind_visibility_from(lodos, "value")
             # A compra do abono: alí van o provedor e o albará
             compra = ui.select({}, label="De que compra (opcional)", clearable=True).classes(
                 "w-full")

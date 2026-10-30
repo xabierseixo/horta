@@ -90,3 +90,21 @@ def test_so_mira_o_periodo(session):
     crear_rega(session, ana, DatosRega(cultivo_id=cultivo.id, data_inicio=HOXE, persoa_id=QUEN),
                hoxe=HOXE)
     assert faltas_caderno(session, ana, horta.id, desde=date(2027, 1, 1)) == []
+
+
+def test_abonado_con_lodos_pide_a_copia_do_documento(session):
+    from horta.models.foto import Foto
+
+    ana, horta, cultivo = _cultivo_sen_superficie(session)
+    esterco = crear_fertilizante(session, ana, horta.id, DatosFertilizante(
+        nome="Lodo tratado", material="13"))
+    abonado = crear_abonado(session, ana, DatosAbonado(
+        persoa_id=QUEN, cultivo_id=cultivo.id, data_inicio=HOXE, fertilizante_id=esterco.id,
+        aplicacion_lodos=True), hoxe=HOXE)
+    dato = ("copia do documento de aplicación dos lodos (anexo III da Orde AAA/1072/2013): "
+            "gárdaa como foto no abonado")
+    assert Falta("Abonados", dato, 1) in faltas_caderno(session, ana, horta.id)
+    session.add(Foto(horta_id=horta.id, que="abonado", ref_id=abonado.id, ficheiro="a.jpg",
+                     data=HOXE))
+    session.commit()
+    assert all(f.dato != dato for f in faltas_caderno(session, ana, horta.id))

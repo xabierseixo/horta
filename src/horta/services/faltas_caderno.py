@@ -10,6 +10,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.models.foto import Foto
 from horta.models.usuario import Usuario
 from horta.services.abonados import listar_abonados
 from horta.services.labores import listar_labores
@@ -46,6 +47,9 @@ def faltas_caderno(session: Session, actor: Usuario, horta_id: int,
                if no_periodo(lab.data_inicio)]
     tratamentos = [t for t in listar_tratamentos_fito(session, actor, horta_id)
                    if no_periodo(t.data_inicio)]
+    # Orde AAA/1072/2013 art. 4.a: quen aplica os lodos entrega o anexo III e gárdase 3 anos
+    con_documento = {f.ref_id for f in session.query(Foto).filter_by(
+        horta_id=horta_id, que="abonado", baixa=False)}
     return [
         *_contar("Tratamentos", tratamentos, [
             ("datos do CUE (ver a táboa de tratamentos)", lambda t: bool(faltas_para_cue(t)))]),
@@ -54,7 +58,10 @@ def faltas_caderno(session: Session, actor: Usuario, horta_id: int,
             ("tipo de fertilización", lambda a: not a.tipo_fertilizacion),
             ("método de aplicación", lambda a: not a.metodo),
             ("boas prácticas", lambda a: not a.boas_practicas),
-            ("dose", lambda a: a.fertilizante_id is not None and a.dose is None)]),
+            ("dose", lambda a: a.fertilizante_id is not None and a.dose is None),
+            ("copia do documento de aplicación dos lodos (anexo III da Orde AAA/1072/2013): "
+             "gárdaa como foto no abonado",
+             lambda a: a.aplicacion_lodos and a.id not in con_documento)]),
         *_contar("Regas", regas, [
             ("superficie", lambda r: any(not le.superficie_ha for le in r.leiras)),
             ("sistema de rega", lambda r: not r.sistema_rega),
