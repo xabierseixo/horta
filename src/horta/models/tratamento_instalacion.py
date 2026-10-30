@@ -40,5 +40,5 @@ class TratamentoInstalacion(ParteComun, FeitoPor, ConMaquina, Base):
     # (local de almacenamento) e eficacia do tratamento
     produto_vexetal: Mapped[int | None] = mapped_column(Integer, default=None)
     instalacion_id: Mapped[int | None] = mapped_column(ForeignKey("instalacion.id"),
-                                                         default=None)
+                                                       default=None)
     eficacia: Mapped[str | None] = mapped_column(String(20), default=None)

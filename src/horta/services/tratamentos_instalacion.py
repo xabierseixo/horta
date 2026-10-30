@@ -70,7 +70,7 @@ def _validar(session: Session, datos: DatosTratamentoInstalacion, horta_id: int,
     for catalogo, codigo in (("xustificacion", datos.xustificacion),
                              ("tipo_produto", datos.tipo_produto),
                              ("unidade_medida", datos.unidade),
-                            ("eficacia", datos.eficacia)):
+                             ("eficacia", datos.eficacia)):
         if codigo:
             validar_codigo(session, catalogo, codigo, datos.data)
 
