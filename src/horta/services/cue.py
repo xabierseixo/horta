@@ -27,6 +27,7 @@ from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa
 from horta.models.produto import EntradaProduto
+from horta.models.tratamento_instalacion import TIPOS_INSTALACION
 from horta.models.usuario import Usuario
 from horta.services.abonados import listar_abonados
 from horta.services.analises import listar_analises
@@ -40,6 +41,7 @@ from horta.services.pastoreos import listar_pastoreos
 from horta.services.persoas import titular_da_horta
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import listar_tratamentos_fito
+from horta.services.tratamentos_instalacion import listar_tratamentos_instalacion
 
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 # Organismo pagador da Comunidade Autónoma de Galicia (lista de valores do SIEX)
@@ -248,6 +250,46 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
                 "Eficacia": _num(t.eficacia),
                 "Observaciones": (t.notas or "")[:150] or None,
             }, orixe)
+
+    # --- Tratamentos postcolleita e en locais de almacenamento (CUE 1.2 e 1.3)
+    for ti in listar_tratamentos_instalacion(session, actor, horta_id):
+        if ti.tipo == "transporte" or not no_periodo(ti.data):
+            continue
+        bloque, campo = _PROBLEMAS.get(ti.problema_tipo or "", (None, None))
+        persoa = persoas.get(ti.persoa_id or 0)
+        m = maquinas.get(ti.maquina_id or 0)
+        comun = {
+            "FechaActuacion": _data(ti.data),
+            "ProblematicaFito": {bloque: {campo: _num(ti.problema_codigo)}}
+            if bloque and ti.problema_codigo else {},
+            "Justificaciones": [{"JustAct": _num(ti.xustificacion)}] if ti.xustificacion
+            else [],
+            "ProductosFito": [_limpo({
+                "TipoProducto": _num(ti.tipo_produto), "NumRegistro": ti.num_rexistro,
+                "Cantidad": ti.cantidade_utilizada, "Unidad": _num(ti.unidade)})],
+            "IdentificadorAplicador": [{
+                "AplicadorEmpresa": {"NumROPO": persoa.ropo_numero if persoa else None},
+                "EquipoAplicador": _limpo({
+                    "NumROMA": m.num_roma if m else None,
+                    "NumREGANIP": m.num_reganip if m and not m.num_roma else None,
+                    "EquipoPropio": m.propia if m else None,
+                    "IdEquipoAplicador": m.id_equipo_non_inscribible if m else None})}],
+            "Eficacia": _num(ti.eficacia),
+            "Observaciones": (ti.notas or "")[:150] or None,
+        }
+        orixe = Orixe("tratamento_instalacion", ti.id,
+                      f"Tratamento {TIPOS_INSTALACION[ti.tipo].lower()} do {ti.data:%d/%m/%Y}")
+        if ti.tipo == "postcolleita":
+            engadir("TratamientosPostCosecha", {
+                "IdAjenaTratamPostco": ti.id, "ProductoVegetal": ti.produto_vexetal,
+                "Cantidad": ti.cantidade_tratada, **comun}, orixe)
+        else:
+            engadir("TratamientosEdifInstalaciones", {
+                "IdAjenaTratamEdif": ti.id,
+                "Edificaciones": [_limpo({"IdEdificacion": ti.instalacion_id,
+                                          "Volumen": ti.cantidade_tratada,
+                                          "Unidad": 3 if ti.cantidade_tratada else None})],
+                **comun}, orixe)
 
     # --- Abonados
     for ab in listar_abonados(session, actor, horta_id):
@@ -505,6 +547,8 @@ BLOQUES = {
     "Riego": "Rega", "LaboresCulturales": "Labores culturais", "Cosecha": "Colleita",
     "Pastoreo": "Pastoreo", "ComercializacionVD": "Venda directa e comercializada",
     "Analitica": "Análises", "PlanAbonado": "Plan de abonado",
+    "TratamientosPostCosecha": "Tratamentos postcolleita",
+    "TratamientosEdifInstalaciones": "Tratamentos en locais",
 }
 
 
