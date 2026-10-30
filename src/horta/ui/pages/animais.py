@@ -21,6 +21,7 @@ from horta.services.coidados_animais import en_tempo_espera
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.instalacions import listar_instalacions
 from horta.services.pastoreos import no_pasto, nomes_leiras
+from horta.services.persoas import listar_persoas, nome_completo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -118,6 +119,8 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         data_alta = campo_data("Data de alta", date.today().isoformat())
         instalacion = ui.select({}, label="Onde están (instalación)", clearable=True).classes(
             "w-full")
+        titular_animais = ui.select({}, label="Titular dos animais, se non é o da explotación",
+                                    with_input=True, clearable=True).classes("w-full")
         cantos_actuais = ui.label("").classes("texto-suave")
         notas = ui.textarea("Notas").classes("w-full")
 
@@ -150,13 +153,15 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                                      especie_codigo=especie.value, raza=raza.value or None,
                                      cantidade=int(cantos) if cantos is not None else 0,
                                      notas=notas.value or None,
-                                     instalacion_id=instalacion.value)
+                                     instalacion_id=instalacion.value,
+                                     titular_animais_id=titular_animais.value)
                     else:
                         actualizar_animal(session, actor_actual, existente, especie=nome.value,
                                           especie_codigo=especie.value,
                                           raza=raza.value or None, data_alta=alta,
                                           notas=notas.value or None,
-                                          instalacion_id=instalacion.value)
+                                          instalacion_id=instalacion.value,
+                                          titular_animais_id=titular_animais.value)
 
                 ok = executar_accion(session, accion)
             if ok:
@@ -184,7 +189,12 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             opcions = ({i.id: i.nome for i in listar_instalacions(session, actor_actual, horta_id)
                         if i.activa or (animal and i.id == animal.instalacion_id)}
                        if actor_actual else {})
+            persoas = ({p.id: nome_completo(p) for p in listar_persoas(session, actor_actual,
+                                                                      horta_id, False)}
+                       if actor_actual else {})
         instalacion.set_options(opcions, value=animal.instalacion_id if animal else None)
+        titular_animais.set_options(persoas,
+                                    value=animal.titular_animais_id if animal else None)
         notas.value = (animal.notas or "") if animal else ""
         dialogo.open()
 
