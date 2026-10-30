@@ -1,5 +1,5 @@
-"""Plan de empresa (paso 16):
-AGADER Anexo III (resumo e conta a 5 anos) e Anexo V (investimento por partidas)."""
+"""Plan de empresa (paso 16): AGADER Anexo III (resumo e conta a 5
+anos), Anexo V (investimento por partidas) e Anexo VI-A (ofertas)."""
 
 from __future__ import annotations
 
@@ -18,12 +18,34 @@ class PlanEmpresa(Base):
     horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"), index=True)
     titulo: Mapped[str] = mapped_column(String(200))
     linea: Mapped[str] = mapped_column(String(20), default="agader")
+    # services.plan_empresa.TIPOLOXIAS (arts. 11–15 da convocatoria)
+    tipoloxia: Mapped[str | None] = mapped_column(String(30), default=None)
     ano_inicio: Mapped[int] = mapped_column(Integer)
+    # Datos do proxecto (Anexo III): os dá o GDR ao rexistrar a solicitude
+    expediente: Mapped[str | None] = mapped_column(String(30), default=None)
+    anualidade: Mapped[int | None] = mapped_column(Integer, default=None)
+    submedida: Mapped[str | None] = mapped_column(String(20), default=None)
+    gdr: Mapped[str | None] = mapped_column(String(100), default=None)
     empresa_nova: Mapped[bool] = mapped_column(Boolean, default=False)
     cnae: Mapped[str | None] = mapped_column(String(10), default=None)
+    # Pequena empresa (art. 4.2.c; anexo I do Reg. UE 651/2014), da empresa ou do grupo
+    participada: Mapped[bool] = mapped_column(Boolean, default=False)
+    traballadores: Mapped[float | None] = mapped_column(Float, default=None)
+    facturacion: Mapped[float | None] = mapped_column(Float, default=None)
+    balance: Mapped[float | None] = mapped_column(Float, default=None)
+    # Art. 8.b: o IVE recuperable non se subvenciona
+    iva_recuperable: Mapped[bool] = mapped_column(Boolean, default=True)
     descricion: Mapped[str | None] = mapped_column(Text, default=None)
     proceso: Mapped[str | None] = mapped_column(Text, default=None)
     formacion: Mapped[str | None] = mapped_column(Text, default=None)
+    # Memoria (art. 18.1.f): situación de partida e metodoloxía de traballo
+    situacion_partida: Mapped[str | None] = mapped_column(Text, default=None)
+    metodoloxia: Mapped[str | None] = mapped_column(Text, default=None)
+    mercado: Mapped[str | None] = mapped_column(Text, default=None)
+    # Anexo VI-B: declaracións sobre os provedores
+    ofertas_autenticas: Mapped[bool] = mapped_column(Boolean, default=False)
+    sen_vinculo_promotor: Mapped[bool] = mapped_column(Boolean, default=False)
+    sen_vinculo_entre_provedores: Mapped[bool] = mapped_column(Boolean, default=False)
     # Emprego en UTA (Anexo III, 3)
     uta_mantidas: Mapped[float] = mapped_column(Float, default=0)
     uta_creadas: Mapped[float] = mapped_column(Float, default=0)
@@ -103,5 +125,4 @@ class PlanAno(Base):
     vendas: Mapped[float] = mapped_column(Float, default=0)
     custos_variables: Mapped[float] = mapped_column(Float, default=0)
     custos_fixos: Mapped[float] = mapped_column(Float, default=0)
-    # Ingresos financeiros (subvencións, axudas, etc.)
     ingresos_financeiros: Mapped[float] = mapped_column(Float, default=0)

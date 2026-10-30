@@ -52,6 +52,7 @@ from horta.models.plan_empresa import (
     PlanEmpresa,
     PlanFinanciamento,
     PlanInvestimento,
+    PlanOferta,
 )
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
@@ -140,6 +141,7 @@ __all__ = [
     "ParcelaZona",
     "PlanEmpresa",
     "PlanInvestimento",
+    "PlanOferta",
     "PlanFinanciamento",
     "PlanAno",
     "AnimalIdentificado",
