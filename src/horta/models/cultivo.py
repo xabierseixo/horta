@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -85,6 +85,10 @@ class Cultivo(Base):
         ForeignKey("persoa.id"), default=None
     )
     sementeira_horas: Mapped[float | None] = mapped_column(Float, default=None)
+    # REA da Xunta (exportarREA): a DGC do recinto e o cultivo declarado nela. Sen DGC, o CUE
+    # leva o cultivo como DGC allea; con DGC e sen cultivo do REA, como cambio de cultivo
+    codigo_dgc: Mapped[int | None] = mapped_column(BigInteger, default=None)
+    codigo_cultivo_rea: Mapped[int | None] = mapped_column(BigInteger, default=None)
     # App do móbil: identificador xerado no móbil (envío sen duplicados)
     uuid: Mapped[str | None] = mapped_column(String(36), unique=True, default=None)
     created_at: Mapped[datetime] = mapped_column(
