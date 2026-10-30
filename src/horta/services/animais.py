@@ -76,6 +76,7 @@ def crear_animal(
     _validar_cantidade(campos)
     _validar_especie(session, campos.get("especie_codigo"), data_alta)
     comprobar_instalacion(session, horta_id, campos.get("instalacion_id"))
+    persoa_co_papel(session, horta_id, campos.get("titular_animais_id"), None)
     cantidade = campos.pop("cantidade", 1)
     for derivado in ("estado", "data_baixa"):
         campos.pop(derivado, None)
@@ -161,7 +162,7 @@ def _validar_identificado(session: Session, animal: Animal, campos: dict[str, An
     if campos.get("sexo") not in (None, *SEXOS):
         raise OperacionNonPermitidaError("Sexo non válido")
     if campos.get("dispositivo") not in (None, *DISPOSITIVOS):
-        raise OperacionNonPermitidaError("Dispositivo non válido")
+        raise OperacionNonPermitidaError("Dispositivo de identificación non válido")
     alta, baixa = campos.get("data_alta"), campos.get("data_baixa")
     if alta is None:
         raise OperacionNonPermitidaError("Indica a data de alta")
