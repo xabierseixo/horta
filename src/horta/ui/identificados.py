@@ -10,6 +10,7 @@ from nicegui import ui
 from horta.db import get_session
 from horta.models.animal import Animal, AnimalIdentificado
 from horta.services.animais import (
+    DISPOSITIVOS,
     SEXOS,
     actualizar_identificado,
     aviso_identificados,
@@ -62,6 +63,8 @@ def abrir_identificados(horta_id: int, animal_id: int) -> None:
             identificador = ui.input("Identificador").classes("col")
             nome = ui.input("Nome").classes("col")
             sexo = ui.select(SEXOS, label="Sexo", clearable=True).classes("w-32")
+            dispositivo = ui.select(DISPOSITIVOS, label="Dispositivo", clearable=True).classes(
+                "w-40")
         with ui.row().classes("w-full no-wrap"):
             nacemento = campo_data("Nacemento").classes(remove="w-full", add="col")
             alta = campo_data("Alta").classes(remove="w-full", add="col")
@@ -72,6 +75,7 @@ def abrir_identificados(horta_id: int, animal_id: int) -> None:
             identificador.value = individuo.identificador if individuo else ""
             nome.value = (individuo.nome or "") if individuo else ""
             sexo.value = individuo.sexo if individuo else None
+            dispositivo.value = individuo.dispositivo if individuo else None
             nacemento.value = (individuo.data_nacemento.isoformat()
                                if individuo and individuo.data_nacemento else "")
             alta.value = (individuo.data_alta if individuo else date.today()).isoformat()
@@ -80,7 +84,8 @@ def abrir_identificados(horta_id: int, animal_id: int) -> None:
 
         def gardar() -> None:
             campos = {"identificador": identificador.value or "", "nome": nome.value or None,
-                      "sexo": sexo.value, "data_nacemento": parsear_data(nacemento.value),
+                      "sexo": sexo.value, "dispositivo": dispositivo.value,
+                      "data_nacemento": parsear_data(nacemento.value),
                       "data_alta": parsear_data(alta.value),
                       "data_baixa": parsear_data(baixa.value)}
             with get_session() as session:
