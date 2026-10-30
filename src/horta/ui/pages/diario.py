@@ -28,6 +28,7 @@ from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.services.diario import TIPOS, Traballo, listar_traballos
+from horta.services.envio_cue import estado_cue
 from horta.services.fotos import contar_fotos
 from horta.services.persoas import listar_persoas
 from horta.ui.campos import campo_data
@@ -183,12 +184,17 @@ def boton_apuntar_traballo(formularios: Formularios) -> None:
             'fab color=primary aria-label="Apuntar traballo"')
 
 
+# Estado no CUE da Xunta (services.envio_cue.estado_cue)
+_CUE = {"aceptado": "no CUE", "enviado": "enviado ao CUE", "erro": "erro no CUE",
+        "pechado": "pechado no CUE"}
+
+
 def _data(t: Traballo) -> str:
     return f"{t.data:%d/%m/%Y}" if t.data else "sen data"
 
 
 def tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
-             horta_id: int, pode_editar: bool, fotos: int) -> None:
+             horta_id: int, pode_editar: bool, fotos: int, cue: str | None = None) -> None:
     with ui.row().classes("tarxeta w-full items-center no-wrap gap-3 cursor-pointer q-pa-sm").on(
             "click", ao_premer):
         ui.icon(ICONAS[t.tipo]).classes("text-h5 text-primary")
@@ -203,6 +209,9 @@ def tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
             ui.label(_data(t)).classes("text-caption")
             if t.atrasado:
                 ui.label("atrasada").classes("etiqueta-aviso")
+            if cue is not None:
+                ui.label(_CUE[cue]).classes("etiqueta-aviso" if cue in ("erro", "pechado")
+                                            else "texto-suave text-caption")
         boton_fotos(horta_id, t.tipo, t.id, TIPOS[t.tipo] + (f": {t.que}" if t.que else ""),
                     pode_editar, fotos)
 
@@ -250,6 +259,7 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
                 inicio = fin = None
             traballos = listar_traballos(session, actor_actual, horta_id, inicio, fin)
             fotos = contar_fotos(session, actor_actual, horta_id)
+            cue = estado_cue(session, actor_actual, horta_id)
         traballos = [
             t for t in traballos
             if (not tipo.value or t.tipo == tipo.value)
@@ -269,11 +279,12 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
                 for t in grupo:
                     if formularios is not None:
                         tarxeta(t, partial(formularios.editar, t), persoas, horta_id, True,
-                                 fotos.get((t.tipo, t.id), 0))
+                                 fotos.get((t.tipo, t.id), 0), cue.get((t.tipo, t.id)))
                     else:
                         tarxeta(t, partial(ui.navigate.to,
                                             url_seccion(horta_id, SECCION_DO_TIPO[t.tipo])),
-                                 persoas, horta_id, False, fotos.get((t.tipo, t.id), 0))
+                                 persoas, horta_id, False, fotos.get((t.tipo, t.id), 0),
+                                 cue.get((t.tipo, t.id)))
 
     for filtro in (tipo, parcela, quen, estado, desde, ata):
         filtro.on_value_change(lista.refresh)
