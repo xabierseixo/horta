@@ -24,6 +24,7 @@ from horta.services.movementos_animais import (
     ten_movementos,
 )
 from horta.services.pastoreos import ten_pastoreo
+from horta.services.persoas import persoa_co_papel
 from horta.services.producions_animais import ten_producion
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -34,7 +35,8 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 # de permisos, que se fai coa horta_id actual. A cantidade, a baixa e o
 # estado saen das entradas e saídas (services.movementos_animais).
 CAMPOS_EDITABLES_ANIMAL = frozenset(
-    {"especie", "especie_codigo", "raza", "data_alta", "notas", "instalacion_id"}
+    {"especie", "especie_codigo", "raza", "data_alta", "notas", "instalacion_id",
+     "titular_animais_id"}
 )
 
 # As especies de granxa do catálogo oficial ESPECIE_ANIMAL, en galego
@@ -74,6 +76,7 @@ def crear_animal(
     _validar_cantidade(campos)
     _validar_especie(session, campos.get("especie_codigo"), data_alta)
     comprobar_instalacion(session, horta_id, campos.get("instalacion_id"))
+    persoa_co_papel(session, horta_id, campos.get("titular_animais_id"), None)
     cantidade = campos.pop("cantidade", 1)
     for derivado in ("estado", "data_baixa"):
         campos.pop(derivado, None)
@@ -100,6 +103,7 @@ def actualizar_animal(
     data_alta = cambios.pop("data_alta", animal.data_alta)
     _validar_especie(session, cambios.get("especie_codigo"), data_alta)
     comprobar_instalacion(session, animal.horta_id, cambios.get("instalacion_id"))
+    persoa_co_papel(session, animal.horta_id, cambios.get("titular_animais_id"), None)
     if data_alta != animal.data_alta:
         primeiro = (session.query(MovementoAnimal)
                     .filter(MovementoAnimal.animal_id == animal.id,
@@ -139,8 +143,13 @@ def listar_animais(session: Session, actor: Usuario, horta_id: int) -> list[Anim
 # --- Animais identificados (opcional en todas as especies)
 
 SEXOS = {"femia": "Femia", "macho": "Macho"}
+# Dispositivos de identificación (Reg. Delegado (UE) 2019/2035; RD 787/2023)
+DISPOSITIVOS = {"crotal": "Crotal", "crotal_electronico": "Crotal electrónico",
+                "bolo": "Bolo ruminal", "transpondedor": "Transpondedor inxectable",
+                "pulseira": "Marca na cuartilla", "tatuaxe": "Tatuaxe", "anela": "Anela"}
 CAMPOS_IDENTIFICADO = frozenset(
-    {"identificador", "nome", "sexo", "data_nacemento", "data_alta", "data_baixa", "notas"})
+    {"identificador", "nome", "sexo", "dispositivo", "data_nacemento", "data_alta",
+     "data_baixa", "notas"})
 
 
 def _validar_identificado(session: Session, animal: Animal, campos: dict[str, Any],
@@ -152,6 +161,8 @@ def _validar_identificado(session: Session, animal: Animal, campos: dict[str, An
         raise OperacionNonPermitidaError("Indica o crotal, microchip ou anela")
     if campos.get("sexo") not in (None, *SEXOS):
         raise OperacionNonPermitidaError("Sexo non válido")
+    if campos.get("dispositivo") not in (None, *DISPOSITIVOS):
+        raise OperacionNonPermitidaError("Dispositivo non válido")
     alta, baixa = campos.get("data_alta"), campos.get("data_baixa")
     if alta is None:
         raise OperacionNonPermitidaError("Indica a data de alta")
