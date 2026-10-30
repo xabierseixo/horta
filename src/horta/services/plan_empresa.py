@@ -334,7 +334,7 @@ def indicadores(plan: PlanEmpresa) -> Indicadores:
         if n and acumulado >= 0:
             payback = n
             break
-    return Indicadores(investimento, con_iva,
+    return Indicadores(investimento, con_iva, subvencionable,
                        round(sum(f.importe for f in plan.financiamento), 2),
                        round(_van(plan.taxa_desconto, fluxos), 2), tir, payback)
 
@@ -365,12 +365,22 @@ def avisos_ofertas(investimento: PlanInvestimento) -> list[str]:
 
 
 def avisos_plan(plan: PlanEmpresa) -> list[str]:
-    avisos = [f"«{i.concepto}»: hai {i.ofertas} ofertas e piden tres (art. 18.h)"
-              for i in plan.investimentos if i.ofertas < 3]
+    avisos = [a for i in plan.investimentos for a in avisos_ofertas(i)]
     ind = indicadores(plan)
     if ind.investimento and abs(ind.financiamento - ind.investimento_con_iva) > 1:
-        def euros(valor: float) -> str:
-            return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
+        avisos.append(f"O financiamento ({_euros(ind.financiamento)}) non cadra co "
+                      f"investimento con IVE ({_euros(ind.investimento_con_iva)})")
+    tipoloxia = TIPOLOXIAS.get(plan.tipoloxia or "")
+    if tipoloxia and tipoloxia.max_investimento and \
+            ind.subvencionable > tipoloxia.max_investimento:
+        avisos.append(f"O investimento subvencionable ({_euros(ind.subvencionable)}) pasa do "
+                      f"máximo de {_euros(tipoloxia.max_investimento)} ({tipoloxia.texto})")
+    if (plan.traballadores or 0) >= 50:
+        avisos.append("Con 50 persoas ou máis non é pequena empresa (art. 4.2.c)")
+    if (plan.facturacion or 0) > 10_000_000 and (plan.balance or 0) > 10_000_000:
+        avisos.append("Coa facturación e o balance por riba de 10 millóns non é pequena "
+                      "empresa (art. 4.2.c)")
+    return avisos
 
 
 def faltas_plan(session: Session, actor: Usuario, plan: PlanEmpresa) -> list[str]:
@@ -595,7 +605,7 @@ def _sixpac(parcela: Parcela) -> str:
 
 
 def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
-    """Excel co Anexo III (resumo do plan) e o Anexo V (orzamento por partidas)."""
+    """Excel cos Anexos III, V, VI-A e VI-B, a documentación do art. 18 e a localización."""
     from io import BytesIO
 
     from openpyxl import Workbook
@@ -605,12 +615,28 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
     plan = _plan(session, actor, plan_id)
     cab = f"{plan.titulo} · Ano 1: {plan.ano_inicio}"
     ind = indicadores(plan)
+    titular = titular_da_horta(session, plan.horta_id)
+    representante = next(iter(con_papel(session, plan.horta_id, "representante")), None)
+    tipoloxia = TIPOLOXIAS.get(plan.tipoloxia or "")
     wb = Workbook()
     wb.remove(wb.active)
     folla(wb, "Anexo III", "Resumo do proxecto – plan de empresa (AGADER, Anexo III)", cab,
           ("Apartado", "Valor"),
-          [("Empresa", "Nova" if plan.empresa_nova else "Existente"),
-           ("CNAE", plan.cnae or ""),
+          [("Persoa solicitante", ""), *_identificacion(titular),
+           ("E na súa representación", ""), *_identificacion(representante),
+           ("Número de expediente", plan.expediente or ""),
+           ("Anualidade", plan.anualidade or ""), ("Submedida", plan.submedida or ""),
+           ("Grupo de desenvolvemento rural", plan.gdr or ""),
+           ("Título do proxecto", plan.titulo),
+           ("Tipoloxía", f"{tipoloxia.texto} ({tipoloxia.axuda})" if tipoloxia else ""),
+           ("Tipo de empresa", "Nova" if plan.empresa_nova else "Existente"),
+           ("Actividade principal (CNAE)", plan.cnae or ""),
+           ("Participa ou está participada nun 25 % ou máis", "Si" if plan.participada
+            else "Non"),
+           ("Nº de traballadores", plan.traballadores if plan.traballadores is not None
+            else ""),
+           ("Facturación (€)", plan.facturacion if plan.facturacion is not None else ""),
+           ("Balance (€)", plan.balance if plan.balance is not None else ""),
            ("1. Descrición, obxectivos e finalidade", plan.descricion or ""),
            ("2. Proceso e medios humanos e materiais", plan.proceso or ""),
            ("3. Emprego (UTA) mantido", plan.uta_mantidas),
@@ -621,11 +647,12 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
            ("   creado: persoas con discapacidade", plan.uta_discapacidade),
            ("   creado: outros", plan.uta_outros),
            ("4. Formación do promotor", plan.formacion or ""),
-           *((f"5. {FONTES[t]} (€)", round(sum(f.importe for f in plan.financiamento
-                                                if f.tipo == t), 2)) for t in FONTES),
-           ("5. Total investimento con IVE (€)", ind.investimento_con_iva),
+           *_financiamento(plan, ind),
            ("VAN (€)", ind.van), ("TIR", f"{ind.tir:.2%}" if ind.tir is not None else "—"),
-           ("Pay-back (anos)", ind.payback or "—")])
+           ("Pay-back (anos)", ind.payback or "—"),
+           ("Memoria: situación de partida", plan.situacion_partida or ""),
+           ("Memoria: metodoloxía de traballo", plan.metodoloxia or ""),
+           ("Memoria: mercado e clientes", plan.mercado or "")])
     filas = conta(plan)
     folla(wb, "Conta 5 anos", "6. Previsión da conta de explotación (Anexo III)", cab,
           ("Concepto", *(f"Ano {a.ano_n} ({a.ano})" for a in filas)),
