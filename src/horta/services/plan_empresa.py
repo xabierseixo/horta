@@ -339,6 +339,31 @@ def indicadores(plan: PlanEmpresa) -> Indicadores:
                        round(_van(plan.taxa_desconto, fluxos), 2), tir, payback)
 
 
+def _euros(valor: float) -> str:
+    return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
+
+
+def avisos_ofertas(investimento: PlanInvestimento) -> list[str]:
+    """Art. 20: tres ofertas de provedores distintos e escoller a máis económica."""
+    nome, ofertas = f"«{investimento.concepto}»", investimento.ofertas
+    avisos = []
+    if len(ofertas) < 3 and not investimento.motivo_sen_ofertas:
+        avisos.append(f"{nome}: hai {len(ofertas)} ofertas e piden tres de provedores "
+                      "distintos, ou explicar por que non hai (art. 20.1)")
+    elixida = next((o for o in ofertas if o.elixida), None)
+    if ofertas and elixida is None:
+        avisos.append(f"{nome}: marca a oferta elixida")
+    if elixida is not None:
+        if elixida.importe_sen_iva > min(o.importe_sen_iva for o in ofertas) and not \
+                elixida.xustificacion:
+            avisos.append(f"{nome}: a oferta elixida non é a máis económica; xustifícao "
+                          "(art. 20.4)")
+        if abs(elixida.importe_sen_iva - investimento.importe_sen_iva) > 0.01:
+            avisos.append(f"{nome}: o importe ({_euros(investimento.importe_sen_iva)}) non é o "
+                          f"da oferta elixida ({_euros(elixida.importe_sen_iva)})")
+    return avisos
+
+
 def avisos_plan(plan: PlanEmpresa) -> list[str]:
     avisos = [f"«{i.concepto}»: hai {i.ofertas} ofertas e piden tres (art. 18.h)"
               for i in plan.investimentos if i.ofertas < 3]
@@ -347,9 +372,97 @@ def avisos_plan(plan: PlanEmpresa) -> list[str]:
         def euros(valor: float) -> str:
             return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
 
-        avisos.append(f"O financiamento ({euros(ind.financiamento)}) non cadra co "
-                      f"investimento con IVE ({euros(ind.investimento_con_iva)})")
-    return avisos
+
+def faltas_plan(session: Session, actor: Usuario, plan: PlanEmpresa) -> list[str]:
+    """O que lle falta ao plan para presentalo. Nunca bloquea."""
+    _plan(session, actor, plan.id)
+    titular = titular_da_horta(session, plan.horta_id)
+    faltas = []
+    if titular is None or not titular.nif:
+        faltas.append("o NIF do titular (en Persoas)")
+    if not plan.tipoloxia:
+        faltas.append("a tipoloxía do proxecto")
+    if not plan.cnae:
+        faltas.append("o CNAE da actividade principal")
+    for campo, texto in (("descricion", "1. a descrición, os obxectivos e a finalidade"),
+                         ("proceso", "2. o proceso e os medios humanos e materiais"),
+                         ("formacion", "4. a formación do promotor"),
+                         ("situacion_partida", "a situación de partida (memoria)"),
+                         ("metodoloxia", "a metodoloxía de traballo (memoria)")):
+        if not (getattr(plan, campo) or "").strip():
+            faltas.append(texto)
+    if not plan.empresa_nova and None in (plan.traballadores, plan.facturacion, plan.balance):
+        faltas.append("os traballadores, a facturación e o balance da empresa")
+    if not (plan.uta_mantidas or plan.uta_creadas):
+        faltas.append("3. o emprego en UTA (mantido ou creado)")
+    if not any(a.vendas for a in plan.anos):
+        faltas.append("6. as vendas da conta a 5 anos")
+    if plan.tipoloxia != "bono" and not plan.investimentos:
+        faltas.append("o investimento (Anexo V)")
+    if not plan.financiamento:
+        faltas.append("5. o plan de financiamento")
+    if plan.investimentos and not (plan.ofertas_autenticas and plan.sen_vinculo_promotor
+                                   and plan.sen_vinculo_entre_provedores):
+        faltas.append("as declaracións do Anexo VI-B")
+    for investimento in plan.investimentos:
+        for oferta in investimento.ofertas:
+            provedor = session.get(Persoa, oferta.provedor_id)
+            if provedor is not None and not provedor.nif:
+                faltas.append(f"o NIF de {nome_completo(provedor)} (en Contactos)")
+    return list(dict.fromkeys(faltas))
+
+
+@dataclass(frozen=True)
+class Documento:
+    letra: str  # art. 18.1
+    texto: str
+    da_app: bool  # sae da app ou hai que achegalo
+
+
+def documentos_plan(session: Session, actor: Usuario, plan: PlanEmpresa) -> list[Documento]:
+    """A documentación complementaria do art. 18.1 que lle toca a este plan."""
+    _plan(session, actor, plan.id)
+    horta = session.get(Horta, plan.horta_id)
+    codigo = (horta.codigo_rega or horta.codigo_reaga) if horta else None
+    partidas = {i.partida for i in plan.investimentos}
+    docs = [
+        Documento("a", "Acreditación da persoa solicitante e, se é o caso, da representación",
+                  False),
+        Documento("b", "Declaración censual (modelo 036 ou 037) ou compromiso de comunicar o "
+                       "inicio da actividade", False),
+    ]
+    if not plan.empresa_nova:
+        docs.append(Documento("c", "Contas depositadas e memoria do último exercicio (pequena "
+                                   "empresa), e das empresas vinculadas se as hai", False))
+    docs += [
+        Documento("d", "Informe do cadro de persoal medio dos últimos 12 meses (Seguridade "
+                       "Social)", False),
+        Documento("e", "Vida laboral das contas de cotización dos últimos 12 meses", False),
+        Documento("f", "Anexo III: resumo do proxecto – plan de empresa", True),
+        Documento("g", "Anexo V: orzamento de gastos por partidas", True),
+    ]
+    if plan.investimentos:
+        docs.append(Documento("h", "Anexos VI-A e VI-B, con tres orzamentos ou facturas pro "
+                                   "forma de cada gasto", True))
+    if not plan.iva_recuperable:
+        docs.append(Documento("i", "Acreditación de que o IVE non é recuperable", False))
+    if (plan.tipoloxia or "").startswith("primaria"):
+        docs.append(Documento("j", f"Código de explotación agraria: {codigo}" if codigo else
+                              "Código de explotación agraria (non está na ficha da "
+                              "explotación)", bool(codigo)))
+    docs.append(Documento("k", "Plano do SIXPAC coas coordenadas (folla «Localización»)",
+                          True))
+    if not plan.empresa_nova:
+        docs.append(Documento("l", "Licenza de actividade ou comunicación previa", False))
+    if "2" in partidas:
+        docs.append(Documento("m", "Anteproxecto ou memoria valorada asinada por técnico "
+                                   "(hai obra civil)", False))
+    if "3" in partidas:
+        docs.append(Documento("n", "Declaración de que a maquinaria non existía ou mellora a "
+                                   "capacidade máis dun 25 %", False))
+    docs.append(Documento("o", "Certificado dos prazos de pagamento a provedores (Lei 3/2004), "
+                               "se é o caso", False))
+    return docs
 
 
 # --- Seguimento e métricas
@@ -434,6 +547,53 @@ def metricas(session: Session, actor: Usuario, horta_id: int, ano: int) -> Metri
                     punto_morto)
 
 
+def _identificacion(persoa: Persoa | None) -> list[tuple[str, Any]]:
+    nif = ((persoa.nif if persoa else None) or "").upper()
+    tipo = "NIE" if nif and nif[0] in "XYZ" else "NIF"
+    return [("   Identificación", f"{tipo} {nif}" if nif else ""),
+            ("   País emisor", (persoa.pais or "España") if persoa else ""),
+            ("   Nome ou razón social", persoa.nome if persoa else ""),
+            ("   Apelidos", (persoa.apelidos or "") if persoa else "")]
+
+
+def _financiamento(plan: PlanEmpresa, ind: Indicadores) -> list[tuple[str, Any]]:
+    """5. Importe e porcentaxe de cada fonte sobre o total."""
+    total = ind.financiamento
+    filas: list[tuple[str, Any]] = []
+    for tipo, texto in FONTES.items():
+        importe = round(sum(f.importe for f in plan.financiamento if f.tipo == tipo), 2)
+        pct = f" ({importe / total:.1%})" if total else ""
+        filas.append((f"5. {texto} (€)", f"{importe:.2f}{pct}"))
+    filas.append(("5. Total investimentos con IVE (€)", ind.investimento_con_iva))
+    return filas
+
+
+def _partidas(plan: PlanEmpresa) -> list[tuple[Any, ...]]:
+    """Cada partida cos seus conceptos e o seu total, e o total das partidas."""
+    filas: list[tuple[Any, ...]] = []
+    for clave, nome in PARTIDAS.items():
+        conceptos = [i for i in plan.investimentos if i.partida == clave]
+        for i in conceptos:
+            filas.append((nome, i.concepto, i.importe_sen_iva, i.iva_pct,
+                          round(i.importe_sen_iva * (1 + i.iva_pct / 100), 2)))
+        filas.append((f"TOTAL {nome}", "", round(sum(i.importe_sen_iva for i in conceptos), 2),
+                      "", round(sum(i.importe_sen_iva * (1 + i.iva_pct / 100)
+                                    for i in conceptos), 2)))
+    ind = indicadores(plan)
+    filas.append(("TOTAL PARTIDAS", "", ind.investimento, "", ind.investimento_con_iva))
+    return filas
+
+
+def _sixpac(parcela: Parcela) -> str:
+    """Provincia:concello:agregado:zona:polígono:parcela:recinto."""
+    partes = (parcela.sigpac_provincia, parcela.sigpac_concello, parcela.sigpac_agregado,
+              parcela.sigpac_zona, parcela.sigpac_poligono, parcela.sigpac_parcela,
+              parcela.sigpac_subparcela)
+    if not (parcela.sigpac_poligono and parcela.sigpac_parcela):
+        return ""
+    return ":".join(p or "0" for p in partes)
+
+
 def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
     """Excel co Anexo III (resumo do plan) e o Anexo V (orzamento por partidas)."""
     from io import BytesIO
@@ -478,10 +638,35 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
            ("G) Beneficio antes de imposto = E+F", *(a.beneficio for a in filas))])
     folla(wb, "Anexo V", "Orzamento de gastos desagregados por partidas (AGADER, Anexo V)",
           cab, ("Partida", "Concepto", "Importe sen IVE (€)", "IVE (%)",
-                "Importe con IVE (€)", "Ofertas"),
-          [(PARTIDAS[i.partida], i.concepto, i.importe_sen_iva, i.iva_pct,
-            round(i.importe_sen_iva * (1 + i.iva_pct / 100), 2), i.ofertas)
-           for i in sorted(plan.investimentos, key=lambda i: i.partida)])
+                "Importe con IVE (€)"), _partidas(plan))
+    provedores = {p.id: p for p in session.query(Persoa).filter_by(horta_id=plan.horta_id)}
+    folla(wb, "Anexo VI-A", "Relación de ofertas solicitadas e elixidas (AGADER, Anexo VI-A)",
+          cab, ("Concepto", "Provedor", "NIF", "Importe sen IVE (€)", "Elixida",
+                "Criterio de elección", "Xustificación de non escoller a máis económica"),
+          [(i.concepto, nome_completo(provedores.get(o.provedor_id)),
+            getattr(provedores.get(o.provedor_id), "nif", "") or "", o.importe_sen_iva,
+            "Si" if o.elixida else "", o.criterio or "", o.xustificacion or "")
+           for i in sorted(plan.investimentos, key=lambda i: i.partida) for o in i.ofertas])
+    tres = all(len(i.ofertas) >= 3 for i in plan.investimentos)
+    folla(wb, "Anexo VI-B", "Declaración sobre as ofertas solicitadas e elixidas (Anexo VI-B)",
+          cab, ("Declaración", "Si/Non"),
+          [(texto, "Si" if valor else "Non") for texto, valor in (
+              ("Que se solicitaron polo menos tres ofertas a distintos provedores", tres),
+              ("Que todas as ofertas presentadas a través de facturas pro forma son "
+               "auténticas", plan.ofertas_autenticas),
+              ("Que o promotor do proxecto carece de vinculación cos provedores",
+               plan.sen_vinculo_promotor),
+              ("Que as ofertas de cada gasto non proceden de empresas vinculadas entre elas",
+               plan.sen_vinculo_entre_provedores))])
+    folla(wb, "Documentación", "Documentación complementaria (art. 18.1)", cab,
+          ("Letra", "Documento", "Quen"),
+          [(d.letra, d.texto, "Sae da app" if d.da_app else "Achegas ti")
+           for d in documentos_plan(session, actor, plan)])
+    folla(wb, "Localización", "Localización da operación: parcelas e recintos SIXPAC", cab,
+          ("Parcela", "Referencia SIXPAC", "Superficie (ha)", "Latitude", "Lonxitude"),
+          [(p.nome, _sixpac(p), p.superficie or "", p.lat or "", p.lon or "")
+           for p in session.query(Parcela).filter_by(horta_id=plan.horta_id,
+                                                     data_baixa=None).order_by(Parcela.nome)])
     saida = BytesIO()
     wb.save(saida)
     return saida.getvalue()
