@@ -58,8 +58,27 @@ class PlanInvestimento(Base):
     iva_pct: Mapped[float] = mapped_column(Float, default=21)
     # Amortización lineal; 0 = non se amortiza (terreos)
     vida_util_anos: Mapped[int] = mapped_column(Integer, default=10)
-    # Cantas ofertas de provedores hai (art. 18.h: tres por gasto)
-    ofertas: Mapped[int] = mapped_column(Integer, default=0)
+    # Art. 20.1: por que non hai tres ofertas (non hai provedores abondo)
+    motivo_sen_ofertas: Mapped[str | None] = mapped_column(Text, default=None)
+
+    ofertas: Mapped[list[PlanOferta]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", order_by="PlanOferta.importe_sen_iva")
+
+
+class PlanOferta(Base):
+    """Unha oferta pedida para un concepto do investimento (Anexo VI-A)."""
+
+    __tablename__ = "plan_oferta"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    investimento_id: Mapped[int] = mapped_column(ForeignKey("plan_investimento.id"),
+                                                 index=True)
+    provedor_id: Mapped[int] = mapped_column(ForeignKey("persoa.id"))
+    importe_sen_iva: Mapped[float] = mapped_column(Float)
+    elixida: Mapped[bool] = mapped_column(Boolean, default=False)
+    criterio: Mapped[str | None] = mapped_column(String(200), default=None)
+    # Se a elixida non é a máis económica (art. 20.4)
+    xustificacion: Mapped[str | None] = mapped_column(Text, default=None)
 
 
 class PlanFinanciamento(Base):
@@ -84,3 +103,5 @@ class PlanAno(Base):
     vendas: Mapped[float] = mapped_column(Float, default=0)
     custos_variables: Mapped[float] = mapped_column(Float, default=0)
     custos_fixos: Mapped[float] = mapped_column(Float, default=0)
+    # Ingresos financeiros (subvencións, axudas, etc.)
+    ingresos_financeiros: Mapped[float] = mapped_column(Float, default=0)
