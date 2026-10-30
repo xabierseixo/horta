@@ -24,6 +24,9 @@ class Animal(Base):
     estado: Mapped[str] = mapped_column(String(50), default="activo")
     notas: Mapped[str | None] = mapped_column(String(1000), default=None)
     # Onde están (paso 14)
+    # Titular dos animais se non é o da explotación (RD 787/2023, anexo V.3)
+    titular_animais_id: Mapped[int | None] = mapped_column(ForeignKey("persoa.id"),
+                                                           default=None)
     instalacion_id: Mapped[int | None] = mapped_column(ForeignKey("instalacion.id"),
                                                       default=None)
     created_at: Mapped[datetime] = mapped_column(
@@ -43,6 +46,8 @@ class AnimalIdentificado(Base):
     identificador: Mapped[str] = mapped_column(String(50))
     nome: Mapped[str | None] = mapped_column(String(80), default=None)
     sexo: Mapped[str | None] = mapped_column(String(10), default=None)
+    # Tipo de dispositivo de identificación (RD 787/2023, anexo V.8)
+    dispositivo: Mapped[str | None] = mapped_column(String(20), default=None)
     data_nacemento: Mapped[date | None] = mapped_column(Date, default=None)
     data_alta: Mapped[date] = mapped_column(Date)
     data_baixa: Mapped[date | None] = mapped_column(Date, default=None)

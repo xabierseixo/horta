@@ -25,6 +25,9 @@ class Horta(Base):
     # O titular, o representante e o asesor son persoas con ese papel (services.persoas)
     codigo_reaga: Mapped[str | None] = mapped_column(String(14), default=None)
     codigo_rega: Mapped[str | None] = mapped_column(String(14), default=None)
+    # Libro de rexistro gandeiro (RD 787/2023, anexo V.5): clasificación no REGA e capacidade
+    rega_clasificacion: Mapped[str | None] = mapped_column(String(200), default=None)
+    rega_capacidade: Mapped[str | None] = mapped_column(String(100), default=None)
     lat: Mapped[float | None] = mapped_column(Float, default=None)
     lon: Mapped[float | None] = mapped_column(Float, default=None)
     telefono: Mapped[str | None] = mapped_column(String(30), default=None)

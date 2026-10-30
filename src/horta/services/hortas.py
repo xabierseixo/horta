@@ -38,6 +38,8 @@ CAMPOS_EDITABLES_HORTA = frozenset(
         "uso_profesional",
         "codigo_reaga",
         "codigo_rega",
+        "rega_clasificacion",
+        "rega_capacidade",
         "enderezo",
         "localidade",
         "codigo_postal",
