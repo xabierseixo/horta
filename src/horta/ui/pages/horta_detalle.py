@@ -14,6 +14,7 @@ from horta.services.cultivos import (
     listar_cultivos,
 )
 from horta.services.en_regra import requisitos_en_regra
+from horta.services.envio_cue import avisos_cue
 from horta.services.errors import PermisoDenegadoError
 from horta.services.hortas import (
     TIPOS_XIP,
@@ -92,6 +93,8 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _DATOS_CADERNO = (("enderezo", "Enderezo"), ("localidade", "Localidade"),
                   ("codigo_postal", "Código postal"), ("provincia", "Provincia"),
                   ("email", "Email"),
+                  ("rega_clasificacion", "Clasificación no REGA (se ten animais)"),
+                  ("rega_capacidade", "Capacidade máxima de animais (REGA)"),
                   ("tipo_representacion", "Tipo de representación (se asina un representante)"))
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
@@ -140,6 +143,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         e_horta_admin = membro.rol == RolHorta.ADMIN
         e_admin_global = actor.rol == RolGlobal.ADMIN
         avisos_admin = avisos_catalogos(session) if e_admin_global else []
+        avisos_xunta = avisos_cue(session, actor, horta_id)
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
@@ -287,6 +291,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(aviso)
                 ui.link("Catálogos oficiais", "/admin/catalogos")
+        for aviso in avisos_xunta:
+            with ui.row().classes("items-center gap-2 q-mt-sm"):
+                ui.icon("warning").classes("text-warning")
+                ui.label(aviso)
+                ui.link("Informes", url_seccion(horta_id, "informes"))
         if requisitos:
             with ui.column().classes("tarxeta w-full gap-2 q-my-md"):
                 ui.label("Para estar en regra").classes("text-subtitle1 text-weight-bold")

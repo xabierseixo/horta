@@ -95,6 +95,7 @@ def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
 import horta.ui.admin.catalogos  # noqa: E402,F401
 import horta.ui.admin.usuarios  # noqa: E402,F401
 import horta.ui.pages.convite  # noqa: E402,F401
+import horta.ui.pages.cue_volta  # noqa: E402,F401
 import horta.ui.pages.dashboard  # noqa: E402,F401
 import horta.ui.pages.horta_detalle  # noqa: E402,F401
 import horta.ui.pages.login  # noqa: E402,F401
