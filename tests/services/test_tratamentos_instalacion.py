@@ -7,6 +7,7 @@ from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import crear_horta, engadir_membro
+from horta.services.instalacions import crear_instalacion
 from horta.services.tratamentos_instalacion import (
     DatosTratamentoInstalacion,
     actualizar_tratamento_instalacion,
@@ -81,3 +82,12 @@ def test_lector_non_pode(session):
     with pytest.raises(PermisoDenegadoError):
         crear_tratamento_instalacion(session, bea, horta.id, _datos(), hoxe=HOXE)
 
+
+
+def test_a_instalacion_ten_que_ser_da_explotacion(session):
+    ana, horta = _escenario(session)
+    outra = crear_horta(session, ana, "Outra")
+    alleo = crear_instalacion(session, ana, outra.id, "almacen", "Alpendre alleo")
+    with pytest.raises(OperacionNonPermitidaError, match="non é desta explotación"):
+        crear_tratamento_instalacion(session, ana, horta.id, _datos(instalacion_id=alleo.id),
+                                     hoxe=HOXE)

@@ -15,10 +15,15 @@ from horta.models.usuario import RolGlobal, Usuario
 from horta.services.colleitas import DatosColleita, crear_colleita
 from horta.services.cue import excel_xeaga, json_cue, xerar_cue
 from horta.services.hortas import actualizar_horta, crear_horta
+from horta.services.instalacions import crear_instalacion
 from horta.services.leiras import LeiraTraballo
 from horta.services.lotes import DatosSaida, crear_saida
 from horta.services.persoas import crear_contacto, crear_persoa
 from horta.services.regas import DatosRega, crear_rega
+from horta.services.tratamentos_instalacion import (
+    DatosTratamentoInstalacion,
+    crear_tratamento_instalacion,
+)
 
 HOXE = date(2026, 10, 29)
 DESDE, ATA = date(2026, 1, 1), date(2026, 12, 31)
@@ -101,3 +106,27 @@ def test_o_que_falta_dise_por_traballo(session):
     assert ("rega", rega.id, "o sistema de rega") in faltas
     assert ("rega", rega.id, "a cantidade") in faltas
     assert ("cultivo", uno.id, "o polígono SIGPAC") in faltas
+
+
+def test_tratamentos_de_postcolleita_e_de_local_van_ao_cue(session):
+    ana, horta, quen, _ = _escenario(session)
+    alpendre = crear_instalacion(session, ana, horta.id, "almacen", "Alpendre")
+    comun = {"data": date(2026, 9, 1), "nome_comercial": "Produto X", "num_rexistro": "ES-1",
+             "cantidade_utilizada": 0.5, "persoa_id": quen.id}
+    postcolleita = crear_tratamento_instalacion(session, ana, horta.id, DatosTratamentoInstalacion(
+        tipo="postcolleita", obxecto="Patacas", produto_vexetal=37, cantidade_tratada=2,
+        **comun), hoxe=HOXE)
+    local = crear_tratamento_instalacion(session, ana, horta.id, DatosTratamentoInstalacion(
+        tipo="local", obxecto="Alpendre", instalacion_id=alpendre.id, cantidade_tratada=30,
+        **comun), hoxe=HOXE)
+    crear_tratamento_instalacion(session, ana, horta.id, DatosTratamentoInstalacion(
+        tipo="transporte", obxecto="Remolque", **comun), hoxe=HOXE)
+    actividades = xerar_cue(session, ana, horta.id, DESDE, ATA).datos["ActividadesExplotacion"]
+    [pc] = actividades["TratamientosPostCosecha"]
+    assert (pc["IdAjenaTratamPostco"], pc["ProductoVegetal"], pc["Cantidad"]) == (
+        postcolleita.id, 37, 2)
+    assert pc["ProductosFito"] == [{"NumRegistro": "ES-1", "Cantidad": 0.5}]
+    # O transporte non ten bloque no CUE (só no caderno da Xunta)
+    [edif] = actividades["TratamientosEdifInstalaciones"]
+    assert edif["IdAjenaTratamEdif"] == local.id
+    assert edif["Edificaciones"] == [{"IdEdificacion": alpendre.id, "Volumen": 30, "Unidad": 3}]
