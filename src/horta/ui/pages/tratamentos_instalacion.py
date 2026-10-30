@@ -11,8 +11,9 @@ from horta.db import get_session
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TIPOS_PROBLEMA
 from horta.models.tratamento_instalacion import TIPOS_INSTALACION, TratamentoInstalacion
-from horta.services.catalogos import describir, valores_vixentes
+from horta.services.catalogos import buscar_cultivos, describir, valores_vixentes
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.instalacions import listar_instalacions
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
 from horta.services.tratamentos_instalacion import (
@@ -123,6 +124,9 @@ def dialogo_tratamento_instalacion(
         unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
+        instalacions = {i.id: i.nome for i in listar_instalacions(session, actor, horta_id)}
+        produtos = {c.codigo: nome for c, nome in buscar_cultivos(session, "", 2000)}
+        eficacias = {v.codigo: v.descricion for v in valores_vixentes(session, "eficacia")}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
@@ -134,6 +138,13 @@ def dialogo_tratamento_instalacion(
         obxecto = ui.input(_QUE["postcolleita"]).classes("w-full")
         catastro = ui.input("Referencia catastral do local").classes("w-full")
         catastro.bind_visibility_from(tipo, "value", backward=lambda v: v == "local")
+        instalacion = ui.select(instalacions, label="Instalación", clearable=True).classes(
+            "w-full")
+        instalacion.bind_visibility_from(tipo, "value", backward=lambda v: v == "local")
+        produto_vexetal = ui.select(produtos, label="Produto vexetal (lista oficial)",
+                                    with_input=True, clearable=True).classes("w-full")
+        produto_vexetal.bind_visibility_from(tipo, "value",
+                                             backward=lambda v: v == "postcolleita")
         cantidade_tratada = ui.input(_CANTIDADE["postcolleita"]).classes("w-full")
 
         def cambiar_tipo() -> None:
@@ -157,6 +168,7 @@ def dialogo_tratamento_instalacion(
         with ui.row().classes("w-full no-wrap"):
             cantidade = ui.input("Cantidade utilizada").classes("col")
             unidade = ui.select(unidades, label="Unidade", with_input=True).classes("col")
+        eficacia = ui.select(eficacias, label="Eficacia", clearable=True).classes("w-full")
         horas = ui.input("Horas de traballo").classes("w-full")
         maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
         notas = ui.textarea("Notas").classes("w-full")
@@ -183,7 +195,11 @@ def dialogo_tratamento_instalacion(
                         num_rexistro=num_rexistro.value or None,
                         materia_activa=materia_activa.value or None,
                         cantidade_utilizada=parsear_decimal(cantidade.value),
-                        unidade=unidade.value, notas=notas.value or None,
+                        unidade=unidade.value,
+                        produto_vexetal=produto_vexetal.value
+                        if tipo.value == "postcolleita" else None,
+                        instalacion_id=instalacion.value if tipo.value == "local" else None,
+                        eficacia=eficacia.value, notas=notas.value or None,
                         persoa_id=persoa.value, horas=parsear_decimal(horas.value),
                         maquina_id=maquina.value)
                     existente = (session.get(TratamentoInstalacion, editando["id"])
@@ -226,6 +242,9 @@ def dialogo_tratamento_instalacion(
         materia_activa.value = (t.materia_activa or "") if t else ""
         cantidade.value = f"{t.cantidade_utilizada:g}" if t and t.cantidade_utilizada else ""
         unidade.value = t.unidade if t else None
+        produto_vexetal.value = t.produto_vexetal if t else None
+        instalacion.value = t.instalacion_id if t and t.instalacion_id in instalacions else None
+        eficacia.value = t.eficacia if t else None
         notas.value = (t.notas or "") if t else ""
         cambiar_tipo()
         dialogo.open()
