@@ -264,3 +264,38 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
 
     ui.button("Descargar Anexo III e V (Excel)", icon="download", on_click=descargar).classes(
         "q-mt-md")
+
+
+def _ofertas(plan: PlanEmpresa, investimento: PlanInvestimento, provedores: dict[int, str],
+             nomes: dict[int, str]) -> None:
+    """As ofertas dun concepto (Anexo VI-A) e o formulario para engadir outra."""
+    with ui.column().classes("q-ml-lg gap-1"):
+        if investimento.motivo_sen_ofertas:
+            ui.label(f"Sen tres ofertas: {investimento.motivo_sen_ofertas}").classes(
+                "texto-suave text-caption")
+        for o in investimento.ofertas:
+            with ui.row().classes("items-center gap-2"):
+                ui.label(f"{'✔ ' if o.elixida else ''}{nomes.get(o.provedor_id, '')}: "
+                         f"{_e(o.importe_sen_iva)}"
+                         + (f" · {o.criterio}" if o.criterio else "")).classes("text-body2")
+                ui.button(icon="delete", on_click=lambda o=o: _accion(
+                    lambda s, a: quitar(s, a, s.get(PlanEmpresa, plan.id),
+                                        s.get(PlanOferta, o.id)))).props(
+                    "flat dense round size=sm color=negative")
+        if not provedores:
+            ui.label("Para engadir ofertas, crea os provedores en Persoas → Contactos.").classes(
+                "texto-suave text-caption")
+            return
+        with ui.row().classes("items-end gap-2"):
+            provedor = ui.select(provedores, label="Provedor").classes("w-48")
+            importe = ui.input("Sen IVE (€)").classes("w-28")
+            elixida = ui.checkbox("Elixida")
+            criterio = ui.input("Criterio").classes("w-36")
+            xustificacion = ui.input("Por que non a máis barata").classes("w-48")
+            ui.button("Oferta", icon="add", on_click=lambda: _accion(
+                lambda s, a: engadir_oferta(
+                    s, a, s.get(PlanEmpresa, plan.id), s.get(PlanInvestimento,
+                                                             investimento.id),
+                    provedor.value, parsear_decimal(importe.value) or 0, elixida.value,
+                    criterio.value or None, xustificacion.value or None))).props(
+                "outline dense")
