@@ -1,5 +1,6 @@
 """Sección Plan de empresa (paso 16): datos do Anexo III, conta a 5 anos proposta desde o
-real, investimento (Anexo V), financiamento, indicadores, métricas e seguimento."""
+real, investimento (Anexo V) coas súas ofertas (Anexo VI-A e VI-B), financiamento,
+indicadores, o que lle falta, a documentación do art. 18, métricas e seguimento."""
 
 from __future__ import annotations
 
@@ -9,17 +10,29 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
-from horta.models.plan_empresa import PlanEmpresa, PlanFinanciamento, PlanInvestimento
+from horta.models.persoa import Persoa
+from horta.models.plan_empresa import (
+    PlanEmpresa,
+    PlanFinanciamento,
+    PlanInvestimento,
+    PlanOferta,
+)
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.persoas import con_papel, nome_completo
 from horta.services.plan_empresa import (
     FONTES,
     PARTIDAS,
+    TIPOLOXIAS,
+    Documento,
     actualizar_plan,
     avisos_plan,
     conta,
     crear_plan,
+    documentos_plan,
     engadir_financiamento,
     engadir_investimento,
+    engadir_oferta,
+    faltas_plan,
     gardar_anos,
     indicadores,
     listar_plans,
@@ -63,6 +76,11 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
         ano_real = date.today().year - 1
         met = metricas(session, actor, horta_id, ano_real)
         segue = {p.id: seguimento(session, actor, p) for p in plans}
+        faltas = {p.id: faltas_plan(session, actor, p) for p in plans}
+        docs = {p.id: documentos_plan(session, actor, p) for p in plans}
+        provedores = con_papel(session, horta_id, "provedor")
+        nomes = {p.id: nome_completo(p) for p in
+                 session.query(Persoa).filter_by(horta_id=horta_id)}
 
     with ui.row().classes("items-end gap-2"):
         titulo = ui.input("Título do novo plan").classes("w-64")
@@ -76,7 +94,8 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
     for plan in plans:
         with ui.expansion(f"{plan.titulo} · ano 1: {plan.ano_inicio}", icon="business_center"
                           ).classes("w-full tarxeta q-mt-md"):
-            _plan(plan, segue[plan.id])
+            _plan(plan, segue[plan.id], faltas[plan.id], docs[plan.id],
+                  {p.id: nome_completo(p) for p in provedores}, nomes)
 
     with ui.expansion(f"Métricas da explotación en {ano_real}", icon="insights").classes(
             "w-full tarxeta q-mt-md"):
@@ -93,8 +112,12 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
                  + (_e(met.punto_morto) if met.punto_morto is not None else "sen datos"))
 
 
-def _plan(plan: PlanEmpresa, segue: list) -> None:
+def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Documento],
+          provedores: dict[int, str], nomes: dict[int, str]) -> None:
     ind = indicadores(plan)
+    if faltas:
+        ui.label("Para presentalo falta: " + "; ".join(faltas) + ".").classes(
+            "etiqueta-aviso")
     for aviso in avisos_plan(plan):
         ui.label(aviso).classes("etiqueta-aviso")
     with ui.row().classes("gap-6"):
@@ -104,12 +127,37 @@ def _plan(plan: PlanEmpresa, segue: list) -> None:
         ui.label(f"Pay-back: {ind.payback} anos" if ind.payback else "Pay-back: —")
 
     ui.label("Datos (Anexo III)").classes("text-subtitle1 text-weight-bold q-mt-md")
-    nova = ui.checkbox("Empresa nova", value=plan.empresa_nova)
-    cnae = ui.input("CNAE", value=plan.cnae or "").classes("w-32")
+    tipoloxia = ui.select({k: t.texto for k, t in TIPOLOXIAS.items()}, label="Tipoloxía",
+                          value=plan.tipoloxia, clearable=True).classes("w-full")
+    if plan.tipoloxia in TIPOLOXIAS:
+        ui.label(f"Axuda: {TIPOLOXIAS[plan.tipoloxia].axuda}").classes(
+            "texto-suave text-caption")
+    with ui.row().classes("gap-2"):
+        proxecto = {c: ui.input(e, value=str(getattr(plan, c) or "")).classes("w-40")
+                    for c, e in (("expediente", "Nº de expediente"),
+                                 ("anualidade", "Anualidade"), ("submedida", "Submedida"),
+                                 ("gdr", "Grupo (GDR)"))}
+    ui.label("O expediente, a anualidade e a submedida dáos o GDR.").classes(
+        "texto-suave text-caption")
+    with ui.row().classes("items-end gap-2"):
+        nova = ui.checkbox("Empresa nova", value=plan.empresa_nova)
+        cnae = ui.input("CNAE", value=plan.cnae or "").classes("w-32")
+        participada = ui.checkbox("Participa ou está participada nun 25 % ou máis",
+                                  value=plan.participada)
+    with ui.row().classes("gap-2"):
+        empresa = {c: ui.input(e, value="" if getattr(plan, c) is None
+                               else f"{getattr(plan, c):g}").classes("w-36")
+                   for c, e in (("traballadores", "Nº de traballadores"),
+                                ("facturacion", "Facturación (€)"), ("balance", "Balance (€)"))}
+    recuperable = ui.checkbox("O IVE é recuperable (se non o é, o investimento conta con IVE)",
+                      value=plan.iva_recuperable)
     textos = {c: ui.textarea(e, value=getattr(plan, c) or "").classes("w-full")
               for c, e in (("descricion", "1. Descrición, obxectivos e finalidade"),
                            ("proceso", "2. Proceso e medios humanos e materiais"),
-                           ("formacion", "4. Formación do promotor"))}
+                           ("formacion", "4. Formación do promotor"),
+                           ("situacion_partida", "Memoria: situación de partida"),
+                           ("metodoloxia", "Memoria: metodoloxía de traballo"),
+                           ("mercado", "Memoria: mercado e clientes"))}
     with ui.row().classes("gap-2"):
         utas = {c: ui.input(e, value=f"{getattr(plan, c):g}").classes("w-28")
                 for c, e in (("uta_mantidas", "UTA mantidas"), ("uta_creadas", "UTA creadas"),
