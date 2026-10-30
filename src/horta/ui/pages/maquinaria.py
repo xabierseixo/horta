@@ -4,7 +4,13 @@ from nicegui import ui
 
 from horta.db import get_session
 from horta.models.maquina import Maquina
-from horta.services.maquinaria import actualizar_maquina, crear_maquina, listar_maquinas
+from horta.services.maquinaria import (
+    actualizar_maquina,
+    crear_maquina,
+    listar_maquinas,
+    aviso_inspeccion,
+    maquinas_de_tratamento,
+)
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.historial import abrir_historial
@@ -20,6 +26,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
             pechar_sesion()
             return
         maquinas = listar_maquinas(session, actor, horta_id, so_activas=False)
+        de_tratamento = maquinas_de_tratamento(session, horta_id)
 
     filas = [
         {"id": m.id, "alias": m.alias, "marca": m.marca_modelo or "",
@@ -31,7 +38,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("alias", "Nome"), ("marca", "Marca e modelo"), ("ident", "ROMA / REGANIP / ID"),
-            ("inspeccion", "Última inspección"), ("propia", "Propia"), ("activa", "Activa"))],
+            ("inspeccion", "Última inspección"), ("propia", "Propia"), ("inspeccion_rd", "Inspección RD"), ("activa", "Activa"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
         f'flat bordered no-data-label="Aínda non hai máquinas rexistradas" {TEXTOS_TABOA}'
