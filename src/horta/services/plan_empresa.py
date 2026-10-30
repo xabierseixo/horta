@@ -179,6 +179,30 @@ def engadir_investimento(session: Session, actor: Usuario, plan: PlanEmpresa, pa
     return investimento
 
 
+def engadir_oferta(session: Session, actor: Usuario, plan: PlanEmpresa,
+                   investimento: PlanInvestimento, provedor_id: int, importe_sen_iva: float,
+                   elixida: bool = False, criterio: str | None = None,
+                   xustificacion: str | None = None) -> PlanOferta:
+    """Unha oferta dun provedor dos Contactos (Anexo VI-A); só unha elixida por concepto."""
+    _plan(session, actor, plan.id)
+    if investimento.plan_id != plan.id:
+        raise OperacionNonPermitidaError("Ese concepto non é deste plan")
+    if importe_sen_iva <= 0:
+        raise OperacionNonPermitidaError("Indica un importe maior que 0")
+    persoa_co_papel(session, plan.horta_id, provedor_id, "provedor")
+    if any(o.provedor_id == provedor_id for o in investimento.ofertas):
+        raise OperacionNonPermitidaError("Ese provedor xa ten unha oferta neste concepto")
+    if elixida:
+        for outra in investimento.ofertas:
+            outra.elixida = False
+    oferta = PlanOferta(provedor_id=provedor_id, importe_sen_iva=importe_sen_iva,
+                        elixida=elixida, criterio=(criterio or "").strip() or None,
+                        xustificacion=(xustificacion or "").strip() or None)
+    investimento.ofertas.append(oferta)
+    session.commit()
+    return oferta
+
+
 def engadir_financiamento(session: Session, actor: Usuario, plan: PlanEmpresa, tipo: str,
                           importe: float, xuro_pct: float | None = None,
                           anos: int | None = None) -> PlanFinanciamento:
@@ -413,7 +437,7 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
     ind = indicadores(plan)
     wb = Workbook()
     wb.remove(wb.active)
-    folla(wb, "Anexo III", "Resumo do proxecto – plan de empresa (AGADER, Anexo III)", cab,
+    folla(wb, "Anexo III", "Resumo do proxecto – plan de empresa (095c, Anexo III)", cab,
           ("Apartado", "Valor"),
           [("Empresa", "Nova" if plan.empresa_nova else "Existente"),
            ("CNAE", plan.cnae or ""),
@@ -442,7 +466,7 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
            ("E) Marxe de explotación = A−(B+C+D)", *(a.marxe for a in filas)),
            ("F) Ingresos − custos financeiros", *(a.financeiro for a in filas)),
            ("G) Beneficio antes de imposto = E+F", *(a.beneficio for a in filas))])
-    folla(wb, "Anexo V", "Orzamento de gastos desagregados por partidas (AGADER, Anexo V)",
+    folla(wb, "Anexo V", "Orzamento de gastos desagregados por partidas (095c, Anexo V)",
           cab, ("Partida", "Concepto", "Importe sen IVE (€)", "IVE (%)",
                 "Importe con IVE (€)", "Ofertas"),
           [(PARTIDAS[i.partida], i.concepto, i.importe_sen_iva, i.iva_pct,
