@@ -5,6 +5,7 @@ Os animais van por grupos; a identificación individual vai no texto «identific
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from io import BytesIO
 
@@ -18,6 +19,7 @@ from horta.models.movemento_animal import MovementoAnimal
 from horta.models.persoa import Persoa
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.usuario import Usuario
+from horta.services.animais import DISPOSITIVOS
 from horta.services.caderno import folla
 from horta.services.coidados_animais import TIPOS_COIDADO
 from horta.services.errors import OperacionNonPermitidaError
@@ -30,6 +32,12 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 def _d(valor: date | None) -> str:
     return f"{valor:%d/%m/%Y}" if valor else ""
+
+
+def _titular_animais(p: Persoa | None, enderezo: Callable[[Persoa | None], str]
+                     ) -> tuple[str, str, str]:
+    """Nome, NIF e enderezo do titular dos animais, se non é o da explotación."""
+    return (nome_completo(p), p.nif or "", enderezo(p)) if p else ("", "", "")
 
 
 def xerar_libros(session: Session, actor: Usuario, horta_id: int, desde: date, ata: date
@@ -51,18 +59,43 @@ def xerar_libros(session: Session, actor: Usuario, horta_id: int, desde: date, a
     def persoa(persoa_id: int | None) -> Persoa | None:
         return session.get(Persoa, persoa_id) if persoa_id else None
 
+    def enderezo(p: Persoa | None) -> str:
+        return ", ".join(x for x in (p.enderezo, p.codigo_postal, p.localidade) if x) if p \
+            else ""
+
     wb = Workbook()
     wb.remove(wb.active)
+    especies = sorted({a.especie_codigo or a.especie for a in grupos.values()})
+    folla(wb, "Explotación", "Datos da explotación e do titular (RD 787/2023, anexo V.1–5)",
+          cab, ("Dato", "Valor"), [
+              ("Código da explotación (REGA)", horta.codigo_rega or ""),
+              ("Nome", horta.nome),
+              ("Enderezo", ", ".join(x for x in (horta.enderezo, horta.codigo_postal,
+                                                  horta.localidade, horta.provincia) if x)),
+              ("Coordenadas", f"{horta.lat:.6f}, {horta.lon:.6f}"
+               if horta.lat is not None and horta.lon is not None else ""),
+              ("Titular", nome_completo(titular)),
+              ("NIF do titular", (titular.nif or "") if titular else ""),
+              ("Teléfono do titular", (titular.telefono or "") if titular else ""),
+              ("Correo do titular", (titular.email or "") if titular else ""),
+              ("Enderezo do titular", enderezo(titular)),
+              ("Especies", ", ".join(especies)),
+              ("Clasificación", horta.rega_clasificacion or ""),
+              ("Capacidade máxima", horta.rega_capacidade or "")])
     folla(wb, "Censo", "Libro de rexistro gandeiro: especies e animais (RD 787/2023, anexo V)",
-          cab, ("Grupo", "Especie (código)", "Raza", "Animais hoxe", "Alta", "Baixa"),
+          cab, ("Grupo", "Especie (código)", "Raza", "Animais hoxe", "Alta", "Baixa",
+                "Titular dos animais (se é outro)", "NIF", "Enderezo"),
           [(a.especie, a.especie_codigo or "", a.raza or "", a.cantidade, _d(a.data_alta),
-            _d(a.data_baixa)) for a in grupos.values()])
+            _d(a.data_baixa), *_titular_animais(persoa(a.titular_animais_id), enderezo))
+           for a in grupos.values()])
     identificados = (session.query(AnimalIdentificado)
                      .filter(AnimalIdentificado.animal_id.in_(grupos))
                      .order_by(AnimalIdentificado.animal_id, AnimalIdentificado.identificador))
     folla(wb, "Identificación", "Animais identificados individualmente (RD 787/2023, anexo V)",
-          cab, ("Grupo", "Identificador", "Nome", "Sexo", "Nacemento", "Alta", "Baixa"),
-          [(grupo(i.animal_id), i.identificador, i.nome or "", i.sexo or "",
+          cab, ("Grupo", "Identificador", "Dispositivo", "Nome", "Sexo", "Nacemento", "Alta",
+                "Baixa"),
+          [(grupo(i.animal_id), i.identificador, DISPOSITIVOS.get(i.dispositivo or "", ""),
+            i.nome or "", i.sexo or "",
             _d(i.data_nacemento), _d(i.data_alta), _d(i.data_baixa)) for i in identificados])
     movementos = (session.query(MovementoAnimal)
                   .filter(MovementoAnimal.horta_id == horta_id,
@@ -74,11 +107,13 @@ def xerar_libros(session: Session, actor: Usuario, horta_id: int, desde: date, a
         filas_mov.append((_d(m.data), grupo(m.animal_id),
                           TIPOS_MOVEMENTO.get(m.tipo, m.tipo), m.cantidade,
                           m.identificacion or "", nome_completo(outra) if outra else "",
-                          outra.rega if outra and outra.rega else "", m.codigo_movemento or "",
+                          enderezo(outra), outra.rega if outra and outra.rega else "",
+                          m.codigo_movemento or "",
                           m.causa or ""))
     folla(wb, "Entradas e saídas", "Entradas e saídas de animais (RD 787/2023, anexo V)", cab,
           ("Data", "Grupo", "Movemento", "Animais", "Identificación",
-           "Explotación de orixe ou destino", "REGA", "Código do movemento", "Causa"),
+           "Explotación de orixe ou destino", "Enderezo do titular", "REGA",
+           "Código do movemento", "Causa"),
           filas_mov)
     coidados = list(session.query(CoidadoAnimal)
                     .filter(CoidadoAnimal.horta_id == horta_id,
