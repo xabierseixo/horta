@@ -85,6 +85,8 @@ def crear_dialogo_tratamento(
 
     def fila_cultivo(cultivo_id: int | None = None, superficie: str = "",
                      fenoloxico: str | None = None) -> dict[str, Any]:
+        if not superficie and cultivo_id in op.superficies:
+            superficie = _txt(op.superficies[cultivo_id])
         return {"cultivo_id": _ou_nada(op.cultivos, cultivo_id), "superficie": superficie,
                 "estado": _ou_nada(op.estados, fenoloxico)}
 
@@ -134,8 +136,13 @@ def crear_dialogo_tratamento(
                 def filas_cultivos() -> None:
                     for fila in estado["cultivos"]:
                         with ui.row().classes("w-full items-end gap-2"):
+                            def escoller_cultivo(e: Any, f: dict[str, Any] = fila) -> None:
+                                if not f["superficie"] and e.value in op.superficies:
+                                    f["superficie"] = _txt(op.superficies[e.value])
+                                mirar_tempo()
+
                             ui.select(op.cultivos, label="Cultivo e parcela",
-                                      with_input=True, on_change=mirar_tempo).bind_value(
+                                      with_input=True, on_change=escoller_cultivo).bind_value(
                                 fila, "cultivo_id").classes("grow")
                             ui.input("Superficie (ha)").bind_value(fila, "superficie").classes(
                                 "w-28")

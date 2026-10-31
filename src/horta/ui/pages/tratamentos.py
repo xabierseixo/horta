@@ -142,6 +142,7 @@ def dialogo_tratamento_fito(horta_id: int) -> Callable[[TratamentoFito | None], 
             maquinas={m.id: m.alias for m in listar_maquinas(session, actor, horta_id)},
             rexistro={p.num_rexistro: f"{p.nome} ({p.num_rexistro})"
                       for p in session.query(FitoProduto).order_by(FitoProduto.nome)},
+            superficies={c.id: c.superficie_ha for c in cultivos_horta if c.superficie_ha},
         )
     if not opcions.problemas["enfermidade"]:
         ui.label(AVISO_SEN_CATALOGOS).classes("text-warning")

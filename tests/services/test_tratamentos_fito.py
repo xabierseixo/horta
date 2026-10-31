@@ -8,6 +8,7 @@ from horta.models.produto import Produto
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import actualizar_cultivo, crear_cultivo, eliminar_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
+from horta.services.faltas_caderno import Falta, faltas_caderno
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.maquinaria import crear_maquina
 from horta.services.parcelas import crear_parcela
@@ -100,6 +101,13 @@ def test_o_fitosanitario_novo_leva_a_unidade_da_dose(session):
 def test_ropo_que_caduca_o_mesmo_dia_e_valido(session):
     ana, horta, _, cultivo, xan, maquina = _escenario(session)
     crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina))
+
+
+def test_sen_superficie_tratada_falta_no_caderno(session):
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    linhas = [LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=None, estado_fenoloxico="6")]
+    crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina, cultivos=linhas))
+    assert Falta("Tratamentos", "superficie tratada", 1) in faltas_caderno(session, ana, horta.id)
 
 
 def test_ropo_caducado_bloquea(session):
