@@ -7,6 +7,7 @@ from nicegui import app, ui
 
 from horta.db import get_session
 from horta.models.horta import Horta, RolHorta
+from horta.models.tempo import EstacionMeteo
 from horta.models.usuario import RolGlobal
 from horta.services.animais import listar_animais
 from horta.services.catalogos_estado import avisos_catalogos
@@ -38,7 +39,7 @@ from horta.services.tarefas import (
     listar_tarefas_proximas,
     marcar_pendente,
 )
-from horta.services.tempo import gardar_lugar
+from horta.services.tempo import concellos, gardar_lugar
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -155,6 +156,9 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         horta_codigo_reaga = horta.codigo_reaga or ""
         horta_codigo_rega = horta.codigo_rega or ""
         lugar_tempo = (horta.concello_ine, horta.estacion_meteo_id, horta.lat, horta.lon)
+        estacion_meteo = (session.get(EstacionMeteo, horta.estacion_meteo_id)
+                          if horta.estacion_meteo_id else None)
+        horta_estacion = estacion_meteo.nome if estacion_meteo else ""
         estado = estado_rexistro(session, horta)
         requisitos = requisitos_en_regra(session, actor, horta)
         hortas_usuario = {h.id: h.nome for h, _ in listar_hortas_usuario(session, actor)}
@@ -332,6 +336,23 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                   "non_profesional": "Non profesional"}[estado]).classes("q-mb-md")
         ui.label(f"Titular: {nome_titular}" if nome_titular
                  else "Aínda non se indicou o titular").classes("q-mb-sm")
+        concello_nome = concellos().get(lugar_tempo[0] or "", lugar_tempo[0] or "")
+        visibles = [
+            ("Nome", horta_nome),
+            ("Descrición", horta_descricion or ""),
+            ("Tipo de explotación", "Profesional" if horta_uso_profesional else "Non profesional"),
+            ("Nº REAGA", horta_codigo_reaga),
+            ("Nº REGA", horta_codigo_rega),
+            *((etiqueta, datos_horta[campo]) for campo, etiqueta in _DATOS_CADERNO),
+            ("Concello", concello_nome),
+            ("Estación de MeteoGalicia", horta_estacion),
+            ("Xestión integrada de pragas (XIP)", TIPOS_XIP.get(horta_tipo_xip or "", "")),
+            ("Asesoramento en fertilización", "Si" if horta_fertilizacion else ""),
+        ]
+        with ui.column().classes("tarxeta w-full gap-1 q-mb-md"):
+            for etiqueta, valor in visibles:
+                if valor:
+                    ui.label(f"{etiqueta}: {valor}")
         with ui.row().classes("gap-2"):
             ui.button("Editar datos da explotación", icon="settings",
                       on_click=abrir_config_horta).props("outline")

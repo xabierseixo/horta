@@ -43,6 +43,7 @@ from horta.services.persoas import (
     crear_persoa,
     listar_persoas,
 )
+from horta.services.tempo import concellos
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.etiquetas import TIPOS_CARNE
@@ -63,7 +64,7 @@ _REXISTROS = (("rega", "REGA (ES + 12 díxitos)"), ("reaga", "REAGA"), ("nima", 
 _CONTACTO = (("telefono", "Teléfono"), ("email", "Email de contacto"),
              ("enderezo", "Enderezo"), ("localidade", "Localidade"),
              ("codigo_postal", "Código postal"), ("provincia", "Provincia"),
-             ("concello_codigo", "Concello (código INE)"), ("pais", "País, se non é España"))
+             ("concello_codigo", "Concello"), ("pais", "País, se non é España"))
 _CON_ROPO = ("aplicador", "asesor", "servizos")
 
 
@@ -180,8 +181,13 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                            multiple=True,
                            value=[]).classes("w-full").props("use-chips")
         with ui.expansion("Contacto e enderezo").classes("w-full"):
-            contacto = {campo: ui.input(etiqueta).classes("w-full")
-                        for campo, etiqueta in _CONTACTO}
+            contacto: dict[str, Any] = {
+                campo: (ui.select(concellos(), label=etiqueta, with_input=True,
+                                  clearable=True).classes("w-full")
+                        if campo == "concello_codigo" else
+                        ui.input(etiqueta).classes("w-full"))
+                for campo, etiqueta in _CONTACTO
+            }
         with ui.expansion("Rexistros (REGA, NIMA, ROPVEG...)").classes("w-full"):
             rexistros = {campo: ui.input(etiqueta).classes("w-full")
                          for campo, etiqueta in _REXISTROS}
@@ -346,8 +352,9 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             ui.button("Gardar", icon="check", on_click=lambda: gardar())
             ui.button("Cancelar", on_click=dialogo.close).props("flat")
 
-    textos = (nome, apelidos, nif, *contacto.values(), *rexistros.values(), ropo, caducidade,
-              regfer, horas_ano, custo_hora, formacion, nacemento)
+    textos = (nome, apelidos, nif, *(v for c, v in contacto.items() if c != "concello_codigo"),
+              *rexistros.values(), ropo, caducidade, regfer, horas_ano, custo_hora, formacion,
+              nacemento)
 
     def en_equipo() -> bool:
         return equipo
@@ -357,6 +364,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         titulo.text = "Nova persoa ou entidade"
         for campo in textos:
             campo.value = ""
+        contacto["concello_codigo"].value = None
         tipo_persoa.value = "persoa"
         papeis.value = ["traballador"] if en_equipo() else []
         discapacidade.value = False
@@ -431,7 +439,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         apelidos.value = p.apelidos or ""
         nif.value = p.nif or ""
         for campo, entrada in {**contacto, **rexistros}.items():
-            entrada.value = getattr(p, campo) or ""
+            valor = getattr(p, campo)
+            entrada.value = (valor or None) if campo == "concello_codigo" else (valor or "")
         papeis.value = ([clave for clave in PAPEIS_EQUIPO if p.ten_papel(clave)] if equipo
                         else sorted(das_persoas[p.id]))
         ropo.value = p.ropo_numero or ""
