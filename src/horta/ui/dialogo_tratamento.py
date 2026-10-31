@@ -56,6 +56,7 @@ class OpcionsTratamento:
     asesores: dict[int, str]
     maquinas: dict[int, str]
     rexistro: dict[str, str]
+    superficies: dict[int, float] = field(default_factory=dict)  # do cultivo, en ha
 
 
 def _txt(valor: float | None) -> str:
