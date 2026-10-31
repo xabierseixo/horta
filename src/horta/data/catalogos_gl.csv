@@ -1,0 +1,412 @@
+catalogo;codigo;descricion_es;texto_gl
+actividade_agraria;1;Producción en Tierras de Cultivo y Cultivos Permanentes;Produción en terras de cultivo e cultivos permanentes
+actividade_agraria;2;Mantenimiento;Mantemento
+actividade_agraria;3;Pastoreo;Pastoreo
+actividade_agraria;4;Siega Producción;Sega produción
+actividade_agraria;5;Sin actividad agraria por razones medioambientales;Sen actividade agraria por razóns ambientais
+actividade_agraria;6;Sin producción por causa de fuerza mayor;Sen produción por causa de forza maior
+boas_practicas;0;No realiza buenas prácticas;
+boas_practicas;1;Aplicación de purines mediante sistema de bandas con mangueras o tubos rígidos;
+boas_practicas;2;Aplicación de purines mediante sistema de bandas de discos o rejas;
+boas_practicas;3;Aplicación de purines mediante inyección;
+boas_practicas;4;Dilución de purines, seguida de técnicas tales como un sistema de riego de baja presión;
+boas_practicas;5;Acidificación de los purines;
+boas_practicas;6;Dosis y momento de aplicación, el abonado se realizará en aquellos momentos del ciclo del cultivo en los que el aprovechamiento del fertilizante pueda ser más rápido;
+boas_practicas;7;Fraccionamiento de los aportes de acuerdo con las necesidades del cultivo, siempre que sea técnicamente posible;
+boas_practicas;8;Incorporación de los fertilizantes en el suelo por sistemas de inyección en profundidad;
+boas_practicas;9;Incorporación de los fertilizantes en el suelo mediante mezcla de los gránulos del fertilizante con el suelo;
+boas_practicas;10;Emplear gránulos de urea recubiertos de un polímero;
+boas_practicas;11;Aplicar un riego inmediatamente después de la fertilización con abonos a base de urea;
+boas_practicas;12;Realizar la fertilización nitrogenada mediante fertirrigación (Sólo cuando haya necesidades de regadío);
+boas_practicas;13;En el cultivo de arroz, realizar el abonado nitrogenado con el terreno seco;
+boas_practicas;14;Empleo de inhibidores de la ureasa con productos fertilizantes a base de urea;
+boas_practicas;15;Enterrado de purines y, productos y materiales líquidos lo antes posible y siempre en las primeras 4 horas tras su aplicación;
+boas_practicas;16;Empleo de inhibidores de la ureasa o de la nitrificación aplicados a purines, con supervisión profesional en caso de aplicación directa de los purines al suelo o a la balsa de purín;
+boas_practicas;17;Aplicación de la tecnología de dosificación variable dentro de una misma parcela;
+boas_practicas;18;Enterrado de la urea, en el momento de su aplicación al suelo o, por lo menos, en las 4 horas siguientes;
+boas_practicas;19;Empleo de productos fertilizantes nitrogenados con inhibidores de la nitrificación;
+boas_practicas;20;Abonado en verde;
+boas_practicas;21;Dosis y frecuencia de riego ajustadas a las necesidades del cultivo y a la capacidad de retención de humedad del suelo, tomando como referencia las recomendaciones de los servicios de asesoramiento al regante (SIAR) de la comunidad autónoma o el Sistema de Información Agroclimática para el Regadío (SiAR) del Ministerio de Agricultura, Pesca y Alimentación, y/o empleo de sensores de contenido de humedad del suelo.;
+boas_practicas;22;En el caso de que el propio material usado en el abonado aporte agua en una cantidad considerable al cultivo (como cuando se utilizan estiércoles líquidos), se tendrá en cuenta el volumen de agua incorporado por el mismo para el cálculo.;
+boas_practicas;23;Riego localizado.;
+boas_practicas;24;En cultivos con riego por inundación, el abonado nitrogenado se aplicará cuando el suelo se encuentre en sazón y se enterrará inmediatamente mediante una labor.;
+boas_practicas;25;En los cultivos con riego localizado, la fertilización se efectuará disolviendo los abonos en el agua de riego y aplicándolos al suelo a través de ésta. Éstos se dosificarán fraccionadamente, durante el periodo de actividad vegetativa del cultivo, pudiéndose adaptar las concentraciones y las cantidades parciales aportadas a los momentos de mayor requerimiento dentro del ciclo del cultivo.;
+boas_practicas;26;En el riego localizado, el número de emisores por árbol, el volumen de agua aportado por cada uno de ellos y la frecuencia de riego se recomienda que se establezcan en función de la textura del terreno, de forma que se consiga ajustar la superficie mojada a la profundidad radicular efectiva suficiente para el cultivo y así evitar problemas de saturación, de humedad o de pérdidas de agua en profundidad.;
+boas_practicas;27;El aporte de nutrientes conjuntamente con el agua de riego se deberá ajustar de modo que la concentración de nutrientes sea lo más baja posible, adaptándose a su vez a las necesidades hídricas del cultivo. Así mismo, los nutrientes deberán aplicarse en los momentos de máximo requerimiento de cada nutriente, de modo que se maximice el aprovechamiento por parte del cultivo y la efectividad del abonado y se reduzca, así, la acumulación en el suelo de nutrientes en forma de sales.;
+boas_practicas;28;Utilización de acolchados (mulching);
+boas_practicas;29;Siembra directa;
+boas_practicas;30;Mínimo laboreo;
+boas_practicas;31;"Diseño en línea clave (""""key-line"""")";
+boas_practicas;32;Utilización de mallas antigranizo;
+boas_practicas;33;Riego por aspersión nocturno;
+boas_practicas;34;Riego deficitario controlado (RDC);
+boas_practicas;35;Siembra en seco (arroz);
+boas_practicas;36;Monitorización de condiciones del suelo, clima y cultivo en tiempo real con sensores IoT;
+boas_practicas;37;Uso de drones y satélites para el monitoreo geoespacial de cultivos;
+boas_practicas;38;Análisis de datos agrícolas y apoyo a la toma de decisiones (DSS);
+boas_practicas;39;Aplicación variable de insumos con equipos de precisión;
+boas_practicas;40;Manejo de maquinaria agrícola equipada con tecnología de precisión;
+boas_practicas;41;Implementación de sistemas de riego automatizado;
+boas_practicas;42;Uso de drones para aplicación precisa de insumos agrícolas;
+boas_practicas;43;Comunicación en campo mediante redes de sensores inalámbricos;
+boas_practicas;44;Acceso a información y servicios agrícolas a través de aplicaciones móviles;
+boas_practicas;45;Gestión de la explotación agrícola mediante software específico;
+boas_practicas;46;Limpieza y desinfección - Mantener limpias las instalaciones, equipos, vehículos y bebederos;
+boas_practicas;47;Formación continua del personal - Capacitar al personal en bienestar, sanidad, higiene, manejo y bioseguridad;
+boas_practicas;48;Evaluación y mejora continua - Revisar resultados productivos, sanitarios y ambientales para ajustar prácticas;
+boas_practicas;49;Rotación de cultivos;
+boas_practicas;50;Utilización de variedades resistentes;
+boas_practicas;51;Protección de los organismos beneficiosos (con medidas fitosanitarias específicas, utilizando infraestructuras ecológicas que aumenten la biodiversidad, estableciendo márgenes multifuncionales para la mejora de la biodiversidad y fomento de la fauna útil, etc.);
+boas_practicas;52;Monitorización de plagas, enfermedades y malas hierbas;
+boas_practicas;53;Establecimiento de umbrales de intervención fitosanitaria;
+boas_practicas;54;Aplicación de productos fitosanitarios de bajo riesgo;
+boas_practicas;55;Seguimiento de una estrategia anti-resistencias en el uso de productos fitosanitarios;
+boas_practicas;56;Seguimiento de la efectividad de la intervención fitosanitaria;
+boas_practicas;57;Maquinaria autónoma: Tractores y otros equipos agrícolas que pueden operar sin intervención humana;
+boas_practicas;58;Uso de sistemas de transferencia cerrados para realizar la carga en el tanque de aplicación;
+boas_practicas;59;Utilización de endoterapia;
+causa_baixa;1;Cambio de titularidad;Cambio de titularidade
+causa_baixa;2;Desistimiento;Desistencia
+causa_baixa;3;Fusión de explotaciones;Fusión de explotacións
+causa_baixa;4;Baja de oficio;Baixa de oficio
+causa_baixa;5;Anulación por error;Anulación por erro
+causa_baixa;6;Incidencia en controles;Incidencia en controis
+causa_baixa;7;Cambio a aprovechamiento;Cambio a aproveitamento
+causa_baixa;8;Anulación por error;Anulación por erro
+causa_baixa;9;Cambio de geometría;Cambio de xeometría
+causa_baixa;10;Venta;Venda
+causa_baixa;11;Arrendamiento a un tercero;Arrendamento a un terceiro
+causa_baixa;12;Finalización del arrendamiento;Fin do arrendamento
+causa_baixa;13;Incidencia en controles;Incidencia en controis
+causa_baixa;14;Anulación por error;Anulación por erro
+causa_baixa;15;Baja de oficio;Baixa de oficio
+causa_baixa;16;Baja de oficio;Baixa de oficio
+causa_baixa;17;Cese en la actividad agraria;Cesamento na actividade agraria
+causa_baixa;18;Fallecimiento del titular;Falecemento do titular
+causa_baixa;19;Por aplicación normativa o resolución judicial;Por aplicación normativa ou resolución xudicial
+causa_baixa;20;A petición del titular;A petición do titular
+causa_baixa;21;A petición del titular;A petición do titular
+causa_baixa;22;Baja del cultivo por baja de la DGC;Baixa do cultivo por baixa da DGC
+causa_baixa;23;A petición del titular;A petición do titular
+causa_baixa;24;Anulación por error;Anulación por erro
+causa_baixa;25;A petición del titular;A petición do titular
+causa_baixa;26;Baja del aprovechamiento por baja de la DGC;Baixa do aproveitamento por baixa da DGC
+causa_baixa;27;Baja de oficio;Baixa de oficio
+certificacion_ecoloxica;1;No certificado;Non certificado
+certificacion_ecoloxica;2;Certificado;Certificado
+certificacion_ecoloxica;3;Certificado en conversión;Certificado en conversión
+destino_colleita;1;Entregada a bodega cooperativa;Entregada a adega cooperativa
+destino_colleita;2;Entregada a explotación agrícola para su cultivo;Entregada a explotación agrícola para o seu cultivo
+destino_colleita;3;Vendidas a un vinificador;Vendidas a un vinificador
+destino_colleita;4;Vinificación y/o conservación por el declarante.;Vinificación e/ou conservación polo declarante.
+destino_colleita;5;Bebidas;Bebidas
+destino_colleita;6;Conservas;Conservas
+destino_colleita;7;Mermelada;Marmelada
+destino_colleita;8;Mosto concentrado;Mosto concentrado
+destino_colleita;9;Pasificado;Pasificado
+destino_colleita;10;Zumo;Zume
+destino_colleita;11;Azúcar;Azucre
+destino_colleita;12;Melaza;Melaza
+destino_colleita;13;Bagazo;Bagazo
+destino_colleita;14;Molturación torta;Moenda de torta
+destino_colleita;15;Encurtidos;Encurtidos
+destino_colleita;16;Alcohol;Alcohol
+destino_cultivo;1;Consumo humano en fresco;Consumo humano en fresco
+destino_cultivo;2;Consumo humano en seco;Consumo humano en seco
+destino_cultivo;3;Consumo animal;Consumo animal
+destino_cultivo;4;Forrajero;Forraxeiro
+destino_cultivo;5;Forraje deshidratado;Forraxe deshidratada
+destino_cultivo;6;Semillas para siembra;Sementes para sementeira
+destino_cultivo;7;Semillas certificadas para siembra;Sementes certificadas para sementeira
+destino_cultivo;8;Plantas, plantones o partes de planta para cultivo y/o reproducción;Plantas, plantóns ou partes de planta para cultivo e/ou reprodución
+destino_cultivo;9;Ensilado;Ensilado
+destino_cultivo;10;Semillas destinadas a la producción de brotes;Sementes destinadas á produción de brotes
+destino_cultivo;11;Semillas germinadas excepto brotes (shoots o cress);Sementes xerminadas agás brotes (shoots ou cress)
+destino_cultivo;12;Leña;Leña
+destino_cultivo;13;Corcho;Cortiza
+destino_cultivo;14;Resina;Resina
+destino_cultivo;15;Sidra;Sidra
+destino_cultivo;16;Pimentón;Pemento en po
+destino_cultivo;17;Fibra;Fibra
+destino_cultivo;18;Aceite;Aceite
+destino_cultivo;19;Medicinal;Medicinal
+destino_cultivo;20;Industria cosmética;Industria cosmética
+destino_cultivo;21;Energía renovable;Enerxía renovable
+destino_cultivo;22;Vinificación;Vinificación
+destino_cultivo;23;Otro procesamiento industrial;Outro procesamento industrial
+destino_cultivo;24;Henificado;Fenado
+destino_cultivo;25;Uso experimental;Uso experimental
+destino_cultivo;26;Biomasa;Biomasa
+destino_cultivo;27;Madera;Madeira
+destino_cultivo;28;Secado de la planta por comercialización;Secado da planta para comercialización
+destino_cultivo;29;Combinado: Industrial u otros más secado;Combinado: industrial ou outros máis secado
+destino_restos;1;Incorporación al suelo o distribución en parcela (previo picado o no);Incorporación ao solo ou distribución na parcela (picado previamente ou non)
+destino_restos;2;Venta a terceros;Venda a terceiros
+destino_restos;3;Autoconsumo para alimentación animal;Autoconsumo para alimentación animal
+destino_restos;4;Autoconsumo como combustible;Autoconsumo como combustible
+destino_restos;5;Autocompostaje;Autocompostaxe
+destino_restos;6;Traslado a planta de gestión de restos vegetales;Traslado a planta de xestión de restos vexetais
+destino_restos;7;Traslado a planta de compostaje;Traslado a planta de compostaxe
+destino_restos;8;Quema controlada con arreglo a normativa vigente;Queima controlada conforme á normativa vixente
+destino_restos;9;Trituración de restos de poda y depositado sobre el terreno de los mismos;Trituración de restos de poda e depósito deles sobre o terreo
+eficacia;1;Buena;
+eficacia;2;Regular;
+eficacia;3;Mala;
+estado_fenoloxico;1;Germinación, brotación, desarrollo de la yema;
+estado_fenoloxico;2;Desarrollo de las hojas (brote o tallo principal);
+estado_fenoloxico;3;Formación de brotes laterales/ macollamiento (ahijamiento);
+estado_fenoloxico;4;Crecimiento longitudinal del tallo o crecimiento en roseta, desarrollo de brotes (retoños)/ encañado (tallo principal);
+estado_fenoloxico;5;Desarrollo de las partes vegetativas cosechables de la planta o de órganos vegetativos de propagación/ embuchamiento;
+estado_fenoloxico;6;Emergencia de la inflorescencia (tallo principal)/ espigamiento;
+estado_fenoloxico;7;Floración (tallo principal);
+estado_fenoloxico;8;Desarrollo del fruto;
+estado_fenoloxico;9;Coloración o maduración de frutos y semillas;
+estado_fenoloxico;10;Senescencia, comienzo de la dormancia;
+material_analizado;1;Cultivo;Cultivo
+material_analizado;2;Producto cosechado;Produto colleitado
+material_analizado;3;Suelo;Solo
+material_analizado;4;Agua de riego;Auga de rega
+material_fertilizante;0;Otros;Outros
+material_fertilizante;1;Estiercol líquido de aves;Esterco líquido de aves
+material_fertilizante;2;Estiércol líquido de bovino;Esterco líquido de bovino
+material_fertilizante;3;Estiércol de porcino;Esterco de porcino
+material_fertilizante;4;Estiércol sólido de aves;Esterco sólido de aves
+material_fertilizante;5;Estiércol sólido de bovino;Esterco sólido de bovino
+material_fertilizante;6;Estiércol sólido de caprino;Esterco sólido de caprino
+material_fertilizante;7;Estiércol sólido de equino;Esterco sólido de equino
+material_fertilizante;8;Estiércol sólido de ovino;Esterco sólido de ovino
+material_fertilizante;9;Inhibidores;Inhibidores
+material_fertilizante;10;Otros tipos de estiércol sólido: conejo, visón, zorro…;Outros tipos de esterco sólido: coello, visón, raposo…
+material_fertilizante;11;Productos fertilizantes bioestimulantes;Produtos fertilizantes bioestimulantes
+material_fertilizante;12;Productos fertilizantes enmiendas calizas;Produtos fertilizantes emendas calcarias
+material_fertilizante;13;Productos fertilizantes enmiendas orgánicas;Produtos fertilizantes emendas orgánicas
+material_fertilizante;14;Productos fertilizantes: abonos inorgánicos;Produtos fertilizantes: abonos inorgánicos
+material_fertilizante;15;Productos fertilizantes: abonos orgánicos;Produtos fertilizantes: abonos orgánicos
+material_fertilizante;16;Productos fertilizantes: abonos organominerales;Produtos fertilizantes: abonos organominerais
+material_fertilizante;17;Productos fertilizantes otras enmiendas (retenedoras humedad, ácidas, etc.);Produtos fertilizantes outras emendas (retentoras de humidade, ácidas, etc.)
+material_fertilizante;18;Residuos: Materiales que, sin haberse empleado en la elaboración de un producto fertilizante, cumplan con todos los requisitos de las CMCS 3, 4, 5, 6, 12, 13 y 14 del Anexo II del Reglamento (UE) 2019/1009.;Residuos: materiais que, sen se empregar na elaboración dun produto fertilizante, cumpran todos os requisitos das CMC 3, 4, 5, 6, 12, 13 e 14 do anexo II do Regulamento (UE) 2019/1009.
+material_fertilizante;19;Residuos: Subproductos de origen animal no aptos para consumo humano, que hayan sido tratados conforme al artículo 20 del Reglamento (CE) 1069/2009.;Residuos: subprodutos de orixe animal non aptos para consumo humano, que fosen tratados conforme ao artigo 20 do Regulamento (CE) 1069/2009.
+material_fertilizante;20;Residuos: compost de alperujo;Residuos: compost de alperujo
+material_fertilizante;21;Residuos: alperujo desecado;Residuos: alperujo desecado
+material_fertilizante;22;Residuos: Lodos de tratamiento de aguas residuales urbanas (lodos EDAR), incluidos en el Real Decreto 1310/1990, de 29 de octubre. siempre que hayan sido tratados.;Residuos: lodos de tratamento de augas residuais urbanas (lodos EDAR), incluídos no Real decreto 1310/1990, do 29 de outubro, sempre que fosen tratados.
+material_fertilizante;23;Residuos: Lodos calizos procedentes del proceso Kraft de fabricación de pasta de papel, para elevar el pH de suelos ácidos;Residuos: lodos calcarios procedentes do proceso Kraft de fabricación de pasta de papel, para elevar o pH de solos ácidos
+metodo_fertilizacion;1;Esparcido general;Espallado xeral
+metodo_fertilizacion;2;Esparcido general y enterrado;Espallado xeral e enterrado
+metodo_fertilizacion;3;Esparcido localizado;Espallado localizado
+metodo_fertilizacion;4;Esparcido localizado y enterrado;Espallado localizado e enterrado
+metodo_fertilizacion;5;Riego por aspersión (fertirrigación);Rega por aspersión (fertirrigación)
+metodo_fertilizacion;6;Riego localizado (fertirrigación);Rega localizada (fertirrigación)
+metodo_fertilizacion;7;Aplicación foliar;Aplicación foliar
+orixe_auga;1;Superficial;Superficial
+orixe_auga;2;Subterránea;Subterránea
+orixe_auga;3;Pluvial;Pluvial
+orixe_auga;4;Regeneración;Rexeneración
+orixe_auga;5;Desalinización;Desalinización
+orixe_auga;6;Recursos alternativos (distintos de la regeneración y desalinización);Recursos alternativos (distintos da rexeneración e a desalinización)
+procedencia_material_vexetal;1;Banco de germoplasma/recursos fitogenéticos;Banco de xermoplasma/recursos fitoxenéticos
+procedencia_material_vexetal;2;Material de la propia explotación;Material da propia explotación
+procedencia_material_vexetal;3;Material de un obtentor no registrado en ROPVEG;Material dun obtentor non rexistrado no ROPVEG
+rexime_tenencia;1;Propiedad;Propiedade
+rexime_tenencia;2;Arrendamiento;Arrendamento
+rexime_tenencia;3;Aparcería;Parcería
+rexime_tenencia;4;Asignación superficie comunal;Asignación de superficie comunal
+rexime_tenencia;5;Usufructo;Usufruto
+rexime_tenencia;6;Aparcería comunal;Parcería comunal
+sistema_cultivo;1;Aire libre;Aire libre
+sistema_cultivo;2;Malla;Malla
+sistema_cultivo;3;Cubierta no accesible;Cuberta non accesible
+sistema_cultivo;4;Invernadero (cubierta accesible);Invernadoiro (cuberta accesible)
+sistema_cultivo;5;Forestales en rotacion corta;Forestais en rotación curta
+sistema_cultivo;6;Micorrizado;Micorrizado
+sistema_cultivo;7;Acolchado;Acolchado
+sistema_cultivo;8;Enarenado;Areado
+sistema_cultivo;9;Bodega Sacos;Adega Sacos
+sistema_cultivo;10;Bodega Bandejas;Adega Bandexas
+sistema_cultivo;11;Bodega Botellas;Adega Botellas
+sistema_cultivo;12;Bodega Otros;Adega Outros
+sistema_cultivo;13;Nave Sacos;Nave Sacos
+sistema_cultivo;14;Nave Bandejas;Nave Bandexas
+sistema_cultivo;15;Nave Botellas;Nave Botellas
+sistema_cultivo;16;Nave Otros;Nave Outros
+sistema_cultivo;17;Hoyos;Buratos
+sistema_cultivo;18;Zanjas;Gabias
+sistema_cultivo;19;Invernadero (cubierta accesible)+ enarenado;Invernadoiro (cuberta accesible)+ areado
+sistema_cultivo;20;Entutorado de madera;Entutorado de madeira
+sistema_cultivo;21;Entutorado de hormigón;Entutorado de formigón
+sistema_cultivo;22;Entutorado metálico;Entutorado metálico
+sistema_cultivo;23;Malla de protección antigranizo;Malla de protección antisarabia
+sistema_cultivo;24;Malla de protección antilluvia;Malla de protección antichuvia
+sistema_cultivo;25;Malla de sombreado;Malla de sombreamento
+sistema_cultivo;26;Tunel de plástico;Túnel de plástico
+sistema_cultivo;27;Multi tunel de plástico film;Multitúnel de plástico filme
+sistema_cultivo;28;Multi tunel de plástico rígido;Multitúnel de plástico ríxido
+sistema_cultivo;29;Sustrato de perlita;Substrato de perlita
+sistema_cultivo;30;Sustrato de lana de roca;Substrato de la de rocha
+sistema_cultivo;31;Sustrato de fibra de coco;Substrato de fibra de coco
+sistema_cultivo;32;Sustrato de turba;Substrato de turba
+sistema_cultivo;33;Hidropónico;Hidropónico
+sistema_explotacion;R;Regadío;Regadío
+sistema_explotacion;S;Secano;Secano
+sistema_rega;1;Superficie o Gravedad;Superficie ou gravidade
+sistema_rega;2;Aspersión fija;Aspersión fixa
+sistema_rega;3;Aspersión móvil;Aspersión móbil
+sistema_rega;4;Microaspersión;Microaspersión
+sistema_rega;5;Nebulización;Nebulización
+sistema_rega;6;Goteo;Pinga a pinga
+sistema_rega;7;Hidropónico a solución perdida;Hidropónico a solución perdida
+sistema_rega;8;Hidropónico con recirculación de solución;Hidropónico con recirculación da solución
+tipo_analise;1;Residuos de sustancias activas fitosanitarias;Residuos de substancias activas fitosanitarias
+tipo_analise;2;Microbiológico;Microbiolóxico
+tipo_analise;3;Análisis metales pesados;Análise de metais pesados
+tipo_analise;4;Nutrientes;Nutrientes
+tipo_analise;5;Parámetros del Suelo;Parámetros do solo
+tipo_analise;6;Presencia OMG;Presenza de OXM
+tipo_cobertura_solo;1;Suelo desnudo;Solo espido
+tipo_cobertura_solo;2;Cubierta vegetal sembrada;Cuberta vexetal sementada
+tipo_cobertura_solo;3;Cubierta vegetal espontánea.;Cuberta vexetal espontánea.
+tipo_cobertura_solo;4;Cubierta inerte de restos de poda;Cuberta inerte de restos de poda
+tipo_cobertura_solo;5;Cubierta inerte de otros materiales (cáscaras de frutos secos, piedras, otros restos vegetales, etc.);Cuberta inerte doutros materiais (cascas de froitos secos, pedras, outros restos vexetais, etc.)
+tipo_cobertura_solo;6;Regeneración Pastos permanentes;Rexeneración Pastos permanentes
+tipo_enerxia;1;ELÉCTRICA;
+tipo_enerxia;2;DIESEL;
+tipo_enerxia;3;GASOLINA;
+tipo_enerxia;4;ELÉCTRICA FOTOVOLTAICA;
+tipo_enerxia;5;ELÉCTRICA EÓLICA;
+tipo_enerxia;6;BIODIESEL;
+tipo_enerxia;7;BIOGÁS;
+tipo_enerxia;8;NINGUNA;
+tipo_enerxia;9;GAS NATURAL;
+tipo_enerxia;10;PROPANO;
+tipo_enerxia;11;BUTANO;
+tipo_fertilizacion;1;Abonado de fondo;Abonado de fondo
+tipo_fertilizacion;2;Abonado de cobertera;Abonado de cobertura
+tipo_fertilizacion;3;Aplicación de enmienda;Aplicación de emenda
+tipo_labor;0;Sin laboreo;Sen labra
+tipo_labor;1;Laboreo;Labra
+tipo_labor;2;Nivelación en cultivos bajo agua;Nivelación en cultivos baixo auga
+tipo_labor;3;Caballones y tablas en cultivos bajo agua;Camallóns e táboas en cultivos baixo auga
+tipo_labor;4;Escarda (Eliminación de vegetación por medios mecánicos);Sacha (eliminación de vexetación por medios mecánicos)
+tipo_labor;5;Desbroce y siega;Rozado e sega
+tipo_labor;6;Mantenimiento del drenaje;Mantemento da drenaxe
+tipo_labor;7;Poda;Poda
+tipo_labor;8;Aclareo;Aclareo
+tipo_labor;9;Entutorado, guiado y atado de tallos;Entutorado, guiado e atado de talos
+tipo_labor;10;Injerto;Enxerto
+tipo_labor;11;Eliminación de restos de poda;Eliminación de restos de poda
+tipo_labor;12;Poda en verde, incluida la limpieza de tallos, chupones y varetas;Poda en verde, incluída a limpeza de talos, chupóns e varetas
+tipo_labor;13;Rulado;Rulado
+tipo_medida_fito;1;Suelta de OCB;
+tipo_medida_fito;2;Plantas banker o reservorio;
+tipo_medida_fito;3;Colocación mallas anti-insectos;
+tipo_medida_fito;4;Instalación de setos, márgenes funcionales o cubiertas temporales;
+tipo_medida_fito;5;Falsa siembra;
+tipo_medida_fito;6;Siembra directa;
+tipo_medida_fito;7;Siembra en seco (arroz);
+tipo_medida_fito;8;Siega mecánica malas hierbas;
+tipo_medida_fito;9;Laboreo eliminación de malas hierbas;
+tipo_medida_fito;10;Solarización o biofumigación;
+tipo_medida_fito;11;Usos de sustancias básicas;
+tipo_medida_fito;12;Captura masiva a base de trampas luminosas;
+tipo_medida_fito;14;Trampas  y otros;
+tipo_medida_fito;15;Feromonas y atrayentes para monitoreo;
+tipo_produto;1;Producto fitosanitario registrado;
+tipo_produto;2;Denominación común;
+tipo_produto;3;Importación paralela;
+tipo_produto;4;Autorización excepcional;
+tratamento_estercos;1;Ninguno;Ningún
+tratamento_estercos;2;Separación sólido-líquido: fracción sólida;Separación sólido-líquido: fracción sólida
+tratamento_estercos;3;Separación sólido-líquido: fracción líquida;Separación sólido-líquido: fracción líquida
+tratamento_estercos;4;Nitrificación-Desnitrificación-efluentes (NDN);Nitrificación-desnitrificación-efluentes (NDN)
+tratamento_estercos;5;Compostaje;Compostaxe
+tratamento_estercos;6;Digestión anaeróbica;Dixestión anaerobia
+tratamento_estercos;7;Secado solar;Secado solar
+tratamento_estercos;8;Stripping;Stripping
+tratamento_estercos;9;Separación por membranas (Ultrafiltración y osmosis inversa);Separación por membranas (ultrafiltración e osmose inversa)
+unidade_medida;1;m2;
+unidade_medida;2;ha;
+unidade_medida;3;m3;
+unidade_medida;4;L;
+unidade_medida;5;kg;
+unidade_medida;6;t;
+unidade_medida;7;cm;
+unidade_medida;8;m;
+unidade_medida;9;Individuos;
+unidade_medida;10;Plantas;
+unidade_medida;11;Unidades;
+unidade_medida;12;kg/L;
+unidade_medida;13;kg/t;
+unidade_medida;14;%;
+unidade_medida;15;Unidades/m²;
+unidade_medida;16;Unidades/ha;
+unidade_medida;17;kg/ha;
+unidade_medida;18;L/ha;
+unidade_medida;19;m3/ha;
+unidade_medida;20;mg/L;
+unidade_medida;21;ppm;
+unidade_medida;22;Difusores/ha;
+unidade_medida;23;Tabletas/ha;
+unidade_medida;24;Trampas/ha;
+unidade_medida;25;Difusores;
+unidade_medida;26;Tabletas;
+unidade_medida;27;Trampas;
+unidade_medida;28;m2 malla/ha;
+unidade_medida;29;t/ha;
+unidade_medida;30;m3/m3;
+unidade_medida;31;L/m3;
+unidade_medida;32;kg/m3;
+unidade_medida;33;t/m3;
+unidade_medida;34;Unidades/m3;
+unidade_medida;35;Difusores/m3;
+unidade_medida;36;Tabletas/m3;
+unidade_medida;37;Trampas/m3;
+unidade_medida;38;kg/kg;
+unidade_medida;39;L/kg;
+unidade_medida;40;CV;
+unidade_medida;41;kW;
+unidade_medida;42;kWh;
+unidade_medida;43;mg/dispensador;
+unidade_medida;44;mg/difusor;
+unidade_medida;45;€/ha;
+unidade_medida;46;€/cabeza;
+unidade_medida;47;€/colmena;
+unidade_medida;48;g;
+unidade_medida;49;g/ha;
+unidade_medida;50;g/m3;
+unidade_medida;51;ml;
+unidade_medida;52;ml/kg;
+unidade_medida;53;€;
+unidade_medida;54;Unidades de semilla;
+unidade_medida;55;Dispensadores;
+unidade_medida;56;Dispensadores/ha;
+unidade_medida;57;mg/tableta;
+unidade_medida;58;mg/trampa;
+unidade_medida;59;L/m2;
+unidade_medida;60;kg/m2;
+unidade_medida;61;Difusores/m2;
+unidade_medida;62;Tabletas/m2;
+unidade_medida;63;Trampas/m2;
+unidade_medida;64;cc/hL;
+unidade_medida;65;g/hL;
+unidade_medida;66;Personas;
+unidade_medida;67;Trabajadores/as;
+unidade_medida;68;Años;
+unidade_medida;69;Semestres;
+unidade_medida;70;Cuatrimestres;
+unidade_medida;71;Trimestres;
+unidade_medida;72;Meses;
+unidade_medida;73;Días;
+unidade_medida;74;Horas;
+unidade_medida;75;Minutos;
+unidade_medida;76;Segundos;
+unidade_medida;77;cc;
+unidade_medida;78;cc/m2;
+unidade_medida;79;ml/m2;
+unidade_medida;80;g/m2;
+unidade_medida;81;cc/m3;
+unidade_medida;82;ml/m3;
+xustificacion;1;Superación de umbrales;
+xustificacion;2;Monitorización;
+xustificacion;3;Sistema de apoyo a la toma de decisión (DSS);
+xustificacion;4;Aviso por Comunidad Autónoma;
+xustificacion;5;Recomendación de asesor;
+xustificacion;6;Medidor de alerta fitosanitaria;
