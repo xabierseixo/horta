@@ -40,7 +40,7 @@ def _catalogos(session):
     session.flush()
     for catalogo, codigo in [("enfermidade", "10"), ("xustificacion", "1"),
                              ("tipo_produto", "1"), ("unidade_medida", "5"),
-        ("unidade_medida", "17"),
+                             ("unidade_medida", "17"),
                              ("estado_fenoloxico", "6"), ("eficacia", "1")]:
         session.add(CatalogoValor(catalogo=catalogo, codigo=codigo, descricion=catalogo,
                                   version_id=v.id))
@@ -122,6 +122,14 @@ def test_dose_e_cantidade_a_vez_rexeitase(session):
     produto = LinhaProduto(tipo_produto="1", unidade="5", num_rexistro="ES-1", dose=1.0,
                            cantidade=3.0)
     with pytest.raises(OperacionNonPermitidaError, match="dose ou a cantidade"):
+        crear_tratamento_fito(session, ana, horta.id,
+                              _datos(cultivo, xan, maquina, produtos=[produto]))
+
+
+def test_dose_en_kg_sen_hectarea_rexeitase(session):
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    produto = LinhaProduto(tipo_produto="1", unidade="5", num_rexistro="ES-1", dose=1.0)
+    with pytest.raises(OperacionNonPermitidaError, match="kg/ha ou L/ha"):
         crear_tratamento_fito(session, ana, horta.id,
                               _datos(cultivo, xan, maquina, produtos=[produto]))
 
