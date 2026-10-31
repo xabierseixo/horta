@@ -215,7 +215,9 @@ def _resolver_variedade(
             datos["variedade"] = nome_variedade_cultivo(variedade_siex.nome_oficial)
             return
     if "variedade" in datos:
-        datos["variedade"] = nome_variedade_cultivo(datos["variedade"])
+        valor = datos["variedade"]
+        if valor is not None and valor.strip().upper() == "SIN VARIEDAD":
+            datos["variedade"] = None
     elif (
         "variedade_siex_id" in datos
         and datos["variedade_siex_id"] is None

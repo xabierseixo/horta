@@ -207,7 +207,7 @@ def test_estado_en_curso_desde_a_primeira_colleita(session):
     assert estados_cultivos(session, ana, parcela.horta_id)[cultivo.id] == "planificado"
 
 
-def test_nome_cultivo_sen_codigo_nin_sin_variedad(session):
+def test_nome_cultivo_sen_sin_variedad_e_conserva_numeros(session):
     from horta.models.catalogo import CatalogoVersion, CultivoSiex, VariedadeSiex
 
     v = CatalogoVersion(catalogo="variedade", nome_ficheiro="x", sha256="e" * 64, filas=3)
@@ -216,7 +216,7 @@ def test_nome_cultivo_sen_codigo_nin_sin_variedad(session):
     session.add(CultivoSiex(codigo=117, nome_oficial="TOMATE", version_id=v.id))
     v_sin = VariedadeSiex(cultivo_codigo=117, codigo=1, nome_oficial="SIN VARIEDAD",
                           version_id=v.id)
-    v_cod = VariedadeSiex(cultivo_codigo=117, codigo=2, nome_oficial="117SA901",
+    v_cod = VariedadeSiex(cultivo_codigo=117, codigo=2, nome_oficial="HEINZ1881",
                           version_id=v.id)
     v_nom = VariedadeSiex(cultivo_codigo=117, codigo=3, nome_oficial="Marmande",
                           version_id=v.id)
@@ -228,8 +228,8 @@ def test_nome_cultivo_sen_codigo_nin_sin_variedad(session):
         session, ana, parcela.id, "Tomate",
         cultivo_siex_codigo=117, variedade_siex_id=v_cod.id,
     )
-    assert cultivo.variedade is None
-    assert nome_cultivo(cultivo) == "Tomate"
+    assert cultivo.variedade == "HEINZ1881"
+    assert nome_cultivo(cultivo) == "Tomate HEINZ1881"
 
     actualizar_cultivo(session, ana, cultivo, variedade_siex_id=v_sin.id)
     assert cultivo.variedade is None
@@ -238,3 +238,18 @@ def test_nome_cultivo_sen_codigo_nin_sin_variedad(session):
     actualizar_cultivo(session, ana, cultivo, variedade_siex_id=v_nom.id)
     assert cultivo.variedade == "Marmande"
     assert nome_cultivo(cultivo) == "Tomate Marmande"
+
+
+def test_variedade_escrita_a_man_con_numeros_gardase_igual(session):
+    ana, parcela = _parcela_de_proba(session)
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate", variedade="Rio Grande 2")
+    assert cultivo.variedade == "Rio Grande 2"
+    assert nome_cultivo(cultivo) == "Tomate Rio Grande 2"
+
+    actualizar_cultivo(session, ana, cultivo, variedade="SIN VARIEDAD")
+    assert cultivo.variedade is None
+    assert nome_cultivo(cultivo) == "Tomate"
+
+    actualizar_cultivo(session, ana, cultivo, variedade="Rio Grande 2")
+    assert cultivo.variedade == "Rio Grande 2"
+    assert nome_cultivo(cultivo) == "Tomate Rio Grande 2"

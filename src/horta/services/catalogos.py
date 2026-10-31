@@ -114,7 +114,7 @@ def nome_variedade_cultivo(nome: str | None) -> str | None:
     if nome is None:
         return None
     limpo = nome.strip()
-    if not limpo or limpo.upper() == _SIN_VARIEDAD or e_codigo_variedade(limpo):
+    if not limpo or limpo.upper() == _SIN_VARIEDAD:
         return None
     return limpo
 
