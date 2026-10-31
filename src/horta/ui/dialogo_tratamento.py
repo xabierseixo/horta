@@ -17,6 +17,8 @@ from horta.models.tratamento_fito import TratamentoFito
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fito_consulta import AVISO, FORTE, comprobar_tratamento, materia_activa
 from horta.services.tratamentos_fito import (
+    UNIDADES_DOSE,
+    UNIDADES_TOTAL,
     DatosAsesor,
     DatosTratamento,
     LinhaAplicador,
