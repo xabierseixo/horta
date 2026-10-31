@@ -4,7 +4,7 @@ medidas, o asesor e os avisos do rexistro do MAPA (deseño 2026-10-25-tratamento
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
