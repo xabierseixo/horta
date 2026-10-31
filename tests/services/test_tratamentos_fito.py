@@ -4,6 +4,7 @@ import pytest
 
 from horta.models.catalogo import CatalogoValor, CatalogoVersion
 from horta.models.horta import Horta, RolHorta
+from horta.models.produto import Produto
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import actualizar_cultivo, crear_cultivo, eliminar_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
@@ -87,6 +88,12 @@ def test_crear_tratamento_completo(session):
     # Parte común: as notas e quen o apuntou, como nos outros traballos
     assert t.notas == "Sen vento" and t.creado_por == ana.id
     assert listar_tratamentos_fito(session, ana, horta.id) == [t]
+
+
+def test_o_fitosanitario_novo_leva_a_unidade_da_dose(session):
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    t = crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina))
+    assert session.get(Produto, t.produtos[0].produto_id).unidade == "kg"
 
 
 def test_ropo_que_caduca_o_mesmo_dia_e_valido(session):
