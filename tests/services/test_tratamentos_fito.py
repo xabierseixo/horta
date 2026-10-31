@@ -40,6 +40,7 @@ def _catalogos(session):
     session.flush()
     for catalogo, codigo in [("enfermidade", "10"), ("xustificacion", "1"),
                              ("tipo_produto", "1"), ("unidade_medida", "5"),
+        ("unidade_medida", "17"),
                              ("estado_fenoloxico", "6"), ("eficacia", "1")]:
         session.add(CatalogoValor(catalogo=catalogo, codigo=codigo, descricion=catalogo,
                                   version_id=v.id))
@@ -68,7 +69,7 @@ def _datos(cultivo, xan, maquina, **cambios):
         cultivos=[LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=0.1, estado_fenoloxico="6")],
         problemas=[Problema(tipo="enfermidade", codigo="10")],
         xustificacions=["1"],
-        produtos=[LinhaProduto(tipo_produto="1", unidade="5", num_rexistro="ES-1",
+        produtos=[LinhaProduto(tipo_produto="1", unidade="17", num_rexistro="ES-1",
                                nome_comercial="Cobre", dose=2.0)],
         medidas=[],
         aplicadores=[LinhaAplicador(persoa_id=xan.id, maquina_id=maquina.id)],
