@@ -55,7 +55,8 @@ def test_metais_do_residuo_no_caderno(session):
     i = next(n for n, f in enumerate(filas) if f[0] and str(f[0]).startswith(
         "FERTILIZACIÓN (Metais pesados)"))
     metais = filas[i + 2]
-    assert metais[2] == "m20" and metais[3] == 10000 and metais[4] == 0.7 and metais[7] == 45
+    assert metais[2] == "Residuos: compost de alperujo"
+    assert metais[3] == 10000 and metais[4] == 0.7 and metais[7] == 45
 
 
 def test_metal_negativo(session):

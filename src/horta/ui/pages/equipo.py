@@ -45,7 +45,8 @@ from horta.services.persoas import (
 )
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
-from horta.ui.etiquetas import TIPOS_CARNE, VINCULOS as ETIQUETAS_VINCULO
+from horta.ui.etiquetas import TIPOS_CARNE
+from horta.ui.etiquetas import VINCULOS as ETIQUETAS_VINCULO
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA

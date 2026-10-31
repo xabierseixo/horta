@@ -25,7 +25,7 @@ from horta.services.fito_consulta import (
     prazo_seguridade,
 )
 from horta.services.tratamentos_fito import DatosTratamento, LinhaCultivo, LinhaProduto, Problema
-from horta.ui.pages.tratamentos import _opcions
+from horta.ui.pages.tratamentos import _opcions_problema
 
 D = date(2026, 6, 1)
 PATATA, HORTALIZAS = "0102090000000000", "0102000000000000"
@@ -195,7 +195,7 @@ def test_aviso_prazo_colleita(session):
 def test_nomes_comuns_e_opcions_problemas(session):
     _escenario(session)
     assert nomes_comuns_problemas(session, "enfermidade") == {"77": ["Mildiu de la patata"]}
-    assert _opcions(session, "enfermidade") == {
+    assert _opcions_problema(session, "enfermidade") == {
         "77": "Mildiu de la patata — Phytophthora infestans",
         "78": "Botrytis cinerea",
     }
@@ -209,7 +209,7 @@ def test_nomes_comuns_e_opcions_problemas(session):
     assert nomes_comuns_problemas(session, "enfermidade") == {
         "77": ["Mildiu de la patata", "Mildiu del pimiento", "Mildiu del tomate"],
     }
-    assert _opcions(session, "enfermidade")["77"] == (
+    assert _opcions_problema(session, "enfermidade")["77"] == (
         "Mildiu de la patata / Mildiu del pimiento — Phytophthora infestans"
     )
 
@@ -222,5 +222,5 @@ def test_opcions_problemas_sen_rexistro_mapa(session):
                               descricion="Phytophthora infestans", version_id=v.id))
     session.commit()
     assert nomes_comuns_problemas(session, "enfermidade") == {}
-    assert _opcions(session, "enfermidade") == {"77": "Phytophthora infestans"}
+    assert _opcions_problema(session, "enfermidade") == {"77": "Phytophthora infestans"}
     assert etiqueta_problema("Phytophthora infestans", []) == "Phytophthora infestans"
