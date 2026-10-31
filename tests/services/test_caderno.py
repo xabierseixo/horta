@@ -103,7 +103,8 @@ def test_contido_de_cada_seccion(session):
     parcela = _filas(libro["2 Parcelas"])[0]
     assert parcela[0] == 1 and parcela[10] == 0.2 and parcela[11] == "Pataca"
     fert = _filas(libro["7 Fertilización"])[0]
-    assert fert[5] == "Abonado de fondo" and fert[7] == "NPK 15-15-15"
+    assert fert[5] == "Abonado de fondo" and fert[6] == "Espallado xeral"
+    assert fert[7] == "NPK 15-15-15"
     assert fert[22] == 0.2 and fert[23:26] == [30.0, 30.0, 30.0]  # 200 kg/ha ao 15 %
     assert any(f[:2] == ["Plan de abonado de cultivos", "SI"] for f in _filas(
         libro["7 Fertilización"]))

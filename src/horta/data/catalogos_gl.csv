@@ -5,66 +5,66 @@ actividade_agraria;3;Pastoreo;Pastoreo
 actividade_agraria;4;Siega Producción;Sega produción
 actividade_agraria;5;Sin actividad agraria por razones medioambientales;Sen actividade agraria por razóns ambientais
 actividade_agraria;6;Sin producción por causa de fuerza mayor;Sen produción por causa de forza maior
-boas_practicas;0;No realiza buenas prácticas;
-boas_practicas;1;Aplicación de purines mediante sistema de bandas con mangueras o tubos rígidos;
-boas_practicas;2;Aplicación de purines mediante sistema de bandas de discos o rejas;
-boas_practicas;3;Aplicación de purines mediante inyección;
-boas_practicas;4;Dilución de purines, seguida de técnicas tales como un sistema de riego de baja presión;
-boas_practicas;5;Acidificación de los purines;
-boas_practicas;6;Dosis y momento de aplicación, el abonado se realizará en aquellos momentos del ciclo del cultivo en los que el aprovechamiento del fertilizante pueda ser más rápido;
-boas_practicas;7;Fraccionamiento de los aportes de acuerdo con las necesidades del cultivo, siempre que sea técnicamente posible;
-boas_practicas;8;Incorporación de los fertilizantes en el suelo por sistemas de inyección en profundidad;
-boas_practicas;9;Incorporación de los fertilizantes en el suelo mediante mezcla de los gránulos del fertilizante con el suelo;
-boas_practicas;10;Emplear gránulos de urea recubiertos de un polímero;
-boas_practicas;11;Aplicar un riego inmediatamente después de la fertilización con abonos a base de urea;
-boas_practicas;12;Realizar la fertilización nitrogenada mediante fertirrigación (Sólo cuando haya necesidades de regadío);
-boas_practicas;13;En el cultivo de arroz, realizar el abonado nitrogenado con el terreno seco;
-boas_practicas;14;Empleo de inhibidores de la ureasa con productos fertilizantes a base de urea;
-boas_practicas;15;Enterrado de purines y, productos y materiales líquidos lo antes posible y siempre en las primeras 4 horas tras su aplicación;
-boas_practicas;16;Empleo de inhibidores de la ureasa o de la nitrificación aplicados a purines, con supervisión profesional en caso de aplicación directa de los purines al suelo o a la balsa de purín;
-boas_practicas;17;Aplicación de la tecnología de dosificación variable dentro de una misma parcela;
-boas_practicas;18;Enterrado de la urea, en el momento de su aplicación al suelo o, por lo menos, en las 4 horas siguientes;
-boas_practicas;19;Empleo de productos fertilizantes nitrogenados con inhibidores de la nitrificación;
-boas_practicas;20;Abonado en verde;
-boas_practicas;21;Dosis y frecuencia de riego ajustadas a las necesidades del cultivo y a la capacidad de retención de humedad del suelo, tomando como referencia las recomendaciones de los servicios de asesoramiento al regante (SIAR) de la comunidad autónoma o el Sistema de Información Agroclimática para el Regadío (SiAR) del Ministerio de Agricultura, Pesca y Alimentación, y/o empleo de sensores de contenido de humedad del suelo.;
-boas_practicas;22;En el caso de que el propio material usado en el abonado aporte agua en una cantidad considerable al cultivo (como cuando se utilizan estiércoles líquidos), se tendrá en cuenta el volumen de agua incorporado por el mismo para el cálculo.;
-boas_practicas;23;Riego localizado.;
-boas_practicas;24;En cultivos con riego por inundación, el abonado nitrogenado se aplicará cuando el suelo se encuentre en sazón y se enterrará inmediatamente mediante una labor.;
-boas_practicas;25;En los cultivos con riego localizado, la fertilización se efectuará disolviendo los abonos en el agua de riego y aplicándolos al suelo a través de ésta. Éstos se dosificarán fraccionadamente, durante el periodo de actividad vegetativa del cultivo, pudiéndose adaptar las concentraciones y las cantidades parciales aportadas a los momentos de mayor requerimiento dentro del ciclo del cultivo.;
-boas_practicas;26;En el riego localizado, el número de emisores por árbol, el volumen de agua aportado por cada uno de ellos y la frecuencia de riego se recomienda que se establezcan en función de la textura del terreno, de forma que se consiga ajustar la superficie mojada a la profundidad radicular efectiva suficiente para el cultivo y así evitar problemas de saturación, de humedad o de pérdidas de agua en profundidad.;
-boas_practicas;27;El aporte de nutrientes conjuntamente con el agua de riego se deberá ajustar de modo que la concentración de nutrientes sea lo más baja posible, adaptándose a su vez a las necesidades hídricas del cultivo. Así mismo, los nutrientes deberán aplicarse en los momentos de máximo requerimiento de cada nutriente, de modo que se maximice el aprovechamiento por parte del cultivo y la efectividad del abonado y se reduzca, así, la acumulación en el suelo de nutrientes en forma de sales.;
-boas_practicas;28;Utilización de acolchados (mulching);
-boas_practicas;29;Siembra directa;
-boas_practicas;30;Mínimo laboreo;
-boas_practicas;31;"Diseño en línea clave (""""key-line"""")";
-boas_practicas;32;Utilización de mallas antigranizo;
-boas_practicas;33;Riego por aspersión nocturno;
-boas_practicas;34;Riego deficitario controlado (RDC);
-boas_practicas;35;Siembra en seco (arroz);
-boas_practicas;36;Monitorización de condiciones del suelo, clima y cultivo en tiempo real con sensores IoT;
-boas_practicas;37;Uso de drones y satélites para el monitoreo geoespacial de cultivos;
-boas_practicas;38;Análisis de datos agrícolas y apoyo a la toma de decisiones (DSS);
-boas_practicas;39;Aplicación variable de insumos con equipos de precisión;
-boas_practicas;40;Manejo de maquinaria agrícola equipada con tecnología de precisión;
-boas_practicas;41;Implementación de sistemas de riego automatizado;
-boas_practicas;42;Uso de drones para aplicación precisa de insumos agrícolas;
-boas_practicas;43;Comunicación en campo mediante redes de sensores inalámbricos;
-boas_practicas;44;Acceso a información y servicios agrícolas a través de aplicaciones móviles;
-boas_practicas;45;Gestión de la explotación agrícola mediante software específico;
-boas_practicas;46;Limpieza y desinfección - Mantener limpias las instalaciones, equipos, vehículos y bebederos;
-boas_practicas;47;Formación continua del personal - Capacitar al personal en bienestar, sanidad, higiene, manejo y bioseguridad;
-boas_practicas;48;Evaluación y mejora continua - Revisar resultados productivos, sanitarios y ambientales para ajustar prácticas;
-boas_practicas;49;Rotación de cultivos;
-boas_practicas;50;Utilización de variedades resistentes;
-boas_practicas;51;Protección de los organismos beneficiosos (con medidas fitosanitarias específicas, utilizando infraestructuras ecológicas que aumenten la biodiversidad, estableciendo márgenes multifuncionales para la mejora de la biodiversidad y fomento de la fauna útil, etc.);
-boas_practicas;52;Monitorización de plagas, enfermedades y malas hierbas;
-boas_practicas;53;Establecimiento de umbrales de intervención fitosanitaria;
-boas_practicas;54;Aplicación de productos fitosanitarios de bajo riesgo;
-boas_practicas;55;Seguimiento de una estrategia anti-resistencias en el uso de productos fitosanitarios;
-boas_practicas;56;Seguimiento de la efectividad de la intervención fitosanitaria;
-boas_practicas;57;Maquinaria autónoma: Tractores y otros equipos agrícolas que pueden operar sin intervención humana;
-boas_practicas;58;Uso de sistemas de transferencia cerrados para realizar la carga en el tanque de aplicación;
-boas_practicas;59;Utilización de endoterapia;
+boas_practicas;0;No realiza buenas prácticas;Non realiza boas prácticas
+boas_practicas;1;Aplicación de purines mediante sistema de bandas con mangueras o tubos rígidos;Aplicación de xurros mediante sistema de bandas con mangueiras ou tubos ríxidos
+boas_practicas;2;Aplicación de purines mediante sistema de bandas de discos o rejas;Aplicación de xurros mediante sistema de bandas de discos ou rellas
+boas_practicas;3;Aplicación de purines mediante inyección;Aplicación de xurros mediante inxección
+boas_practicas;4;Dilución de purines, seguida de técnicas tales como un sistema de riego de baja presión;Dilución de xurros, seguida de técnicas tales como un sistema de rega de baixa presión
+boas_practicas;5;Acidificación de los purines;Acidificación dos xurros
+boas_practicas;6;Dosis y momento de aplicación, el abonado se realizará en aquellos momentos del ciclo del cultivo en los que el aprovechamiento del fertilizante pueda ser más rápido;Dose e momento de aplicación, o abonado realizarase naqueles momentos do ciclo do cultivo nos que o aproveitamento do fertilizante poida ser máis rápido
+boas_practicas;7;Fraccionamiento de los aportes de acuerdo con las necesidades del cultivo, siempre que sea técnicamente posible;Fraccionamento das achegas de acordo coas necesidades do cultivo, sempre que sexa tecnicamente posible
+boas_practicas;8;Incorporación de los fertilizantes en el suelo por sistemas de inyección en profundidad;Incorporación dos fertilizantes no solo por sistemas de inxección en profundidade
+boas_practicas;9;Incorporación de los fertilizantes en el suelo mediante mezcla de los gránulos del fertilizante con el suelo;Incorporación dos fertilizantes no solo mediante mestura dos gránulos do fertilizante co solo
+boas_practicas;10;Emplear gránulos de urea recubiertos de un polímero;Empregar gránulos de urea recubertos dun polímero
+boas_practicas;11;Aplicar un riego inmediatamente después de la fertilización con abonos a base de urea;Aplicar unha rega inmediatamente despois da fertilización con abonos a base de urea
+boas_practicas;12;Realizar la fertilización nitrogenada mediante fertirrigación (Sólo cuando haya necesidades de regadío);Realizar a fertilización nitroxenada mediante fertirrigación (só cando haxa necesidades de regadío)
+boas_practicas;13;En el cultivo de arroz, realizar el abonado nitrogenado con el terreno seco;No cultivo de arroz, realizar o abonado nitroxenado co terreo seco
+boas_practicas;14;Empleo de inhibidores de la ureasa con productos fertilizantes a base de urea;Emprego de inhibidores da urease con produtos fertilizantes a base de urea
+boas_practicas;15;Enterrado de purines y, productos y materiales líquidos lo antes posible y siempre en las primeras 4 horas tras su aplicación;Enterrado de xurros e produtos e materiais líquidos o antes posible e sempre nas primeiras 4 horas tras a súa aplicación
+boas_practicas;16;Empleo de inhibidores de la ureasa o de la nitrificación aplicados a purines, con supervisión profesional en caso de aplicación directa de los purines al suelo o a la balsa de purín;Emprego de inhibidores da urease ou da nitrificación aplicados a xurros, con supervisión profesional en caso de aplicación directa dos xurros ao solo ou á balsa de xurro
+boas_practicas;17;Aplicación de la tecnología de dosificación variable dentro de una misma parcela;Aplicación da tecnoloxía de dosificación variable dentro dunha mesma parcela
+boas_practicas;18;Enterrado de la urea, en el momento de su aplicación al suelo o, por lo menos, en las 4 horas siguientes;Enterrado da urea, no momento da súa aplicación ao solo ou, polo menos, nas 4 horas seguintes
+boas_practicas;19;Empleo de productos fertilizantes nitrogenados con inhibidores de la nitrificación;Emprego de produtos fertilizantes nitroxenados con inhibidores da nitrificación
+boas_practicas;20;Abonado en verde;Abonado en verde
+boas_practicas;21;Dosis y frecuencia de riego ajustadas a las necesidades del cultivo y a la capacidad de retención de humedad del suelo, tomando como referencia las recomendaciones de los servicios de asesoramiento al regante (SIAR) de la comunidad autónoma o el Sistema de Información Agroclimática para el Regadío (SiAR) del Ministerio de Agricultura, Pesca y Alimentación, y/o empleo de sensores de contenido de humedad del suelo.;Dose e frecuencia de rega axustadas ás necesidades do cultivo e á capacidade de retención de humidade do solo, tomando como referencia as recomendacións dos servizos de asesoramento ao regante (SIAR) da comunidade autónoma ou o Sistema de Información Agroclimática para o Regadío (SiAR) do Ministerio de Agricultura, Pesca e Alimentación, e/ou emprego de sensores de contido de humidade do solo.
+boas_practicas;22;En el caso de que el propio material usado en el abonado aporte agua en una cantidad considerable al cultivo (como cuando se utilizan estiércoles líquidos), se tendrá en cuenta el volumen de agua incorporado por el mismo para el cálculo.;No caso de que o propio material usado no abonado achegue auga nunha cantidade considerable ao cultivo (como cando se utilizan estercos líquidos), terase en conta o volume de auga incorporado por el para o cálculo.
+boas_practicas;23;Riego localizado.;Rega localizada.
+boas_practicas;24;En cultivos con riego por inundación, el abonado nitrogenado se aplicará cuando el suelo se encuentre en sazón y se enterrará inmediatamente mediante una labor.;En cultivos con rega por asolagamento, o abonado nitroxenado aplicarase cando o solo se atope en sazón e enterrarase inmediatamente mediante un labor.
+boas_practicas;25;En los cultivos con riego localizado, la fertilización se efectuará disolviendo los abonos en el agua de riego y aplicándolos al suelo a través de ésta. Éstos se dosificarán fraccionadamente, durante el periodo de actividad vegetativa del cultivo, pudiéndose adaptar las concentraciones y las cantidades parciales aportadas a los momentos de mayor requerimiento dentro del ciclo del cultivo.;Nos cultivos con rega localizada, a fertilización efectuarase disolvendo os abonos na auga de rega e aplicándoos ao solo a través desta. Estes dosificaranse fraccionadamente, durante o período de actividade vexetativa do cultivo, podéndose adaptar as concentracións e as cantidades parciais achegadas aos momentos de maior requirimento dentro do ciclo do cultivo.
+boas_practicas;26;En el riego localizado, el número de emisores por árbol, el volumen de agua aportado por cada uno de ellos y la frecuencia de riego se recomienda que se establezcan en función de la textura del terreno, de forma que se consiga ajustar la superficie mojada a la profundidad radicular efectiva suficiente para el cultivo y así evitar problemas de saturación, de humedad o de pérdidas de agua en profundidad.;Na rega localizada, o número de emisores por árbore, o volume de auga achegado por cada un deles e a frecuencia de rega recoméndase que se establezan en función da textura do terreo, de forma que se consiga axustar a superficie mollada á profundidade radicular efectiva suficiente para o cultivo e así evitar problemas de saturación, de humidade ou de perdas de auga en profundidade.
+boas_practicas;27;El aporte de nutrientes conjuntamente con el agua de riego se deberá ajustar de modo que la concentración de nutrientes sea lo más baja posible, adaptándose a su vez a las necesidades hídricas del cultivo. Así mismo, los nutrientes deberán aplicarse en los momentos de máximo requerimiento de cada nutriente, de modo que se maximice el aprovechamiento por parte del cultivo y la efectividad del abonado y se reduzca, así, la acumulación en el suelo de nutrientes en forma de sales.;A achega de nutrientes conxuntamente coa auga de rega deberase axustar de modo que a concentración de nutrientes sexa o máis baixa posible, adaptándose á súa vez ás necesidades hídricas do cultivo. Así mesmo, os nutrientes deberán aplicarse nos momentos de máximo requirimento de cada nutriente, de modo que se maximice o aproveitamento por parte do cultivo e a efectividade do abonado e se reduza, así, a acumulación no solo de nutrientes en forma de sales.
+boas_practicas;28;Utilización de acolchados (mulching);Utilización de acolchados (mulching)
+boas_practicas;29;Siembra directa;Sementeira directa
+boas_practicas;30;Mínimo laboreo;Mínima labra
+boas_practicas;31;"Diseño en línea clave (""""key-line"""")";"Deseño en liña clave (""key-line"")"
+boas_practicas;32;Utilización de mallas antigranizo;Utilización de mallas antisarabia
+boas_practicas;33;Riego por aspersión nocturno;Rega por aspersión nocturna
+boas_practicas;34;Riego deficitario controlado (RDC);Rega deficitaria controlada (RDC)
+boas_practicas;35;Siembra en seco (arroz);Sementeira en seco (arroz)
+boas_practicas;36;Monitorización de condiciones del suelo, clima y cultivo en tiempo real con sensores IoT;Monitorización das condicións do solo, clima e cultivo en tempo real con sensores IoT
+boas_practicas;37;Uso de drones y satélites para el monitoreo geoespacial de cultivos;Uso de drons e satélites para o seguimento xeoespacial de cultivos
+boas_practicas;38;Análisis de datos agrícolas y apoyo a la toma de decisiones (DSS);Análise de datos agrícolas e apoio á toma de decisións (DSS)
+boas_practicas;39;Aplicación variable de insumos con equipos de precisión;Aplicación variable de insumos con equipos de precisión
+boas_practicas;40;Manejo de maquinaria agrícola equipada con tecnología de precisión;Manexo de maquinaria agrícola equipada con tecnoloxía de precisión
+boas_practicas;41;Implementación de sistemas de riego automatizado;Implementación de sistemas de rega automatizada
+boas_practicas;42;Uso de drones para aplicación precisa de insumos agrícolas;Uso de drons para a aplicación precisa de insumos agrícolas
+boas_practicas;43;Comunicación en campo mediante redes de sensores inalámbricos;Comunicación en campo mediante redes de sensores sen fíos
+boas_practicas;44;Acceso a información y servicios agrícolas a través de aplicaciones móviles;Acceso a información e servizos agrícolas a través de aplicacións móbiles
+boas_practicas;45;Gestión de la explotación agrícola mediante software específico;Xestión da explotación agrícola mediante software específico
+boas_practicas;46;Limpieza y desinfección - Mantener limpias las instalaciones, equipos, vehículos y bebederos;Limpeza e desinfección - Manter limpas as instalacións, equipos, vehículos e bebedoiros
+boas_practicas;47;Formación continua del personal - Capacitar al personal en bienestar, sanidad, higiene, manejo y bioseguridad;Formación continua do persoal - Capacitar o persoal en benestar, sanidade, hixiene, manexo e bioseguridade
+boas_practicas;48;Evaluación y mejora continua - Revisar resultados productivos, sanitarios y ambientales para ajustar prácticas;Avaliación e mellora continua - Revisar resultados produtivos, sanitarios e ambientais para axustar prácticas
+boas_practicas;49;Rotación de cultivos;Rotación de cultivos
+boas_practicas;50;Utilización de variedades resistentes;Utilización de variedades resistentes
+boas_practicas;51;Protección de los organismos beneficiosos (con medidas fitosanitarias específicas, utilizando infraestructuras ecológicas que aumenten la biodiversidad, estableciendo márgenes multifuncionales para la mejora de la biodiversidad y fomento de la fauna útil, etc.);Protección dos organismos beneficiosos (con medidas fitosanitarias específicas, utilizando infraestruturas ecolóxicas que aumenten a biodiversidade, establecendo marxes multifuncionais para a mellora da biodiversidade e o fomento da fauna útil, etc.)
+boas_practicas;52;Monitorización de plagas, enfermedades y malas hierbas;Monitorización de pragas, enfermidades e malas herbas
+boas_practicas;53;Establecimiento de umbrales de intervención fitosanitaria;Establecemento de limiares de intervención fitosanitaria
+boas_practicas;54;Aplicación de productos fitosanitarios de bajo riesgo;Aplicación de produtos fitosanitarios de baixo risco
+boas_practicas;55;Seguimiento de una estrategia anti-resistencias en el uso de productos fitosanitarios;Seguimento dunha estratexia antirresistencias no uso de produtos fitosanitarios
+boas_practicas;56;Seguimiento de la efectividad de la intervención fitosanitaria;Seguimento da efectividade da intervención fitosanitaria
+boas_practicas;57;Maquinaria autónoma: Tractores y otros equipos agrícolas que pueden operar sin intervención humana;Maquinaria autónoma: tractores e outros equipos agrícolas que poden operar sen intervención humana
+boas_practicas;58;Uso de sistemas de transferencia cerrados para realizar la carga en el tanque de aplicación;Uso de sistemas de transferencia pechados para realizar a carga no tanque de aplicación
+boas_practicas;59;Utilización de endoterapia;Utilización de endoterapia
 causa_baixa;1;Cambio de titularidad;Cambio de titularidade
 causa_baixa;2;Desistimiento;Desistencia
 causa_baixa;3;Fusión de explotaciones;Fusión de explotacións
@@ -149,19 +149,19 @@ destino_restos;6;Traslado a planta de gestión de restos vegetales;Traslado a pl
 destino_restos;7;Traslado a planta de compostaje;Traslado a planta de compostaxe
 destino_restos;8;Quema controlada con arreglo a normativa vigente;Queima controlada conforme á normativa vixente
 destino_restos;9;Trituración de restos de poda y depositado sobre el terreno de los mismos;Trituración de restos de poda e depósito deles sobre o terreo
-eficacia;1;Buena;
-eficacia;2;Regular;
-eficacia;3;Mala;
-estado_fenoloxico;1;Germinación, brotación, desarrollo de la yema;
-estado_fenoloxico;2;Desarrollo de las hojas (brote o tallo principal);
-estado_fenoloxico;3;Formación de brotes laterales/ macollamiento (ahijamiento);
-estado_fenoloxico;4;Crecimiento longitudinal del tallo o crecimiento en roseta, desarrollo de brotes (retoños)/ encañado (tallo principal);
-estado_fenoloxico;5;Desarrollo de las partes vegetativas cosechables de la planta o de órganos vegetativos de propagación/ embuchamiento;
-estado_fenoloxico;6;Emergencia de la inflorescencia (tallo principal)/ espigamiento;
-estado_fenoloxico;7;Floración (tallo principal);
-estado_fenoloxico;8;Desarrollo del fruto;
-estado_fenoloxico;9;Coloración o maduración de frutos y semillas;
-estado_fenoloxico;10;Senescencia, comienzo de la dormancia;
+eficacia;1;Buena;Boa
+eficacia;2;Regular;Regular
+eficacia;3;Mala;Mala
+estado_fenoloxico;1;Germinación, brotación, desarrollo de la yema;Xerminación, agromada, desenvolvemento da xema
+estado_fenoloxico;2;Desarrollo de las hojas (brote o tallo principal);Desenvolvemento das follas (brote ou talo principal)
+estado_fenoloxico;3;Formación de brotes laterales/ macollamiento (ahijamiento);Formación de brotes laterais / afilamento
+estado_fenoloxico;4;Crecimiento longitudinal del tallo o crecimiento en roseta, desarrollo de brotes (retoños)/ encañado (tallo principal);Crecemento lonxitudinal do talo ou crecemento en roseta, desenvolvemento de brotes (rebentos) / encanado (talo principal)
+estado_fenoloxico;5;Desarrollo de las partes vegetativas cosechables de la planta o de órganos vegetativos de propagación/ embuchamiento;Desenvolvemento das partes vexetativas colleitables da planta ou de órganos vexetativos de propagación / embuchamento
+estado_fenoloxico;6;Emergencia de la inflorescencia (tallo principal)/ espigamiento;Emerxencia da inflorescencia (talo principal) / espigamento
+estado_fenoloxico;7;Floración (tallo principal);Floración (talo principal)
+estado_fenoloxico;8;Desarrollo del fruto;Desenvolvemento do froito
+estado_fenoloxico;9;Coloración o maduración de frutos y semillas;Coloración ou maduración de froitos e sementes
+estado_fenoloxico;10;Senescencia, comienzo de la dormancia;Senescencia, comezo da dormencia
 material_analizado;1;Cultivo;Cultivo
 material_analizado;2;Producto cosechado;Produto colleitado
 material_analizado;3;Suelo;Solo
@@ -267,17 +267,17 @@ tipo_cobertura_solo;3;Cubierta vegetal espontánea.;Cuberta vexetal espontánea.
 tipo_cobertura_solo;4;Cubierta inerte de restos de poda;Cuberta inerte de restos de poda
 tipo_cobertura_solo;5;Cubierta inerte de otros materiales (cáscaras de frutos secos, piedras, otros restos vegetales, etc.);Cuberta inerte doutros materiais (cascas de froitos secos, pedras, outros restos vexetais, etc.)
 tipo_cobertura_solo;6;Regeneración Pastos permanentes;Rexeneración Pastos permanentes
-tipo_enerxia;1;ELÉCTRICA;
-tipo_enerxia;2;DIESEL;
-tipo_enerxia;3;GASOLINA;
-tipo_enerxia;4;ELÉCTRICA FOTOVOLTAICA;
-tipo_enerxia;5;ELÉCTRICA EÓLICA;
-tipo_enerxia;6;BIODIESEL;
-tipo_enerxia;7;BIOGÁS;
-tipo_enerxia;8;NINGUNA;
-tipo_enerxia;9;GAS NATURAL;
-tipo_enerxia;10;PROPANO;
-tipo_enerxia;11;BUTANO;
+tipo_enerxia;1;ELÉCTRICA;Eléctrica
+tipo_enerxia;2;DIESEL;Diésel
+tipo_enerxia;3;GASOLINA;Gasolina
+tipo_enerxia;4;ELÉCTRICA FOTOVOLTAICA;Eléctrica fotovoltaica
+tipo_enerxia;5;ELÉCTRICA EÓLICA;Eléctrica eólica
+tipo_enerxia;6;BIODIESEL;Biodiésel
+tipo_enerxia;7;BIOGÁS;Biogás
+tipo_enerxia;8;NINGUNA;Ningunha
+tipo_enerxia;9;GAS NATURAL;Gas natural
+tipo_enerxia;10;PROPANO;Propano
+tipo_enerxia;11;BUTANO;Butano
 tipo_fertilizacion;1;Abonado de fondo;Abonado de fondo
 tipo_fertilizacion;2;Abonado de cobertera;Abonado de cobertura
 tipo_fertilizacion;3;Aplicación de enmienda;Aplicación de emenda
@@ -295,24 +295,24 @@ tipo_labor;10;Injerto;Enxerto
 tipo_labor;11;Eliminación de restos de poda;Eliminación de restos de poda
 tipo_labor;12;Poda en verde, incluida la limpieza de tallos, chupones y varetas;Poda en verde, incluída a limpeza de talos, chupóns e varetas
 tipo_labor;13;Rulado;Rulado
-tipo_medida_fito;1;Suelta de OCB;
-tipo_medida_fito;2;Plantas banker o reservorio;
-tipo_medida_fito;3;Colocación mallas anti-insectos;
-tipo_medida_fito;4;Instalación de setos, márgenes funcionales o cubiertas temporales;
-tipo_medida_fito;5;Falsa siembra;
-tipo_medida_fito;6;Siembra directa;
-tipo_medida_fito;7;Siembra en seco (arroz);
-tipo_medida_fito;8;Siega mecánica malas hierbas;
-tipo_medida_fito;9;Laboreo eliminación de malas hierbas;
-tipo_medida_fito;10;Solarización o biofumigación;
-tipo_medida_fito;11;Usos de sustancias básicas;
-tipo_medida_fito;12;Captura masiva a base de trampas luminosas;
-tipo_medida_fito;14;Trampas  y otros;
-tipo_medida_fito;15;Feromonas y atrayentes para monitoreo;
-tipo_produto;1;Producto fitosanitario registrado;
-tipo_produto;2;Denominación común;
-tipo_produto;3;Importación paralela;
-tipo_produto;4;Autorización excepcional;
+tipo_medida_fito;1;Suelta de OCB;Solta de OCB
+tipo_medida_fito;2;Plantas banker o reservorio;Plantas banker ou reservorio
+tipo_medida_fito;3;Colocación mallas anti-insectos;Colocación de mallas antiinsectos
+tipo_medida_fito;4;Instalación de setos, márgenes funcionales o cubiertas temporales;Instalación de sebes, marxes funcionais ou cubertas temporais
+tipo_medida_fito;5;Falsa siembra;Falsa sementeira
+tipo_medida_fito;6;Siembra directa;Sementeira directa
+tipo_medida_fito;7;Siembra en seco (arroz);Sementeira en seco (arroz)
+tipo_medida_fito;8;Siega mecánica malas hierbas;Sega mecánica de malas herbas
+tipo_medida_fito;9;Laboreo eliminación de malas hierbas;Labra de eliminación de malas herbas
+tipo_medida_fito;10;Solarización o biofumigación;Solarización ou biofumigación
+tipo_medida_fito;11;Usos de sustancias básicas;Usos de substancias básicas
+tipo_medida_fito;12;Captura masiva a base de trampas luminosas;Captura masiva a base de trampas luminosas
+tipo_medida_fito;14;Trampas  y otros;Trampas e outros
+tipo_medida_fito;15;Feromonas y atrayentes para monitoreo;Feromonas e atraentes para seguimento
+tipo_produto;1;Producto fitosanitario registrado;Produto fitosanitario rexistrado
+tipo_produto;2;Denominación común;Denominación común
+tipo_produto;3;Importación paralela;Importación paralela
+tipo_produto;4;Autorización excepcional;Autorización excepcional
 tratamento_estercos;1;Ninguno;Ningún
 tratamento_estercos;2;Separación sólido-líquido: fracción sólida;Separación sólido-líquido: fracción sólida
 tratamento_estercos;3;Separación sólido-líquido: fracción líquida;Separación sólido-líquido: fracción líquida
@@ -322,91 +322,91 @@ tratamento_estercos;6;Digestión anaeróbica;Dixestión anaerobia
 tratamento_estercos;7;Secado solar;Secado solar
 tratamento_estercos;8;Stripping;Stripping
 tratamento_estercos;9;Separación por membranas (Ultrafiltración y osmosis inversa);Separación por membranas (ultrafiltración e osmose inversa)
-unidade_medida;1;m2;
-unidade_medida;2;ha;
-unidade_medida;3;m3;
-unidade_medida;4;L;
-unidade_medida;5;kg;
-unidade_medida;6;t;
-unidade_medida;7;cm;
-unidade_medida;8;m;
-unidade_medida;9;Individuos;
-unidade_medida;10;Plantas;
-unidade_medida;11;Unidades;
-unidade_medida;12;kg/L;
-unidade_medida;13;kg/t;
-unidade_medida;14;%;
-unidade_medida;15;Unidades/m²;
-unidade_medida;16;Unidades/ha;
-unidade_medida;17;kg/ha;
-unidade_medida;18;L/ha;
-unidade_medida;19;m3/ha;
-unidade_medida;20;mg/L;
-unidade_medida;21;ppm;
-unidade_medida;22;Difusores/ha;
-unidade_medida;23;Tabletas/ha;
-unidade_medida;24;Trampas/ha;
-unidade_medida;25;Difusores;
-unidade_medida;26;Tabletas;
-unidade_medida;27;Trampas;
-unidade_medida;28;m2 malla/ha;
-unidade_medida;29;t/ha;
-unidade_medida;30;m3/m3;
-unidade_medida;31;L/m3;
-unidade_medida;32;kg/m3;
-unidade_medida;33;t/m3;
-unidade_medida;34;Unidades/m3;
-unidade_medida;35;Difusores/m3;
-unidade_medida;36;Tabletas/m3;
-unidade_medida;37;Trampas/m3;
-unidade_medida;38;kg/kg;
-unidade_medida;39;L/kg;
-unidade_medida;40;CV;
-unidade_medida;41;kW;
-unidade_medida;42;kWh;
-unidade_medida;43;mg/dispensador;
-unidade_medida;44;mg/difusor;
-unidade_medida;45;€/ha;
-unidade_medida;46;€/cabeza;
-unidade_medida;47;€/colmena;
-unidade_medida;48;g;
-unidade_medida;49;g/ha;
-unidade_medida;50;g/m3;
-unidade_medida;51;ml;
-unidade_medida;52;ml/kg;
-unidade_medida;53;€;
-unidade_medida;54;Unidades de semilla;
-unidade_medida;55;Dispensadores;
-unidade_medida;56;Dispensadores/ha;
-unidade_medida;57;mg/tableta;
-unidade_medida;58;mg/trampa;
-unidade_medida;59;L/m2;
-unidade_medida;60;kg/m2;
-unidade_medida;61;Difusores/m2;
-unidade_medida;62;Tabletas/m2;
-unidade_medida;63;Trampas/m2;
-unidade_medida;64;cc/hL;
-unidade_medida;65;g/hL;
-unidade_medida;66;Personas;
-unidade_medida;67;Trabajadores/as;
-unidade_medida;68;Años;
-unidade_medida;69;Semestres;
-unidade_medida;70;Cuatrimestres;
-unidade_medida;71;Trimestres;
-unidade_medida;72;Meses;
-unidade_medida;73;Días;
-unidade_medida;74;Horas;
-unidade_medida;75;Minutos;
-unidade_medida;76;Segundos;
-unidade_medida;77;cc;
-unidade_medida;78;cc/m2;
-unidade_medida;79;ml/m2;
-unidade_medida;80;g/m2;
-unidade_medida;81;cc/m3;
-unidade_medida;82;ml/m3;
-xustificacion;1;Superación de umbrales;
-xustificacion;2;Monitorización;
-xustificacion;3;Sistema de apoyo a la toma de decisión (DSS);
-xustificacion;4;Aviso por Comunidad Autónoma;
-xustificacion;5;Recomendación de asesor;
-xustificacion;6;Medidor de alerta fitosanitaria;
+unidade_medida;1;m2;m2
+unidade_medida;2;ha;ha
+unidade_medida;3;m3;m3
+unidade_medida;4;L;L
+unidade_medida;5;kg;kg
+unidade_medida;6;t;t
+unidade_medida;7;cm;cm
+unidade_medida;8;m;m
+unidade_medida;9;Individuos;Individuos
+unidade_medida;10;Plantas;Plantas
+unidade_medida;11;Unidades;Unidades
+unidade_medida;12;kg/L;kg/L
+unidade_medida;13;kg/t;kg/t
+unidade_medida;14;%;%
+unidade_medida;15;Unidades/m²;Unidades/m²
+unidade_medida;16;Unidades/ha;Unidades/ha
+unidade_medida;17;kg/ha;kg/ha
+unidade_medida;18;L/ha;L/ha
+unidade_medida;19;m3/ha;m3/ha
+unidade_medida;20;mg/L;mg/L
+unidade_medida;21;ppm;ppm
+unidade_medida;22;Difusores/ha;Difusores/ha
+unidade_medida;23;Tabletas/ha;Tabletas/ha
+unidade_medida;24;Trampas/ha;Trampas/ha
+unidade_medida;25;Difusores;Difusores
+unidade_medida;26;Tabletas;Tabletas
+unidade_medida;27;Trampas;Trampas
+unidade_medida;28;m2 malla/ha;m2 malla/ha
+unidade_medida;29;t/ha;t/ha
+unidade_medida;30;m3/m3;m3/m3
+unidade_medida;31;L/m3;L/m3
+unidade_medida;32;kg/m3;kg/m3
+unidade_medida;33;t/m3;t/m3
+unidade_medida;34;Unidades/m3;Unidades/m3
+unidade_medida;35;Difusores/m3;Difusores/m3
+unidade_medida;36;Tabletas/m3;Tabletas/m3
+unidade_medida;37;Trampas/m3;Trampas/m3
+unidade_medida;38;kg/kg;kg/kg
+unidade_medida;39;L/kg;L/kg
+unidade_medida;40;CV;CV
+unidade_medida;41;kW;kW
+unidade_medida;42;kWh;kWh
+unidade_medida;43;mg/dispensador;mg/dispensador
+unidade_medida;44;mg/difusor;mg/difusor
+unidade_medida;45;€/ha;€/ha
+unidade_medida;46;€/cabeza;€/cabeza
+unidade_medida;47;€/colmena;€/colmea
+unidade_medida;48;g;g
+unidade_medida;49;g/ha;g/ha
+unidade_medida;50;g/m3;g/m3
+unidade_medida;51;ml;ml
+unidade_medida;52;ml/kg;ml/kg
+unidade_medida;53;€;€
+unidade_medida;54;Unidades de semilla;Unidades de semente
+unidade_medida;55;Dispensadores;Dispensadores
+unidade_medida;56;Dispensadores/ha;Dispensadores/ha
+unidade_medida;57;mg/tableta;mg/tableta
+unidade_medida;58;mg/trampa;mg/trampa
+unidade_medida;59;L/m2;L/m2
+unidade_medida;60;kg/m2;kg/m2
+unidade_medida;61;Difusores/m2;Difusores/m2
+unidade_medida;62;Tabletas/m2;Tabletas/m2
+unidade_medida;63;Trampas/m2;Trampas/m2
+unidade_medida;64;cc/hL;cc/hL
+unidade_medida;65;g/hL;g/hL
+unidade_medida;66;Personas;Persoas
+unidade_medida;67;Trabajadores/as;Traballadores/as
+unidade_medida;68;Años;Anos
+unidade_medida;69;Semestres;Semestres
+unidade_medida;70;Cuatrimestres;Cuadrimestres
+unidade_medida;71;Trimestres;Trimestres
+unidade_medida;72;Meses;Meses
+unidade_medida;73;Días;Días
+unidade_medida;74;Horas;Horas
+unidade_medida;75;Minutos;Minutos
+unidade_medida;76;Segundos;Segundos
+unidade_medida;77;cc;cc
+unidade_medida;78;cc/m2;cc/m2
+unidade_medida;79;ml/m2;ml/m2
+unidade_medida;80;g/m2;g/m2
+unidade_medida;81;cc/m3;cc/m3
+unidade_medida;82;ml/m3;ml/m3
+xustificacion;1;Superación de umbrales;Superación de limiares
+xustificacion;2;Monitorización;Monitorización
+xustificacion;3;Sistema de apoyo a la toma de decisión (DSS);Sistema de apoio á toma de decisións (DSS)
+xustificacion;4;Aviso por Comunidad Autónoma;Aviso por Comunidade Autónoma
+xustificacion;5;Recomendación de asesor;Recomendación de asesor
+xustificacion;6;Medidor de alerta fitosanitaria;Medidor de alerta fitosanitaria

@@ -16,6 +16,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.instalacions import listar_instalacions
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
+from horta.services.textos_catalogo import texto_catalogo
 from horta.services.tratamentos_instalacion import (
     DatosTratamentoInstalacion,
     actualizar_tratamento_instalacion,
@@ -117,16 +118,18 @@ def dialogo_tratamento_instalacion(
             return lambda _: None
         problemas = {t: {v.codigo: v.descricion for v in valores_vixentes(session, t)}
                      for t in TIPOS_PROBLEMA}
-        xustificacions = {v.codigo: v.descricion
+        xustificacions = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                           for v in valores_vixentes(session, "xustificacion")}
-        tipos_produto = {v.codigo: v.descricion
+        tipos_produto = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                          for v in valores_vixentes(session, "tipo_produto")}
-        unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        unidades = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                    for v in valores_vixentes(session, "unidade_medida")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
         instalacions = {i.id: i.nome for i in listar_instalacions(session, actor, horta_id)}
         produtos = {c.codigo: nome for c, nome in buscar_cultivos(session, "", 2000)}
-        eficacias = {v.codigo: v.descricion for v in valores_vixentes(session, "eficacia")}
+        eficacias = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                     for v in valores_vixentes(session, "eficacia")}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):

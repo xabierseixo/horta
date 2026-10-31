@@ -24,6 +24,7 @@ from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.persoas import listar_persoas, listar_quen
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
@@ -59,9 +60,10 @@ def seccion_analises(horta_id: int, pode_editar: bool) -> None:
         cultivos = {c.id: f"{c.especie} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
         lotes = {c.id: c.lote for c in listar_colleitas(session, actor, horta_id)}
-        materiais = {v.codigo: v.descricion
+        materiais = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                      for v in valores_vixentes(session, "material_analizado")}
-        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_analise")}
+        tipos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                 for v in valores_vixentes(session, "tipo_analise")}
         nomes = {p.id: p.nome
                  for p in listar_persoas(session, actor, horta_id, so_activas=False)}
 
@@ -133,9 +135,10 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
         cultivos = {c.id: f"{c.especie} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
         lotes = {c.id: c.lote for c in listar_colleitas(session, actor, horta_id)}
-        materiais = {v.codigo: v.descricion
+        materiais = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                      for v in valores_vixentes(session, "material_analizado")}
-        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_analise")}
+        tipos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                 for v in valores_vixentes(session, "tipo_analise")}
         substancias = {v.codigo: v.descricion
                        for v in valores_vixentes(session, "substancia_activa")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}

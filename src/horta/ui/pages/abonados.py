@@ -27,6 +27,7 @@ from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
 from horta.services.plan_abonado import balance_do_cultivo
 from horta.services.produtos import listar_produtos
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campo_produto import opcions_entradas
 from horta.ui.campos import campo_data
@@ -62,7 +63,8 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
         balances = {c.id: balance_do_cultivo(session, actor, horta_id, c) for c in lista_cultivos
                     if c.id in abonados_cultivos or c.plan_necesidade_n}
         abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
-        unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        unidades_cat = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                        for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat[c] for c in UNIDADES_DOSE if c in unidades_cat}
         filas = [{
             "id": a.id,
@@ -144,12 +146,15 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
         produtos_abono = {p.fertilizante_id: p.id for p in listar_produtos(
             session, actor, horta_id, tipo="abono") if p.fertilizante_id}
-        unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        unidades_cat = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                        for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat[c] for c in UNIDADES_DOSE if c in unidades_cat}
-        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_fertilizacion")}
-        metodos = {v.codigo: v.descricion
+        tipos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                 for v in valores_vixentes(session, "tipo_fertilizacion")}
+        metodos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                    for v in valores_vixentes(session, "metodo_fertilizacion")}
-        practicas = {v.codigo: v.descricion for v in valores_vixentes(session, "boas_practicas")
+        practicas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                     for v in valores_vixentes(session, "boas_practicas")
                      if "fertilizacion" in (v.categoria or "")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}

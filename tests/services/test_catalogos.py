@@ -20,6 +20,7 @@ from horta.services.catalogos import (
     valores_vixentes,
 )
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.textos_catalogo import RUTA_CATALOGOS_GL, texto_catalogo
 
 
 def _preparar(session):
@@ -125,3 +126,25 @@ def test_listar_variedades_orde_e_etiqueta_de_codigos(session):
         "Variedade rexistrada 045B",
         "Variedade rexistrada 117SA901",
     ]
+
+
+def test_texto_catalogo_traducido_e_fallback():
+    assert texto_catalogo("sistema_rega", "6", "Goteo") == "Pinga a pinga"
+    assert texto_catalogo("eficacia", "1", "Buena") == "Boa"
+    assert texto_catalogo("unidade_medida", "54", "Unidades de semilla") == "Unidades de semente"
+    assert texto_catalogo("unidade_medida", "17", "kg/ha") == "kg/ha"
+    assert texto_catalogo("praga", "1", "Arthropoda") == "Arthropoda"
+    for linea in RUTA_CATALOGOS_GL.read_text(encoding="utf-8").splitlines()[1:]:
+        assert not linea.endswith(";")
+
+
+def test_describir_devolve_texto_en_galego(session):
+    _preparar(session)
+    v = session.query(CatalogoVersion).first()
+    session.add_all([
+        CatalogoValor(catalogo="sistema_rega", codigo="6", descricion="Goteo", version_id=v.id),
+        CatalogoValor(catalogo="eficacia", codigo="1", descricion="Buena", version_id=v.id),
+    ])
+    session.commit()
+    assert describir(session, "sistema_rega", "6") == "Pinga a pinga"
+    assert describir(session, "eficacia", "1") == "Boa"

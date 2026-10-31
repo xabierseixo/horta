@@ -16,10 +16,12 @@ from horta.services.parcelas import (
     listar_parcelas,
 )
 from horta.services.tempo import gardar_lugar
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.etiquetas import ESTADOS_PARCELA
 from horta.ui.fotos import abrir_fotos
 from horta.ui.historial import abrir_historial
 from horta.ui.numeros import parsear_data, parsear_decimal
@@ -52,7 +54,10 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             return
         parcelas = listar_parcelas(session, actor, horta_id)
         opcions = {
-            campo: {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
+            campo: {
+                v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                for v in valores_vixentes(session, catalogo)
+            }
             for campo, catalogo in _CATALOGOS.items()
         }
 
@@ -61,7 +66,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
          "sigpac": _referencia(p),
          "rega": {SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
              p.secano_regadio, "") if p.secano_regadio else "",
-         "estado": p.estado}
+         "estado": ESTADOS_PARCELA.get(p.estado, p.estado)}
         for p in parcelas
     ]
     taboa = ui.table(

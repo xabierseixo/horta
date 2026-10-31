@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from horta.models.catalogo import CatalogoValor, CultivoSiex, NomeGalego, VariedadeSiex
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.textos_catalogo import texto_catalogo
 
 _SIN_VARIEDAD = "SIN VARIEDAD"
 _PREFIXO_VARIEDADE_REXISTRADA = "Variedade rexistrada "
@@ -53,7 +54,7 @@ def validar_codigo(session: Session, catalogo: str, codigo: str, na_data: date) 
 
 def describir(session: Session, catalogo: str, codigo: str) -> str:
     valor = session.query(CatalogoValor).filter_by(catalogo=catalogo, codigo=codigo).first()
-    return valor.descricion if valor else codigo
+    return texto_catalogo(catalogo, codigo, valor.descricion) if valor else codigo
 
 
 def buscar_cultivos(

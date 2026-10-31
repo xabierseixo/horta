@@ -45,7 +45,7 @@ from horta.services.persoas import (
 )
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
-from horta.ui.etiquetas import VINCULOS as ETIQUETAS_VINCULO
+from horta.ui.etiquetas import TIPOS_CARNE, VINCULOS as ETIQUETAS_VINCULO
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -186,7 +186,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                          for campo, etiqueta in _REXISTROS}
         with ui.column().classes("w-full gap-0") as bloque_ropo:
             ropo = ui.input("Nº ROPO").classes("w-full")
-            tipo = ui.select({t.value: t.value.replace("_", " ") for t in TipoCarne},
+            tipo = ui.select({t.value: TIPOS_CARNE[t.value] for t in TipoCarne},
                              label="Tipo de carné", clearable=True).classes("w-full")
             caducidade = campo_data("Caducidade do carné")
             regfer = ui.input("Nº REGFER").classes("w-full")

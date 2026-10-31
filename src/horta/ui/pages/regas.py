@@ -26,6 +26,7 @@ from horta.services.regas import (
     litros_estimados,
     ultimo_sistema_rega,
 )
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
@@ -50,8 +51,10 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                     for c in listar_cultivos(session, actor, horta_id)}
-        sistemas = {v.codigo: v.descricion for v in valores_vixentes(session, "sistema_rega")}
-        unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        sistemas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                    for v in valores_vixentes(session, "sistema_rega")}
+        unidades_cat = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                        for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat.get(c, c) for c in UNIDADES_AUGA}
 
     filas = [{
@@ -119,11 +122,15 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                     for c in listar_cultivos(session, actor, horta_id)}
-        sistemas = {v.codigo: v.descricion for v in valores_vixentes(session, "sistema_rega")}
-        orixes = {v.codigo: v.descricion for v in valores_vixentes(session, "orixe_auga")}
-        unidades_cat = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        sistemas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                    for v in valores_vixentes(session, "sistema_rega")}
+        orixes = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                  for v in valores_vixentes(session, "orixe_auga")}
+        unidades_cat = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                        for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat.get(c, c) for c in UNIDADES_AUGA}
-        practicas = {v.codigo: v.descricion for v in valores_vixentes(session, "boas_practicas")
+        practicas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                     for v in valores_vixentes(session, "boas_practicas")
                      if "rega" in (v.categoria or "")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}

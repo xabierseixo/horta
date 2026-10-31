@@ -25,6 +25,7 @@ from horta.services.cultivos import (
 from horta.services.historial import aviso_rotacion
 from horta.services.parcelas import listar_parcelas
 from horta.services.persoas import listar_quen
+from horta.services.textos_catalogo import texto_catalogo
 from horta.services.zonas import listar_zonas
 from horta.ui.accions import executar_accion
 from horta.ui.campo_produto import opcions_entradas
@@ -144,7 +145,10 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                  for p in parcelas}
         opcions_cultivo = {c.codigo: nome for c, nome in buscar_cultivos(session, "", 2000)}
         opcions = {
-            campo: {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
+            campo: {
+                v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                for v in valores_vixentes(session, catalogo)
+            }
             for campo, catalogo in _CATALOGOS.items()
         }
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}

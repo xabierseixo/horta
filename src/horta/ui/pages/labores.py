@@ -26,6 +26,7 @@ from horta.services.labores import (
 )
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
@@ -49,7 +50,8 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                     for c in listar_cultivos(session, actor, horta_id)}
-        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_labor")}
+        tipos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                 for v in valores_vixentes(session, "tipo_labor")}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
 
     filas = [{
@@ -116,8 +118,9 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                     for c in listar_cultivos(session, actor, horta_id)}
-        tipos = {v.codigo: v.descricion for v in valores_vixentes(session, "tipo_labor")}
-        coberturas = {v.codigo: v.descricion
+        tipos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                 for v in valores_vixentes(session, "tipo_labor")}
+        coberturas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                       for v in valores_vixentes(session, "tipo_cobertura_solo")}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}

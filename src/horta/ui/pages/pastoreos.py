@@ -32,6 +32,7 @@ from horta.services.pastoreos import (
     sairon_do_pasto,
 )
 from horta.services.persoas import listar_persoas, listar_quen
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
@@ -176,7 +177,7 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         leiras = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
                   for c in listar_cultivos(session, actor, horta_id)}
-        coberturas = {v.codigo: v.descricion
+        coberturas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                       for v in valores_vixentes(session, "tipo_cobertura_solo")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
     especies = {k: v for k, v in ESPECIES.items() if k not in NON_PASTAN}

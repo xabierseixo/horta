@@ -26,6 +26,7 @@ from horta.services.cultivos import listar_cultivos
 from horta.services.fito_consulta import aviso_prazo_colleita
 from horta.services.lotes import listar_lotes, resumo_lotes
 from horta.services.persoas import listar_quen
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -48,7 +49,8 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         queda = resumo_lotes(session, actor, horta_id)
         unidades_lote = {lo.id: lo.unidade for lo in listar_lotes(session, actor, horta_id)}
         cultivos = listar_cultivos(session, actor, horta_id)
-        destinos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_colleita")}
+        destinos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                    for v in valores_vixentes(session, "destino_colleita")}
         con_colleitas = {c.cultivo_id for c in colleitas}
         rendementos = {c.id: rendemento_kg_ha(session, actor, c.id)
                        for c in cultivos if c.id in con_colleitas}
@@ -139,8 +141,10 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
             return lambda _: None
         nome_cultivo = {c.id: f"{c.especie} {c.variedade or ''}".strip()
                         for c in listar_cultivos(session, actor, horta_id)}
-        destinos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_colleita")}
-        restos = {v.codigo: v.descricion for v in valores_vixentes(session, "destino_restos")}
+        destinos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                    for v in valores_vixentes(session, "destino_colleita")}
+        restos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                  for v in valores_vixentes(session, "destino_restos")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}

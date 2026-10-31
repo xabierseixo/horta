@@ -28,6 +28,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.services.produtos import listar_produtos
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campo_produto import CampoProduto, opcions_entradas
@@ -130,7 +131,8 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: f"{nome_grupo(a.especie, a.raza)} · {a.cantidade}" for a in animais}
         de_alta = {a.id: todos[a.id] for a in animais if a.estado == "activo"}
-        unidades = {v.codigo: v.descricion for v in valores_vixentes(session, "unidade_medida")}
+        unidades = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                    for v in valores_vixentes(session, "unidade_medida")}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 

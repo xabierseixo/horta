@@ -20,6 +20,7 @@ from horta.services.fito_consulta import (
 )
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
+from horta.services.textos_catalogo import texto_catalogo
 from horta.services.tratamentos_fito import (
     dar_de_baixa_tratamento_fito,
     faltas_para_cue,
@@ -34,6 +35,13 @@ from horta.ui.taboas import TEXTOS_TABOA
 
 
 def _opcions(session, catalogo: str) -> dict[str, str]:
+    return {
+        v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+        for v in valores_vixentes(session, catalogo)
+    }
+
+
+def _opcions_problema(session, catalogo: str) -> dict[str, str]:
     comuns = nomes_comuns_problemas(session, catalogo)
     return {
         v.codigo: etiqueta_problema(v.descricion, comuns.get(v.codigo, []))
@@ -138,7 +146,7 @@ def dialogo_tratamento_fito(horta_id: int) -> Callable[[TratamentoFito | None], 
         opcions = OpcionsTratamento(
             cultivos={c.id: f"{c.especie} {c.variedade or ''} — "
                             f"{parcelas[c.parcela_id].nome}".strip() for c in cultivos_horta},
-            problemas={tipo: _opcions(session, tipo) for tipo in TIPOS_PROBLEMA},
+            problemas={tipo: _opcions_problema(session, tipo) for tipo in TIPOS_PROBLEMA},
             xustificacions=_opcions(session, "xustificacion"),
             estados=_opcions(session, "estado_fenoloxico"),
             unidades=_opcions(session, "unidade_medida"),

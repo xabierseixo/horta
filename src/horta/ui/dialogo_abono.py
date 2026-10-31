@@ -16,6 +16,7 @@ from horta.services.fertilizantes import (
     datos_desde_siex,
     opcions_siex,
 )
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -33,9 +34,9 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
     """Crea o diálogo (pechado). Ao gardar chama a `ao_crear(id, nome)`."""
     with get_session() as session:
         oficiais = opcions_siex(session)
-        materiais = {v.codigo: v.descricion
+        materiais = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                      for v in valores_vixentes(session, "material_fertilizante")}
-        tratamentos = {v.codigo: v.descricion
+        tratamentos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                        for v in valores_vixentes(session, "tratamento_estercos")}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
