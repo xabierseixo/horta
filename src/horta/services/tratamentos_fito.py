@@ -112,6 +112,11 @@ def _erro(mensaxe: str) -> OperacionNonPermitidaError:
     return OperacionNonPermitidaError(mensaxe)
 
 
+# Modelo de caderno da Xunta: dose en kg/ha ou l/ha; cantidade utilizada en kg ou l
+UNIDADES_DOSE = ("17", "18")
+UNIDADES_TOTAL = ("5", "4")
+
+
 def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
     profesional = horta.uso_profesional
     d = datos.data_inicio
@@ -163,6 +168,10 @@ def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
             raise _erro("A dose ou cantidade ten que ser maior que 0")
         validar_codigo(session, "tipo_produto", produto.tipo_produto, d)
         validar_codigo(session, "unidade_medida", produto.unidade, d)
+        if produto.dose is not None and produto.unidade not in UNIDADES_DOSE:
+            raise _erro("A dose vai en kg/ha ou L/ha. Se é a cantidade total, márcao")
+        if produto.cantidade is not None and produto.unidade not in UNIDADES_TOTAL:
+            raise _erro("A cantidade total vai en kg ou L")
         if profesional and produto.tipo_produto == "1" and not produto.num_rexistro:
             raise _erro("Os produtos fitosanitarios rexistrados precisan o nº de rexistro")
     for medida in datos.medidas:
