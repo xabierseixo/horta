@@ -223,8 +223,9 @@ def crear_dialogo_tratamento(
                                 "w-full")
                             with ui.row().classes("w-full items-end gap-2"):
                                 ui.input("Dose").bind_value(fila, "dose").classes("w-28")
-                                ui.select(op.unidades, label="Unidade",
-                                          with_input=True).bind_value(fila, "unidade").classes(
+                                ui.select({k: v for k, v in op.unidades.items()
+                                           if k in UNIDADES_DOSE + UNIDADES_TOTAL},
+                                          label="Unidade").bind_value(fila, "unidade").classes(
                                     "grow")
                             ui.checkbox("É a cantidade total, non a dose por hectárea"
                                         ).bind_value(fila, "total")
