@@ -375,6 +375,7 @@ def crear_dialogo_tratamento(
         estado["id"] = t.id if t else None
         data_inicio.value = t.data_inicio.isoformat() if t else hoxe
         data_fin.value = t.data_fin.isoformat() if t else hoxe
+        estado["inicio"] = data_inicio.value
         hora.value = t.hora.strftime("%H:%M") if t and t.hora else ""
         estado["cultivos"] = [fila_cultivo(c.cultivo_id, _txt(c.superficie_ha),
                                            c.estado_fenoloxico)
