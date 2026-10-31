@@ -26,7 +26,11 @@ from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import ropo_vixente
-from horta.services.produtos import comprobar_entrada_do_produto, produto_ou_novo
+from horta.services.produtos import (
+    comprobar_entrada_do_produto,
+    produto_ou_novo,
+    unidade_do_catalogo,
+)
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -219,7 +223,8 @@ def _ligar_produtos(session: Session, actor: Usuario, horta_id: int,
             continue
         produto = produto_ou_novo(session, actor, horta_id, "fitosanitario",
                                   linha.nome_comercial or linha.num_rexistro or "",
-                                  unidade_do_catalogo(linha.unidade), num_rexistro=linha.num_rexistro)
+                                  unidade_do_catalogo(linha.unidade),
+                                  num_rexistro=linha.num_rexistro)
         linha.produto_id = produto.id
         comprobar_entrada_do_produto(session, horta_id, linha.entrada_id, produto.id)
 
