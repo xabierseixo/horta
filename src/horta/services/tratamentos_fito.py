@@ -219,7 +219,7 @@ def _ligar_produtos(session: Session, actor: Usuario, horta_id: int,
             continue
         produto = produto_ou_novo(session, actor, horta_id, "fitosanitario",
                                   linha.nome_comercial or linha.num_rexistro or "",
-                                  "litros", num_rexistro=linha.num_rexistro)
+                                  unidade_do_catalogo(linha.unidade), num_rexistro=linha.num_rexistro)
         linha.produto_id = produto.id
         comprobar_entrada_do_produto(session, horta_id, linha.entrada_id, produto.id)
 
