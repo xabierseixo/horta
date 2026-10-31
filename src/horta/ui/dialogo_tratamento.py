@@ -116,6 +116,15 @@ def crear_dialogo_tratamento(
                     tempo.actualizar(data_inicio.value, cultivos)
 
                 data_inicio.on_value_change(mirar_tempo)
+
+                def seguir_inicio() -> None:
+                    # A fin segue ao inicio mentres non se cambiou a man
+                    fin, inicio = data_fin.value, data_inicio.value
+                    if not fin or fin == estado["inicio"] or (inicio and fin < inicio):
+                        data_fin.value = inicio
+                    estado["inicio"] = inicio
+
+                data_inicio.on_value_change(seguir_inicio)
                 ui.label("Cultivos tratados (mesmo cultivo e variedade)").classes("text-bold")
 
                 @ui.refreshable
