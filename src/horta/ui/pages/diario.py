@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import date
 from functools import partial
 
 from nicegui import ui
@@ -100,7 +100,6 @@ _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "transformacion": dialogo_transformacion,
     "outro_traballo": dialogo_outro_traballo,
 }
-_DIAS_POR_DEFECTO = 90
 
 
 class Formularios:
@@ -240,7 +239,8 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
         quen = ui.select({0: "Todas", **persoas}, value=0, label="Quen").classes("w-48")
         estado = ui.select({"": "Feitos e por facer", "por_facer": "Por facer",
                             "feito": "Feitos"}, value="", label="Estado").classes("w-48")
-        desde = campo_data("Desde", (hoxe - timedelta(days=_DIAS_POR_DEFECTO)).isoformat()
+        # A campaña do caderno e do CUE é o ano natural
+        desde = campo_data("Desde", hoxe.replace(month=1, day=1).isoformat()
                            ).classes(remove="w-full", add="w-40")
         ata = campo_data("Ata", hoxe.isoformat()).classes(remove="w-full", add="w-40")
 
