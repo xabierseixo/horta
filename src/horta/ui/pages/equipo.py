@@ -440,7 +440,13 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         nif.value = p.nif or ""
         for campo, entrada in {**contacto, **rexistros}.items():
             valor = getattr(p, campo)
-            entrada.value = (valor or None) if campo == "concello_codigo" else (valor or "")
+            if campo == "concello_codigo":
+                # Un concello de fóra de Galicia gardado antes tamén ten que poder verse
+                if valor and valor not in entrada.options:
+                    entrada.set_options({**entrada.options, valor: valor})
+                entrada.value = valor or None
+            else:
+                entrada.value = valor or ""
         papeis.value = ([clave for clave in PAPEIS_EQUIPO if p.ten_papel(clave)] if equipo
                         else sorted(das_persoas[p.id]))
         ropo.value = p.ropo_numero or ""

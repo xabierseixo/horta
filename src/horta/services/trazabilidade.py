@@ -32,6 +32,7 @@ from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.tratamento_fito import TratamentoCultivo, TratamentoFito, TratamentoProduto
 from horta.models.usuario import Usuario
+from horta.services.abonados import ABONADO_EN_VERDE
 from horta.services.catalogos import describir
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
@@ -63,6 +64,7 @@ def _nome(persoa: Persoa | None) -> str:
 
 
 def _catalogo(session: Session, catalogo: str, codigo: str) -> str:
+    # O texto galego vale aínda que o catálogo non estea importado
     return texto_catalogo(catalogo, codigo, describir(session, catalogo, codigo))
 
 
@@ -86,13 +88,11 @@ def _texto_abonado(session: Session, ab: Abonado) -> str:
             if material.lower() != fe.nome.lower():
                 partes.append(material)
     else:
-        partes.append(_catalogo(session, "boas_practicas", "20"))
+        partes.append(_catalogo(session, "boas_practicas", ABONADO_EN_VERDE))
     if ab.tipo_fertilizacion:
         tipo = _catalogo(session, "tipo_fertilizacion", ab.tipo_fertilizacion)
         if tipo.lower() not in {p.lower() for p in partes}:
             partes.append(tipo)
-    if getattr(ab, "ecoloxico", False) or getattr(fe, "ecoloxico", False):
-        partes.append("ecolóxico")
     return f"Abonado: {' · '.join(partes)}"
 
 
