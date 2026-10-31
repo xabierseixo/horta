@@ -12,6 +12,7 @@ from horta.services.cultivos import (
     estado_cultivo,
     estados_cultivos,
     listar_cultivos,
+    nome_cultivo,
 )
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import crear_horta, engadir_membro
@@ -204,3 +205,36 @@ def test_estado_en_curso_desde_a_primeira_colleita(session):
     assert estados_cultivos(session, ana, parcela.horta_id)[cultivo.id] == "en_curso"
     dar_de_baixa_colleita(session, ana, colleita)
     assert estados_cultivos(session, ana, parcela.horta_id)[cultivo.id] == "planificado"
+
+
+def test_nome_cultivo_sen_codigo_nin_sin_variedad(session):
+    from horta.models.catalogo import CatalogoVersion, CultivoSiex, VariedadeSiex
+
+    v = CatalogoVersion(catalogo="variedade", nome_ficheiro="x", sha256="e" * 64, filas=3)
+    session.add(v)
+    session.flush()
+    session.add(CultivoSiex(codigo=117, nome_oficial="TOMATE", version_id=v.id))
+    v_sin = VariedadeSiex(cultivo_codigo=117, codigo=1, nome_oficial="SIN VARIEDAD",
+                          version_id=v.id)
+    v_cod = VariedadeSiex(cultivo_codigo=117, codigo=2, nome_oficial="117SA901",
+                          version_id=v.id)
+    v_nom = VariedadeSiex(cultivo_codigo=117, codigo=3, nome_oficial="Marmande",
+                          version_id=v.id)
+    session.add_all([v_sin, v_cod, v_nom])
+    session.commit()
+
+    ana, parcela = _parcela_de_proba(session)
+    cultivo = crear_cultivo(
+        session, ana, parcela.id, "Tomate",
+        cultivo_siex_codigo=117, variedade_siex_id=v_cod.id,
+    )
+    assert cultivo.variedade is None
+    assert nome_cultivo(cultivo) == "Tomate"
+
+    actualizar_cultivo(session, ana, cultivo, variedade_siex_id=v_sin.id)
+    assert cultivo.variedade is None
+    assert nome_cultivo(cultivo) == "Tomate"
+
+    actualizar_cultivo(session, ana, cultivo, variedade_siex_id=v_nom.id)
+    assert cultivo.variedade == "Marmande"
+    assert nome_cultivo(cultivo) == "Tomate Marmande"

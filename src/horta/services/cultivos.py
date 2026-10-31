@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from horta.models.abonado import AbonadoCultivo
 from horta.models.analise import Analise
+from horta.models.catalogo import VariedadeSiex
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
@@ -19,7 +20,7 @@ from horta.models.rega import RegaCultivo
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
-from horta.services.catalogos import validar_codigo
+from horta.services.catalogos import nome_variedade_cultivo, validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import comprobar_quen
@@ -200,6 +201,30 @@ def _comprobar_semente(session: Session, horta_id: int, entrada_id: int | None) 
             raise OperacionNonPermitidaError("Esa compra non é dunha semente ou planta")
 
 
+def nome_cultivo(cultivo: Cultivo) -> str:
+    variedade = nome_variedade_cultivo(cultivo.variedade)
+    return f"{cultivo.especie} {variedade}".strip() if variedade else cultivo.especie
+
+
+def _resolver_variedade(
+    session: Session, datos: dict[str, Any], cultivo: Cultivo | None = None
+) -> None:
+    if datos.get("variedade_siex_id") is not None:
+        variedade_siex = session.get(VariedadeSiex, datos["variedade_siex_id"])
+        if variedade_siex is not None:
+            datos["variedade"] = nome_variedade_cultivo(variedade_siex.nome_oficial)
+            return
+    if "variedade" in datos:
+        datos["variedade"] = nome_variedade_cultivo(datos["variedade"])
+    elif (
+        "variedade_siex_id" in datos
+        and datos["variedade_siex_id"] is None
+        and cultivo is not None
+        and cultivo.variedade_siex_id is not None
+    ):
+        datos["variedade"] = None
+
+
 def crear_cultivo(
     session: Session,
     actor: Usuario,
@@ -216,6 +241,7 @@ def crear_cultivo(
                    campos.get("sementeira_horas"), obrigatoria=False)
     _comprobar_semente(session, horta_id, campos.get("entrada_semente_id"))
     comprobar_zona(session, parcela_id, campos.get("zona_id"))
+    _resolver_variedade(session, campos)
     cultivo = Cultivo(parcela_id=parcela_id, especie=especie, **campos)
     session.add(cultivo)
     session.commit()
@@ -241,6 +267,7 @@ def actualizar_cultivo(
                    cambios.get("sementeira_horas"), obrigatoria=False)
     _comprobar_semente(session, horta_id, cambios.get("entrada_semente_id"))
     comprobar_zona(session, cultivo.parcela_id, cambios.get("zona_id"))
+    _resolver_variedade(session, cambios, cultivo)
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)
     session.commit()

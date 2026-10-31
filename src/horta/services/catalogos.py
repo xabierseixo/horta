@@ -8,8 +8,11 @@ from pathlib import Path
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from horta.models.catalogo import CatalogoValor, CultivoSiex, NomeGalego
+from horta.models.catalogo import CatalogoValor, CultivoSiex, NomeGalego, VariedadeSiex
 from horta.services.errors import OperacionNonPermitidaError
+
+_SIN_VARIEDAD = "SIN VARIEDAD"
+_PREFIXO_VARIEDADE_REXISTRADA = "Variedade rexistrada "
 
 
 def normalizar(texto: str) -> str:
@@ -89,3 +92,49 @@ def cargar_nomes_galegos(session: Session, ruta: Path) -> int:
             contador += 1
     session.commit()
     return contador
+
+
+def e_codigo_variedade(nome: str) -> bool:
+    limpo = nome.strip()
+    if not limpo or limpo.upper() == _SIN_VARIEDAD:
+        return False
+    if limpo.startswith(_PREFIXO_VARIEDADE_REXISTRADA):
+        return True
+    return any(c.isdigit() for c in limpo) or not any(c.isalpha() for c in limpo)
+
+
+def etiqueta_variedade(nome_oficial: str) -> str:
+    limpo = nome_oficial.strip()
+    if e_codigo_variedade(limpo) and not limpo.startswith(_PREFIXO_VARIEDADE_REXISTRADA):
+        return f"{_PREFIXO_VARIEDADE_REXISTRADA}{limpo}"
+    return limpo
+
+
+def nome_variedade_cultivo(nome: str | None) -> str | None:
+    if nome is None:
+        return None
+    limpo = nome.strip()
+    if not limpo or limpo.upper() == _SIN_VARIEDAD or e_codigo_variedade(limpo):
+        return None
+    return limpo
+
+
+def listar_variedades(
+    session: Session, cultivo_codigo: int
+) -> list[tuple[VariedadeSiex, str]]:
+    variedades = (
+        session.query(VariedadeSiex)
+        .filter_by(cultivo_codigo=cultivo_codigo, data_baixa=None)
+        .all()
+    )
+
+    def clave(v: VariedadeSiex) -> tuple[int, str, str]:
+        nome = v.nome_oficial.strip()
+        if nome.upper() == _SIN_VARIEDAD:
+            return (0, "", "")
+        if e_codigo_variedade(nome):
+            return (2, normalizar(nome), nome)
+        return (1, normalizar(nome), nome)
+
+    variedades.sort(key=clave)
+    return [(v, etiqueta_variedade(v.nome_oficial)) for v in variedades]

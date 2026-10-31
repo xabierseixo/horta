@@ -3,11 +3,18 @@ from pathlib import Path
 
 import pytest
 
-from horta.models.catalogo import CatalogoValor, CatalogoVersion, CultivoSiex, NomeGalego
+from horta.models.catalogo import (
+    CatalogoValor,
+    CatalogoVersion,
+    CultivoSiex,
+    NomeGalego,
+    VariedadeSiex,
+)
 from horta.services.catalogos import (
     buscar_cultivos,
     cargar_nomes_galegos,
     describir,
+    listar_variedades,
     normalizar,
     validar_codigo,
     valores_vixentes,
@@ -94,3 +101,27 @@ def test_codigo_non_vale_antes_da_data_de_alta(session):
     with pytest.raises(OperacionNonPermitidaError, match="non existe ou está de baixa"):
         validar_codigo(session, "praga", "3", date(2026, 5, 1))
     assert validar_codigo(session, "praga", "3", date(2026, 6, 1)).descricion == "Nova"
+
+
+def test_listar_variedades_orde_e_etiqueta_de_codigos(session):
+    _preparar(session)
+    v = session.query(CatalogoVersion).first()
+    session.add_all([
+        VariedadeSiex(cultivo_codigo=99, codigo=1, nome_oficial="117SA901", version_id=v.id),
+        VariedadeSiex(cultivo_codigo=99, codigo=2, nome_oficial="RAF", version_id=v.id),
+        VariedadeSiex(cultivo_codigo=99, codigo=3, nome_oficial="SIN VARIEDAD", version_id=v.id),
+        VariedadeSiex(cultivo_codigo=99, codigo=4, nome_oficial="MARMANDE", version_id=v.id),
+        VariedadeSiex(cultivo_codigo=99, codigo=5, nome_oficial="045B", version_id=v.id),
+        VariedadeSiex(cultivo_codigo=99, codigo=6, nome_oficial="BAIXA", version_id=v.id,
+                      data_baixa=date(2026, 1, 1)),
+    ])
+    session.commit()
+
+    nomes = [etiqueta for _, etiqueta in listar_variedades(session, 99)]
+    assert nomes == [
+        "SIN VARIEDAD",
+        "MARMANDE",
+        "RAF",
+        "Variedade rexistrada 045B",
+        "Variedade rexistrada 117SA901",
+    ]

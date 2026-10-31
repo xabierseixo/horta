@@ -10,9 +10,8 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
-from horta.models.catalogo import VariedadeSiex
 from horta.models.cultivo import Cultivo
-from horta.services.catalogos import buscar_cultivos, valores_vixentes
+from horta.services.catalogos import buscar_cultivos, listar_variedades, valores_vixentes
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import (
     actualizar_cultivo,
@@ -21,6 +20,7 @@ from horta.services.cultivos import (
     estado_cultivo,
     estados_cultivos,
     listar_cultivos,
+    nome_cultivo,
 )
 from horta.services.historial import aviso_rotacion
 from horta.services.parcelas import listar_parcelas
@@ -72,7 +72,7 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
     filas = [
         {
             "id": c.id,
-            "cultivo": f"{c.especie} {c.variedade or ''}".strip(),
+            "cultivo": nome_cultivo(c),
             "parcela": nome_parcela.get(c.parcela_id, ""),
             "superficie": formatar_superficie(c.superficie_ha),
             "inicio": f"{c.data_inicio:%d/%m/%Y}" if c.data_inicio else "",
@@ -246,13 +246,9 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 variedade_oficial.set_options({})
                 return
             with get_session() as session:
-                variedades = (
-                    session.query(VariedadeSiex)
-                    .filter_by(cultivo_codigo=cultivo_oficial.value, data_baixa=None)
-                    .order_by(VariedadeSiex.nome_oficial)
-                    .all()
+                variedade_oficial.set_options(
+                    {v.id: nome for v, nome in listar_variedades(session, cultivo_oficial.value)}
                 )
-            variedade_oficial.set_options({v.id: v.nome_oficial for v in variedades})
 
         cultivo_oficial.on_value_change(cargar_variedades)
 
@@ -289,8 +285,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                 especie=opcions_cultivo.get(cultivo_oficial.value, ""),
                 cultivo_siex_codigo=cultivo_oficial.value,
                 variedade_siex_id=variedade_oficial.value,
-                variedade=(variedade_texto.value or None) if variedade_oficial.value is None
-                else variedade_oficial.options[variedade_oficial.value],
+                variedade=variedade_texto.value or None,
                 superficie_ha=superficie.ha,
                 tipo_inicio=tipo_inicio.value,
                 data_inicio=inicio,
