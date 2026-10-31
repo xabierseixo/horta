@@ -11,7 +11,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from horta.models.abonado import Abonado, AbonadoCultivo
+from horta.models.abonado import Abonado, AbonadoCultivo, Fertilizante
 from horta.models.animal import Animal
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
@@ -32,9 +32,11 @@ from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.tratamento_fito import TratamentoCultivo, TratamentoFito, TratamentoProduto
 from horta.models.usuario import Usuario
+from horta.services.catalogos import describir
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.lotes import CANLES, TIPOS_SAIDA
+from horta.services.textos_catalogo import texto_catalogo
 
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 # Ata onde se segue unha mestura de mesturas
@@ -60,17 +62,62 @@ def _nome(persoa: Persoa | None) -> str:
     return f"{persoa.nome} {persoa.apelidos or ''}".strip() if persoa else ""
 
 
+def _catalogo(session: Session, catalogo: str, codigo: str) -> str:
+    return texto_catalogo(catalogo, codigo, describir(session, catalogo, codigo))
+
+
+def _ecoloxico(session: Session, cultivo: Cultivo | None) -> str:
+    if (cultivo is None or not cultivo.certificacion_ecoloxica
+            or cultivo.certificacion_ecoloxica == "1"):
+        return ""
+    texto = _catalogo(session, "certificacion_ecoloxica", cultivo.certificacion_ecoloxica)
+    if "ecolóxic" in texto.lower():
+        return f" · {texto}"
+    return f" · ecolóxico ({texto.lower()})"
+
+
+def _texto_abonado(session: Session, ab: Abonado) -> str:
+    fe = session.get(Fertilizante, ab.fertilizante_id) if ab.fertilizante_id else None
+    partes: list[str] = []
+    if fe is not None:
+        partes.append(fe.nome)
+        if fe.material:
+            material = _catalogo(session, "material_fertilizante", fe.material)
+            if material.lower() != fe.nome.lower():
+                partes.append(material)
+    else:
+        partes.append(_catalogo(session, "boas_practicas", "20"))
+    if ab.tipo_fertilizacion:
+        tipo = _catalogo(session, "tipo_fertilizacion", ab.tipo_fertilizacion)
+        if tipo.lower() not in {p.lower() for p in partes}:
+            partes.append(tipo)
+    if getattr(ab, "ecoloxico", False) or getattr(fe, "ecoloxico", False):
+        partes.append("ecolóxico")
+    return f"Abonado: {' · '.join(partes)}"
+
+
 def _orixe(session: Session, lote: Lote, traz: Trazabilidade, cultivos: set[int],
            animais: set[int], fondo: int) -> None:
     prefixo = "" if fondo == 0 else f"[{lote.codigo}] "
+    vistos: set[int] = set()
     for co in session.query(Colleita).filter_by(lote_id=lote.id, baixa=False):
         cultivo = session.get(Cultivo, co.cultivo_id)
         parcela = session.get(Parcela, cultivo.parcela_id) if cultivo else None
-        cultivos.add(co.cultivo_id)
         especie = cultivo.especie if cultivo else "?"
-        traz.orixe.append(Linea(co.data, f"{prefixo}Colleita de {especie}"
-                                f" na leira {parcela.nome if parcela else '?'}: "
-                                f"{co.cantidade:g} {co.unidade}"))
+        leira = parcela.nome if parcela else "?"
+        eco = _ecoloxico(session, cultivo)
+        if (co.cultivo_id not in vistos and cultivo is not None
+                and cultivo.data_inicio is not None):
+            vistos.add(co.cultivo_id)
+            inicio = "Plantación" if cultivo.tipo_inicio == "plantacion" else "Sementeira"
+            traz.orixe.append(Linea(cultivo.data_inicio,
+                                    f"{prefixo}{inicio} de {especie} na leira {leira}{eco}"))
+        cultivos.add(co.cultivo_id)
+        traz.orixe.append(Linea(
+            co.data,
+            f"{prefixo}Colleita de {especie} na leira {leira}: {co.cantidade:g} {co.unidade}"
+            f"{eco if cultivo is None or cultivo.data_inicio is None else ''}",
+        ))
     for pr in session.query(ProducionAnimal).filter_by(lote_id=lote.id, baixa=False):
         animal = session.get(Animal, pr.animal_id)
         animais.add(pr.animal_id)
@@ -123,7 +170,7 @@ def _fixose(session: Session, traz: Trazabilidade, cultivos: set[int], animais: 
                    .join(AbonadoCultivo, AbonadoCultivo.abonado_id == Abonado.id)
                    .filter(AbonadoCultivo.cultivo_id.in_(cultivos), Abonado.baixa.is_(False))
                    .distinct()):
-            traz.fixose.append(Linea(ab.data_inicio, "Abonado"))
+            traz.fixose.append(Linea(ab.data_inicio, _texto_abonado(session, ab)))
     if animais:
         for co in session.query(CoidadoAnimal).filter(CoidadoAnimal.animal_id.in_(animais),
                                                       CoidadoAnimal.baixa.is_(False),

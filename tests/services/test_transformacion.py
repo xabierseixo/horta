@@ -4,9 +4,12 @@ from datetime import date
 
 import pytest
 
+from horta.models.abonado import Abonado, AbonadoCultivo, Fertilizante
 from horta.models.lote import Lote
 from horta.models.persoa import Persoa
+from horta.models.tratamento_fito import TratamentoCultivo, TratamentoFito, TratamentoProduto
 from horta.models.usuario import RolGlobal, Usuario
+from horta.services.animais import crear_animal
 from horta.services.clasificacions import (
     DatosTransformacion,
     InsumoTransformacion,
@@ -19,6 +22,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta
 from horta.services.lotes import DatosSaida, crear_saida, queda
 from horta.services.parcelas import crear_parcela
+from horta.services.producions_animais import DatosProducion, crear_producion
 from horta.services.produtos import DatosEntrada, crear_entrada, crear_produto, existencias
 from horta.services.trazabilidade import publicar_lote, trazabilidade_publica
 
@@ -69,3 +73,59 @@ def test_transformar_e_publicar(session):
     # A quen se vendeu non sae nunca na páxina pública
     assert traz.saidas == []
     assert trazabilidade_publica(session, "inventado") is None
+
+
+def test_lote_publico_plantacion_abonados_e_animais(session):
+    ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
+                  rol=RolGlobal.USUARIO, activo=True)
+    session.add(ana)
+    session.commit()
+    horta = crear_horta(session, ana, "Horta da Ana")
+    quen = session.query(Persoa).filter_by(horta_id=horta.id).one()
+    quen.nif = "12345678Z"
+    parcela = crear_parcela(session, ana, horta.id, "Leira")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Pemento", tipo_inicio="plantacion",
+                            data_inicio=date(2026, 5, 10), notas="nota secreta")
+    cultivo.certificacion_ecoloxica = "2"
+    abono = Fertilizante(horta_id=horta.id, nome="Esterco de vaca", material="5")
+    session.add(abono)
+    session.flush()
+    session.add(Abonado(
+        horta_id=horta.id, data_inicio=date(2026, 6, 1), data_fin=date(2026, 6, 1),
+        fertilizante_id=abono.id, tipo_fertilizacion="1", persoa_id=quen.id,
+        notas="nota do abonado", leiras=[AbonadoCultivo(cultivo_id=cultivo.id)],
+    ))
+    session.add(TratamentoFito(
+        horta_id=horta.id, data_inicio=date(2026, 7, 15), data_fin=date(2026, 7, 15),
+        notas="nota do tratamento", cultivos=[TratamentoCultivo(cultivo_id=cultivo.id)],
+        produtos=[TratamentoProduto(tipo_produto="1", nome_comercial="Cobre",
+                                    num_rexistro="12345", unidade="17")],
+    ))
+    session.commit()
+    colleita = crear_colleita(session, ana, DatosColleita(
+        cultivo_id=cultivo.id, data=date(2026, 9, 1), cantidade=30, unidade="kg", lote="P-2",
+        persoa_id=quen.id), hoxe=HOXE)
+    lote = session.get(Lote, colleita.lote_id)
+    token = publicar_lote(session, ana, lote)
+    traz, _ = trazabilidade_publica(session, token)
+    assert [(ln.data, ln.texto) for ln in traz.orixe] == [
+        (date(2026, 5, 10), "Plantación de Pemento na leira Leira · ecolóxico (certificado)"),
+        (date(2026, 9, 1), "Colleita de Pemento na leira Leira: 30 kg"),
+    ]
+    assert [(ln.data, ln.texto) for ln in traz.fixose] == [
+        (date(2026, 6, 1),
+         "Abonado: Esterco de vaca · Esterco sólido de bovino · Abonado de fondo"),
+        (date(2026, 7, 15), "Tratamento: Cobre (nº 12345)"),
+    ]
+    todo = " ".join(ln.texto for ln in [*traz.orixe, *traz.fixose])
+    assert "12345678Z" not in todo and "nota" not in todo
+
+    # Os lotes de produtos animais seguen como ata agora
+    galinas = crear_animal(session, ana, horta.id, "Galiñas", date(2026, 1, 1), cantidade=20)
+    ovos = crear_producion(session, ana, DatosProducion(
+        animal_id=galinas.id, data=date(2026, 9, 2), produto="ovos", cantidade=12,
+        unidade="ducias", persoa_id=quen.id), hoxe=HOXE)
+    lote_ovos = session.get(Lote, ovos.lote_id)
+    traz_ovos, _ = trazabilidade_publica(session, publicar_lote(session, ana, lote_ovos))
+    assert [ln.texto for ln in traz_ovos.orixe] == ["Produción de Galiñas: 12 ducias"]
+    assert traz_ovos.fixose == []
