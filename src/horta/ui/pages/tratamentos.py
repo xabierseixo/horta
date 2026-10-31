@@ -13,7 +13,11 @@ from horta.models.parcela import Parcela
 from horta.models.tratamento_fito import TIPOS_PROBLEMA, TratamentoFito
 from horta.services.catalogos import describir, valores_vixentes
 from horta.services.cultivos import listar_cultivos
-from horta.services.fito_consulta import prazo_seguridade
+from horta.services.fito_consulta import (
+    etiqueta_problema,
+    nomes_comuns_problemas,
+    prazo_seguridade,
+)
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
 from horta.services.tratamentos_fito import (
@@ -30,7 +34,11 @@ from horta.ui.taboas import TEXTOS_TABOA
 
 
 def _opcions(session, catalogo: str) -> dict[str, str]:
-    return {v.codigo: v.descricion for v in valores_vixentes(session, catalogo)}
+    comuns = nomes_comuns_problemas(session, catalogo)
+    return {
+        v.codigo: etiqueta_problema(v.descricion, comuns.get(v.codigo, []))
+        for v in valores_vixentes(session, catalogo)
+    }
 
 
 def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:

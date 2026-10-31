@@ -56,6 +56,33 @@ def materia_activa(session: Session, num_rexistro: str) -> str:
     return " + ".join(partes)
 
 
+def nomes_comuns_problemas(session: Session, catalogo: str) -> dict[str, list[str]]:
+    """Para cada código SIEX dun tipo de problema, os nomes comúns no rexistro do MAPA."""
+    comuns: dict[str, list[str]] = {}
+    filas = (
+        session.query(FitoPonteAxente.codigo, FitoUso.agente)
+        .join(FitoUso, FitoUso.codigo_agente == FitoPonteAxente.codigo_agente)
+        .filter(FitoPonteAxente.catalogo == catalogo)
+        .distinct()
+        .order_by(FitoUso.agente)
+    )
+    for codigo, agente in filas:
+        nome = agente.split(",")[0].strip()
+        if not nome:
+            continue
+        nomes = comuns.setdefault(codigo, [])
+        if nome not in nomes:
+            nomes.append(nome)
+    return comuns
+
+
+def etiqueta_problema(cientifico: str, nomes_comuns: list[str]) -> str:
+    """«Nome común — Nome científico» (ata dous nomes separados por « / ») ou só o científico."""
+    if not nomes_comuns:
+        return cientifico
+    return f"{' / '.join(nomes_comuns[:2])} — {cientifico}"
+
+
 def _prefixo(codigo: str) -> str:
     grupos = [codigo[i:i + 2] for i in range(0, 16, 2)]
     while grupos and grupos[-1] == "00":

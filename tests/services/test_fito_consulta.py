@@ -19,10 +19,13 @@ from horta.services.fito_consulta import (
     aviso_prazo_colleita,
     buscar_produtos,
     comprobar_tratamento,
+    etiqueta_problema,
     materia_activa,
+    nomes_comuns_problemas,
     prazo_seguridade,
 )
 from horta.services.tratamentos_fito import DatosTratamento, LinhaCultivo, LinhaProduto, Problema
+from horta.ui.pages.tratamentos import _opcions
 
 D = date(2026, 6, 1)
 PATATA, HORTALIZAS = "0102090000000000", "0102000000000000"
@@ -187,3 +190,37 @@ def test_aviso_prazo_colleita(session):
     assert aviso and "MILDIUCIDA" in aviso and "15/06/2026" in aviso
     assert aviso_prazo_colleita(session, cultivo.id, date(2026, 6, 15)) is None
     assert aviso_prazo_colleita(session, cultivo.id, date(2026, 5, 1)) is None
+
+
+def test_nomes_comuns_e_opcions_problemas(session):
+    _escenario(session)
+    assert nomes_comuns_problemas(session, "enfermidade") == {"77": ["Mildiu de la patata"]}
+    assert _opcions(session, "enfermidade") == {
+        "77": "Mildiu de la patata — Phytophthora infestans",
+        "78": "Botrytis cinerea",
+    }
+    # Duplicados non se repiten; con máis de dous nomes comúns amósanse os dous primeiros
+    session.add(_uso("ES-2", PATATA, MILDIU, "Mildiu de la patata, Phytophthora infestans"))
+    session.add(_uso("ES-1", PATATA, "8.48.4.6", "Mildiu del tomate, Phytophthora infestans"))
+    session.add(_uso("ES-1", PATATA, "8.48.4.7", "Mildiu del pimiento, Phytophthora infestans"))
+    session.add(FitoPonteAxente(catalogo="enfermidade", codigo="77", codigo_agente="8.48.4.6"))
+    session.add(FitoPonteAxente(catalogo="enfermidade", codigo="77", codigo_agente="8.48.4.7"))
+    session.commit()
+    assert nomes_comuns_problemas(session, "enfermidade") == {
+        "77": ["Mildiu de la patata", "Mildiu del pimiento", "Mildiu del tomate"],
+    }
+    assert _opcions(session, "enfermidade")["77"] == (
+        "Mildiu de la patata / Mildiu del pimiento — Phytophthora infestans"
+    )
+
+
+def test_opcions_problemas_sen_rexistro_mapa(session):
+    v = CatalogoVersion(catalogo="t", nome_ficheiro="t", sha256="c" * 64, filas=0)
+    session.add(v)
+    session.flush()
+    session.add(CatalogoValor(catalogo="enfermidade", codigo="77",
+                              descricion="Phytophthora infestans", version_id=v.id))
+    session.commit()
+    assert nomes_comuns_problemas(session, "enfermidade") == {}
+    assert _opcions(session, "enfermidade") == {"77": "Phytophthora infestans"}
+    assert etiqueta_problema("Phytophthora infestans", []) == "Phytophthora infestans"
