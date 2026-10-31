@@ -51,7 +51,7 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(36rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
         titulo = ui.label("Apuntar outro traballo").classes("text-h6")
         descricion = ui.input("Que se fixo (p.ex. arranxar o peche)").classes("w-full")
         data_inicio = campo_data("Data", date.today().isoformat())

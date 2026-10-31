@@ -45,7 +45,8 @@ class CampoProduto:
             ui.button(icon="add", on_click=self._abrir_novo).props(
                 'flat round dense aria-label="Novo produto"').tooltip("Novo")
         self._cargar()
-        with ui.dialog() as self.dialogo, ui.card().style("width: min(26rem, 94vw)"):
+        with (ui.dialog().props("persistent") as self.dialogo,
+              ui.card().style("width: min(26rem, 94vw)")):
             ui.label(f"Novo: {TIPOS_PRODUTO[tipo].lower()}").classes("text-h6")
             self.nome = ui.input("Nome").classes("w-full")
             self.unidade = ui.select(list(UNIDADES_PRODUTO), label="Cóntase en",

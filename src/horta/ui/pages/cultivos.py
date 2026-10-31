@@ -152,7 +152,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
 
     editando: dict[str, int | None] = {"id": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Novo cultivo").classes("text-h6")
         ui.label("Que e onde").classes("text-subtitle2")
         parcela = ui.select(nome_parcela, label="Parcela").classes("w-full")

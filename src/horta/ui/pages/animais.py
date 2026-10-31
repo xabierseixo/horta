@@ -107,7 +107,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     abrir_saida = dialogo_saida()
     editando: dict[str, int | None] = {"id": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(34rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(34rem, 94vw)"):
         titulo = ui.label("Novo grupo de animais").classes("text-h6")
         nome = ui.input("Nome do grupo (p.ex. Galiñas do galiñeiro de abaixo)").classes(
             "w-full")

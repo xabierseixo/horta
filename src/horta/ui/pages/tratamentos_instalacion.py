@@ -129,7 +129,7 @@ def dialogo_tratamento_instalacion(
         eficacias = {v.codigo: v.descricion for v in valores_vixentes(session, "eficacia")}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar tratamento").classes("text-h6")
         tipo = ui.select(TIPOS_INSTALACION, value="postcolleita", label="Que tipo").classes(
             "w-full")

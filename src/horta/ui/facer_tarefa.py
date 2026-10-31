@@ -40,7 +40,7 @@ def dialogo_tarefa_feita(horta_id: int) -> Callable[[Tarefa], None]:
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     tarefa_id: dict[str, int | None] = {"id": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
         titulo = ui.label("").classes("text-h6")
         quen = ui.select(persoas, label="Quen o fixo").classes("w-full")
         data = campo_data("Data", date.today().isoformat())

@@ -136,7 +136,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar coidado de animais").classes("text-h6")
         if not todos:
             ui.label("Primeiro engade os animais en Explotación → Animais.").classes(

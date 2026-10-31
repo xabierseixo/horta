@@ -16,7 +16,7 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 
 def boton_caderno(horta_id: int) -> None:
     hoxe = date.today()
-    with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
         ui.label("Descargar o caderno de explotación").classes("text-h6")
         ui.label("Excel co modelo oficial da Xunta. Podes descargalo cando queiras, "
                  "para o período que necesites.").classes("text-caption")
@@ -52,7 +52,7 @@ def boton_libros_gandeiros(horta_id: int) -> None:
     from horta.services.libros_gandeiros import xerar_libros
 
     hoxe = date.today()
-    with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
         ui.label("Libros dos animais").classes("text-h6")
         ui.label("Libro de rexistro gandeiro (censo, entradas e saídas, enfermidades, "
                  "visitas) e rexistro de medicamentos veterinarios.").classes("text-caption")

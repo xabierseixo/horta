@@ -107,7 +107,7 @@ def crear_dialogo_tratamento(
         return {"tipo": _ou_nada(op.tipos_medida, tipo), "cantidade": cantidade,
                 "unidade": _ou_nada(op.unidades, unidade), "mdf": mdf}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(46rem, 96vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(46rem, 96vw)"):
         with ui.stepper().props("vertical").classes("w-full") as pasos:
             with ui.step("1. Que e onde"):
                 with ui.row().classes("w-full"):

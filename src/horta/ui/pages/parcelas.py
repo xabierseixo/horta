@@ -78,7 +78,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
     editando: dict[str, int | None] = {"id": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(36rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
         titulo = ui.label("Nova parcela").classes("text-h6")
         nome = ui.input("Nome").classes("w-full")
         superficie = CampoSuperficie("Superficie")

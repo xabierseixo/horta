@@ -49,7 +49,7 @@ def admin_usuarios_page() -> None:
 
     cabeceira_paxina(mostrar_admin=True)
 
-    with ui.dialog() as dialog_crear, ui.card():
+    with ui.dialog().props("persistent") as dialog_crear, ui.card():
         ui.label("Crear usuario").classes("text-md font-bold")
         nome_input = ui.input("Nome")
         email_input = ui.input("Email")
@@ -134,7 +134,7 @@ def admin_usuarios_page() -> None:
     rol_filtro_select.on_value_change(refrescar_taboa)
     activo_select.on_value_change(refrescar_taboa)
 
-    with ui.dialog() as dialog_editar, ui.card():
+    with ui.dialog().props("persistent") as dialog_editar, ui.card():
         titulo_edicion = ui.label("").classes("text-md font-bold")
         nome_edit = ui.input("Nome")
         rol_edit = ui.select(list(_ROLES_USUARIO), value="usuario", label="Rol")

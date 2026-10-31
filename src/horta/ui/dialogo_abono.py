@@ -38,7 +38,7 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
         tratamentos = {v.codigo: v.descricion
                        for v in valores_vixentes(session, "tratamento_estercos")}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(36rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
         ui.label("Novo abono").classes("text-h6")
         oficial = ui.select(oficiais, label="Buscar no catálogo oficial (abonos comerciais)",
                             with_input=True, clearable=True).classes("w-full")

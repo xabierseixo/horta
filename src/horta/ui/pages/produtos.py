@@ -182,7 +182,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
 
 
 def _dialogo_produto(horta_id: int) -> Callable[[], None]:
-    with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
         ui.label("Novo produto").classes("text-h6")
         tipo = ui.select(TIPOS_PRODUTO, label="Que é", value="outro").classes("w-full")
         nome = ui.input("Nome").classes("w-full")
@@ -229,7 +229,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
     tipos = {p.id: p.tipo for p in produtos}
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(36rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
         titulo = ui.label("Entrada de produto").classes("text-h6")
         if not produtos:
             ui.label("Primeiro crea o produto en Explotación → Produtos.").classes(

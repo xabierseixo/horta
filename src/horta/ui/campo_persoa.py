@@ -54,7 +54,8 @@ class CampoPersoa:
         self.select.set_options({p.id: p.nome for p in [*co_papel, *resto]})
 
     def _dialogo_nova(self) -> None:
-        with ui.dialog() as self.dialogo, ui.card().style("width: min(28rem, 94vw)"):
+        with (ui.dialog().props("persistent") as self.dialogo,
+              ui.card().style("width: min(28rem, 94vw)")):
             titulo = PAPEIS.get(self.papel or "", "Persoa ou entidade")
             ui.label(f"Nova: {titulo.lower()}").classes("text-h6")
             self.tipo = ui.radio(TIPOS_PERSOA, value="persoa").props("inline")

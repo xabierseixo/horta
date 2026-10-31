@@ -59,7 +59,7 @@ def dialogo_ficha() -> Callable[[ProdutoVenda, Lote | None], None]:
     """A ficha do produto que vendes e, se se abre desde un lote, se ese lote é de
     invernadoiro (máximos da venda directa)."""
     ids: dict[str, int | None] = {"ficha": None, "lote": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         ui.label("Produto que vendes").classes("text-h6")
         nome = ui.input("Nome").classes("w-full")
         categoria = ui.select(_CATEGORIAS, label="Tipo para a venda directa (Decreto 125/2014)",
@@ -121,7 +121,7 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
         return lambda *_, **__: None
     persoas, maquinas = listas
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(34rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(34rem, 94vw)"):
         titulo = ui.label("Clasificación").classes("text-h6")
         ui.label("Repartir un lote por clases. O lote segue sendo o mesmo; o refugo conta como "
                  "perda.").classes("texto-suave text-caption")
@@ -256,7 +256,7 @@ def dialogo_mestura(horta_id: int) -> Callable[..., None]:
         return lambda *_, **__: None
     persoas, maquinas = listas
     estado: dict[str, int | None] = {"id": None, "tarefa": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(36rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
         titulo = ui.label("Mestura de lotes").classes("text-h6")
         ui.label("Xuntar lotes do mesmo produto nun lote novo, que garda de onde vén."
                  ).classes("texto-suave text-caption")
@@ -422,7 +422,7 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
         return lambda *_, **__: None
     persoas, maquinas = listas
     estado: dict[str, int | None] = {"id": None, "tarefa": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 96vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 96vw)"):
         ui.label("Transformación").classes("text-h6")
         ui.label("Elaborar un produto novo con lotes propios e ingredientes mercados. Sae un "
                  "lote novo que garda de onde vén.").classes("texto-suave text-caption")

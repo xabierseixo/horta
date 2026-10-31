@@ -39,7 +39,7 @@ def abrir_identificados(horta_id: int, animal_id: int) -> None:
         aviso = aviso_identificados(session, animal)
     por_id = {i.id: i for i in individuos}
     editando: dict[str, int | None] = {"id": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(44rem, 96vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(44rem, 96vw)"):
         ui.label(f"Animais identificados: {animal.especie}").classes("text-h6")
         ui.label("Crotal, microchip ou anela de cada animal. Obrigatorio no vacún, ovellas, "
                  "cabras e cabalos (RD 787/2023); no porcino e nas aves a marca é da "

@@ -142,7 +142,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar análise").classes("text-h6")
         if not materiais:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")

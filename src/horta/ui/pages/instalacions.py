@@ -47,7 +47,8 @@ def seccion_instalacions(horta_id: int, pode_editar: bool) -> None:
     with ui.row():
         if pode_editar:
             editando: dict[str, int | None] = {"id": None}
-            with ui.dialog() as dialogo, ui.card().style("width: min(30rem, 94vw)"):
+            with (ui.dialog().props("persistent") as dialogo,
+                  ui.card().style("width: min(30rem, 94vw)")):
                 titulo = ui.label("").classes("text-h6")
                 nome = ui.input("Nome (p.ex. Galiñeiro de abaixo)").classes("w-full")
                 tipo = ui.select(TIPOS_INSTALACION, label="Tipo").classes("w-full")

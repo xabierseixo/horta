@@ -51,7 +51,7 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
 
     editando: dict[str, int | None] = {"id": None}
 
-    with ui.dialog() as dialogo, ui.card().classes("w-96"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().classes("w-96"):
         titulo = ui.label("Nova máquina").classes("text-h6")
         activa = ui.checkbox("Activa (desmárcaa se xa non está na explotación)", value=True)
         alias = ui.input("Nome")

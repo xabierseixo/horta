@@ -145,7 +145,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         titulo = ui.label("Apuntar colleita").classes("text-h6")
         # Varias leiras dunha vez: unha colleita por leira, coa súa cantidade e no mesmo lote
         cultivo = ui.select(nome_cultivo, label="Leiras (unha ou varias)", with_input=True,

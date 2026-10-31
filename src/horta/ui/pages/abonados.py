@@ -162,7 +162,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
 
     novo_abono = dialogo_novo_abono(horta_id, abono_creado)
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar abonado").classes("text-h6")
         if not tipos or not practicas:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")

@@ -36,4 +36,6 @@ def login_page() -> None:
                 app.storage.user["usuario_rol"] = usuario.rol.value
             ui.navigate.to("/")
 
+        email_input.on("keydown.enter", tentar_login)
+        contrasinal_input.on("keydown.enter", tentar_login)
         ui.button("Entrar", on_click=tentar_login)

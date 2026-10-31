@@ -130,7 +130,8 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as calculadora, ui.card().style("width: min(28rem, 94vw)"):
+    with (ui.dialog().props("persistent") as calculadora,
+          ui.card().style("width: min(28rem, 94vw)")):
         ui.label("Calcular os litros").classes("text-h6")
         ui.label("Con mangueira ou goteo:").classes("text-caption")
         with ui.row().classes("w-full no-wrap"):
@@ -156,7 +157,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
             ui.button("Usar estes litros", icon="check", on_click=usar)
             ui.button("Cancelar", on_click=calculadora.close).props("flat")
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar rega").classes("text-h6")
         if not sistemas:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")

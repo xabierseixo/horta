@@ -182,7 +182,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
                          value="nada", label="Ao premer no mapa").classes("w-64")
         escoller = ui.select({p.id: p.nome for p in parcelas}, label="Parcela",
                              clearable=True).classes("w-64")
-    with ui.dialog() as dividir_dialogo, ui.card().style("width: min(28rem, 94vw)"):
+    with (ui.dialog().props("persistent") as dividir_dialogo,
+          ui.card().style("width: min(28rem, 94vw)")):
         ui.label("Dividir a parcela escollida en bancais iguais").classes("text-h6")
         cantos = ui.number("Cantos bancais", value=4, min=1, step=1).classes("w-full")
         orientacion = ui.number("Dirección dos bancais (graos desde o norte: 0 = norte–sur, "
@@ -284,7 +285,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         aberta."""
         realce = (mapa.generic_layer(name="polygon", args=[list(puntos), {"color": "#f9a825"}])
                   if puntos else None)
-        with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
+        with (ui.dialog().props("persistent") as dialogo,
+              ui.card().style("width: min(32rem, 94vw)")):
             ui.label(titulo).classes("text-h6")
             for linea in lineas:
                 ui.label(linea)

@@ -134,7 +134,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
         escoller = ui.select(opcions(), label="Período", value=estado["periodo"].desde.isoformat(),
                              on_change=lambda e: cambiar_periodo(e.value)).classes("min-w-64")
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(32rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         titulo = ui.label("").classes("text-h6")
         tipo = ui.select(TIPOS, label="Tipo", value="gasto").classes("w-full")
         categoria = ui.select(CATEGORIAS, label="Categoría", value="outro").classes("w-full")

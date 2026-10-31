@@ -41,7 +41,7 @@ def dashboard_page(nova: bool = False) -> None:
 
     cabeceira_paxina(mostrar_admin=e_admin_global)
 
-    with ui.dialog() as dialog_nova_horta, ui.card():
+    with ui.dialog().props("persistent") as dialog_nova_horta, ui.card():
         ui.label("Nova explotación").classes("text-md font-bold")
         nome_input = ui.input("Nome")
         profesional_checkbox = ui.checkbox("Uso profesional")

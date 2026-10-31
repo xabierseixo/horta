@@ -128,7 +128,7 @@ def seccion_pastoreo(horta_id: int, pode_editar: bool) -> None:
 def dialogo_saida() -> Callable[[int], None]:
     """Diálogo que só pide o día en que o gando saíu do pasto. Devolve abrir(pastoreo_id)."""
     escollido: dict[str, int | None] = {"id": None}
-    with ui.dialog() as dialogo, ui.card().style("width: min(24rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(24rem, 94vw)"):
         ui.label("Saíron do pasto").classes("text-h6")
         data_fin = campo_data("Día en que saíron", date.today().isoformat())
 
@@ -184,7 +184,7 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     gardadas: dict[int, LeiraPastoreo] = {}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar pastoreo").classes("text-h6")
         if not leiras:
             ui.label("Primeiro engade as leiras e os seus cultivos.").classes(

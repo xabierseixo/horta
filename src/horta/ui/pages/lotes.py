@@ -226,7 +226,7 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Saída de produto").classes("text-h6")
         if not lotes:
             ui.label("Aínda non hai lotes: saen das colleitas e da produción dos animais."

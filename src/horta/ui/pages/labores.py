@@ -124,7 +124,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
         titulo = ui.label("Apuntar labor").classes("text-h6")
         if not tipos:
             ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")

@@ -55,7 +55,7 @@ def dialogo_nova_tarefa(horta_id: int) -> Callable[[], None]:
         opcions_tipo, opcions_persoa = opcions_tarefa(session, actor, horta_id)
         opcions_animal = opcions_animais(session, actor, horta_id)
 
-    with ui.dialog() as dialogo, ui.card():
+    with ui.dialog().props("persistent") as dialogo, ui.card():
         ui.label("Nova tarefa").classes("text-md font-bold")
         descricion = ui.input("Que hai que facer").classes("w-full")
         tipo = ui.select(opcions_tipo, label="Que traballo é", value="").classes("w-full")

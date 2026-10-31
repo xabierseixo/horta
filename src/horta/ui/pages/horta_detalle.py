@@ -170,7 +170,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     )
 
     if e_horta_admin:
-        with ui.dialog() as dialog_config_horta, ui.card().style("width: min(36rem, 94vw)"):
+        with (ui.dialog().props("persistent") as dialog_config_horta,
+              ui.card().style("width: min(36rem, 94vw)")):
             ui.label("Datos da explotación").classes("text-md font-bold")
             nome_horta_input = ui.input("Nome", value=horta_nome).classes("w-full")
             descricion_horta_input = ui.input("Descrición", value=horta_descricion or "").classes(
@@ -545,7 +546,7 @@ def _seccion_tarefas(
     fila_accions.set_visibility(False)
     taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))
 
-    with ui.dialog() as dialog_editar, ui.card():
+    with ui.dialog().props("persistent") as dialog_editar, ui.card():
         ui.label("Editar tarefa").classes("text-md font-bold")
         descricion_edit = ui.input("Descrición")
         tipo_edit = ui.select(opcions_tipo, label="Que traballo é")

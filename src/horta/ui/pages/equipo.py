@@ -166,7 +166,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
 
     editando: dict[str, int | None] = {"id": None}
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(36rem, 94vw)"):
+    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
         titulo = ui.label("Nova persoa").classes("text-h6")
         tipo_persoa = ui.radio(TIPOS_PERSOA, value="persoa").props("inline")
         nome = ui.input("Nome ou razón social").classes("w-full")
@@ -394,7 +394,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             return
         outras = {p.id: f"{p.nome} {p.apelidos or ''}".strip() for p in persoas
                   if p.id != queda.id}
-        with ui.dialog() as ventá, ui.card().style("width: min(30rem, 94vw)"):
+        with ui.dialog().props("persistent") as ventá, ui.card().style("width: min(30rem, 94vw)"):
             ui.label(f"Xuntar con {queda.nome}").classes("text-h6")
             ui.label("Todo o da outra (traballos, compras, vendas, papeis, conta) pasa a "
                      f"{queda.nome}, e a outra bórrase.").classes("text-caption")
@@ -463,7 +463,7 @@ def _dialogo_categorias(horta_id: int) -> None:
     with get_session() as session:
         actor = usuario_actual(session)
         cats = listar_categorias(session, actor, horta_id) if actor else []
-    with ui.dialog() as ventá, ui.card().style("width: min(30rem, 94vw)"):
+    with ui.dialog().props("persistent") as ventá, ui.card().style("width: min(30rem, 94vw)"):
         ui.label("Categorías dos contactos").classes("text-h6")
         nomes = {c.id: ui.input(value=c.nome).classes("w-full") for c in cats}
         borrar = {c.id: ui.checkbox("Borrar") for c in cats if c.papel is None}
