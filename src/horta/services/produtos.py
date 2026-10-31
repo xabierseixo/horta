@@ -43,6 +43,12 @@ _ABSOLUTAS = {"5": "kg", "6": "t", "4": "litros", "11": "unidades"}
 _POR_HECTAREA = {"17": "kg", "18": "litros", "29": "t"}
 
 
+def unidade_do_catalogo(codigo: str | None) -> str:
+    """A unidade do produto (kg, litros ou unidades) para unha unidade do catálogo oficial."""
+    unidade = _ABSOLUTAS.get(codigo or "") or _POR_HECTAREA.get(codigo or "", "litros")
+    return "kg" if unidade == "t" else unidade
+
+
 # --- Produtos
 
 def crear_produto(session: Session, actor: Usuario, horta_id: int, tipo: str, nome: str,
