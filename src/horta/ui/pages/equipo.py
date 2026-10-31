@@ -191,8 +191,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             caducidade = campo_data("Caducidade do carné")
             regfer = ui.input("Nº REGFER").classes("w-full")
         with ui.expansion("Traballo (para o plan de empresa)").classes("w-full") as bloque_traballo:
-            vinculo = ui.select(list(VINCULOS), label="Vínculo coa explotación",
-            vinculo = ui.select({v: ETIQUETAS_VINCULO[v] for v in VINCULOS}, label="Vínculo coa explotación",
+            vinculo = ui.select({v: ETIQUETAS_VINCULO[v] for v in VINCULOS},
+                                label="Vínculo coa explotación",
                                 clearable=True).classes("w-full")
             horas_ano = ui.input("Horas ao ano").classes("w-full")
             custo_hora = ui.input("Custo da hora (€)").classes("w-full")
