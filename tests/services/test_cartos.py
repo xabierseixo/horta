@@ -115,6 +115,8 @@ def test_pendente_por_persoa(session):
     cliente = crear_contacto(session, ana, horta.id, "Tenda", "cliente")
     provedor = crear_contacto(session, ana, horta.id, "Agro SL", "provedor")
     _venda(session, ana, horta, quen, 50.0, cliente=cliente.id)
+    crear_apunte(session, ana, horta.id, _apunte(persoa_id=cliente.id, importe=15.0),
+                 hoxe=HOXE)
     produto = crear_produto(session, ana, horta.id, "abono", "Esterco", "kg")
     crear_entrada(session, ana, DatosEntrada(
         produto_id=produto.id, data=date(2026, 2, 1), persoa_id=quen.id,
@@ -124,8 +126,15 @@ def test_pendente_por_persoa(session):
         provedor_id=provedor.id, importe=99.0, data_pago=date(2026, 2, 2)), hoxe=HOXE)
     crear_apunte(session, ana, horta.id, _apunte(persoa_id=provedor.id, importe=10.0),
                  hoxe=HOXE)
-    assert pendente_por_persoa(session, ana, horta.id) == {cliente.id: 50.0,
-                                                           provedor.id: -40.0}
+    # Sen persoa: axuda pendente de cobrar e seguro pendente de pagar non se restan
+    crear_apunte(session, ana, horta.id, _apunte(tipo="ingreso", categoria="axuda",
+                                                 concepto="Axuda", importe=600.0), hoxe=HOXE)
+    crear_apunte(session, ana, horta.id, _apunte(importe=120.0), hoxe=HOXE)
+    assert pendente_por_persoa(session, ana, horta.id) == {
+        cliente.id: (50.0, 15.0),
+        provedor.id: (0.0, 40.0),
+        None: (600.0, 120.0),
+    }
     feitos = historial(session, ana, provedor)
     assert sorted(f.importe for f in feitos if f.pendente) == [10.0, 30.0]
 

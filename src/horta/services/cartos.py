@@ -188,12 +188,17 @@ def pendentes(session: Session, actor: Usuario, horta_id: int) -> list[Pendente]
 
 
 def pendente_por_persoa(session: Session, actor: Usuario, horta_id: int
-                        ) -> dict[int | None, float]:
-    """O saldo pendente con cada persoa (None: sen persoa). Positivo: debénche."""
-    saldo: dict[int | None, float] = defaultdict(float)
+                        ) -> dict[int | None, tuple[float, float]]:
+    """Para cada persoa (None: sen persoa): (cobrar, pagar) pendentes."""
+    cobrar: dict[int | None, float] = defaultdict(float)
+    pagar: dict[int | None, float] = defaultdict(float)
     for p in pendentes(session, actor, horta_id):
-        saldo[p.persoa_id] += p.importe
-    return {k: round(v, 2) for k, v in saldo.items() if abs(v) >= 0.005}
+        if p.importe > 0:
+            cobrar[p.persoa_id] += p.importe
+        else:
+            pagar[p.persoa_id] += -p.importe
+    saldos = {k: (round(cobrar[k], 2), round(pagar[k], 2)) for k in {*cobrar, *pagar}}
+    return {k: v for k, v in saldos.items() if v != (0.0, 0.0)}
 
 
 def pendente_da_persoa(session: Session, actor: Usuario, persoa: Persoa) -> list[Pendente]:

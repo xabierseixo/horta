@@ -88,15 +88,14 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
             "text-subtitle1 text-weight-bold q-mt-md")
         if not saldos:
             ui.label("Non hai nada pendente.").classes("texto-suave")
-        for persoa_id, saldo in sorted(saldos.items(), key=lambda par: -abs(par[1])):
+        for persoa_id, (cobrar, pagar) in sorted(saldos.items(), key=lambda par: -max(par[1])):
             quen = nomes.get(persoa_id or 0)
-            if quen is None:
-                texto = (f"Sen persoa: pendente de cobrar {_euros(saldo)}" if saldo > 0
-                         else f"Sen persoa: pendente de pagar {_euros(-saldo)}")
-            else:
-                texto = (f"{quen} débeche {_euros(saldo)}" if saldo > 0
-                         else f"Débeslle a {quen} {_euros(-saldo)}")
-            ui.label(texto)
+            if cobrar > 0:
+                ui.label(f"Sen persoa: pendente de cobrar {_euros(cobrar)}" if quen is None
+                         else f"{quen} débeche {_euros(cobrar)}")
+            if pagar > 0:
+                ui.label(f"Sen persoa: pendente de pagar {_euros(pagar)}" if quen is None
+                         else f"Débeslle a {quen} {_euros(pagar)}")
 
         with ui.row().classes("w-full items-center justify-between q-mt-md"):
             ui.label("Outros gastos e ingresos").classes("text-subtitle1 text-weight-bold")
