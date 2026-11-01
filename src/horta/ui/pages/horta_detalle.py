@@ -430,7 +430,7 @@ def _seccion_dashboard(
             ui.label("Cultivos").classes("text-caption text-grey")
         with ui.card().classes("items-center"):
             ui.label(str(n_animais)).classes("text-h4 font-bold")
-            ui.label("Animais").classes("text-caption text-grey")
+            ui.label("Grupos de animais").classes("text-caption text-grey")
         with ui.card().classes("items-center"):
             ui.label(str(n_tarefas_pendentes)).classes("text-h4 font-bold")
             ui.label("Tarefas pendentes").classes("text-caption text-grey")

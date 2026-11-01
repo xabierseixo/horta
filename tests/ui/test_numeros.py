@@ -1,6 +1,6 @@
 import pytest
 
-from horta.ui.numeros import euros, formatar_decimal, parsear_decimal
+from horta.ui.numeros import euros, formatar_decimal, formatar_enteiro, parsear_decimal
 
 
 @pytest.mark.parametrize("entrada,esperado", [
@@ -31,6 +31,8 @@ def test_formatar_decimal_e_euros():
     assert formatar_decimal(9.8) == "9,8"
     assert formatar_decimal(10.0) == "10"
     assert formatar_decimal(None) == ""
+    assert formatar_enteiro(500) == "500"
+    assert formatar_enteiro(10000) == "10 000"
     assert euros(85.4) == "85,40 €"
     assert euros(600) == "600,00 €"
     assert euros(1200.5) == "1 200,50 €"

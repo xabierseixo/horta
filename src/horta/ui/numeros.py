@@ -27,6 +27,11 @@ def formatar_decimal(valor: float | int | None) -> str:
     return f"{valor:g}".replace(".", ",")
 
 
+def formatar_enteiro(valor: float | int) -> str:
+    """Mostra un enteiro con espazo nos miles («10 000»)."""
+    return f"{valor:,.0f}".replace(",", " ")
+
+
 def euros(valor: float) -> str:
     """Mostra un importe en euros con dous decimais e coma («85,40 €», «1 200,00 €»)."""
     return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")

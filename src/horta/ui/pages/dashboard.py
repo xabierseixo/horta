@@ -94,6 +94,6 @@ def dashboard_page(nova: bool = False) -> None:
                     if horta.uso_profesional:
                         ui.badge("profesional").props("color=primary")
                 ui.label(f"Rol: {rol.value}").classes("text-caption text-grey")
-                ui.label(f"{n_parcelas} parcelas · {n_animais} animais").classes(
+                ui.label(f"{n_parcelas} parcelas · {n_animais} grupos de animais").classes(
                     "text-caption text-grey"
                 )

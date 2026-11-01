@@ -31,7 +31,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
-from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.numeros import formatar_enteiro, parsear_data, parsear_decimal
 from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -72,7 +72,9 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
     with ui.row().classes("gap-4"):
         for cultivo_id, kg_ha in rendementos.items():
             if kg_ha is not None:
-                ui.label(f"{nomes_cultivo[cultivo_id]}: {kg_ha:.0f} kg/ha").classes("text-body2")
+                ui.label(
+                    f"{nomes_cultivo[cultivo_id]}: {formatar_enteiro(kg_ha)} kg/ha"
+                ).classes("text-body2")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivo", "Cultivo"), ("cantidade", "Cantidade"),

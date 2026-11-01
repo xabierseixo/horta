@@ -329,6 +329,7 @@ class Resumo:
     ingresos: dict[str, float] = field(default_factory=dict)
     gastos: dict[str, float] = field(default_factory=dict)
     custos: Custos = field(default_factory=Custos)
+    vendas_sen_prezo: int = 0
 
     @property
     def total_ingresos(self) -> float:
@@ -361,9 +362,11 @@ def resumo_periodo(session: Session, actor: Usuario, horta_id: int, periodo: Per
     def suma(valores: Any) -> float:
         return round(sum(v or 0 for (v,) in valores), 2)
 
-    resumo.ingresos["Vendas"] = suma(session.query(LoteSaida.importe).filter(
-        LoteSaida.horta_id == horta_id, LoteSaida.baixa.is_(False), LoteSaida.tipo == "venda",
-        LoteSaida.data_fin >= desde, LoteSaida.data_fin <= ata))
+    vendas = (LoteSaida.horta_id == horta_id, LoteSaida.baixa.is_(False),
+              LoteSaida.tipo == "venda", LoteSaida.data_fin >= desde, LoteSaida.data_fin <= ata)
+    resumo.ingresos["Vendas"] = suma(session.query(LoteSaida.importe).filter(*vendas))
+    resumo.vendas_sen_prezo = session.query(LoteSaida).filter(
+        *vendas, LoteSaida.importe.is_(None)).count()
     for tipo, onde, nome in (("saida", resumo.ingresos, "Venda de animais"),
                              ("entrada", resumo.gastos, "Compra de animais")):
         onde[nome] = suma(session.query(MovementoAnimal.importe).filter(

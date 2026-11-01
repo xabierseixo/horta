@@ -151,6 +151,7 @@ def test_resumo_do_ano(session):
     xan = crear_contacto(session, ana, horta.id, "Xan", "servizos", custo_hora=20.0)
     tractor = crear_maquina(session, ana, horta.id, "Tractor", custo_hora=15.0)
     _venda(session, ana, horta, quen, 200.0, data_pago=date(2026, 9, 6))
+    _venda(session, ana, horta, quen, None)
     crear_apunte(session, ana, horta.id, _apunte(), hoxe=HOXE)
     crear_apunte(session, ana, horta.id, _apunte(tipo="ingreso", categoria="axuda",
                                                  concepto="Axuda", importe=300.0), hoxe=HOXE)
@@ -169,6 +170,7 @@ def test_resumo_do_ano(session):
     assert resumo.resultado == 310.0
     assert resumo.resultado_sen_man_propia == 330.0
     assert resumo.custos.sen_custo == 0
+    assert resumo.vendas_sen_prezo == 1
 
 
 def test_periodos():
