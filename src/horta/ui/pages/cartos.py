@@ -80,8 +80,9 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                          "falta o custo da hora da persoa ou da máquina (Equipo, Maquinaria)"
                          ).classes("etiqueta-aviso")
             if resumo.vendas_sen_prezo:
-                ui.label(f"{resumo.vendas_sen_prezo} vendas sen prezo quedan sen contar nos "
-                         "ingresos (Lotes)").classes("etiqueta-aviso")
+                n = resumo.vendas_sen_prezo
+                texto = "1 venda sen prezo queda" if n == 1 else f"{n} vendas sen prezo quedan"
+                ui.label(f"{texto} sen contar nos ingresos (Lotes)").classes("etiqueta-aviso")
 
         ui.label("Pendente de cobrar e de pagar").classes(
             "text-subtitle1 text-weight-bold q-mt-md")
