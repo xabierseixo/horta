@@ -15,6 +15,7 @@ from horta.services.cultivos import actualizar_cultivo, crear_cultivo, eliminar_
 from horta.services.diario import listar_traballos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta, eliminar_horta
+from horta.services.movementos_animais import DatosMovemento, crear_movemento
 from horta.services.parcelas import crear_parcela, eliminar_parcela
 from horta.services.pastoreos import (
     AnimaisPastoreo,
@@ -60,6 +61,18 @@ def _escenario(session):
     vacas.especie_codigo = "01"
     session.commit()
     return ana, horta, persoa, pasto, vacas
+
+
+def test_non_saen_do_grupo_os_que_estan_no_pasto(session):
+    ana, horta, persoa, pasto, vacas = _escenario(session)
+    pa = crear_pastoreo(session, ana, _datos(horta, persoa, pasto, vacas), hoxe=HOXE)
+    morte = DatosMovemento(animal_id=vacas.id, data=date(2026, 9, 10), tipo="morte",
+                           cantidade=1, persoa_id=persoa.id)
+    with pytest.raises(OperacionNonPermitidaError, match="saíron do pasto"):
+        crear_movemento(session, ana, morte, hoxe=HOXE)
+    sairon_do_pasto(session, ana, pa, date(2026, 9, 10), hoxe=HOXE)
+    crear_movemento(session, ana, morte, hoxe=HOXE)
+    assert vacas.cantidade == 11
 
 
 def _datos(horta, persoa, pasto, vacas, numero=12, inicio=DIA, **campos):

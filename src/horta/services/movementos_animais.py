@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from horta.models.animal import Animal
 from horta.models.horta import RolHorta
 from horta.models.movemento_animal import MovementoAnimal
+from horta.models.pastoreo import Pastoreo, PastoreoAnimal
 from horta.models.usuario import Usuario
 from horta.services.cartos import comprobar_pago
 from horta.services.coidados_animais import en_tempo_espera
@@ -138,10 +139,29 @@ def _copiar(mov: MovementoAnimal, datos: DatosMovemento, animal: Animal) -> None
     mov.notas = datos.notas or None
 
 
+def _comprobar_pastos(session: Session, animal: Animal) -> None:
+    """No pasto non pode haber máis animais dos que ten o grupo neses días."""
+    movs = _movementos(session, animal.id)
+    for linha, pastoreo in session.query(PastoreoAnimal, Pastoreo).join(
+            Pastoreo, PastoreoAnimal.pastoreo_id == Pastoreo.id).filter(
+            PastoreoAnimal.animal_id == animal.id, Pastoreo.baixa.is_(False)):
+        dias = [pastoreo.data_inicio] + [
+            m.data for m in movs if m.tipo not in SUMAN and m.data > pastoreo.data_inicio
+            and (pastoreo.data_fin is None or m.data < pastoreo.data_fin)]
+        for dia in dias:
+            hai = sum(m.cantidade if m.tipo in SUMAN else -m.cantidade
+                      for m in movs if m.data <= dia)
+            if hai < linha.numero:
+                raise OperacionNonPermitidaError(
+                    f"O {dia:%d/%m/%Y} estaban {linha.numero} {animal.especie} no pasto: "
+                    "apunta primeiro que saíron do pasto")
+
+
 def _gardar(session: Session, animais: list[Animal]) -> None:
     try:
         for animal in animais:
             recalcular(session, animal)
+            _comprobar_pastos(session, animal)
     except OperacionNonPermitidaError:
         session.rollback()
         raise
