@@ -15,6 +15,7 @@ from horta.services.animais import (
     crear_animal,
     eliminar_animal,
     listar_animais,
+    ten_rexistros,
 )
 from horta.services.catalogos import valores_vixentes
 from horta.services.coidados_animais import en_tempo_espera
@@ -124,11 +125,17 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         cantos_actuais = ui.label("").classes("texto-suave")
         notas = ui.textarea("Notas").classes("w-full")
 
+        nomes_razas = {nome for _, nome in razas}
+
         def razas_da_especie() -> None:
             opcions = _razas(razas, especie.value)
-            if raza.value and raza.value not in opcions:
-                opcions.append(raza.value)
-            raza.set_options(opcions, value=raza.value)
+            valor = raza.value
+            if valor and valor not in opcions:
+                if valor in nomes_razas:
+                    valor = None
+                else:
+                    opcions.append(valor)
+            raza.set_options(opcions, value=valor)
 
         especie.on_value_change(razas_da_especie)
 
@@ -192,6 +199,8 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             persoas = ({p.id: nome_completo(p) for p in listar_persoas(session, actor_actual,
                                                                       horta_id, False)}
                        if actor_actual else {})
+            con_rexistros = bool(animal and ten_rexistros(session, animal.id))
+        especie.set_enabled(not con_rexistros)
         instalacion.set_options(opcions, value=animal.instalacion_id if animal else None)
         titular_animais.set_options(persoas,
                                     value=animal.titular_animais_id if animal else None)

@@ -11,7 +11,7 @@ from horta.models.movemento_animal import MovementoAnimal
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.tarefa import Tarefa
 from horta.models.usuario import Usuario
-from horta.services.catalogos import validar_codigo
+from horta.services.catalogos import validar_codigo, valores_vixentes
 from horta.services.coidados_animais import ten_coidados
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
@@ -63,6 +63,26 @@ def _validar_especie(session: Session, codigo: str | None, na_data: date) -> Non
         validar_codigo(session, "especie_animal", codigo, na_data)
 
 
+def ten_rexistros(session: Session, animal_id: int) -> bool:
+    return (ten_coidados(session, animal_id) or ten_movementos(session, animal_id)
+            or ten_producion(session, animal_id) or ten_pastoreo(session, animal_id))
+
+
+def _raza_da_especie(
+    session: Session, especie_codigo: str | None, raza: str | None, na_data: date
+) -> str | None:
+    """Se a raza é do catálogo oficial e non é desa especie, bórrase."""
+    if not raza:
+        return raza
+    oficiais = [v for v in valores_vixentes(session, "raza", na_data) if v.descricion == raza]
+    if oficiais and (
+        especie_codigo is None
+        or not any(v.codigo[:-4] == str(int(especie_codigo)) for v in oficiais)
+    ):
+        return None
+    return raza
+
+
 def crear_animal(
     session: Session,
     actor: Usuario,
@@ -101,7 +121,18 @@ def actualizar_animal(
         raise ValueError(f"Campos non editables nun animal: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
     data_alta = cambios.pop("data_alta", animal.data_alta)
+    cambio_especie = (
+        "especie_codigo" in cambios and cambios["especie_codigo"] != animal.especie_codigo
+    )
+    if cambio_especie and ten_rexistros(session, animal.id):
+        raise OperacionNonPermitidaError(
+            "Este grupo xa ten rexistros: a especie non se pode cambiar. "
+            "Se te enganaches, dá de alta un grupo novo")
     _validar_especie(session, cambios.get("especie_codigo"), data_alta)
+    if cambio_especie:
+        cambios["raza"] = _raza_da_especie(
+            session, cambios["especie_codigo"], cambios.get("raza", animal.raza), data_alta
+        )
     comprobar_instalacion(session, animal.horta_id, cambios.get("instalacion_id"))
     persoa_co_papel(session, animal.horta_id, cambios.get("titular_animais_id"), None)
     if data_alta != animal.data_alta:
@@ -123,8 +154,7 @@ def actualizar_animal(
 
 def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
-    if (ten_coidados(session, animal.id) or ten_movementos(session, animal.id)
-            or ten_producion(session, animal.id) or ten_pastoreo(session, animal.id)):
+    if ten_rexistros(session, animal.id):
         raise OperacionNonPermitidaError(
             "Este grupo ten coidados, entradas e saídas, produción ou pastoreos apuntados e debe "
             "conservarse (obriga legal). Se xa non ten animais, apunta a súa saída ou morte")
