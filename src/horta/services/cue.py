@@ -239,8 +239,6 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
                          SuperficieCultivada=_ha(c.superficie_ha))],
             "Cantidad": c.cantidade_semente_kg, "MarcoPlantacion": c.marco_plantacion,
             "DensidadPlantacion": c.densidade_plantas_ha,
-            "Maquinaria": _maquinaria(maquinas.get(getattr(c, "maquina_id", None) or 0),
-                                      1, c.sementeira_horas),
         }, Orixe("sementeira", c.id, f"Sementeira ou plantación de {c.especie}"))
 
     # --- Tratamentos fitosanitarios

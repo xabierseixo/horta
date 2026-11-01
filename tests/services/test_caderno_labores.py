@@ -23,6 +23,8 @@ def test_labores_no_caderno(session):
     session.flush()
     session.add(CatalogoValor(catalogo="tipo_labor", codigo="7", descricion="Poda",
                               version_id=v.id))
+    session.add(CatalogoValor(catalogo="unidade_medida", codigo="41", descricion="kW",
+                              version_id=v.id))
     ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
                   rol=RolGlobal.USUARIO, activo=True)
     session.add(ana)
@@ -32,7 +34,7 @@ def test_labores_no_caderno(session):
     cultivo = crear_cultivo(session, ana, parcela.id, "Maceira")
     actualizar_cultivo(session, ana, cultivo, superficie_ha=0.2)
     maquina = crear_maquina(session, ana, horta.id, "Tesoira", id_equipo_non_inscribible="T1",
-                            potencia=0.5)
+                            potencia=0.5, unidade_potencia="41")
     crear_labor(session, ana, DatosLabor(cultivo_id=cultivo.id, data_inicio=date(2026, 2, 10),
                                          persoa_id=QUEN,
                                          tipo_labor="7", restos_poda_no_solo=True,

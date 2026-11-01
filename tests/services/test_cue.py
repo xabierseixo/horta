@@ -174,7 +174,8 @@ def test_traballo_con_maquina_sen_datos_cue_avisa_en_faltas(session):
     session.commit()
 
     tractor = crear_maquina(session, ana, horta.id, "Tractor")
-    labor = Labor(horta_id=horta.id, data_inicio=date(2026, 5, 10), tipo_labor="1",
+    labor = Labor(horta_id=horta.id, data_inicio=date(2026, 5, 10), data_fin=date(2026, 5, 10),
+                  tipo_labor="1",
                   maquina_id=tractor.id, num_repeticions=1, duracion_h=2.0, persoa_id=quen.id,
                   leiras=[LaborCultivo(cultivo_id=uno.id, superficie_ha=0.1)])
     session.add(labor)
