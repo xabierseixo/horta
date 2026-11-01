@@ -30,7 +30,7 @@ from horta.services.pastoreos import (
     sairon_do_pasto,
 )
 from horta.services.persoas import crear_contacto
-from horta.services.tarefas import crear_tarefa, facer_tarefa
+from horta.services.tarefas import crear_tarefa, facer_tarefa, marcar_pendente
 
 HOXE = date(2026, 10, 28)
 ALTA = date(2026, 3, 1)
@@ -179,6 +179,19 @@ def test_no_diario_e_como_tarefa(session):
     sairon_do_pasto(session, ana, pa, date(2026, 11, 15), hoxe=date(2026, 11, 20))
     traballos = [t for t in listar_traballos(session, ana, horta.id) if t.tipo == "pastoreo"]
     assert traballos[0].que == "12 Vacas do monte · ata o 15/11/2026"
+
+
+def test_traballo_de_baixa_solta_a_tarefa(session):
+    ana, horta, persoa, pasto, vacas = _escenario(session)
+    tarefa = crear_tarefa(session, ana, horta.id, "Levar as vacas", tipo="pastoreo",
+                          animal_id=vacas.id)
+    pa = crear_pastoreo(session, ana, _datos(horta, persoa, pasto, vacas), hoxe=HOXE)
+    facer_tarefa(session, ana, tarefa, pa)
+    with pytest.raises(OperacionNonPermitidaError, match="edita ese traballo"):
+        marcar_pendente(session, ana, tarefa)
+    dar_de_baixa_pastoreo(session, ana, pa)
+    marcar_pendente(session, ana, tarefa)
+    assert (tarefa.estado, tarefa.traballo_id) == ("pendente", None)
 
 
 def test_non_se_borra_nada_con_pastoreo(session):

@@ -141,13 +141,15 @@ def actualizar_tarefa(
 
 def marcar_feita(
     session: Session, actor: Usuario, tarefa: Tarefa, persoa_id: int | None,
-    data: date | None = None, horas: float | None = None,
+    data: date | None = None, horas: float | None = None, hoxe: date | None = None,
 ) -> Tarefa:
     """Unha tarefa sen tipo (outro traballo) feita: quen a fixo, cando e cantas horas."""
     comprobar_rol_horta(session, tarefa.horta_id, actor, _ROLES_ESCRITURA)
     if tarefa.tipo is not None:
         raise OperacionNonPermitidaError("Esta tarefa apúntase no formulario do seu tipo")
     comprobar_quen(session, tarefa.horta_id, persoa_id, horas)
+    if data is not None and data > (hoxe or date.today()):
+        raise OperacionNonPermitidaError("A data non pode ser futura")
     tarefa.estado = "feito"
     tarefa.data_feita = data or date.today()
     tarefa.persoa_id = persoa_id
@@ -180,8 +182,12 @@ def facer_tarefa(session: Session, actor: Usuario, tarefa: Tarefa, rexistro: Bas
 def marcar_pendente(session: Session, actor: Usuario, tarefa: Tarefa) -> Tarefa:
     comprobar_rol_horta(session, tarefa.horta_id, actor, _ROLES_ESCRITURA)
     if tarefa.traballo_id is not None:
-        raise OperacionNonPermitidaError(
-            "Esta tarefa xa ten o traballo apuntado: para cambiala, edita ese traballo")
+        taboa, _ = _TABOA_E_DATA[tarefa.tipo or ""]
+        rexistro = session.get(taboa, tarefa.traballo_id)
+        if rexistro is not None and not getattr(rexistro, "baixa", False):
+            raise OperacionNonPermitidaError(
+                "Esta tarefa xa ten o traballo apuntado: para cambiala, edita ese traballo")
+        tarefa.traballo_id = None  # o traballo deuse de baixa: a tarefa volve a pendente
     tarefa.estado = "pendente"
     tarefa.data_feita = None
     session.commit()

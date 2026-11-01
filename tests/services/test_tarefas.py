@@ -4,7 +4,7 @@ import pytest
 
 from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
-from horta.services.errors import PermisoDenegadoError
+from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.tarefas import (
     actualizar_tarefa,
@@ -120,6 +120,14 @@ def test_actualizar_tarefa_rexeita_campos_non_editables(session, campo):
     assert tarefa.id == id_orixinal
     assert tarefa.horta_id == horta.id
     assert tarefa.descricion == "Regar"
+
+
+def test_feita_con_data_futura(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    tarefa = crear_tarefa(session, ana, horta.id, "Regar")
+    with pytest.raises(OperacionNonPermitidaError, match="non pode ser futura"):
+        marcar_feita(session, ana, tarefa, QUEN, date(2026, 11, 2), hoxe=date(2026, 11, 1))
 
 
 def test_marcar_feita_e_marcar_pendente(session):
