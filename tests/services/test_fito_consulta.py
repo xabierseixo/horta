@@ -144,7 +144,7 @@ def test_dose_etiqueta_e_aviso_unidade_non_comparable(session):
                      dose_min=0.15, dose_max=0.5, unidade_dose="%"))
     session.commit()
     avisos = comprobar_tratamento(session, horta, _datos(cultivo, num="ES-4", dose=2.0))
-    esperado = ("A etiqueta dá a dose en % (0,15–0,5 %): non se pode comprobar a dose máxima. "
+    esperado = ("a etiqueta dá a dose en % (0,15–0,5 %): non se pode comprobar a dose máxima. "
                 "No caderno apúntanse os kg/ha ou L/ha botados.")
     assert esperado in _textos(avisos, AVISO)
     assert not _textos(avisos, FORTE)

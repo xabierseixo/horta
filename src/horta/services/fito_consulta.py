@@ -244,7 +244,7 @@ def comprobar_tratamento(session: Session, horta: Horta, datos: DatosTratamento,
             u_dose = con_dose[0]
             avisos.append(Aviso(
                 AVISO,
-                f"{nome}: A etiqueta dá a dose en {u_dose.unidade_dose} ({_dose_uso(u_dose)}): "
+                f"{nome}: a etiqueta dá a dose en {u_dose.unidade_dose} ({_dose_uso(u_dose)}): "
                 "non se pode comprobar a dose máxima. No caderno apúntanse os kg/ha ou L/ha "
                 "botados.",
             ))
