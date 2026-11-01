@@ -4,13 +4,16 @@ from nicegui import ui
 
 from horta.db import get_session
 from horta.models.maquina import Maquina
+from horta.services.catalogos import valores_vixentes
 from horta.services.maquinaria import (
+    UNIDADES_POTENCIA,
     actualizar_maquina,
     aviso_inspeccion,
     crear_maquina,
     listar_maquinas,
     maquinas_de_tratamento,
 )
+from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.historial import abrir_historial
@@ -27,6 +30,14 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
             return
         maquinas = listar_maquinas(session, actor, horta_id, so_activas=False)
         de_tratamento = maquinas_de_tratamento(session, horta_id)
+        tipos_une = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                     for v in valores_vixentes(session, "tipo_maquinaria_une")}
+        unidades_cat = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                        for v in valores_vixentes(session, "unidade_medida")}
+        unidades_potencia = {c: unidades_cat.get(c, texto_catalogo("unidade_medida", c, c))
+                             for c in UNIDADES_POTENCIA}
+        enerxias = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
+                    for v in valores_vixentes(session, "tipo_enerxia")}
 
     filas = [
         {"id": m.id, "alias": m.alias, "marca": m.marca_modelo or "",
@@ -55,6 +66,8 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
         titulo = ui.label("Nova máquina").classes("text-h6")
         activa = ui.checkbox("Activa (desmárcaa se xa non está na explotación)", value=True)
         alias = ui.input("Nome")
+        tipo_une = ui.select(tipos_une, label="Tipo de máquina (UNE)", with_input=True,
+                             clearable=True)
         marca = ui.input("Marca e modelo")
         tipo_id = ui.select({"roma": "Nº ROMA", "reganip": "Nº REGANIP",
                              "outro": "Equipo non inscribible"}, value="roma",
@@ -62,6 +75,9 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
         ident = ui.input("Número / identificador")
         propia = ui.checkbox("Propia", value=True)
         potencia = ui.input("Potencia")
+        unidade_potencia = ui.select(unidades_potencia, label="Unidade da potencia",
+                                     clearable=True)
+        tipo_enerxia = ui.select(enerxias, label="Tipo de enerxía", clearable=True)
         custo_hora = ui.input("Custo da hora (€)")
         inspeccion = campo_data("Data última inspección")
         adquisicion = campo_data("Data de adquisición")
@@ -77,8 +93,11 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
                 if actor is None:
                     pechar_sesion()
                     return
-                datos = {"marca_modelo": marca.value or None, "propia": propia.value,
+                datos = {"tipo_une": tipo_une.value or None,
+                         "marca_modelo": marca.value or None, "propia": propia.value,
                          "potencia": parsear_decimal(potencia.value),
+                         "unidade_potencia": unidade_potencia.value or None,
+                         "tipo_enerxia": tipo_enerxia.value or None,
                          "custo_hora": parsear_decimal(custo_hora.value),
                          "data_ultima_inspeccion": parsear_data(inspeccion.value),
                          "data_adquisicion": parsear_data(adquisicion.value),
@@ -104,12 +123,15 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
         editando["id"] = m.id if m else None
         titulo.text = "Editar máquina" if m else "Nova máquina"
         alias.value, marca.value = (m.alias, m.marca_modelo or "") if m else ("", "")
+        tipo_une.value = m.tipo_une if m else None
         tipo_id.value = ("reganip" if m and m.num_reganip else
                          "outro" if m and m.id_equipo_non_inscribible else "roma")
         ident.value = ((m.num_roma or m.num_reganip or m.id_equipo_non_inscribible or "")
                        if m else "")
         propia.value, activa.value = (m.propia, m.activa) if m else (True, True)
         potencia.value = f"{m.potencia:g}" if m and m.potencia is not None else ""
+        unidade_potencia.value = m.unidade_potencia if m else None
+        tipo_enerxia.value = m.tipo_enerxia if m else None
         custo_hora.value = f"{m.custo_hora:g}" if m and m.custo_hora is not None else ""
         inspeccion.value = (m.data_ultima_inspeccion.isoformat()
                             if m and m.data_ultima_inspeccion else "")

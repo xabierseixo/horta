@@ -9,12 +9,14 @@ from horta.models.horta import RolHorta
 from horta.models.maquina import Maquina
 from horta.models.tratamento_fito import TratamentoAplicador, TratamentoFito
 from horta.models.usuario import Usuario
+from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 _IDENTIFICADORES = ("num_roma", "num_reganip", "id_equipo_non_inscribible")
+UNIDADES_POTENCIA = ("40", "41")  # CV e kW no catálogo unidade_medida
 
 CAMPOS_EDITABLES_MAQUINA = frozenset(
     {"alias", "tipo_une", "marca_modelo", "num_roma", "num_reganip", "id_equipo_non_inscribible",
@@ -65,20 +67,49 @@ def aviso_inspeccion(maquina: Maquina, hoxe: date | None = None) -> str | None:
     return "Sen inspección apuntada"
 
 
-def _validar(datos: dict[str, Any]) -> None:
+def faltas_para_cue(maquina: Maquina) -> list[str]:
+    """Os catro datos obrigatorios do bloque Maquinaria do CUE (sementeira, colleita e labores)."""
+    faltas = []
+    if not maquina.tipo_une:
+        faltas.append("tipo de máquina (UNE)")
+    if maquina.potencia is None:
+        faltas.append("potencia")
+    if not maquina.unidade_potencia:
+        faltas.append("unidade da potencia")
+    if not maquina.tipo_enerxia:
+        faltas.append("tipo de enerxía")
+    return faltas
+
+
+def _validar(session: Session, datos: dict[str, Any]) -> None:
     if datos.get("custo_hora") is not None and datos["custo_hora"] < 0:
         raise OperacionNonPermitidaError("O custo da hora non pode ser negativo")
     if sum(1 for c in _IDENTIFICADORES if datos.get(c)) > 1:
         raise OperacionNonPermitidaError(
             "Indica só un identificador: nº ROMA, nº REGANIP ou identificador do equipo"
         )
+    if (datos.get("potencia") is not None) != bool(datos.get("unidade_potencia")):
+        raise OperacionNonPermitidaError("Indica a potencia e a súa unidade (CV ou kW)")
+    if datos.get("potencia") is not None and datos["potencia"] <= 0:
+        raise OperacionNonPermitidaError("A potencia ten que ser maior que 0")
+    na_data = date.today()
+    if datos.get("tipo_une"):
+        validar_codigo(session, "tipo_maquinaria_une", datos["tipo_une"], na_data)
+    if datos.get("unidade_potencia"):
+        if datos["unidade_potencia"] not in UNIDADES_POTENCIA:
+            raise OperacionNonPermitidaError(
+                "A unidade da potencia ten que ser CV (40) ou kW (41)"
+            )
+        validar_codigo(session, "unidade_medida", datos["unidade_potencia"], na_data)
+    if datos.get("tipo_enerxia"):
+        validar_codigo(session, "tipo_enerxia", datos["tipo_enerxia"], na_data)
 
 
 def crear_maquina(
     session: Session, actor: Usuario, horta_id: int, alias: str, **campos: Any
 ) -> Maquina:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    _validar(campos)
+    _validar(session, campos)
     maquina = Maquina(horta_id=horta_id, alias=alias, **campos)
     session.add(maquina)
     session.commit()
@@ -92,7 +123,10 @@ def actualizar_maquina(
     if non_editables:
         raise ValueError(f"Campos non editables nunha máquina: {', '.join(sorted(non_editables))}")
     comprobar_rol_horta(session, maquina.horta_id, actor, _ROLES_ESCRITURA)
-    _validar({c: getattr(maquina, c) for c in _IDENTIFICADORES} | cambios)
+    estado = {
+        c: getattr(maquina, c) for c in (*_IDENTIFICADORES, "potencia", "unidade_potencia")
+    } | cambios
+    _validar(session, estado)
     for campo, valor in cambios.items():
         setattr(maquina, campo, valor)
     session.commit()

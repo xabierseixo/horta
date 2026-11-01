@@ -155,3 +155,45 @@ def test_datas_da_leira_segundo_o_fega(session):
     alta = next(a for a in cue.datos["DatosExplotacion"]["AltaDGC"]
                 if a["CodigoDGCAjena"] == uno.id)
     assert (alta["FechaInicio"], alta["FechaFin"]) == ("10/03/2026", "25/09/2026")
+
+
+def test_traballo_con_maquina_sen_datos_cue_avisa_en_faltas(session):
+    from horta.models.labor import Labor, LaborCultivo
+    from horta.services.faltas_caderno import faltas_caderno
+    from horta.services.maquinaria import actualizar_maquina, crear_maquina
+
+    ana, horta, quen, (uno, _) = _escenario(session)
+    version = session.query(CatalogoVersion).first()
+    for catalogo, codigo, desc in (
+        ("tipo_maquinaria_une", "1.1", "Tractores de rodas"),
+        ("unidade_medida", "40", "Cabalo de vapor (CV)"),
+        ("tipo_enerxia", "1", "Diésel"),
+    ):
+        session.add(CatalogoValor(catalogo=catalogo, codigo=codigo, descricion=desc,
+                                  version_id=version.id))
+    session.commit()
+
+    tractor = crear_maquina(session, ana, horta.id, "Tractor")
+    labor = Labor(horta_id=horta.id, data_inicio=date(2026, 5, 10), tipo_labor="1",
+                  maquina_id=tractor.id, num_repeticions=1, duracion_h=2.0, persoa_id=quen.id,
+                  leiras=[LaborCultivo(cultivo_id=uno.id, superficie_ha=0.1)])
+    session.add(labor)
+    colleita = crear_colleita(session, ana, DatosColleita(
+        cultivo_id=uno.id, data=date(2026, 8, 1), cantidade=1.5, unidade="t", lote="T-1",
+        persoa_id=quen.id, maquina_id=tractor.id, num_repeticions=1, duracion_h_ha=1.5), hoxe=HOXE)
+
+    faltas = {(f.orixe.tipo, f.orixe.id, f.falta) for f in
+              xerar_cue(session, ana, horta.id, DESDE, ATA).faltas()}
+    for tipo, rex_id in (("labor", labor.id), ("colleita", colleita.id)):
+        assert (tipo, rex_id, "o tipo de máquina (UNE)") in faltas
+        assert (tipo, rex_id, "a potencia da máquina") in faltas
+        assert (tipo, rex_id, "a unidade da potencia") in faltas
+        assert (tipo, rex_id, "o tipo de enerxía") in faltas
+    assert any(f.traballo == "Labores" and "máquina" in f.dato
+               for f in faltas_caderno(session, ana, horta.id, DESDE, ATA))
+
+    actualizar_maquina(session, ana, tractor, tipo_une="1.1", potencia=75.0,
+                       unidade_potencia="40", tipo_enerxia="1")
+    assert xerar_cue(session, ana, horta.id, DESDE, ATA).faltas() == []
+    assert not any(f.traballo == "Labores" and "máquina" in f.dato
+                   for f in faltas_caderno(session, ana, horta.id, DESDE, ATA))

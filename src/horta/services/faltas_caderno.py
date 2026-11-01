@@ -11,9 +11,11 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from horta.models.foto import Foto
+from horta.models.maquina import Maquina
 from horta.models.usuario import Usuario
 from horta.services.abonados import listar_abonados
 from horta.services.labores import listar_labores
+from horta.services.maquinaria import faltas_para_cue as faltas_maquina_cue
 from horta.services.regas import listar_regas
 from horta.services.tratamentos_fito import faltas_para_cue, listar_tratamentos_fito
 
@@ -47,6 +49,7 @@ def faltas_caderno(session: Session, actor: Usuario, horta_id: int,
                if no_periodo(lab.data_inicio)]
     tratamentos = [t for t in listar_tratamentos_fito(session, actor, horta_id)
                    if no_periodo(t.data_inicio)]
+    maquinas = {m.id: m for m in session.query(Maquina).filter_by(horta_id=horta_id)}
     # Orde AAA/1072/2013 art. 4.a: quen aplica os lodos entrega o anexo III e gárdase 3 anos
     con_documento = {f.ref_id for f in session.query(Foto).filter_by(
         horta_id=horta_id, que="abonado", baixa=False)}
@@ -68,5 +71,8 @@ def faltas_caderno(session: Session, actor: Usuario, horta_id: int,
             ("sistema de rega", lambda r: not r.sistema_rega),
             ("cantidade de auga", lambda r: r.cantidade is None)]),
         *_contar("Labores", labores, [
-            ("superficie", lambda lab: any(not le.superficie_ha for le in lab.leiras))]),
+            ("superficie", lambda lab: any(not le.superficie_ha for le in lab.leiras)),
+            ("datos da máquina para o CUE (tipo UNE, potencia, unidade e enerxía)",
+             lambda lab: bool(lab.maquina_id and lab.maquina_id in maquinas
+                              and faltas_maquina_cue(maquinas[lab.maquina_id])))]),
     ]

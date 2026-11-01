@@ -74,6 +74,10 @@ _CAMPOS = {
     "FechaAdquisicion": "a data de compra da semente",
     "NecesidadUFN": "a necesidade de N", "ObjetivoProduccion": "o obxectivo de produción",
     "CultivoPrecedente": "o cultivo anterior", "FechaGeneracion": "a data do plan",
+    "TipoMaquinariaUNE": "o tipo de máquina (UNE)",
+    "PotenciaMaquinaria": "a potencia da máquina", "UnidadesMedida": "a unidade da potencia",
+    "TipoEnergia": "o tipo de enerxía", "NumRepeticiones": "o número de pasadas",
+    "Duracion": "a duración",
 }
 
 
@@ -96,6 +100,18 @@ def _ha(superficie: float | None) -> float | None:
 def _limpo(bloque: dict[str, Any]) -> dict[str, Any]:
     """Sen os campos baleiros (None, [] ou {}), que o descritor trata como non enviados."""
     return {k: v for k, v in bloque.items() if v not in (None, [], {})}
+
+
+def _maquinaria(m: Maquina | None, repeticions: int | None,
+                duracion: float | None) -> list[dict[str, Any]]:
+    """O bloque Maquinaria do CUE (sementeira, colleita e labores)."""
+    if m is None:
+        return []
+    return [_limpo({
+        "TipoMaquinariaUNE": m.tipo_une, "PotenciaMaquinaria": m.potencia,
+        "UnidadesMedida": _num(m.unidade_potencia), "TipoEnergia": _num(m.tipo_enerxia),
+        "NumRepeticiones": repeticions or 1, "Duracion": duracion,
+    })]
 
 
 def datas_dgc(session: Session, cultivo_id: int) -> tuple[date | None, date | None]:
@@ -223,6 +239,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
                          SuperficieCultivada=_ha(c.superficie_ha))],
             "Cantidad": c.cantidade_semente_kg, "MarcoPlantacion": c.marco_plantacion,
             "DensidadPlantacion": c.densidade_plantas_ha,
+            "Maquinaria": _maquinaria(maquinas.get(getattr(c, "maquina_id", None) or 0),
+                                      1, c.sementeira_horas),
         }, Orixe("sementeira", c.id, f"Sementeira ou plantación de {c.especie}"))
 
     # --- Tratamentos fitosanitarios
@@ -405,12 +423,7 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
                 if lab.tipo_labor == DESBROCE else None,
                 "DepositadoSueloPoda": lab.restos_poda_no_solo
                 if lab.tipo_labor in PODAS else None,
-                "Maquinaria": [_limpo({
-                    "TipoMaquinariaUNE": m.tipo_une, "PotenciaMaquinaria": m.potencia,
-                    "UnidadesMedida": _num(m.unidade_potencia),
-                    "TipoEnergia": _num(m.tipo_enerxia),
-                    "NumRepeticiones": lab.num_repeticions or 1,
-                    "Duracion": lab.duracion_h})] if m else [],
+                "Maquinaria": _maquinaria(m, lab.num_repeticions, lab.duracion_h),
                 "DGCs": [dgc(c, Superficie=_ha(s), Cubiertas=[{"TipoCobertura": _num(
                     lab.tipo_cobertura)}] if lab.tipo_cobertura else [])
                          for c, s in grupo],
@@ -438,6 +451,8 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
             if col.destino_restos else [],
             "SemillasSiembra": col.obten_sementes, "Plantas": col.obten_plantas,
             "SinCosechado": col.sen_colleita_ambiental, "DepositadoSuelo": col.restos_no_solo,
+            "Maquinaria": _maquinaria(maquinas.get(col.maquina_id or 0),
+                                      col.num_repeticions, col.duracion_h_ha),
         }, Orixe("colleita", col.id, f"Colleita do {col.data:%d/%m/%Y}"))
 
     # --- Pastoreo
