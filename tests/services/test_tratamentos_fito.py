@@ -19,6 +19,7 @@ from horta.services.tratamentos_fito import (
     LinhaCultivo,
     LinhaProduto,
     Problema,
+    actualizar_tratamento_fito,
     crear_tratamento_fito,
     dar_de_baixa_tratamento_fito,
     faltas_para_cue,
@@ -214,6 +215,15 @@ def test_baixa_loxica(session):
     dar_de_baixa_tratamento_fito(session, ana, t)
     assert listar_tratamentos_fito(session, ana, horta.id) == []
     assert t.baixa is True
+    with pytest.raises(OperacionNonPermitidaError, match="dado de baixa"):
+        actualizar_tratamento_fito(session, ana, t, _datos(cultivo, xan, maquina))
+
+
+def test_data_futura_rexeitase(session):
+    ana, horta, _, cultivo, xan, maquina = _escenario(session)
+    with pytest.raises(OperacionNonPermitidaError, match="non pode ser futura"):
+        crear_tratamento_fito(session, ana, horta.id, _datos(cultivo, xan, maquina),
+                              hoxe=date(2026, 5, 9))
 
 
 def test_non_se_pode_eliminar_cultivo_con_tratamentos(session):

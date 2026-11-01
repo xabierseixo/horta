@@ -250,6 +250,42 @@ def crear_cultivo(
     return cultivo
 
 
+def ten_rexistros(session: Session, cultivo_id: int) -> bool:
+    """Tratamentos, abonados, regas, labores, colleitas ou pastoreos: os que impiden eliminalo."""
+    return any(session.query(modelo).filter_by(cultivo_id=cultivo_id).first() is not None
+               for modelo in (TratamentoCultivo, AbonadoCultivo, RegaCultivo, LaborCultivo,
+                              Colleita, PastoreoLeira))
+
+
+def _comprobar_traballos(session: Session, cultivo: Cultivo, cambios: dict[str, Any]) -> None:
+    """Os cambios non poden contradicir os traballos xa apuntados."""
+    codigo = cambios.get("cultivo_siex_codigo", cultivo.cultivo_siex_codigo)
+    if (cultivo.cultivo_siex_codigo is not None and codigo != cultivo.cultivo_siex_codigo
+            and ten_rexistros(session, cultivo.id)):
+        raise OperacionNonPermitidaError(
+            "Este cultivo xa ten traballos apuntados: non se pode cambiar a outro cultivo. "
+            "Se te enganaches, dá de alta un cultivo novo")
+    colleitas = session.query(Colleita).filter_by(cultivo_id=cultivo.id, baixa=False).all()
+    if not colleitas:
+        return
+    primeira = min(c.data for c in colleitas)
+    inicio = cambios.get("data_inicio")
+    if inicio is not None and inicio > primeira:
+        raise OperacionNonPermitidaError(
+            f"Hai colleitas desde o {primeira:%d/%m/%Y}: o cultivo ten que empezar antes")
+    ultima = max(c.data_fin or c.data for c in colleitas)
+    fin = cambios.get("data_fin")
+    if fin is not None and fin < ultima:
+        raise OperacionNonPermitidaError(
+            f"A última colleita é do {ultima:%d/%m/%Y}: o cultivo non pode rematar antes")
+    maior = max((c.superficie_ha for c in colleitas if c.superficie_ha), default=None)
+    superficie = cambios.get("superficie_ha")
+    if superficie is not None and maior is not None and superficie < maior:
+        texto = f"{maior:g}".replace(".", ",")
+        raise OperacionNonPermitidaError(
+            f"Unha colleita deste cultivo foi en {texto} ha: o cultivo non pode ser menor")
+
+
 def actualizar_cultivo(
     session: Session,
     actor: Usuario,
@@ -269,6 +305,7 @@ def actualizar_cultivo(
                    cambios.get("sementeira_horas"), obrigatoria=False)
     _comprobar_semente(session, horta_id, cambios.get("entrada_semente_id"))
     comprobar_zona(session, cultivo.parcela_id, cambios.get("zona_id"))
+    _comprobar_traballos(session, cultivo, cambios)
     _resolver_variedade(session, cambios, cultivo)
     for campo, valor in cambios.items():
         setattr(cultivo, campo, valor)

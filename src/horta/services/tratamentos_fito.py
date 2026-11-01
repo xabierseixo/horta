@@ -117,9 +117,11 @@ UNIDADES_DOSE = ("17", "18")
 UNIDADES_TOTAL = ("5", "4")
 
 
-def _validar(session: Session, horta: Horta, datos: DatosTratamento) -> None:
+def _validar(session: Session, horta: Horta, datos: DatosTratamento, hoxe: date) -> None:
     profesional = horta.uso_profesional
     d = datos.data_inicio
+    if datos.data_inicio > hoxe or datos.data_fin > hoxe:
+        raise _erro("A data do tratamento non pode ser futura")
     if datos.data_fin < datos.data_inicio:
         raise _erro("A data de fin non pode ser anterior á de inicio")
     if not datos.cultivos:
@@ -239,12 +241,13 @@ def _ligar_produtos(session: Session, actor: Usuario, horta_id: int,
 
 
 def crear_tratamento_fito(
-    session: Session, actor: Usuario, horta_id: int, datos: DatosTratamento
+    session: Session, actor: Usuario, horta_id: int, datos: DatosTratamento,
+    hoxe: date | None = None,
 ) -> TratamentoFito:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     horta = session.get(Horta, horta_id)
     assert horta is not None
-    _validar(session, horta, datos)
+    _validar(session, horta, datos, hoxe or date.today())
     tratamento = TratamentoFito(horta_id=horta_id, data_inicio=datos.data_inicio,
                                 data_fin=datos.data_fin, creado_por=actor.id)
     _aplicar(tratamento, datos)
@@ -255,12 +258,15 @@ def crear_tratamento_fito(
 
 
 def actualizar_tratamento_fito(
-    session: Session, actor: Usuario, tratamento: TratamentoFito, datos: DatosTratamento
+    session: Session, actor: Usuario, tratamento: TratamentoFito, datos: DatosTratamento,
+    hoxe: date | None = None,
 ) -> TratamentoFito:
+    if tratamento.baixa:
+        raise _erro("Un tratamento dado de baixa non se pode modificar")
     comprobar_rol_horta(session, tratamento.horta_id, actor, _ROLES_ESCRITURA)
     horta = session.get(Horta, tratamento.horta_id)
     assert horta is not None
-    _validar(session, horta, datos)
+    _validar(session, horta, datos, hoxe or date.today())
     _aplicar(tratamento, datos)
     _ligar_produtos(session, actor, tratamento.horta_id, tratamento)
     session.commit()
