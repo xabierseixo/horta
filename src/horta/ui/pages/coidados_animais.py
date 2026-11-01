@@ -12,23 +12,23 @@ from horta.db import get_session
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
-from horta.services.catalogos import valores_vixentes
 from horta.services.coidados_animais import (
     CON_ANIMAIS,
     TIPOS_COIDADO,
+    UNIDADES_MEDICAMENTO,
     DatosCoidado,
     actualizar_coidado,
     crear_coidado,
     dar_de_baixa_coidado,
     fin_tempo_espera,
     listar_coidados,
+    unidade_do_medicamento,
 )
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.services.produtos import listar_produtos
-from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campo_produto import CampoProduto, opcions_entradas
@@ -131,8 +131,6 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: f"{nome_grupo(a.especie, a.raza)} · {a.cantidade}" for a in animais}
         de_alta = {a.id: todos[a.id] for a in animais if a.estado == "activo"}
-        unidades = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
-                    for v in valores_vixentes(session, "unidade_medida")}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
@@ -152,7 +150,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         medicamento = CampoProduto(horta_id, "medicamento", "Medicamento")
         with ui.row().classes("w-full no-wrap") as fila_dose:
             cantidade = ui.input("Cantidade").classes("col")
-            unidade = ui.select(unidades, label="Unidade", with_input=True,
+            unidade = ui.select(list(UNIDADES_MEDICAMENTO), label="Unidade",
                                 clearable=True).classes("col")
         with ui.row().classes("w-full no-wrap") as fila_dias:
             tempo_espera = ui.input("Tempo de espera (días, 0 se non ten)").classes("col")
@@ -176,6 +174,9 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         def cambiar_compras() -> None:
             compra.set_options(opcions_entradas(horta_id, medicamento.value)
                                if medicamento.value else {}, value=None)
+            if medicamento.value is not None:
+                with get_session() as session:
+                    unidade.value = unidade_do_medicamento(session, medicamento.value)
 
         medicamento.select.on_value_change(cambiar_compras)
 
@@ -260,7 +261,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         cambiar_compras()
         compra.value = co.entrada_id if co and co.entrada_id in compra.options else None
         cantidade.value = f"{co.cantidade:g}" if co and co.cantidade else ""
-        unidade.value = co.unidade if co and co.unidade in unidades else None
+        unidade.value = co.unidade if co and co.unidade in UNIDADES_MEDICAMENTO else None
         tempo_espera.value = (str(co.tempo_espera_dias)
                               if co and co.tempo_espera_dias is not None else "")
         duracion.value = str(co.duracion_dias) if co and co.duracion_dias else ""

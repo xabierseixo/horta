@@ -41,6 +41,21 @@ UNIDADES_ENTRADA = ("kg", "t", "litros", "unidades", "ducias")
 # Unidades do catálogo oficial (tratamentos e coidados): absolutas e por hectárea
 _ABSOLUTAS = {"5": "kg", "6": "t", "4": "litros", "11": "unidades"}
 _POR_HECTAREA = {"17": "kg", "18": "litros", "29": "t"}
+# Unidades dos medicamentos (propias e códigos do catálogo xa gardados) → unidade de produto
+_UNIDADES_MEDICAMENTO: dict[str, tuple[str, float]] = {
+    "ml": ("litros", 0.001),
+    "L": ("litros", 1.0),
+    "litros": ("litros", 1.0),
+    "g": ("kg", 0.001),
+    "kg": ("kg", 1.0),
+    "unidades": ("unidades", 1.0),
+    "4": ("litros", 1.0),
+    "5": ("kg", 1.0),
+    "6": ("kg", 1000.0),
+    "11": ("unidades", 1.0),
+    "48": ("kg", 0.001),
+    "51": ("litros", 0.001),
+}
 
 
 def unidade_do_catalogo(codigo: str | None) -> str:
@@ -276,8 +291,9 @@ def _usos(session: Session, produto: Produto) -> list[tuple[float | None, str | 
         else:
             usos.append((None, None))
     for co in session.query(CoidadoAnimal).filter_by(produto_id=produto.id, baixa=False):
-        usos.append((co.cantidade, _ABSOLUTAS.get(co.unidade or ""))
-                    if co.cantidade is not None else (None, None))
+        conversor = _UNIDADES_MEDICAMENTO.get(co.unidade or "")
+        usos.append((co.cantidade * conversor[1], conversor[0])
+                    if co.cantidade is not None and conversor else (None, None))
     for ti in (session.query(TransformacionInsumo)
                .join(Transformacion, Transformacion.id == TransformacionInsumo.transformacion_id)
                .filter(TransformacionInsumo.produto_id == produto.id,

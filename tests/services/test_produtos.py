@@ -95,6 +95,49 @@ def test_medicamento_e_uso_sen_cantidade(session):
     assert existencias(session, medicamento).sen_contar == 1
 
 
+def test_medicamento_conversion_e_resta_de_existencias(session):
+    ana, horta, quen, _ = _escenario(session)
+    galinas = crear_animal(session, ana, horta.id, "Galiñas", date(2026, 1, 1), cantidade=10)
+    liquido = crear_produto(session, ana, horta.id, "medicamento", "Ivermectina", "litros")
+    crear_entrada(session, ana, DatosEntrada(
+        produto_id=liquido.id, data=date(2026, 3, 1), persoa_id=quen.id, cantidade=1),
+        hoxe=HOXE)
+    for cantidade, unidade in ((250, "ml"), (0.5, "L")):
+        crear_coidado(session, ana, DatosCoidado(
+            animal_id=galinas.id, data_inicio=date(2026, 10, 20), tipo="medicamento",
+            persoa_id=quen.id, produto_id=liquido.id, cantidade=cantidade, unidade=unidade,
+            tempo_espera_dias=7), hoxe=HOXE)
+    # Tamén conta o que xa estaba gardado co código do catálogo ("4" = L)
+    vello = crear_coidado(session, ana, DatosCoidado(
+        animal_id=galinas.id, data_inicio=date(2026, 10, 21), tipo="medicamento",
+        persoa_id=quen.id, produto_id=liquido.id, cantidade=0.1, tempo_espera_dias=7),
+        hoxe=HOXE)
+    vello.unidade = "4"
+    session.commit()
+    conta_l = existencias(session, liquido)
+    assert (conta_l.entrou, conta_l.usado, conta_l.queda, conta_l.sen_contar) == (
+        1.0, 0.85, 0.15, 0)
+
+    po = crear_produto(session, ana, horta.id, "medicamento", "Amoxicilina", "kg")
+    crear_entrada(session, ana, DatosEntrada(
+        produto_id=po.id, data=date(2026, 3, 1), persoa_id=quen.id, cantidade=1), hoxe=HOXE)
+    for cantidade, unidade in ((200, "g"), (0.3, "kg")):
+        crear_coidado(session, ana, DatosCoidado(
+            animal_id=galinas.id, data_inicio=date(2026, 10, 20), tipo="medicamento",
+            persoa_id=quen.id, produto_id=po.id, cantidade=cantidade, unidade=unidade,
+            tempo_espera_dias=7), hoxe=HOXE)
+    conta_kg = existencias(session, po)
+    assert (conta_kg.entrou, conta_kg.usado, conta_kg.queda, conta_kg.sen_contar) == (
+        1.0, 0.5, 0.5, 0)
+
+    # Unidade incompatible co produto (g nun produto en litros) → queda sen contar
+    crear_coidado(session, ana, DatosCoidado(
+        animal_id=galinas.id, data_inicio=date(2026, 10, 22), tipo="medicamento",
+        persoa_id=quen.id, produto_id=liquido.id, cantidade=100, unidade="g",
+        tempo_espera_dias=7), hoxe=HOXE)
+    assert existencias(session, liquido).sen_contar == 1
+
+
 def test_validacions_da_entrada(session):
     ana, horta, quen, _ = _escenario(session)
     penso = crear_produto(session, ana, horta.id, "penso", "Penso", "kg")

@@ -9,6 +9,7 @@ from horta.models.persoa import Persoa
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.animais import crear_animal, eliminar_animal
 from horta.services.coidados_animais import (
+    UNIDADES_MEDICAMENTO,
     DatosCoidado,
     actualizar_coidado,
     crear_coidado,
@@ -16,12 +17,14 @@ from horta.services.coidados_animais import (
     en_tempo_espera,
     fin_tempo_espera,
     listar_coidados,
+    unidade_do_medicamento,
 )
 from horta.services.diario import listar_traballos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta, eliminar_horta
 from horta.services.movementos_animais import DatosMovemento, crear_movemento
 from horta.services.persoas import crear_contacto
+from horta.services.produtos import crear_produto
 from horta.services.tarefas import crear_tarefa, facer_tarefa
 
 HOXE = date(2026, 10, 28)
@@ -167,3 +170,28 @@ def test_a_tarefa_so_admite_animais_da_explotacion(session):
     _, _, _, alleas = _escenario(session, "Outra")
     with pytest.raises(OperacionNonPermitidaError, match="non é desta explotación"):
         crear_tarefa(session, ana, horta.id, "Vacinar", animal_id=alleas.id)
+
+
+def test_unidades_do_medicamento_e_proposta_do_produto(session):
+    ana, horta, persoa, galinas = _escenario(session)
+    assert UNIDADES_MEDICAMENTO == ("ml", "L", "g", "kg", "unidades")
+    liquido = crear_produto(session, ana, horta.id, "medicamento", "Ivermectina", "litros")
+    po = crear_produto(session, ana, horta.id, "medicamento", "Amoxicilina", "kg")
+    doses = crear_produto(session, ana, horta.id, "medicamento", "Vacina", "unidades")
+    assert unidade_do_medicamento(session, liquido.id) == "L"
+    assert unidade_do_medicamento(session, po.id) == "kg"
+    assert unidade_do_medicamento(session, doses.id) == "unidades"
+    assert unidade_do_medicamento(session, None) is None
+    for unidade in UNIDADES_MEDICAMENTO:
+        co = crear_coidado(session, ana, _medicamento(
+            galinas, persoa, produto_id=liquido.id, cantidade=5, unidade=unidade), hoxe=HOXE)
+        assert co.unidade == unidade
+    with pytest.raises(OperacionNonPermitidaError, match="Unidade non válida"):
+        crear_coidado(session, ana, _medicamento(
+            galinas, persoa, cantidade=5, unidade="17"), hoxe=HOXE)
+    # Rexistros xa gardados cun código antigo poden editarse sen cambiar a unidade
+    co.unidade = "4"
+    session.commit()
+    actualizar_coidado(session, ana, co, _medicamento(
+        galinas, persoa, produto_id=liquido.id, cantidade=6, unidade="4"), hoxe=HOXE)
+    assert co.cantidade == 6 and co.unidade == "4"

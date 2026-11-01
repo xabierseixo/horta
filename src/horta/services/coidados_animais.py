@@ -15,7 +15,6 @@ from horta.models.horta import RolHorta
 from horta.models.maquina import Maquina
 from horta.models.produto import Produto
 from horta.models.usuario import Usuario
-from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import comprobar_quen, persoa_co_papel
@@ -33,6 +32,16 @@ TIPOS_COIDADO: dict[str, str] = {
 }
 # Os tipos onde se anotan os animais afectados ou tratados
 CON_ANIMAIS = ("enfermidade", "producion", "medicamento")
+UNIDADES_MEDICAMENTO = ("ml", "L", "g", "kg", "unidades")
+_UNIDADE_DO_PRODUTO = {"litros": "L", "kg": "kg", "unidades": "unidades"}
+_PRODUTO_DA_UNIDADE = {"ml": "litros", "L": "litros", "g": "kg", "kg": "kg",
+                       "unidades": "unidades"}
+
+
+def unidade_do_medicamento(session: Session, produto_id: int | None) -> str | None:
+    """A unidade de medicamento que lle corresponde á unidade na que se conta o produto."""
+    produto = session.get(Produto, produto_id) if produto_id is not None else None
+    return _UNIDADE_DO_PRODUTO.get(produto.unidade) if produto else None
 
 
 @dataclass
@@ -70,7 +79,10 @@ def _animal(session: Session, animal_id: int) -> Animal:
     return animal
 
 
-def _validar(session: Session, datos: DatosCoidado, animal: Animal, hoxe: date) -> None:
+def _validar(
+    session: Session, datos: DatosCoidado, animal: Animal, hoxe: date,
+    unidade_actual: str | None = None,
+) -> None:
     if datos.tipo not in TIPOS_COIDADO:
         raise OperacionNonPermitidaError("Escolle que se fixo")
     if datos.data_inicio > hoxe:
@@ -98,8 +110,9 @@ def _validar(session: Session, datos: DatosCoidado, animal: Animal, hoxe: date) 
                 "Indica o tempo de espera (0 se o medicamento non ten)")
         if datos.cantidade is not None and datos.cantidade <= 0:
             raise OperacionNonPermitidaError("A cantidade ten que ser maior que 0")
-        if datos.unidade:
-            validar_codigo(session, "unidade_medida", datos.unidade, datos.data_inicio)
+        if datos.unidade and datos.unidade not in UNIDADES_MEDICAMENTO and (
+                datos.unidade != unidade_actual):
+            raise OperacionNonPermitidaError(f"Unidade non válida: {datos.unidade}")
         persoa_co_papel(session, animal.horta_id, datos.veterinario_id, "veterinario")
     elif datos.tipo == "visita":
         if datos.visitante_id is None:
@@ -146,8 +159,9 @@ def _medicamento(session: Session, actor: Usuario, datos: DatosCoidado, horta_id
     if datos.tipo != "medicamento":
         return
     if datos.produto_id is None:
+        unidade = _PRODUTO_DA_UNIDADE.get(datos.unidade or "", "unidades")
         datos.produto_id = produto_ou_novo(session, actor, horta_id, "medicamento",
-                                           datos.medicamento or "").id
+                                           datos.medicamento or "", unidade).id
     produto = session.get(Produto, datos.produto_id)
     if produto is None or produto.horta_id != horta_id or produto.tipo != "medicamento":
         raise OperacionNonPermitidaError("Ese medicamento non é desta explotación")
@@ -178,7 +192,7 @@ def actualizar_coidado(
     animal = _animal(session, datos.animal_id)
     if animal.horta_id != coidado.horta_id:
         raise OperacionNonPermitidaError("Ese grupo de animais non é desta explotación")
-    _validar(session, datos, animal, hoxe or date.today())
+    _validar(session, datos, animal, hoxe or date.today(), coidado.unidade)
     _medicamento(session, actor, datos, animal.horta_id)
     _copiar(coidado, datos, animal)
     session.commit()
