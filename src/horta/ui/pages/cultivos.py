@@ -21,6 +21,7 @@ from horta.services.cultivos import (
     estados_cultivos,
     listar_cultivos,
     nome_cultivo,
+    ten_rexistros,
 )
 from horta.services.historial import aviso_rotacion
 from horta.services.parcelas import listar_parcelas
@@ -393,6 +394,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             editando["id"] = None
             titulo.text = "Novo cultivo"
             parcela.value = cultivo_oficial.value = zona.value = None
+            cultivo_oficial.set_enabled(True)
             for campo in campos_texto:
                 campo.value = ""
             for selector in campos_select:
@@ -415,6 +417,10 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         zonas_da_parcela()
         zona.value = c.zona_id
         cultivo_oficial.value = c.cultivo_siex_codigo
+        # Cun cultivo oficial e traballos apuntados xa non se pode cambiar a outro
+        with get_session() as session:
+            con_rexistros = ten_rexistros(session, c.id)
+        cultivo_oficial.set_enabled(not (con_rexistros and c.cultivo_siex_codigo is not None))
         variedade_oficial.value = c.variedade_siex_id
         variedade_texto.value = "" if c.variedade_siex_id else _texto(c.variedade)
         superficie.establecer(c.superficie_ha)

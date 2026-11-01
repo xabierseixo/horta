@@ -126,6 +126,18 @@ def crear_parcela(
     return parcela
 
 
+def _comprobar_cultivos(session: Session, parcela: Parcela, superficie: float | None) -> None:
+    """A parcela non pode quedar menor ca un cultivo en curso nela."""
+    if superficie is None:
+        return
+    maior = max((c.superficie_ha for c in session.query(Cultivo).filter_by(
+        parcela_id=parcela.id, data_fin=None) if c.superficie_ha), default=None)
+    if maior is not None and superficie < maior:
+        texto = f"{maior:g}".replace(".", ",")
+        raise OperacionNonPermitidaError(
+            f"Un cultivo desta parcela ocupa {texto} ha: a parcela non pode ser menor")
+
+
 def actualizar_parcela(
     session: Session,
     actor: Usuario,
@@ -138,6 +150,7 @@ def actualizar_parcela(
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
     _validar_coordenadas(cambios)
     _validar_superficie(cambios)
+    _comprobar_cultivos(session, parcela, cambios.get("superficie"))
     _validar_rea(session, parcela.horta_id, {c: cambios.get(c, getattr(parcela, c)) for c in
                            ("arrendador_id", "data_alta", "data_baixa", "zona_especifica",
                             "auga_consumo_distancia_m", "zona_especifica_ha",

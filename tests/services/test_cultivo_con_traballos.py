@@ -72,3 +72,15 @@ def test_superficie_menor_ca_colleita(session):
     ana, cultivo = _escenario(session)
     with pytest.raises(OperacionNonPermitidaError, match="foi en 0,4 ha"):
         actualizar_cultivo(session, ana, cultivo, superficie_ha=0.3)
+
+
+def test_parcela_menor_ca_cultivo_en_curso(session):
+    from horta.models.parcela import Parcela
+    from horta.services.parcelas import actualizar_parcela
+
+    ana, cultivo = _escenario(session)
+    parcela = session.get(Parcela, cultivo.parcela_id)
+    with pytest.raises(OperacionNonPermitidaError, match="ocupa 0,5 ha"):
+        actualizar_parcela(session, ana, parcela, superficie=0.4)
+    actualizar_parcela(session, ana, parcela, superficie=0.5)
+    assert parcela.superficie == 0.5
