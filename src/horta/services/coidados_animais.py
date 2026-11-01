@@ -33,6 +33,8 @@ TIPOS_COIDADO: dict[str, str] = {
 # Os tipos onde se anotan os animais afectados ou tratados
 CON_ANIMAIS = ("enfermidade", "producion", "medicamento")
 UNIDADES_MEDICAMENTO = ("ml", "L", "g", "kg", "unidades")
+# Códigos do catálogo unidade_medida gardados antes nos medicamentos
+UNIDADE_DO_CODIGO = {"4": "L", "5": "kg", "48": "g", "51": "ml", "11": "unidades"}
 _UNIDADE_DO_PRODUTO = {"litros": "L", "kg": "kg", "unidades": "unidades"}
 _PRODUTO_DA_UNIDADE = {"ml": "litros", "L": "litros", "g": "kg", "kg": "kg",
                        "unidades": "unidades"}

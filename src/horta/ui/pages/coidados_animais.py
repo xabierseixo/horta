@@ -15,6 +15,7 @@ from horta.services.animais import listar_animais
 from horta.services.coidados_animais import (
     CON_ANIMAIS,
     TIPOS_COIDADO,
+    UNIDADE_DO_CODIGO,
     UNIDADES_MEDICAMENTO,
     DatosCoidado,
     actualizar_coidado,
@@ -261,7 +262,8 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         cambiar_compras()
         compra.value = co.entrada_id if co and co.entrada_id in compra.options else None
         cantidade.value = f"{co.cantidade:g}" if co and co.cantidade else ""
-        unidade.value = co.unidade if co and co.unidade in UNIDADES_MEDICAMENTO else None
+        valor = UNIDADE_DO_CODIGO.get(co.unidade or "", co.unidade) if co else None
+        unidade.value = valor if valor in UNIDADES_MEDICAMENTO else None
         tempo_espera.value = (str(co.tempo_espera_dias)
                               if co and co.tempo_espera_dias is not None else "")
         duracion.value = str(co.duracion_dias) if co and co.duracion_dias else ""

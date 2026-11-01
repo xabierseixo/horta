@@ -261,7 +261,7 @@ class Existencias:
 
     @property
     def queda(self) -> float:
-        return self.entrou - self.usado
+        return round(self.entrou - self.usado, 6)
 
 
 def _usos(session: Session, produto: Produto) -> list[tuple[float | None, str | None]]:
@@ -292,7 +292,7 @@ def _usos(session: Session, produto: Produto) -> list[tuple[float | None, str | 
             usos.append((None, None))
     for co in session.query(CoidadoAnimal).filter_by(produto_id=produto.id, baixa=False):
         conversor = _UNIDADES_MEDICAMENTO.get(co.unidade or "")
-        usos.append((co.cantidade * conversor[1], conversor[0])
+        usos.append((round(co.cantidade * conversor[1], 6), conversor[0])
                     if co.cantidade is not None and conversor else (None, None))
     for ti in (session.query(TransformacionInsumo)
                .join(Transformacion, Transformacion.id == TransformacionInsumo.transformacion_id)
