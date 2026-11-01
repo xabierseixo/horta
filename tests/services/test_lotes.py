@@ -33,7 +33,11 @@ from horta.services.lotes import (
 )
 from horta.services.parcelas import crear_parcela
 from horta.services.persoas import crear_contacto
-from horta.services.producions_animais import DatosProducion, crear_producion
+from horta.services.producions_animais import (
+    DatosProducion,
+    actualizar_producion,
+    crear_producion,
+)
 from horta.services.tarefas import crear_tarefa
 
 HOXE = date(2026, 10, 28)
@@ -170,6 +174,39 @@ def test_unha_entrada_non_baixa_por_debaixo_do_saido(session):
     dar_de_baixa_saida(session, ana, saida)
     dar_de_baixa_colleita(session, ana, colleita)
     assert queda(session, saida_lote(session, saida)) == 0
+
+
+def test_editar_entrada_cambiando_unidade(session):
+    ana, horta, quen, cultivo = _escenario(session)
+    col_t = _colleita(session, ana, cultivo, quen, cantidade=2.0, unidade="t", lote="L-T")
+    crear_saida(session, ana, _saida(col_t, quen, cantidade=1.5, unidade="t"), hoxe=HOXE)
+    with pytest.raises(OperacionNonPermitidaError, match="xa saíron 1.5 t"):
+        actualizar_colleita(session, ana, col_t, DatosColleita(
+            cultivo_id=cultivo.id, data=date(2026, 9, 1), cantidade=1000.0, unidade="kg",
+            lote="L-T", persoa_id=quen.id), hoxe=HOXE)
+
+    col_kg = _colleita(session, ana, cultivo, quen, cantidade=2000.0, unidade="kg", lote="L-KG")
+    crear_saida(session, ana, _saida(col_kg, quen, cantidade=1500.0, unidade="kg"), hoxe=HOXE)
+    actualizar_colleita(session, ana, col_kg, DatosColleita(
+        cultivo_id=cultivo.id, data=date(2026, 9, 1), cantidade=2.0, unidade="t",
+        lote="L-KG", persoa_id=quen.id), hoxe=HOXE)
+    assert resumo_lotes(session, ana, horta.id)[col_kg.lote_id] == (2000.0, 1500.0, 500.0)
+
+    galinas = crear_animal(session, ana, horta.id, "Galiñas", date(2026, 1, 1), cantidade=20)
+    ovos = crear_producion(session, ana, DatosProducion(
+        animal_id=galinas.id, data=date(2026, 9, 1), produto="ovos", cantidade=2.0,
+        unidade="ducias", lote="L-OVOS", persoa_id=quen.id), hoxe=HOXE)
+    crear_saida(session, ana, DatosSaida(
+        lote_id=ovos.lote_id, data=date(2026, 9, 2), tipo="casa", cantidade=1.5,
+        unidade="ducias", persoa_id=quen.id), hoxe=HOXE)
+    with pytest.raises(OperacionNonPermitidaError, match="xa saíron 1.5 ducias"):
+        actualizar_producion(session, ana, ovos, DatosProducion(
+            animal_id=galinas.id, data=date(2026, 9, 1), produto="ovos", cantidade=12.0,
+            unidade="unidades", lote="L-OVOS", persoa_id=quen.id), hoxe=HOXE)
+    actualizar_producion(session, ana, ovos, DatosProducion(
+        animal_id=galinas.id, data=date(2026, 9, 1), produto="ovos", cantidade=24.0,
+        unidade="unidades", lote="L-OVOS", persoa_id=quen.id), hoxe=HOXE)
+    assert resumo_lotes(session, ana, horta.id)[ovos.lote_id] == (2.0, 1.5, 0.5)
 
 
 def saida_lote(session, saida):

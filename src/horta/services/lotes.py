@@ -291,15 +291,21 @@ def queda(session: Session, lote: Lote) -> float:
     return entrado(session, lote) - saido(session, lote)
 
 
-def comprobar_entrada(session: Session, lote_id: int, cantidade_antes: float,
-                      cantidade_despois: float, unidade: str) -> None:
+def comprobar_entrada(
+    session: Session,
+    lote_id: int,
+    cantidade_antes: float,
+    unidade_antes: str,
+    cantidade_despois: float,
+    unidade_despois: str | None = None,
+) -> None:
     """Unha entrada (colleita ou produción) non pode baixar por debaixo do que xa saíu do
     lote. cantidade_despois = 0 ao dala de baixa."""
     lote = session.get(Lote, lote_id)
     if lote is None:
         return
-    baixa = (converter(cantidade_antes, unidade, lote.unidade) or 0) - (
-        converter(cantidade_despois, unidade, lote.unidade) or 0)
+    baixa = (converter(cantidade_antes, unidade_antes, lote.unidade) or 0) - (
+        converter(cantidade_despois, unidade_despois or unidade_antes, lote.unidade) or 0)
     if baixa > 0 and entrado(session, lote) - baixa < saido(session, lote) - 1e-9:
         raise OperacionNonPermitidaError(
             f"Do lote {lote.codigo} xa saíron {saido(session, lote):g} {lote.unidade}: "

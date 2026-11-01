@@ -167,9 +167,9 @@ def actualizar_producion(
     _validar(session, datos, animal, hoxe or date.today(), pr.id)
     lote_id = _lote(session, datos, animal)
     # O lote de antes non pode quedar con menos do que xa saíu del
-    comprobar_entrada(session, pr.lote_id, _neto(pr.cantidade, pr.retirada),
+    comprobar_entrada(session, pr.lote_id, _neto(pr.cantidade, pr.retirada), pr.unidade,
                       _neto(datos.cantidade, datos.retirada) if lote_id == pr.lote_id else 0,
-                      pr.unidade)
+                      datos.unidade)
     pr.lote_id = lote_id
     _copiar(pr, datos, animal)
     session.commit()
@@ -178,7 +178,7 @@ def actualizar_producion(
 
 def dar_de_baixa_producion(session: Session, actor: Usuario, pr: ProducionAnimal) -> None:
     comprobar_rol_horta(session, pr.horta_id, actor, _ROLES_ESCRITURA)
-    comprobar_entrada(session, pr.lote_id, _neto(pr.cantidade, pr.retirada), 0, pr.unidade)
+    comprobar_entrada(session, pr.lote_id, _neto(pr.cantidade, pr.retirada), pr.unidade, 0)
     pr.baixa = True
     session.commit()
 

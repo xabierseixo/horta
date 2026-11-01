@@ -200,8 +200,8 @@ def actualizar_colleita(
     _validar(session, datos, cultivo, horta_id, hoxe or date.today())
     lote_id = _lote(session, datos, cultivo, horta_id)
     # O lote de antes non pode quedar con menos do que xa saíu del
-    comprobar_entrada(session, colleita.lote_id, colleita.cantidade,
-                      datos.cantidade if lote_id == colleita.lote_id else 0, colleita.unidade)
+    comprobar_entrada(session, colleita.lote_id, colleita.cantidade, colleita.unidade,
+                      datos.cantidade if lote_id == colleita.lote_id else 0, datos.unidade)
     colleita.lote_id = lote_id
     _copiar(colleita, datos)
     session.commit()
@@ -211,7 +211,7 @@ def actualizar_colleita(
 def dar_de_baixa_colleita(session: Session, actor: Usuario, colleita: Colleita) -> None:
     _, horta_id = _cultivo_e_horta(session, colleita.cultivo_id)
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    comprobar_entrada(session, colleita.lote_id, colleita.cantidade, 0, colleita.unidade)
+    comprobar_entrada(session, colleita.lote_id, colleita.cantidade, colleita.unidade, 0)
     colleita.baixa = True
     session.commit()
 
