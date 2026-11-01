@@ -19,6 +19,7 @@ from horta.services.fito_consulta import (
     aviso_prazo_colleita,
     buscar_produtos,
     comprobar_tratamento,
+    dose_etiqueta,
     etiqueta_problema,
     materia_activa,
     nomes_comuns_problemas,
@@ -128,6 +129,25 @@ def test_dose_por_riba_da_maxima(session):
     horta, cultivo = _escenario(session)
     avisos = comprobar_tratamento(session, horta, _datos(cultivo, dose=1.5))
     assert "pasa da máxima da etiqueta (1 l/ha)" in _textos(avisos, FORTE)
+
+
+def test_dose_etiqueta_e_aviso_unidade_non_comparable(session):
+    horta, cultivo = _escenario(session)
+    assert "0,5–1 l/ha, prazo de seguridade 14 días, máx. 2 aplicacións" in dose_etiqueta(
+        session, "ES-1", cultivo.id)
+    assert dose_etiqueta(session, "ES-1", None) == ""
+    v = session.query(CatalogoVersion).one()
+    session.add(FitoProduto(num_rexistro="ES-4", nome="AFROCOBRE HC", estado="Vigente",
+                            version_id=v.id))
+    session.flush()
+    session.add(_uso("ES-4", PATATA, MILDIU, "Mildiu de la patata, Phytophthora infestans",
+                     dose_min=0.15, dose_max=0.5, unidade_dose="%"))
+    session.commit()
+    avisos = comprobar_tratamento(session, horta, _datos(cultivo, num="ES-4", dose=2.0))
+    esperado = ("A etiqueta dá a dose en % (0,15–0,5 %): non se pode comprobar a dose máxima. "
+                "No caderno apúntanse os kg/ha ou L/ha botados.")
+    assert esperado in _textos(avisos, AVISO)
+    assert not _textos(avisos, FORTE)
 
 
 def test_autoconsumo_e_produto_profesional(session):

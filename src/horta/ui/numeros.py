@@ -20,6 +20,18 @@ def parsear_decimal(texto: str | float | int | None) -> float | None:
         raise OperacionNonPermitidaError(f"«{texto}» non é un número") from None
 
 
+def formatar_decimal(valor: float | int | None) -> str:
+    """Mostra un número con coma decimal («9,8», «10»). Baleiro se é None."""
+    if valor is None:
+        return ""
+    return f"{valor:g}".replace(".", ",")
+
+
+def euros(valor: float) -> str:
+    """Mostra un importe en euros con dous decimais e coma («85,40 €», «1 200,00 €»)."""
+    return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
+
+
 def parsear_data(texto: str | None) -> date | None:
     """AAAA-MM-DD → date. Baleiro → None. Formato incorrecto → mensaxe clara."""
     if not texto or not texto.strip():

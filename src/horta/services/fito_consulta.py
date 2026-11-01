@@ -126,12 +126,18 @@ def _num(x: float) -> str:
     return f"{x:g}".replace(".", ",")
 
 
+def _dose_uso(u: FitoUso) -> str:
+    if u.dose_max is None:
+        return ""
+    dose = (_num(u.dose_max) if u.dose_min in (None, u.dose_max)
+            else f"{_num(u.dose_min)}–{_num(u.dose_max)}")
+    return f"{dose} {u.unidade_dose or ''}".strip()
+
+
 def _resumo_uso(u: FitoUso) -> str:
     partes = []
-    if u.dose_max is not None:
-        dose = (_num(u.dose_max) if u.dose_min in (None, u.dose_max)
-                else f"{_num(u.dose_min)}–{_num(u.dose_max)}")
-        partes.append(f"{dose} {u.unidade_dose or ''}".strip())
+    if dose := _dose_uso(u):
+        partes.append(dose)
     if u.ps_tipo == "non_procede":
         partes.append("sen prazo de seguridade")
     elif u.ps_dias is not None:
@@ -139,6 +145,20 @@ def _resumo_uso(u: FitoUso) -> str:
     if u.aplicacions_max:
         partes.append(f"máx. {u.aplicacions_max} aplicacións")
     return ", ".join(partes)
+
+
+def dose_etiqueta(session: Session, num_rexistro: str | None, cultivo_id: int | None) -> str:
+    """Resumo da dose da etiqueta do produto para o cultivo indicado."""
+    if not num_rexistro or cultivo_id is None:
+        return ""
+    cultivo = session.get(Cultivo, cultivo_id)
+    if cultivo is None:
+        return ""
+    todos = list(session.query(FitoUso).filter_by(num_rexistro=num_rexistro.strip()))
+    codigos = _cultivos_mapa(session, cultivo, todos)
+    usos = [u for u in todos if u.codigo_cultivo in codigos]
+    resumos = list(dict.fromkeys(_resumo_uso(u) for u in usos if _resumo_uso(u)))
+    return f"Dose na etiqueta ({cultivo.especie}): {' · '.join(resumos)}" if resumos else ""
 
 
 def _aplicacions_previas(session: Session, num_rexistro: str, cultivo_ids: list[int],
@@ -216,9 +236,18 @@ def comprobar_tratamento(session: Session, horta: Horta, datos: DatosTratamento,
         unidade = _unidade(describir(session, "unidade_medida", linha.unidade))
         maximos = [u.dose_max for u in validos
                    if u.dose_max is not None and _unidade(u.unidade_dose) == unidade]
-        if linha.dose is not None and maximos and linha.dose > max(maximos):
-            avisos.append(Aviso(FORTE, f"{nome}: a dose ({_num(linha.dose)}) pasa da máxima da "
-                                       f"etiqueta ({_num(max(maximos))} {unidade})."))
+        if maximos:
+            if linha.dose is not None and linha.dose > max(maximos):
+                avisos.append(Aviso(FORTE, f"{nome}: a dose ({_num(linha.dose)}) pasa da máxima "
+                                           f"da etiqueta ({_num(max(maximos))} {unidade})."))
+        elif con_dose := [u for u in validos if u.dose_max is not None and u.unidade_dose]:
+            u_dose = con_dose[0]
+            avisos.append(Aviso(
+                AVISO,
+                f"{nome}: A etiqueta dá a dose en {u_dose.unidade_dose} ({_dose_uso(u_dose)}): "
+                "non se pode comprobar a dose máxima. No caderno apúntanse os kg/ha ou L/ha "
+                "botados.",
+            ))
         limites = [u.aplicacions_max for u in validos if u.aplicacions_max]
         if limites:
             feitas = _aplicacions_previas(session, produto.num_rexistro, cultivo_ids,

@@ -15,7 +15,13 @@ from horta.models.horta import Horta
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.services.errors import OperacionNonPermitidaError
-from horta.services.fito_consulta import AVISO, FORTE, comprobar_tratamento, materia_activa
+from horta.services.fito_consulta import (
+    AVISO,
+    FORTE,
+    comprobar_tratamento,
+    dose_etiqueta,
+    materia_activa,
+)
 from horta.services.tratamentos_fito import (
     UNIDADES_DOSE,
     UNIDADES_TOTAL,
@@ -95,12 +101,21 @@ def crear_dialogo_tratamento(
 
     def fila_produto(**valores: Any) -> dict[str, Any]:
         fila = {"rexistro": None, "tipo_produto": _REXISTRADO, "nome": "", "num": "",
-                "materia": "", "dose": "", "unidade": None, "total": False}
+                "materia": "", "dose": "", "unidade": None, "total": False, "etiqueta": ""}
         fila.update(valores)
         fila["tipo_produto"] = _ou_nada(op.tipos_produto, fila["tipo_produto"])
         fila["unidade"] = _ou_nada(op.unidades, fila["unidade"])
         fila["rexistro"] = _ou_nada(op.rexistro, fila["num"])
         return fila
+
+    def cultivo_id_actual() -> int | None:
+        return next((f["cultivo_id"] for f in estado["cultivos"] if f["cultivo_id"]), None)
+
+    def actualizar_etiquetas() -> None:
+        cid = cultivo_id_actual()
+        with get_session() as session:
+            for f in estado["produtos"]:
+                f["etiqueta"] = dose_etiqueta(session, f["num"], cid)
 
     def fila_medida(tipo: str | None = None, cantidade: str = "", unidade: str | None = None,
                     mdf: str = "") -> dict[str, Any]:
@@ -140,6 +155,7 @@ def crear_dialogo_tratamento(
                                 if not f["superficie"] and e.value in op.superficies:
                                     f["superficie"] = _txt(op.superficies[e.value])
                                 mirar_tempo()
+                                actualizar_etiquetas()
 
                             ui.select(op.cultivos, label="Cultivo e parcela",
                                       with_input=True, on_change=escoller_cultivo).bind_value(
@@ -212,6 +228,8 @@ def crear_dialogo_tratamento(
                                         return
                                     with get_session() as session:
                                         f["materia"] = materia_activa(session, e.value)
+                                        f["etiqueta"] = dose_etiqueta(
+                                            session, e.value, cultivo_id_actual())
                                     f["num"], f["tipo_produto"] = e.value, _REXISTRADO
                                     f["nome"] = op.rexistro[e.value].rsplit(" (", 1)[0]
 
@@ -235,6 +253,9 @@ def crear_dialogo_tratamento(
                                            if k in UNIDADES_DOSE + UNIDADES_TOTAL},
                                           label="Unidade").bind_value(fila, "unidade").classes(
                                     "grow")
+                            ui.label().classes("text-caption texto-suave").bind_text_from(
+                                fila, "etiqueta").bind_visibility_from(
+                                fila, "etiqueta", backward=bool)
                             ui.checkbox("É a cantidade total, non a dose por hectárea"
                                         ).bind_value(fila, "total")
 
@@ -425,6 +446,7 @@ def crear_dialogo_tratamento(
         validacion.value = bool(t and t.asesor and t.asesor.validacion)
         eficacia.value = _ou_nada(op.eficacias, t.eficacia if t else None)
         notas.value = (t.notas or "") if t else ""
+        actualizar_etiquetas()
         for refrescar in (filas_cultivos, filas_problemas, filas_produtos, filas_medidas,
                           orixinais):
             refrescar.refresh()

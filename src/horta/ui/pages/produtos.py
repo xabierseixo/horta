@@ -39,7 +39,7 @@ from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
-from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.numeros import euros, formatar_decimal, parsear_data, parsear_decimal
 from horta.ui.pages.clasificacions import dialogo_ficha
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -101,7 +101,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
 
     def queda(produto_id: int, unidade: str) -> str:
         conta = contas[produto_id]
-        texto = f"{conta.queda:g} {unidade}"
+        texto = f"{formatar_decimal(conta.queda)} {unidade}"
         # Se hai usos ou compras sen cantidade, o número non é seguro
         return f"{texto} (?)" if conta.sen_contar or conta.entradas_sen_cantidade else texto
 
@@ -110,8 +110,9 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
             ("produto", "Produto"), ("queda", "Queda"), ("tipo", "Que é"),
             ("entrou", "Entrou"), ("usado", "Usado"))],
         rows=[{"id": p.id, "produto": p.nome, "queda": queda(p.id, p.unidade),
-               "tipo": TIPOS_PRODUTO[p.tipo], "entrou": f"{contas[p.id].entrou:g} {p.unidade}",
-               "usado": f"{contas[p.id].usado:g} {p.unidade}"} for p in produtos],
+               "tipo": TIPOS_PRODUTO[p.tipo],
+               "entrou": f"{formatar_decimal(contas[p.id].entrou)} {p.unidade}",
+               "usado": f"{formatar_decimal(contas[p.id].usado)} {p.unidade}"} for p in produtos],
         row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
         'flat bordered no-data-label="Aínda non hai produtos: apunta a primeira compra" '
@@ -137,9 +138,9 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
             ("provedor", "Provedor"), ("albaran", "Albará"), ("prezo", "Prezo"))],
         rows=[{"id": e.id, "data": f"{e.data:%d/%m/%Y}",
                "produto": nome_produto.get(e.produto_id, ""),
-               "canto": f"{e.cantidade:g} {e.unidade}" if e.cantidade else "",
+               "canto": f"{formatar_decimal(e.cantidade)} {e.unidade}" if e.cantidade else "",
                "provedor": nomes.get(e.provedor_id or 0, ""), "albaran": e.albaran_factura or "",
-               "prezo": f"{e.importe:.2f} €" if e.importe is not None else ""}
+               "prezo": euros(e.importe) if e.importe is not None else ""}
               for e in entradas],
         row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa").props(
@@ -304,14 +305,15 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
         titulo.text = "Editar entrada de produto" if entrada else "Entrada de produto"
         produto.value = entrada.produto_id if entrada else produto_id
         data.value = (entrada.data if entrada else date.today()).isoformat()
-        cantidade.value = f"{entrada.cantidade:g}" if entrada and entrada.cantidade else ""
+        cantidade.value = (formatar_decimal(entrada.cantidade)
+                           if entrada and entrada.cantidade else "")
         cambiar_produto()
         if entrada and entrada.unidade:
             unidade.value = entrada.unidade
         provedor.value = entrada.provedor_id if entrada else None
         albaran.value = (entrada.albaran_factura or "") if entrada else ""
-        importe.value = (f"{entrada.importe:g}" if entrada and entrada.importe is not None
-                         else "")
+        importe.value = (formatar_decimal(entrada.importe)
+                         if entrada and entrada.importe is not None else "")
         pago.poñer(entrada.data_pago if entrada else None, entrada is None)
         lote.value = (entrada.lote_provedor or "") if entrada else ""
         caducidade.value = (entrada.data_caducidade.isoformat()
@@ -319,7 +321,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
         pasaporte.value = (entrada.pasaporte_fitosanitario or "") if entrada else ""
         persoa.value = (entrada.persoa_id if entrada.persoa_id in persoas else None) \
             if entrada else proposta_quen(horta_id, tarefa)
-        horas.value = f"{entrada.horas:g}" if entrada and entrada.horas else ""
+        horas.value = formatar_decimal(entrada.horas) if entrada and entrada.horas else ""
         notas.value = (entrada.notas or "") if entrada else ""
         dialogo.open()
 

@@ -33,7 +33,7 @@ def seccion_instalacions(horta_id: int, pode_editar: bool) -> None:
             ("catastro", "Ref. catastral"), ("estado", "Estado"))],
         rows=[{"id": i.id, "nome": i.nome, "tipo": TIPOS_INSTALACION[i.tipo],
                "enderezo": i.enderezo or "", "catastro": i.referencia_catastral or "",
-               "estado": "activa" if i.activa else "sen uso"} for i in instalacions],
+               "estado": "En uso" if i.activa else "Sen uso"} for i in instalacions],
         row_key="id", selection="single",
     ).classes("w-full taboa").props(
         f'flat bordered no-data-label="Aínda non hai instalacións" {TEXTOS_TABOA}')

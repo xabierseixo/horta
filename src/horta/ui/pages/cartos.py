@@ -30,13 +30,9 @@ from horta.ui.accions import executar_accion
 from horta.ui.campo_pago import CampoPago
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
-from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.numeros import euros, formatar_decimal, parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
-
-
-def _euros(valor: float) -> str:
-    return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
 
 
 def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
@@ -69,16 +65,16 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                     for nome, valor in partidas.items():
                         with ui.row().classes("w-full justify-between"):
                             ui.label(nome)
-                            ui.label(_euros(valor))
+                            ui.label(euros(valor))
                     with ui.row().classes("w-full justify-between text-weight-bold"):
                         ui.label("Total")
-                        ui.label(_euros(total))
+                        ui.label(euros(total))
         with ui.column().classes("tarxeta w-full gap-1 q-mt-md"):
-            ui.label(f"Resultado ({resumo.periodo.nome}): {_euros(resumo.resultado)}").classes(
+            ui.label(f"Resultado ({resumo.periodo.nome}): {euros(resumo.resultado)}").classes(
                 "text-subtitle1 text-weight-bold")
             if resumo.custos.man_de_obra_propia:
                 ui.label(f"Sen contar as horas do titular e a familia (non se pagan): "
-                         f"{_euros(resumo.resultado_sen_man_propia)}").classes("texto-suave")
+                         f"{euros(resumo.resultado_sen_man_propia)}").classes("texto-suave")
             if resumo.custos.sen_custo:
                 ui.label(f"{resumo.custos.sen_custo} traballos con horas quedan sen contar: "
                          "falta o custo da hora da persoa ou da máquina (Equipo, Maquinaria)"
@@ -91,18 +87,18 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
         for persoa_id, (cobrar, pagar) in sorted(saldos.items(), key=lambda par: -max(par[1])):
             quen = nomes.get(persoa_id or 0)
             if cobrar > 0:
-                ui.label(f"Sen persoa: pendente de cobrar {_euros(cobrar)}" if quen is None
-                         else f"{quen} débeche {_euros(cobrar)}")
+                ui.label(f"Sen persoa: pendente de cobrar {euros(cobrar)}" if quen is None
+                         else f"{quen} débeche {euros(cobrar)}")
             if pagar > 0:
-                ui.label(f"Sen persoa: pendente de pagar {_euros(pagar)}" if quen is None
-                         else f"Débeslle a {quen} {_euros(pagar)}")
+                ui.label(f"Sen persoa: pendente de pagar {euros(pagar)}" if quen is None
+                         else f"Débeslle a {quen} {euros(pagar)}")
 
         with ui.row().classes("w-full items-center justify-between q-mt-md"):
             ui.label("Outros gastos e ingresos").classes("text-subtitle1 text-weight-bold")
             ui.button("Novo", icon="add", on_click=lambda: abrir(None))
         filas = [{"id": a.id, "data": f"{a.data:%d/%m/%Y}", "tipo": TIPOS[a.tipo],
                   "categoria": CATEGORIAS[a.categoria], "concepto": a.concepto,
-                  "importe": _euros(a.importe), "quen": nomes.get(a.persoa_id or 0, ""),
+                  "importe": euros(a.importe), "quen": nomes.get(a.persoa_id or 0, ""),
                   "pago": "Si" if a.data_pago else "Pendente"} for a in apuntes]
         columnas = [{"name": c, "label": e, "field": c, "align": "left"} for c, e in (
             ("data", "Data"), ("tipo", "Tipo"), ("categoria", "Categoría"),
@@ -209,7 +205,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
         categoria.value = apunte.categoria if apunte else "outro"
         concepto.value = apunte.concepto if apunte else ""
         data.value = (apunte.data if apunte else date.today()).isoformat()
-        importe.value = f"{apunte.importe:g}" if apunte else ""
+        importe.value = formatar_decimal(apunte.importe) if apunte else ""
         persoa.value = apunte.persoa_id if apunte else None
         albaran.value = (apunte.albaran_factura or "") if apunte else ""
         pago.poñer(apunte.data_pago if apunte else None, apunte is None)
