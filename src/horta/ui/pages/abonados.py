@@ -20,7 +20,7 @@ from horta.services.abonados import (
     nutrientes_do_abonado,
 )
 from horta.services.catalogos import valores_vixentes
-from horta.services.cultivos import listar_cultivos
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import UNIDADES_DOSE, listar_fertilizantes, nutrientes_kg_ha
 from horta.services.maquinaria import listar_maquinas
@@ -57,7 +57,7 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
         abonados = listar_abonados(session, actor, horta_id)
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         lista_cultivos = listar_cultivos(session, actor, horta_id)
-        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+        cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in lista_cultivos}
         abonados_cultivos = {le.cultivo_id for a in abonados for le in a.leiras}
         balances = {c.id: balance_do_cultivo(session, actor, horta_id, c) for c in lista_cultivos
@@ -141,7 +141,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
             pechar_sesion()
             return lambda _: None
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+        cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
         abonos = {f.id: f.nome for f in listar_fertilizantes(session, actor, horta_id)}
         produtos_abono = {p.fertilizante_id: p.id for p in listar_produtos(

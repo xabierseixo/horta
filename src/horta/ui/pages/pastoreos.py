@@ -14,7 +14,7 @@ from horta.models.pastoreo import Pastoreo
 from horta.models.tarefa import Tarefa
 from horta.services.animais import ESPECIES, listar_animais
 from horta.services.catalogos import valores_vixentes
-from horta.services.cultivos import listar_cultivos
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.diario import nome_grupo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.pastoreos import (
@@ -175,7 +175,7 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
                   for a in listar_animais(session, actor, horta_id)
                   if a.especie_codigo not in NON_PASTAN}
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        leiras = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+        leiras = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                   for c in listar_cultivos(session, actor, horta_id)}
         coberturas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                       for v in valores_vixentes(session, "tipo_cobertura_solo")}

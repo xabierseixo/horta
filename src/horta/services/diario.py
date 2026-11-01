@@ -23,7 +23,7 @@ from horta.services.clasificacions import (
 )
 from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
-from horta.services.cultivos import listar_cultivos
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.labores import listar_labores
 from horta.services.lotes import CANLES, TIPOS_SAIDA, listar_lotes, listar_saidas
 from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
@@ -102,7 +102,7 @@ def listar_traballos(
         c = cultivos.get(cultivo_id) if cultivo_id else None
         if c is None:
             return ""
-        return f"{c.especie} {c.variedade or ''}".strip() + f" — {parcelas.get(c.parcela_id, '')}"
+        return f"{nome_cultivo(c)} — {parcelas.get(c.parcela_id, '')}"
 
     def parcela_de(cultivo_id: int | None) -> frozenset[int]:
         c = cultivos.get(cultivo_id) if cultivo_id else None

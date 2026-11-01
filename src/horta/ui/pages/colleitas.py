@@ -22,7 +22,7 @@ from horta.services.colleitas import (
     propor_lote,
     rendemento_kg_ha,
 )
-from horta.services.cultivos import listar_cultivos
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.fito_consulta import aviso_prazo_colleita
 from horta.services.lotes import listar_lotes, resumo_lotes
 from horta.services.persoas import listar_quen
@@ -55,12 +55,12 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         rendementos = {c.id: rendemento_kg_ha(session, actor, c.id)
                        for c in cultivos if c.id in con_colleitas}
 
-    nome_cultivo = {c.id: f"{c.especie} {c.variedade or ''}".strip() for c in cultivos}
+    nomes_cultivo = {c.id: nome_cultivo(c) for c in cultivos}
     filas = [
         {
             "id": c.id,
             "data": f"{c.data:%d/%m/%Y}",
-            "cultivo": nome_cultivo.get(c.cultivo_id, ""),
+            "cultivo": nomes_cultivo.get(c.cultivo_id, ""),
             "cantidade": f"{c.cantidade:g} {c.unidade}",
             "lote": c.lote,
         "queda": (f"{queda[c.lote_id][2]:g} {unidades_lote[c.lote_id]}"
@@ -72,7 +72,7 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
     with ui.row().classes("gap-4"):
         for cultivo_id, kg_ha in rendementos.items():
             if kg_ha is not None:
-                ui.label(f"{nome_cultivo[cultivo_id]}: {kg_ha:.0f} kg/ha").classes("text-body2")
+                ui.label(f"{nomes_cultivo[cultivo_id]}: {kg_ha:.0f} kg/ha").classes("text-body2")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivo", "Cultivo"), ("cantidade", "Cantidade"),
@@ -139,8 +139,8 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         if actor is None:
             pechar_sesion()
             return lambda _: None
-        nome_cultivo = {c.id: f"{c.especie} {c.variedade or ''}".strip()
-                        for c in listar_cultivos(session, actor, horta_id)}
+        nomes_cultivo = {c.id: nome_cultivo(c)
+                         for c in listar_cultivos(session, actor, horta_id)}
         destinos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                     for v in valores_vixentes(session, "destino_colleita")}
         restos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
@@ -152,7 +152,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         titulo = ui.label("Apuntar colleita").classes("text-h6")
         # Varias leiras dunha vez: unha colleita por leira, coa súa cantidade e no mesmo lote
-        cultivo = ui.select(nome_cultivo, label="Leiras (unha ou varias)", with_input=True,
+        cultivo = ui.select(nomes_cultivo, label="Leiras (unha ou varias)", with_input=True,
                             multiple=True, value=[]).classes("w-full").props("use-chips")
         data = campo_data("Data", date.today().isoformat())
         persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
@@ -168,7 +168,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
             if len(cultivo.value or []) > 1:
                 ui.label("Canto se colleu en cada leira").classes("text-caption")
                 for cultivo_id in cultivo.value:
-                    cantidades[cultivo_id] = ui.input(nome_cultivo.get(cultivo_id, "")).classes(
+                    cantidades[cultivo_id] = ui.input(nomes_cultivo.get(cultivo_id, "")).classes(
                         "w-full")
 
         cantidades_por_leira()

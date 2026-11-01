@@ -12,7 +12,7 @@ from horta.models.fito_rexistro import FitoProduto
 from horta.models.parcela import Parcela
 from horta.models.tratamento_fito import TIPOS_PROBLEMA, TratamentoFito
 from horta.services.catalogos import describir, valores_vixentes
-from horta.services.cultivos import listar_cultivos
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.fito_consulta import (
     etiqueta_problema,
     nomes_comuns_problemas,
@@ -144,8 +144,8 @@ def dialogo_tratamento_fito(horta_id: int) -> Callable[[TratamentoFito | None], 
         parcelas = {p.id: p for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         persoas = listar_persoas(session, actor, horta_id)
         opcions = OpcionsTratamento(
-            cultivos={c.id: f"{c.especie} {c.variedade or ''} — "
-                            f"{parcelas[c.parcela_id].nome}".strip() for c in cultivos_horta},
+            cultivos={c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id].nome}"
+                      for c in cultivos_horta},
             problemas={tipo: _opcions_problema(session, tipo) for tipo in TIPOS_PROBLEMA},
             xustificacions=_opcions(session, "xustificacion"),
             estados=_opcions(session, "estado_fenoloxico"),

@@ -12,7 +12,7 @@ from horta.models.labor import Labor
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
 from horta.services.catalogos import valores_vixentes
-from horta.services.cultivos import listar_cultivos
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.labores import (
     DESBROCE,
@@ -48,7 +48,7 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
             return
         labores = listar_labores(session, actor, horta_id)
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+        cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
         tipos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                  for v in valores_vixentes(session, "tipo_labor")}
@@ -116,7 +116,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
             pechar_sesion()
             return lambda _: None
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+        cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
         tipos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                  for v in valores_vixentes(session, "tipo_labor")}

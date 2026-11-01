@@ -12,7 +12,7 @@ from horta.models.parcela import Parcela
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
 from horta.services.catalogos import valores_vixentes
-from horta.services.cultivos import listar_cultivos
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
@@ -49,7 +49,7 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
             return
         regas = listar_regas(session, actor, horta_id)
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+        cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
         sistemas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                     for v in valores_vixentes(session, "sistema_rega")}
@@ -120,7 +120,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
             pechar_sesion()
             return lambda _: None
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        cultivos = {c.id: f"{c.especie} {c.variedade or ''} — {parcelas[c.parcela_id]}".strip()
+        cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
         sistemas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                     for v in valores_vixentes(session, "sistema_rega")}
