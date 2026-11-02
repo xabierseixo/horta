@@ -4,6 +4,7 @@ import pytest
 
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
+from horta.models.parcela import Parcela
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
@@ -13,6 +14,8 @@ from horta.services.parcelas import (
     crear_parcela,
     eliminar_parcela,
     listar_parcelas,
+    parcela_no_punto,
+    xeometria_debuxada,
 )
 from horta.services.persoas import crear_contacto
 from horta.services.tarefas import crear_tarefa
@@ -261,3 +264,12 @@ def test_xeometria_debuxada():
     assert 0.95 < hectareas < 1.05
     assert puntos_da_xeometria(geojson) == puntos
     assert centro == (42.80045, -7.99939)
+
+
+def test_parcela_no_punto():
+    cadrado = [(42.8, -8.0), (42.801, -8.0), (42.801, -7.999), (42.8, -7.999)]
+    a = Parcela(nome="A", geometria=xeometria_debuxada(cadrado)[0])
+    b = Parcela(nome="B", lat=42.81, lon=-8.01)  # só situada cun punto
+    assert parcela_no_punto([a, b], 42.8005, -7.9995) is a
+    assert parcela_no_punto([a, b], 42.81005, -8.01) is b  # a uns metros do punto
+    assert parcela_no_punto([a, b], 42.9, -8.2) is None

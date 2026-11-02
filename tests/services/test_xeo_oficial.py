@@ -83,3 +83,23 @@ def test_catastro_datos_e_contorno(session):
         datos.referencia, datos.localizacion, puntos=tuple(puntos)))
     assert parcela.referencia_catastral == "15078A01200345"
     assert parcela.nome.startswith("Polígono 12") and parcela.geometria
+
+
+def test_o_catastro_non_pisa_o_sigpac(session):
+    from horta.services.xeo_oficial import ParcelaCatastral, completar_parcela_co_catastro
+
+    ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
+                  rol=RolGlobal.USUARIO, activo=True)
+    session.add(ana)
+    session.commit()
+    horta = crear_horta(session, ana, "Horta")
+    [recinto] = ler_recintos(_RECINTO)
+    parcela = crear_parcela_do_recinto(session, ana, horta.id, "", recinto,
+                                       referencia_catastral="15078A01200345")
+    assert parcela.referencia_catastral == "15078A01200345"
+    contorno, superficie = parcela.geometria, parcela.superficie
+    pequena = ((42.8, -8.0), (42.8001, -8.0), (42.8001, -7.9999))
+    completar_parcela_co_catastro(session, ana, parcela, ParcelaCatastral(
+        "15078A01200346", None, superficie_m2=50.0, puntos=pequena))
+    assert parcela.referencia_catastral == "15078A01200346"
+    assert (parcela.geometria, parcela.superficie) == (contorno, superficie)

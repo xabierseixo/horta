@@ -231,6 +231,30 @@ def xeometria_debuxada(puntos: list[tuple[float, float]]) -> tuple[str, float, t
     return geojson, round(area_m2 / 10000, 4), (round(lat0, 6), round(lon0, 6))
 
 
+def _dentro(lat: float, lon: float, aneis: list[tuple[float, float]]) -> bool:
+    dentro = False
+    for (la1, lo1), (la2, lo2) in zip(aneis, aneis[1:] + aneis[:1]):
+        if (lo1 > lon) != (lo2 > lon) and lat < la1 + (lon - lo1) * (la2 - la1) / (lo2 - lo1):
+            dentro = not dentro
+    return dentro
+
+
+def parcela_no_punto(parcelas: list[Parcela], lat: float, lon: float) -> Parcela | None:
+    """A parcela que ten ese punto dentro do contorno; ou, se non ten contorno, a que está
+    situada a menos de 25 m."""
+    for p in parcelas:
+        forma = puntos_da_xeometria(p.geometria)
+        if forma and _dentro(lat, lon, forma):
+            return p
+    for p in parcelas:
+        if not puntos_da_xeometria(p.geometria) and p.lat is not None and p.lon is not None:
+            metros = math.hypot((lat - p.lat) * 111_320,
+                                (lon - p.lon) * 111_320 * math.cos(math.radians(lat)))
+            if metros < 25:
+                return p
+    return None
+
+
 def puntos_da_xeometria(geometria: str | None) -> list[tuple[float, float]]:
     """(lat, lon) do primeiro anel dun Polygon GeoJSON; [] se non o é."""
     try:
