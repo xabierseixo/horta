@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 
 from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
-from horta.services.errors import OperacionNonPermitidaError
 from horta.services.parcelas import actualizar_parcela, crear_parcela, xeometria_debuxada
 
 _SIGPAC_PUNTO = ("https://sigpac-hubcloud.es/servicioconsultassigpac/query/recinfobypoint/4326/"
@@ -108,34 +107,6 @@ def referencia_catastral_no_punto(lat: float, lon: float) -> str | None:
     return ler_referencia_catastral(_descargar(_CATASTRO_PUNTO.format(lat=lat, lon=lon)))
 
 
-def _campos_do_recinto(recinto: Recinto, referencia_catastral: str | None = None
-                       ) -> dict[str, Any]:
-    if len(recinto.puntos) < 3:
-        raise OperacionNonPermitidaError("O SIGPAC non devolveu o contorno do recinto")
-    geojson, hectareas, centro = xeometria_debuxada(recinto.puntos)
-    return {"sigpac_provincia": recinto.provincia, "sigpac_concello": recinto.municipio,
-            "sigpac_agregado": recinto.agregado, "sigpac_zona": recinto.zona,
-            "sigpac_poligono": recinto.poligono, "sigpac_parcela": recinto.parcela,
-            "sigpac_subparcela": recinto.recinto, "uso_aproveitamento": recinto.uso,
-            "geometria": geojson, "superficie": hectareas, "lat": centro[0], "lon": centro[1]
-            } | ({"referencia_catastral": referencia_catastral} if referencia_catastral else {})
-
-
-def crear_parcela_do_recinto(session: Session, actor: Usuario, horta_id: int, nome: str,
-                             recinto: Recinto, referencia_catastral: str | None = None) -> Parcela:
-    campos = _campos_do_recinto(recinto, referencia_catastral)
-    parcela = crear_parcela(session, actor, horta_id, nome.strip() or
-                            f"Recinto {recinto.poligono}-{recinto.parcela}-{recinto.recinto}")
-    return actualizar_parcela(session, actor, parcela, **campos)
-
-
-def completar_parcela_co_recinto(session: Session, actor: Usuario, parcela: Parcela,
-                                 recinto: Recinto, referencia_catastral: str | None = None
-                                 ) -> Parcela:
-    return actualizar_parcela(session, actor, parcela,
-                              **_campos_do_recinto(recinto, referencia_catastral))
-
-
 # --- Catastro: datos non protexidos e contorno dunha referencia
 
 _CATASTRO_DNPRC = ("https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/"
@@ -218,27 +189,63 @@ def parcela_catastral_no_punto(lat: float, lon: float) -> ParcelaCatastral | Non
                             datos.superficie_m2 or area, datos.cultivos, tuple(puntos))
 
 
-def _campos_da_catastral(parcela: ParcelaCatastral) -> dict[str, Any]:
-    campos: dict[str, Any] = {"referencia_catastral": parcela.referencia}
-    if len(parcela.puntos) >= 3:
-        geojson, hectareas, centro = xeometria_debuxada(list(parcela.puntos))
+# --- Leira: a finca do Catastro (o contorno, máis preciso) co seu recinto SIGPAC (a
+# referencia que piden o caderno e as axudas). Se non hai finca do Catastro, vale o recinto.
+
+@dataclass(frozen=True)
+class Leira:
+    catastral: ParcelaCatastral | None
+    recinto: Recinto | None
+
+    @property
+    def puntos(self) -> list[tuple[float, float]]:
+        if self.catastral is not None and len(self.catastral.puntos) >= 3:
+            return list(self.catastral.puntos)
+        return list(self.recinto.puntos) if self.recinto is not None else []
+
+    @property
+    def nome(self) -> str:
+        if self.recinto is not None:
+            return f"Leira {self.recinto.poligono}-{self.recinto.parcela}-{self.recinto.recinto}"
+        assert self.catastral is not None
+        return f"Leira {self.catastral.referencia}"
+
+
+def leira_no_punto(lat: float, lon: float) -> Leira | None:
+    catastral = parcela_catastral_no_punto(lat, lon)
+    # O recinto búscase no medio da finca, non onde se premeu (que pode caer no linde)
+    if catastral is not None and len(catastral.puntos) >= 3:
+        lat, lon = xeometria_debuxada(list(catastral.puntos))[2]
+    recinto = recinto_no_punto(lat, lon)
+    return Leira(catastral, recinto) if catastral or recinto else None
+
+
+def campos_da_leira(leira: Leira) -> dict[str, Any]:
+    campos: dict[str, Any] = {}
+    if leira.recinto is not None:
+        r = leira.recinto
+        campos |= {"sigpac_provincia": r.provincia, "sigpac_concello": r.municipio,
+                   "sigpac_agregado": r.agregado, "sigpac_zona": r.zona,
+                   "sigpac_poligono": r.poligono, "sigpac_parcela": r.parcela,
+                   "sigpac_subparcela": r.recinto, "uso_aproveitamento": r.uso}
+    if leira.catastral is not None:
+        campos["referencia_catastral"] = leira.catastral.referencia
+    if len(leira.puntos) >= 3:
+        geojson, hectareas, centro = xeometria_debuxada(leira.puntos)
         campos |= {"geometria": geojson, "superficie": hectareas, "lat": centro[0],
                    "lon": centro[1]}
-    elif parcela.superficie_m2:
-        campos["superficie"] = round(parcela.superficie_m2 / 10000, 4)
+    elif leira.catastral is not None and leira.catastral.superficie_m2:
+        campos["superficie"] = round(leira.catastral.superficie_m2 / 10000, 4)
     return campos
 
 
-def crear_parcela_do_catastro(session: Session, actor: Usuario, horta_id: int, nome: str,
-                              parcela: ParcelaCatastral) -> Parcela:
-    nova = crear_parcela(session, actor, horta_id, nome.strip() or parcela.localizacion
-                         or f"Parcela {parcela.referencia}")
-    return actualizar_parcela(session, actor, nova, **_campos_da_catastral(parcela))
+def crear_parcela_da_leira(session: Session, actor: Usuario, horta_id: int, nome: str,
+                           leira: Leira) -> Parcela:
+    parcela = crear_parcela(session, actor, horta_id, nome.strip() or leira.nome)
+    return actualizar_parcela(session, actor, parcela, **campos_da_leira(leira))
 
 
-def completar_parcela_co_catastro(session: Session, actor: Usuario, parcela: Parcela,
-                                  datos: ParcelaCatastral) -> Parcela:
-    """O Catastro só complementa: nunha parcela do SIGPAC garda só a referencia catastral."""
-    if parcela.sigpac_poligono is not None:
-        return actualizar_parcela(session, actor, parcela, referencia_catastral=datos.referencia)
-    return actualizar_parcela(session, actor, parcela, **_campos_da_catastral(datos))
+def marcar_parcela_na_leira(session: Session, actor: Usuario, parcela: Parcela,
+                            leira: Leira) -> Parcela:
+    """Unha parcela que xa existe (sen contorno, ou mal debuxada) pasa a ser esta leira."""
+    return actualizar_parcela(session, actor, parcela, **campos_da_leira(leira))

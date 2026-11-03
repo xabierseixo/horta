@@ -3,9 +3,14 @@
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.hortas import crear_horta
 from horta.services.xeo_oficial import (
-    crear_parcela_do_recinto,
+    Leira,
+    ParcelaCatastral,
+    crear_parcela_da_leira,
+    ler_dnprc,
+    ler_gml_parcela,
     ler_recintos,
     ler_referencia_catastral,
+    marcar_parcela_na_leira,
     puntos_wkt,
 )
 
@@ -32,20 +37,6 @@ def test_referencia_catastral():
     assert ler_referencia_catastral(b"non e xml") is None
 
 
-def test_crear_parcela_do_recinto(session):
-    ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
-                  rol=RolGlobal.USUARIO, activo=True)
-    session.add(ana)
-    session.commit()
-    horta = crear_horta(session, ana, "Horta")
-    [recinto] = ler_recintos(_RECINTO)
-    parcela = crear_parcela_do_recinto(session, ana, horta.id, "", recinto)
-    assert parcela.nome == "Recinto 12-345-2"
-    assert (parcela.sigpac_poligono, parcela.sigpac_parcela, parcela.sigpac_subparcela) == (
-        "12", "345", "2")
-    assert 0.95 < parcela.superficie < 1.05 and parcela.geometria
-
-
 _DNPRC = """<consulta_dnp xmlns="http://www.catastro.meh.es/"><bico><bi>
 <ldt>Polígono 12 Parcela 345 AS VEIGAS. SANTIAGO (A CORUÑA)</ldt>
 <debi><luso>Agrario</luso></debi><cn>RU</cn></bi><lspr>
@@ -59,14 +50,15 @@ xmlns:cp="urn:x-inspire:specification:gmlas:CadastralParcels:3.0"><member><cp:Ca
 42.8 -7.99878 42.8 -8.0</gml:posList></cp:CadastralParcel></member></FeatureCollection>""".encode()
 
 
-def test_catastro_datos_e_contorno(session):
-    from horta.services.xeo_oficial import (
-        ParcelaCatastral,
-        crear_parcela_do_catastro,
-        ler_dnprc,
-        ler_gml_parcela,
-    )
+def _ana_e_horta(session):
+    ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
+                  rol=RolGlobal.USUARIO, activo=True)
+    session.add(ana)
+    session.commit()
+    return ana, crear_horta(session, ana, "Horta")
 
+
+def test_catastro_datos_e_contorno():
     datos = ler_dnprc(_DNPRC, "15078A01200345")
     assert datos.clase == "Rústico" and datos.uso == "Agrario"
     assert datos.cultivos == (("LABOR O LABRADIO REGADIO", "02", 6000.0),
@@ -74,32 +66,39 @@ def test_catastro_datos_e_contorno(session):
     puntos, area = ler_gml_parcela(_GML)
     assert len(puntos) == 4 and area == 10000
     assert ler_dnprc(b"mal", "X").referencia == "X"
-    ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
-                  rol=RolGlobal.USUARIO, activo=True)
-    session.add(ana)
-    session.commit()
-    horta = crear_horta(session, ana, "Horta")
-    parcela = crear_parcela_do_catastro(session, ana, horta.id, "", ParcelaCatastral(
-        datos.referencia, datos.localizacion, puntos=tuple(puntos)))
-    assert parcela.referencia_catastral == "15078A01200345"
-    assert parcela.nome.startswith("Polígono 12") and parcela.geometria
 
 
-def test_o_catastro_non_pisa_o_sigpac(session):
-    from horta.services.xeo_oficial import ParcelaCatastral, completar_parcela_co_catastro
-
-    ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
-                  rol=RolGlobal.USUARIO, activo=True)
-    session.add(ana)
-    session.commit()
-    horta = crear_horta(session, ana, "Horta")
+def test_leira_contorno_do_catastro_e_referencia_do_sigpac(session):
+    ana, horta = _ana_e_horta(session)
     [recinto] = ler_recintos(_RECINTO)
-    parcela = crear_parcela_do_recinto(session, ana, horta.id, "", recinto,
-                                       referencia_catastral="15078A01200345")
+    pequena = ((42.8, -8.0), (42.8004, -8.0), (42.8004, -7.9995), (42.8, -7.9995))
+    leira = Leira(ParcelaCatastral("15078A01200345", puntos=pequena), recinto)
+    parcela = crear_parcela_da_leira(session, ana, horta.id, "", leira)
+    assert parcela.nome == "Leira 12-345-2"
+    assert (parcela.sigpac_poligono, parcela.sigpac_parcela, parcela.sigpac_subparcela) == (
+        "12", "345", "2")
     assert parcela.referencia_catastral == "15078A01200345"
-    contorno, superficie = parcela.geometria, parcela.superficie
-    pequena = ((42.8, -8.0), (42.8001, -8.0), (42.8001, -7.9999))
-    completar_parcela_co_catastro(session, ana, parcela, ParcelaCatastral(
-        "15078A01200346", None, superficie_m2=50.0, puntos=pequena))
-    assert parcela.referencia_catastral == "15078A01200346"
-    assert (parcela.geometria, parcela.superficie) == (contorno, superficie)
+    assert 0.15 < parcela.superficie < 0.2  # a do Catastro, non a do recinto (1 ha)
+
+
+def test_leira_so_do_sigpac_ou_so_do_catastro(session):
+    ana, horta = _ana_e_horta(session)
+    [recinto] = ler_recintos(_RECINTO)
+    so_sigpac = crear_parcela_da_leira(session, ana, horta.id, "Horta", Leira(None, recinto))
+    assert so_sigpac.nome == "Horta" and 0.95 < so_sigpac.superficie < 1.05
+    assert so_sigpac.referencia_catastral is None
+    so_catastro = crear_parcela_da_leira(session, ana, horta.id, "", Leira(
+        ParcelaCatastral("15078A01200346", superficie_m2=2500.0), None))
+    assert so_catastro.nome == "Leira 15078A01200346" and so_catastro.superficie == 0.25
+    assert so_catastro.sigpac_poligono is None and so_catastro.geometria is None
+
+
+def test_marcar_unha_parcela_que_xa_existe(session):
+    from horta.services.parcelas import crear_parcela
+
+    ana, horta = _ana_e_horta(session)
+    [recinto] = ler_recintos(_RECINTO)
+    parcela = crear_parcela(session, ana, horta.id, "Prado de arriba")
+    marcar_parcela_na_leira(session, ana, parcela, Leira(None, recinto))
+    assert parcela.nome == "Prado de arriba" and parcela.sigpac_poligono == "12"
+    assert parcela.geometria and parcela.lat is not None

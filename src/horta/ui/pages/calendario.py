@@ -1,5 +1,5 @@
 """Calendario e mapa da explotación (paso 13): os traballos e tarefas por día, e as parcelas
-no mapa. Só len o que xa hai; no mapa pódese situar unha parcela premendo nel."""
+no mapa: as leiras (Catastro + SIGPAC) fanse parcelas premendo nelas."""
 
 from __future__ import annotations
 
@@ -28,13 +28,11 @@ from horta.services.parcelas import (
 from horta.services.persoas import listar_persoas
 from horta.services.teselas import gardar_zona
 from horta.services.xeo_oficial import (
+    Leira,
     SenConexion,
-    completar_parcela_co_catastro,
-    completar_parcela_co_recinto,
-    crear_parcela_do_recinto,
-    parcela_catastral_no_punto,
-    recinto_no_punto,
-    referencia_catastral_no_punto,
+    crear_parcela_da_leira,
+    leira_no_punto,
+    marcar_parcela_na_leira,
 )
 from horta.services.zonas import (
     TIPOS_ZONA,
@@ -102,24 +100,45 @@ def seccion_calendario(horta_id: int, pode_editar: bool) -> None:
 
 # O que fai o próximo clic (ou o próximo debuxo) no mapa, e o aviso que se mostra
 _MODOS = {
-    "nada": "Preme nunha parcela do mapa para escollela.",
-    "sigpac_nova": "Preme no recinto SIGPAC que queres traer como parcela nova.",
-    "debuxar_nova": "Debuxa a parcela nova co botón do pentágono (arriba á esquerda do mapa): "
+    "nada": "Preme nunha das túas parcelas (no mapa ou na lista) para escollela.",
+    "leiras": "Preme nas leiras que queres engadir: cada clic marca unha (en azul); "
+              "premer outra vez nela desmárcaa. Achégate co zoom para ver os lindes.",
+    "marcar": "Preme na leira onde está esta parcela.",
+    "debuxar_nova": "Debuxa a parcela co botón do pentágono (arriba á esquerda do mapa): "
                     "un clic en cada esquina e, para pechar, clic no primeiro punto.",
-    "sigpac_completar": "Preme no recinto SIGPAC desta parcela.",
-    "catastro_ref": "Preme na finca do Catastro onde está esta parcela.",
     "debuxar_contorno": "Debuxa o contorno co botón do pentágono (arriba á esquerda do mapa).",
-    "debuxar_zona": "Debuxa a zona co botón do pentágono (arriba á esquerda do mapa).",
-    "situar": "Preme no mapa onde está a parcela.",
+    "debuxar_zona": "Debuxa a zona de cultivo co botón do pentágono (arriba á esquerda do "
+                    "mapa), dentro da parcela.",
 }
+_AMARELO, _AZUL, _VERDE = "#f9a825", "#1565c0", "#2e7d32"
 
 
-def _referencia_sigpac(p: Parcela) -> str:
-    if p.sigpac_poligono is None:
-        return "sen recinto SIGPAC"
-    return (f"SIGPAC {p.sigpac_provincia}:{p.sigpac_concello}:{p.sigpac_agregado or 0}:"
-            f"{p.sigpac_zona or 0}:{p.sigpac_poligono}:{p.sigpac_parcela}:"
-            f"{p.sigpac_subparcela}")
+def _referencias(p: Parcela) -> str:
+    partes = []
+    if p.sigpac_poligono is not None:
+        partes.append(f"SIGPAC {p.sigpac_provincia}:{p.sigpac_concello}:{p.sigpac_agregado or 0}:"
+                      f"{p.sigpac_zona or 0}:{p.sigpac_poligono}:{p.sigpac_parcela}:"
+                      f"{p.sigpac_subparcela}")
+    if p.referencia_catastral:
+        partes.append(f"Catastro {p.referencia_catastral}")
+    return " · ".join(partes)
+
+
+def _hectareas(leira: Leira) -> float | None:
+    if len(leira.puntos) >= 3:
+        return xeometria_debuxada(leira.puntos)[1]
+    m2 = leira.catastral.superficie_m2 if leira.catastral else None
+    return m2 / 10000 if m2 else None
+
+
+def _clave(leira: Leira) -> str:
+    return leira.catastral.referencia if leira.catastral else (
+        leira.recinto.referencia if leira.recinto else "")
+
+
+def _limites(puntos: list[tuple[float, float]]) -> list[list[float]]:
+    lats, lons = [p[0] for p in puntos], [p[1] for p in puntos]
+    return [[min(lats), min(lons)], [max(lats), max(lons)]]
 
 
 def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
@@ -129,7 +148,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             pechar_sesion()
             return
         horta = session.get(Horta, horta_id)
-        parcelas = list(session.query(Parcela).filter_by(horta_id=horta_id))
+        parcelas = list(session.query(Parcela).filter_by(horta_id=horta_id).order_by(
+            Parcela.nome))
         zonas = {p.id: listar_zonas(session, actor, p) for p in parcelas}
         avisos = [a for p in parcelas if (a := aviso_superficie(session, p))]
     por_id = {p.id: p for p in parcelas}
@@ -137,6 +157,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
     estado: dict[str, Any] = {"modo": "nada", "escollida": None, "realce": None}
     if app.storage.user.get(clave_escollida) in por_id:
         estado["escollida"] = por_id[app.storage.user[clave_escollida]]
+    # As leiras marcadas para engadir: clave → (leira, capa no mapa)
+    marcadas: dict[str, tuple[Leira, Any]] = {}
     situadas = [(p, (p.lat, p.lon)) for p in parcelas if p.lat is not None and p.lon is not None]
     centro = ((estado["escollida"].lat, estado["escollida"].lon)
               if estado["escollida"] is not None and estado["escollida"].lat is not None
@@ -146,17 +168,23 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
                         "polyline": False, "rectangle": False, "circle": False},
                # Sen o lapis nin a papeleira do debuxo: non tocan as parcelas e confunden
                "edit": {"edit": False, "remove": False}} if pode_editar else False)
-    mapa = ui.leaflet(center=centro, zoom=16 if situadas else 8, draw_control=debuxo,
-                      hide_drawn_items=True).classes("w-full mapa-parcelas").style(
-        "height: 60vh")
+
+    with ui.row().classes("w-full items-start gap-4"):
+        with ui.column().classes("col-grow").style("min-width: min(100%, 22rem)"):
+            mapa = ui.leaflet(center=centro, zoom=17 if situadas else 8, draw_control=debuxo,
+                              hide_drawn_items=True).classes("w-full mapa-parcelas").style(
+                "height: 62vh")
+            capas_fila = ui.row().classes("items-center gap-4")
+        lista = ui.column().classes("gap-1").style("width: min(100%, 20rem)")
     ui.add_css(".mapa-parcelas .leaflet-draw-toolbar:has(.leaflet-draw-edit-edit) "
                "{display: none}")
     for p, punto in situadas:
-        mapa.marker(latlng=punto).run_method("bindTooltip", p.nome)
+        if not puntos_da_xeometria(p.geometria):
+            mapa.marker(latlng=punto).run_method("bindTooltip", p.nome)
     for p in parcelas:
         forma = puntos_da_xeometria(p.geometria)
         if forma:
-            mapa.generic_layer(name="polygon", args=[forma, {"color": "#2e7d32"}]
+            mapa.generic_layer(name="polygon", args=[forma, {"color": _VERDE}]
                                ).run_method("bindTooltip", p.nome)
         for z in zonas[p.id]:
             forma_z = puntos_da_xeometria(z.geometria)
@@ -165,34 +193,36 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
                     "color": "#ef6c00", "weight": 1, "dashArray": "4"}]).run_method(
                     "bindTooltip", f"{p.nome} · {z.nome}")
 
-    # Capas oficiais (as imaxes pídeas o navegador)
+    # Capas oficiais (as imaxes pídeas o navegador). Todas pasan pola caché da app
+    # (/teselas): sen conexión vese o xa descargado. A ortofoto vai debaixo; SIGPAC e
+    # Catastro por riba (e só con zoom, que é cando os debuxan)
     capas: dict[str, Any] = {}
+    caixas: dict[str, Any] = {}
 
-    # Todas pasan pola caché da app (/teselas): sen conexión vese o xa descargado. A ortofoto
-    # vai debaixo; SIGPAC e Catastro por riba (e só con zoom, que é cando os debuxan)
     def capa(clave: str, activa: bool) -> None:
         if not activa and clave in capas:
             mapa.remove_layer(capas.pop(clave))
         elif activa and clave not in capas:
-            nome, atribucion, zindex, zoom_min = CAPAS[clave]
+            _nome, atribucion, zindex, zoom_min = CAPAS[clave]
             capas[clave] = mapa.tile_layer(url_template=f"/teselas/{clave}/{{z}}/{{x}}/{{y}}",
                                            options={"attribution": atribucion, "maxZoom": 21,
                                                     "maxNativeZoom": 19, "minZoom": zoom_min,
                                                     "zIndex": zindex})
 
-    with ui.row().classes("items-center gap-4 q-mt-sm"):
-        ui.label("Capas:").classes("text-weight-medium")
+    with capas_fila:
+        ui.label("Ver:").classes("texto-suave")
         for clave, (nome, *_) in CAPAS.items():
-            ui.checkbox(nome, on_change=lambda e, c=clave: capa(c, e.value))
-    ui.label("A ortofoto é a foto aérea. Os recintos SIGPAC (os das axudas e do caderno) e as "
-             "fincas do Catastro (a propiedade) vense ao achegarse (zoom 15 ou máis)."
-             ).classes("texto-suave text-caption")
+            caixas[clave] = ui.checkbox(nome, on_change=lambda e, c=clave: capa(c, e.value)
+                                        ).props("dense")
+        ui.button(icon="download_for_offline", on_click=lambda: gardar_sen_conexion()).props(
+            "flat dense round").tooltip("Gardar o mapa arredor das parcelas para velo sen "
+                                        "cobertura")
 
     async def gardar_sen_conexion() -> None:
         puntos = [pt for p in parcelas for pt in (puntos_da_xeometria(p.geometria) or (
             [(p.lat, p.lon)] if p.lat is not None and p.lon is not None else []))]
         if not puntos:
-            ui.notify("Sitúa antes algunha parcela no mapa", type="warning")
+            ui.notify("Marca antes algunha parcela no mapa", type="warning")
             return
         ui.notify("Descargando a zona… pode levar uns minutos")
         try:
@@ -207,55 +237,90 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
                   + (f" ({fallidas} non se puideron descargar)" if fallidas else ""),
                   type="positive" if not fallidas else "warning")
 
-    sen_situar = [p for p in parcelas if p.lat is None or p.lon is None]
-    if sen_situar:
-        ui.label("Sen situar no mapa (escóllea abaixo e prema «Situar»): "
-                 + ", ".join(p.nome for p in sen_situar)).classes("texto-suave")
-    for aviso in avisos:
-        ui.label(aviso).classes("etiqueta-aviso")
-
-    # --- Barra: parcela nova, o que fai o próximo clic e a ficha da parcela escollida
-    with ui.row().classes("items-center gap-2 q-mt-sm"):
+    # --- Lista das parcelas (á dereita, ou debaixo no móbil)
+    with lista:
         if pode_editar:
-            with ui.button("Nova parcela", icon="add"):
-                with ui.menu():
-                    ui.menu_item("Do SIGPAC (o habitual)", on_click=lambda: cambiar("sigpac_nova"))
-                    ui.menu_item("Debuxándoa no mapa (se non está no SIGPAC)",
-                                 on_click=lambda: cambiar("debuxar_nova"))
-        escoller = ui.select({p.id: p.nome for p in parcelas}, label="Parcela escollida",
-                             value=estado["escollida"].id if estado["escollida"] else None,
-                             on_change=lambda e: escoller_parcela(por_id.get(e.value))
-                             ).classes("w-64")
-        ui.button("Gardar a zona para usar sen conexión", icon="download_for_offline",
-                  on_click=gardar_sen_conexion).props("outline dense").tooltip(
-            "Descarga as capas arredor das parcelas para ver o mapa sen cobertura")
-    with ui.row().classes("items-center gap-2"):
+            ui.button("Engadir leiras", icon="add_location_alt",
+                      on_click=lambda: cambiar("leiras")).classes("w-full")
+        ui.label("As túas parcelas").classes("text-weight-medium q-mt-sm")
+        if not parcelas:
+            ui.label("Aínda non tes ningunha. Preme «Engadir leiras» e despois toca as túas "
+                     "leiras no mapa.").classes("texto-suave")
+        filas: dict[int, Any] = {}
+        for p in parcelas:
+            with ui.item(on_click=lambda p=p: escoller_parcela(p, achegar=True)).props(
+                    "clickable dense").classes("w-full rounded-borders") as fila:
+                with ui.item_section():
+                    ui.item_label(p.nome)
+                    ui.item_label(formatar_superficie(p.superficie) if p.superficie else "—"
+                                  ).props("caption")
+                if not puntos_da_xeometria(p.geometria):
+                    with ui.item_section().props("side"):
+                        ui.badge("sen marcar" if p.lat is None else "só un punto",
+                                 color="orange").props("outline")
+            filas[p.id] = fila
+        for aviso in avisos:
+            ui.label(aviso).classes("etiqueta-aviso")
+
+    # --- Barra do que fai o próximo clic, as leiras marcadas e a ficha da escollida
+    with ui.row().classes("items-center gap-2 q-mt-sm"):
         aviso_modo = ui.label(_MODOS["nada"]).classes("text-weight-medium")
         cancelar = ui.button("Cancelar", on_click=lambda: cambiar("nada")).props("flat dense")
+    with ui.row().classes("items-center gap-2") as barra_leiras:
+        resumo_leiras = ui.label()
+        gardar_leiras_btn = ui.button("Gardalas como parcelas", icon="save",
+                                      on_click=lambda: dialogo_leiras())
+        ui.button("A leira non aparece? Debúxaa", icon="pentagon",
+                  on_click=lambda: cambiar("debuxar_nova")).props("flat dense")
     with ui.row().classes("items-center gap-2") as campos_zona:
         tipo_zona = ui.select(TIPOS_ZONA, value="bancal", label="Tipo de zona").classes("w-48")
         nome_zona = ui.input("Nome da zona").classes("w-48")
     ficha = ui.column().classes("w-full")
 
     def cambiar(modo: str) -> None:
+        if estado["modo"] == "leiras" and modo != "leiras":
+            for _leira, capa_l in marcadas.values():
+                mapa.remove_layer(capa_l)
+            marcadas.clear()
         estado["modo"] = modo
         aviso_modo.text = _MODOS[modo]
         cancelar.set_visibility(modo != "nada")
         campos_zona.set_visibility(modo == "debuxar_zona")
+        barra_leiras.set_visibility(modo == "leiras")
+        if modo in ("leiras", "marcar") and not caixas["catastro"].value:
+            caixas["catastro"].value = True  # para ver os lindes das leiras
+        if modo != "nada":  # que se vexa o mapa, onde vai o próximo clic
+            ui.run_javascript(f"document.getElementById('c{mapa.id}')"
+                              ".scrollIntoView({behavior: 'smooth', block: 'center'})")
+        actualizar_leiras()
 
-    def escoller_parcela(p: Parcela | None) -> None:
+    def actualizar_leiras() -> None:
+        total = sum(h for leira, _ in marcadas.values() if (h := _hectareas(leira)))
+        resumo_leiras.text = (f"{len(marcadas)} leiras marcadas · {formatar_superficie(total)}"
+                              if marcadas else "Ningunha leira marcada aínda")
+        gardar_leiras_btn.set_enabled(bool(marcadas))
+
+    def escoller_parcela(p: Parcela | None, achegar: bool = False) -> None:
         estado["escollida"] = p
         app.storage.user[clave_escollida] = p.id if p else None
-        if escoller.value != (p.id if p else None):
-            escoller.value = p.id if p else None
+        for pid, fila in filas.items():
+            fila.classes(add="bg-amber-2" if p and pid == p.id else "",
+                         remove="" if p and pid == p.id else "bg-amber-2")
         if estado["realce"] is not None:
             mapa.remove_layer(estado["realce"])
             estado["realce"] = None
         forma = puntos_da_xeometria(p.geometria) if p else []
         if forma:
             estado["realce"] = mapa.generic_layer(name="polygon", args=[forma, {
-                "color": "#f9a825", "weight": 4}])
-        if estado["modo"] not in ("nada", "sigpac_nova", "debuxar_nova"):
+                "color": _AMARELO, "weight": 5, "fillOpacity": 0.35}])
+            if achegar:
+                mapa.run_map_method("fitBounds", _limites(forma), {"maxZoom": 19})
+        elif p is not None and p.lat is not None and p.lon is not None:
+            estado["realce"] = mapa.generic_layer(name="circleMarker", args=[
+                (p.lat, p.lon), {"radius": 16, "color": _AMARELO, "weight": 5}])
+            if achegar:
+                mapa.set_center((p.lat, p.lon))
+        if estado["modo"] in ("marcar", "debuxar_contorno", "debuxar_zona"):
             cambiar("nada")
         debuxar_ficha()
 
@@ -264,36 +329,35 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         p = estado["escollida"]
         if p is None:
             return
+        con_contorno = bool(puntos_da_xeometria(p.geometria))
         with ficha, ui.card().classes("w-full"):
             ui.label(p.nome).classes("text-h6")
-            ui.label(f"{formatar_superficie(p.superficie)} · {_referencia_sigpac(p)} · "
-                     f"Catastro: {p.referencia_catastral or '—'}").classes("texto-suave")
+            ui.label(formatar_superficie(p.superficie) if p.superficie else "Sen superficie")
+            if _referencias(p):
+                ui.label(_referencias(p)).classes("texto-suave text-caption")
             if not pode_editar:
                 return
+            if not con_contorno:
+                ui.label("Esta parcela aínda non ten os lindes no mapa.").classes(
+                    "etiqueta-aviso")
             with ui.row().classes("gap-2"):
-                ui.button("Traer o recinto SIGPAC", icon="travel_explore",
-                          on_click=lambda: cambiar("sigpac_completar")).props("outline").tooltip(
-                    "Contorno, superficie, uso e referencia oficiais")
-                ui.button("Engadir a referencia catastral", icon="home_work",
-                          on_click=lambda: cambiar("catastro_ref")).props("outline").tooltip(
-                    "Só a referencia da finca; non cambia o contorno do SIGPAC")
-                ui.button("Debuxar o contorno", icon="pentagon",
-                          on_click=lambda: cambiar("debuxar_contorno")).props("outline")
-                ui.button("Debuxar unha zona", icon="grid_view",
-                          on_click=lambda: cambiar("debuxar_zona")).props("outline").tooltip(
-                    "Un bancal, invernadoiro… dentro da parcela")
-                ui.button("Dividir en bancais", icon="view_week",
-                          on_click=lambda: dividir_dialogo.open()).props("outline")
-                ui.button("Situar", icon="place", on_click=lambda: cambiar("situar")).props(
-                    "outline").tooltip("Marcar onde está, sen contorno")
+                ui.button("Marcar no mapa" if not con_contorno else "Cambiar a leira",
+                          icon="add_location_alt", on_click=lambda: cambiar("marcar")).props(
+                    "" if not con_contorno else "outline")
+                if con_contorno:
+                    ui.button("Debuxar zona de cultivo", icon="grid_view",
+                              on_click=lambda: cambiar("debuxar_zona"))
+                    ui.button("Dividir en bancais", icon="view_week",
+                              on_click=lambda: dividir_dialogo.open()).props("outline")
                 ui.button("Eliminar", icon="delete", on_click=eliminar).props(
-                    "outline color=negative")
+                    "flat color=negative")
 
     cancelar.set_visibility(False)
     campos_zona.set_visibility(False)
+    barra_leiras.set_visibility(False)
 
     # As zonas de cada parcela, para borralas
-    with ui.expansion("Zonas das parcelas", icon="grid_view").classes("w-full q-mt-sm"):
+    with ui.expansion("Zonas de cultivo", icon="grid_view").classes("w-full q-mt-sm"):
         for p in parcelas:
             for z in zonas[p.id]:
                 with ui.row().classes("items-center gap-2"):
@@ -395,77 +459,97 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             return fai(session, actor_actual, parcela)
         return accion
 
-    def venta(titulo: str, lineas: list[str], puntos: Any, nova: bool,
-              gardar_con: Callable[[str, bool], None], texto_ref: str | None = None) -> None:
-        """Ventá co que trae o SIGPAC ou o Catastro; o contorno queda realzado mentres está
-        aberta."""
-        realce = (mapa.generic_layer(name="polygon", args=[list(puntos), {"color": "#f9a825"}])
-                  if puntos else None)
+    def dialogo_leiras() -> None:
+        """Un nome para cada leira marcada, e gárdanse todas como parcelas."""
+        nomes: list[tuple[Leira, Any]] = []
         with (ui.dialog().props("persistent") as dialogo,
               ui.card().style("width: min(32rem, 94vw)")):
-            ui.label(titulo).classes("text-h6")
-            for linea in lineas:
-                ui.label(linea)
-            con_ref = (ui.checkbox(f"Gardar tamén a referencia catastral {texto_ref}", value=True)
-                       if texto_ref else None)
-            nome = ui.input("Nome da parcela nova").classes("w-full") if nova else None
-            p = estado["escollida"]
+            ui.label("Gardar as leiras como parcelas").classes("text-h6")
+            ui.label("Ponlle a cada unha o nome co que a coñeces.").classes("texto-suave")
+            for leira, _capa in marcadas.values():
+                h = _hectareas(leira)
+                nomes.append((leira, ui.input(
+                    f"Nome ({formatar_superficie(h)})" if h else "Nome",
+                    value=leira.nome).classes("w-full")))
+
+            def crear_todas() -> None:
+                with get_session() as session:
+                    actor_actual = usuario_actual(session)
+                    if actor_actual is None:
+                        return
+                    creadas: list[Parcela] = []
+
+                    def accion() -> None:
+                        for leira, nome in nomes:
+                            creadas.append(crear_parcela_da_leira(
+                                session, actor_actual, horta_id, nome.value or "", leira))
+
+                    ok = executar_accion(session, accion)
+                if ok:
+                    app.storage.user[clave_escollida] = creadas[-1].id if creadas else None
+                    ui.navigate.reload()
+
             with ui.row():
-                ui.button("Crear a parcela" if nova else f"Gardar en «{p.nome if p else ''}»",
-                          icon="add" if nova else "save", on_click=lambda: gardar_con(
-                              nome.value if nome else "", bool(con_ref and con_ref.value)))
+                ui.button("Gardar", icon="save", on_click=crear_todas)
+                ui.button("Volver", on_click=dialogo.close).props("flat")
+        dialogo.open()
+
+    async def buscar_leira(lat: float, lon: float) -> Leira | None:
+        ui.notify("Buscando a leira…", timeout=1500)
+        try:
+            leira = await run.io_bound(leira_no_punto, lat, lon)
+        except (SenConexion, ValueError) as erro:
+            ui.notify(f"Non se puido consultar: {erro}", type="negative")
+            return None
+        if leira is None:
+            ui.notify("Aí non se atopa ningunha leira. Se é túa, debúxaa.", type="warning")
+        return leira
+
+    async def marcar_leira(lat: float, lon: float) -> None:
+        dentro = parcela_no_punto([p for p in parcelas if puntos_da_xeometria(p.geometria)],
+                                  lat, lon)
+        if dentro is not None:
+            ui.notify(f"Aí xa está a túa parcela «{dentro.nome}»", type="info")
+            return
+        leira = await buscar_leira(lat, lon)
+        if leira is None or estado["modo"] != "leiras":
+            return
+        clave = _clave(leira)
+        if clave in marcadas:  # segundo clic: desmárcase
+            mapa.remove_layer(marcadas.pop(clave)[1])
+        elif leira.puntos:
+            marcadas[clave] = (leira, mapa.generic_layer(name="polygon", args=[
+                leira.puntos, {"color": _AZUL, "weight": 4, "fillOpacity": 0.3}]))
+        else:
+            ui.notify("Esta leira non trae os lindes; gárdase só coa superficie", type="info")
+            marcadas[clave] = (leira, mapa.generic_layer(name="circleMarker", args=[
+                (lat, lon), {"radius": 12, "color": _AZUL}]))
+        actualizar_leiras()
+
+    async def leira_da_escollida(lat: float, lon: float) -> None:
+        leira = await buscar_leira(lat, lon)
+        p = estado["escollida"]
+        if leira is None or p is None:
+            return
+        realce = (mapa.generic_layer(name="polygon", args=[leira.puntos, {
+            "color": _AZUL, "weight": 4}]) if leira.puntos else None)
+        h = _hectareas(leira)
+        with (ui.dialog().props("persistent") as dialogo,
+              ui.card().style("width: min(30rem, 94vw)")):
+            ui.label("É esta a leira?").classes("text-h6")
+            ui.label(f"«{p.nome}» quedará co contorno marcado en azul"
+                     + (f" ({formatar_superficie(h)})." if h else "."))
+            with ui.row():
+                ui.button("Si, é esta", icon="check", on_click=lambda: gardar(da_escollida(
+                    lambda s, a, parcela: marcar_parcela_na_leira(s, a, parcela, leira))))
+                def debuxala() -> None:
+                    dialogo.close()
+                    cambiar("debuxar_contorno")
+
+                ui.button("Non: debuxala eu", on_click=debuxala).props("flat")
                 ui.button("Pechar", on_click=dialogo.close).props("flat")
         dialogo.on("hide", lambda: mapa.remove_layer(realce) if realce else None)
         dialogo.open()
-
-    async def traer_recinto(lat: float, lon: float, nova: bool) -> None:
-        recinto = await run.io_bound(recinto_no_punto, lat, lon)
-        if recinto is None:
-            ui.notify("Non hai ningún recinto SIGPAC aí", type="warning")
-            return
-        # A finca do Catastro no medio do recinto: proponse, e a persoa decide
-        try:
-            medio = xeometria_debuxada(recinto.puntos)[2] if len(recinto.puntos) >= 3 else (
-                lat, lon)
-            ref = await run.io_bound(referencia_catastral_no_punto, medio[0], medio[1])
-        except (SenConexion, ValueError, OperacionNonPermitidaError):
-            ref = None
-
-        def gardar_con(nome: str, con_ref: bool) -> None:
-            r = ref if con_ref else None
-            if nova:
-                gardar(lambda s, a, _p: crear_parcela_do_recinto(s, a, horta_id, nome, recinto, r))
-            else:
-                gardar(da_escollida(lambda s, a, p: completar_parcela_co_recinto(
-                    s, a, p, recinto, r)))
-
-        venta("Recinto SIGPAC", [f"Referencia: {recinto.referencia}",
-                                 f"Uso: {recinto.uso or '—'}"], recinto.puntos, nova,
-              gardar_con, ref)
-
-    async def traer_catastro(lat: float, lon: float) -> None:
-        """O Catastro só complementa unha parcela que xa existe."""
-        datos = await run.io_bound(parcela_catastral_no_punto, lat, lon)
-        if datos is None:
-            ui.notify("O Catastro non devolveu ningunha finca aí", type="warning")
-            return
-        lineas = [f"Referencia catastral: {datos.referencia}"]
-        lineas += [f"{t}: {v}" for t, v in (("Localización", datos.localizacion),
-                                             ("Clase", datos.clase), ("Uso", datos.uso)) if v]
-        if datos.superficie_m2:
-            lineas.append(f"Superficie: {datos.superficie_m2:,.0f} m²".replace(",", " "))
-        for cultivo, intensidade, m2 in datos.cultivos:
-            lineas.append(f"· {cultivo}{f' (intensidade {intensidade})' if intensidade else ''}"
-                          f"{f': {m2:,.0f} m²'.replace(',', ' ') if m2 else ''}")
-        p = estado["escollida"]
-        if p is not None and p.sigpac_poligono is not None:
-            lineas.append("Só se garda a referencia: o contorno e a superficie seguen sendo os "
-                          "do SIGPAC.")
-
-        def gardar_con(_nome: str, _con_ref: bool) -> None:
-            gardar(da_escollida(lambda s, a, p: completar_parcela_co_catastro(s, a, p, datos)))
-
-        venta("Finca do Catastro", lineas, datos.puntos, False, gardar_con)
 
     # Mentres se debuxa un contorno, os clics son os seus puntos
     debuxando = {"si": False}
@@ -478,24 +562,14 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         punto = e.args["latlng"]
         lat, lon = round(punto["lat"], 6), round(punto["lng"], 6)
         modo = estado["modo"]
-        if modo in ("nada", "debuxar_nova", "debuxar_contorno", "debuxar_zona"):
-            escollida = parcela_no_punto(parcelas, lat, lon)
-            if escollida is not None:
-                escoller_parcela(escollida)
-            elif modo == "nada":
-                ui.notify("Aí non hai ningunha parcela. Para crear unha, preme «Nova parcela»")
-            return
-        if modo == "situar":
-            gardar(da_escollida(lambda s, a, p: actualizar_parcela(s, a, p, lat=lat, lon=lon)))
-            return
-        ui.notify("Consultando…", timeout=1500)
-        try:
-            if modo in ("sigpac_nova", "sigpac_completar"):
-                await traer_recinto(lat, lon, modo == "sigpac_nova")
-            else:
-                await traer_catastro(lat, lon)
-        except (SenConexion, ValueError) as erro:
-            ui.notify(f"Non se puido consultar: {erro}", type="negative")
+        if modo == "leiras":
+            await marcar_leira(lat, lon)
+        elif modo == "marcar":
+            await leira_da_escollida(lat, lon)
+        elif (escollida := parcela_no_punto(parcelas, lat, lon)) is not None:
+            escoller_parcela(escollida)
+        elif modo == "nada":
+            ui.notify("Aí non hai ningunha parcela túa. Para engadila, preme «Engadir leiras»")
 
     mapa.on("map-click", premer)
 
