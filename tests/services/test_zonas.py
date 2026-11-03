@@ -8,13 +8,22 @@ from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import crear_horta
-from horta.services.parcelas import actualizar_parcela, crear_parcela, xeometria_debuxada
+from horta.services.parcelas import (
+    actualizar_parcela,
+    crear_parcela,
+    puntos_da_xeometria,
+    xeometria_debuxada,
+)
 from horta.services.zonas import (
     aviso_superficie,
     borrar_zona,
+    cambiar_zona,
     crear_zona,
     dividir_en_bancais,
+    dividir_zona,
     franxas,
+    listar_zonas,
+    xuntar_zonas,
 )
 
 # Cadrado de ~100 × 100 m
@@ -57,3 +66,50 @@ def test_dividir_zonas_e_cultivo(session):
         borrar_zona(session, ana, zonas[0])
     crear_zona(session, ana, parcela, "Invernadoiro", "invernadoiro", CADRADO)
     assert "suman" in (aviso_superficie(session, parcela) or "")
+
+
+# --- Zonas de cultivo debuxadas no mapa (pantalla Terras)
+
+def _area(zona):
+    return xeometria_debuxada(puntos_da_xeometria(zona.geometria))[1]
+
+
+def test_a_zona_recortase_polo_contorno(session):
+    ana, parcela = _parcela(session)
+    saida = [(42.80045, -8.0006), (42.8015, -8.0006), (42.8015, -7.99939), (42.80045, -7.99939)]
+    zona = crear_zona(session, ana, parcela, "Patacas", "cultivo", saida, so_dentro=True)
+    assert _area(zona) == pytest.approx(parcela.superficie / 4, rel=0.02)
+
+
+def test_dividir_e_xuntar_zonas(session):
+    ana, parcela = _parcela(session)
+    zona = crear_zona(session, ana, parcela, "Patacas", "cultivo", CADRADO)
+    nova = dividir_zona(session, ana, zona, [(42.7995, -7.99939), (42.8015, -7.99939)])
+    assert nova[0].nome == "Patacas (2)" and nova[0].tipo == "cultivo"
+    assert _area(zona) == pytest.approx(_area(nova[0]), rel=0.02)
+    cultivo = crear_cultivo(session, ana, parcela.id, "Patacas", zona_id=nova[0].id,
+                            data_inicio=date(2026, 3, 1))
+    xuntar_zonas(session, ana, zona, nova[0])
+    assert _area(zona) == pytest.approx(parcela.superficie, rel=0.02)
+    assert listar_zonas(session, ana, parcela) == [zona]
+    assert cultivo.zona_id == zona.id
+
+
+def test_mover_os_lindes_e_renomear(session):
+    ana, parcela = _parcela(session)
+    zona = crear_zona(session, ana, parcela, "Patacas", "cultivo", CADRADO)
+    cambiar_zona(session, ana, zona, nome="Cebolas",
+                 puntos=[(42.8, -8.0), (42.8009, -8.0), (42.8009, -7.99939), (42.8, -7.99939)])
+    assert zona.nome == "Cebolas"
+    assert zona.superficie == pytest.approx(parcela.superficie / 2, rel=0.02)
+    with pytest.raises(OperacionNonPermitidaError, match="dentro"):
+        cambiar_zona(session, ana, zona, puntos=[(la + 0.01, lo) for la, lo in CADRADO])
+
+
+def test_quitar_a_parcela_quita_as_zonas(session):
+    from horta.models.zona import ParcelaZona
+    from horta.services.parcelas import eliminar_parcela
+    ana, parcela = _parcela(session)
+    crear_zona(session, ana, parcela, "Patacas", "cultivo", CADRADO)
+    eliminar_parcela(session, ana, parcela)
+    assert session.query(ParcelaZona).count() == 0

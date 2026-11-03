@@ -19,6 +19,7 @@ from horta.models.rega import RegaCultivo
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
+from horta.models.zona import ParcelaZona
 from horta.services.catalogos import validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
@@ -203,6 +204,7 @@ def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None
     for cultivo in cultivos:
         session.delete(cultivo)
     session.flush()
+    session.query(ParcelaZona).filter_by(parcela_id=parcela.id).delete()
     session.delete(parcela)
     session.commit()
 

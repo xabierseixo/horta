@@ -16,11 +16,14 @@ from horta.models.zona import ParcelaZona
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.parcelas import puntos_da_xeometria, xeometria_debuxada
+from horta.services.xeometria import dividir, recortar, xuntar
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 _RAIO = 6371008.8
 TIPOS_ZONA: dict[str, str] = {
+    # A superficie dun cultivo dentro do recinto (DGC, RD 1054/2022 art. 2.1.d)
+    "cultivo": "Zona de cultivo",
     "bancal": "Bancal",
     "sector": "Sector",
     "invernadoiro": "Invernadoiro ou túnel",
@@ -99,13 +102,23 @@ def _parcela(session: Session, actor: Usuario, parcela: Parcela, roles: set[RolH
     comprobar_rol_horta(session, parcela.horta_id, actor, roles)
 
 
+def _dentro_da_parcela(session: Session, parcela_id: int, puntos: list[Punto]
+                       ) -> list[Punto]:
+    parcela = session.get(Parcela, parcela_id)
+    contorno = puntos_da_xeometria(parcela.geometria) if parcela else []
+    return recortar(puntos, contorno) if len(contorno) >= 3 else puntos
+
+
 def crear_zona(session: Session, actor: Usuario, parcela: Parcela, nome: str, tipo: str,
-               puntos: list[Punto]) -> ParcelaZona:
+               puntos: list[Punto], so_dentro: bool = False) -> ParcelaZona:
+    """Con so_dentro, o que saia fóra do contorno da parcela quítase."""
     _parcela(session, actor, parcela, _ROLES_ESCRITURA)
     if not nome.strip():
         raise OperacionNonPermitidaError("Ponlle un nome á zona")
     if tipo not in TIPOS_ZONA:
         raise OperacionNonPermitidaError("Escolle o tipo de zona")
+    if so_dentro:
+        puntos = _dentro_da_parcela(session, parcela.id, puntos)
     geojson, hectareas, _ = xeometria_debuxada(puntos)
     zona = ParcelaZona(parcela_id=parcela.id, nome=nome.strip(), tipo=tipo, geometria=geojson,
                        superficie=hectareas)
@@ -131,6 +144,62 @@ def dividir_en_bancais(session: Session, actor: Usuario, parcela: Parcela, canto
         zonas.append(zona)
     session.commit()
     return zonas
+
+
+def _zona_escribible(session: Session, actor: Usuario, zona: ParcelaZona) -> None:
+    parcela = session.get(Parcela, zona.parcela_id)
+    assert parcela is not None
+    _parcela(session, actor, parcela, _ROLES_ESCRITURA)
+
+
+def _pon_lindes(zona: ParcelaZona, puntos: list[Punto]) -> None:
+    zona.geometria, zona.superficie, _ = xeometria_debuxada(puntos)
+
+
+def cambiar_zona(session: Session, actor: Usuario, zona: ParcelaZona, nome: str | None = None,
+                 puntos: list[Punto] | None = None) -> ParcelaZona:
+    """Outro nome ou outros lindes (sempre dentro da parcela)."""
+    _zona_escribible(session, actor, zona)
+    if nome is not None:
+        if not nome.strip():
+            raise OperacionNonPermitidaError("Ponlle un nome á zona")
+        zona.nome = nome.strip()
+    if puntos is not None:
+        _pon_lindes(zona, _dentro_da_parcela(session, zona.parcela_id, puntos))
+    session.commit()
+    return zona
+
+
+def dividir_zona(session: Session, actor: Usuario, zona: ParcelaZona, linea: list[Punto]
+                 ) -> list[ParcelaZona]:
+    """Parte a zona cunha liña: ela queda co primeiro anaco (e cos seus cultivos) e
+    devólvense as zonas novas cos outros."""
+    _zona_escribible(session, actor, zona)
+    primeiro, *resto = dividir(puntos_da_xeometria(zona.geometria), linea)
+    _pon_lindes(zona, primeiro)
+    novas = []
+    for n, anaco in enumerate(resto, start=2):
+        nova = ParcelaZona(parcela_id=zona.parcela_id, nome=f"{zona.nome} ({n})", tipo=zona.tipo)
+        _pon_lindes(nova, anaco)
+        session.add(nova)
+        novas.append(nova)
+    session.commit()
+    return novas
+
+
+def xuntar_zonas(session: Session, actor: Usuario, zona: ParcelaZona, outra: ParcelaZona
+                 ) -> ParcelaZona:
+    """A zona colle a outra (que se toca con ela), e os cultivos da outra pasan a ela."""
+    _zona_escribible(session, actor, zona)
+    if outra.id == zona.id or outra.parcela_id != zona.parcela_id:
+        raise OperacionNonPermitidaError("Escolle outra zona da mesma parcela")
+    _pon_lindes(zona, xuntar(puntos_da_xeometria(zona.geometria),
+                             puntos_da_xeometria(outra.geometria)))
+    for cultivo in session.query(Cultivo).filter_by(zona_id=outra.id):
+        cultivo.zona_id = zona.id
+    session.delete(outra)
+    session.commit()
+    return zona
 
 
 def listar_zonas(session: Session, actor: Usuario, parcela: Parcela) -> list[ParcelaZona]:

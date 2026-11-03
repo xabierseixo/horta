@@ -44,8 +44,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("estatisticas", "Estatísticas", "bar_chart", None),
     # Menú por áreas (deseño global §2bis e §2ter)
     Seccion("parcelas", "Parcelas", "map", "Produción"),
-    Seccion("mapa", "Mapa", "public", "Produción"),
-    Seccion("terras", "As miñas terras (proba)", "layers", "Produción"),
+    Seccion("mapa", "Mapa das terras", "public", "Produción"),
     Seccion("cultivos", "Cultivos", "spa", "Produción"),
     Seccion("animais", "Animais", "pets", "Produción"),
     Seccion("equipo", "Equipo", "groups", "Xestión"),

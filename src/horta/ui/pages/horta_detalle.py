@@ -61,7 +61,7 @@ from horta.ui.nav import cabeceira_paxina
 from horta.ui.pages.abonados import seccion_abonados
 from horta.ui.pages.analises import seccion_analises
 from horta.ui.pages.animais import seccion_animais
-from horta.ui.pages.calendario import seccion_calendario, seccion_mapa
+from horta.ui.pages.calendario import seccion_calendario
 from horta.ui.pages.cartos import seccion_cartos
 from horta.ui.pages.coidados_animais import seccion_coidados
 from horta.ui.pages.colleitas import seccion_colleitas
@@ -403,8 +403,6 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     elif seccion == "calendario":
         seccion_calendario(horta_id, pode_editar)
     elif seccion == "mapa":
-        seccion_mapa(horta_id, pode_editar)
-    elif seccion == "terras":
         seccion_terras(horta_id, pode_editar)
     elif seccion == "instalacions":
         seccion_instalacions(horta_id, pode_editar)
