@@ -31,7 +31,6 @@ from horta.services.xeo_oficial import (
     SenConexion,
     completar_parcela_co_catastro,
     completar_parcela_co_recinto,
-    crear_parcela_do_catastro,
     crear_parcela_do_recinto,
     parcela_catastral_no_punto,
     recinto_no_punto,
@@ -107,7 +106,6 @@ _MODOS = {
     "sigpac_nova": "Preme no recinto SIGPAC que queres traer como parcela nova.",
     "debuxar_nova": "Debuxa a parcela nova co botón do pentágono (arriba á esquerda do mapa): "
                     "un clic en cada esquina e, para pechar, clic no primeiro punto.",
-    "catastro_nova": "Preme na finca do Catastro que queres traer como parcela nova.",
     "sigpac_completar": "Preme no recinto SIGPAC desta parcela.",
     "catastro_ref": "Preme na finca do Catastro onde está esta parcela.",
     "debuxar_contorno": "Debuxa o contorno co botón do pentágono (arriba á esquerda do mapa).",
@@ -222,9 +220,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             with ui.button("Nova parcela", icon="add"):
                 with ui.menu():
                     ui.menu_item("Do SIGPAC (o habitual)", on_click=lambda: cambiar("sigpac_nova"))
-                    ui.menu_item("Debuxándoa no mapa", on_click=lambda: cambiar("debuxar_nova"))
-                    ui.menu_item("Do Catastro (se non está no SIGPAC)",
-                                 on_click=lambda: cambiar("catastro_nova"))
+                    ui.menu_item("Debuxándoa no mapa (se non está no SIGPAC)",
+                                 on_click=lambda: cambiar("debuxar_nova"))
         escoller = ui.select({p.id: p.nome for p in parcelas}, label="Parcela escollida",
                              value=estado["escollida"].id if estado["escollida"] else None,
                              on_change=lambda e: escoller_parcela(por_id.get(e.value))
@@ -258,7 +255,7 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
         if forma:
             estado["realce"] = mapa.generic_layer(name="polygon", args=[forma, {
                 "color": "#f9a825", "weight": 4}])
-        if estado["modo"] not in ("nada", "sigpac_nova", "debuxar_nova", "catastro_nova"):
+        if estado["modo"] not in ("nada", "sigpac_nova", "debuxar_nova"):
             cambiar("nada")
         debuxar_ficha()
 
@@ -446,7 +443,8 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
                                  f"Uso: {recinto.uso or '—'}"], recinto.puntos, nova,
               gardar_con, ref)
 
-    async def traer_catastro(lat: float, lon: float, nova: bool) -> None:
+    async def traer_catastro(lat: float, lon: float) -> None:
+        """O Catastro só complementa unha parcela que xa existe."""
         datos = await run.io_bound(parcela_catastral_no_punto, lat, lon)
         if datos is None:
             ui.notify("O Catastro non devolveu ningunha finca aí", type="warning")
@@ -460,18 +458,14 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             lineas.append(f"· {cultivo}{f' (intensidade {intensidade})' if intensidade else ''}"
                           f"{f': {m2:,.0f} m²'.replace(',', ' ') if m2 else ''}")
         p = estado["escollida"]
-        if not nova and p is not None and p.sigpac_poligono is not None:
+        if p is not None and p.sigpac_poligono is not None:
             lineas.append("Só se garda a referencia: o contorno e a superficie seguen sendo os "
                           "do SIGPAC.")
 
-        def gardar_con(nome: str, _con_ref: bool) -> None:
-            if nova:
-                gardar(lambda s, a, _p: crear_parcela_do_catastro(s, a, horta_id, nome, datos))
-            else:
-                gardar(da_escollida(lambda s, a, p: completar_parcela_co_catastro(
-                    s, a, p, datos)))
+        def gardar_con(_nome: str, _con_ref: bool) -> None:
+            gardar(da_escollida(lambda s, a, p: completar_parcela_co_catastro(s, a, p, datos)))
 
-        venta("Finca do Catastro", lineas, datos.puntos, nova, gardar_con)
+        venta("Finca do Catastro", lineas, datos.puntos, False, gardar_con)
 
     # Mentres se debuxa un contorno, os clics son os seus puntos
     debuxando = {"si": False}
@@ -499,7 +493,7 @@ def seccion_mapa(horta_id: int, pode_editar: bool) -> None:
             if modo in ("sigpac_nova", "sigpac_completar"):
                 await traer_recinto(lat, lon, modo == "sigpac_nova")
             else:
-                await traer_catastro(lat, lon, modo == "catastro_nova")
+                await traer_catastro(lat, lon)
         except (SenConexion, ValueError) as erro:
             ui.notify(f"Non se puido consultar: {erro}", type="negative")
 
