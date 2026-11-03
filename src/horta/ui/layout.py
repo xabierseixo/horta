@@ -2,12 +2,28 @@
 
 from __future__ import annotations
 
+import subprocess
 from dataclasses import dataclass
+from pathlib import Path
 
 from nicegui import ui
 
 from horta.ui.sesion import pechar_sesion
 from horta.ui.tema import aplicar_tema
+
+
+def _version() -> str:
+    """A versión que está a funcionar (o último cambio gardado), para saber que se está a ver."""
+    try:
+        return subprocess.run(
+            ["git", "log", "-1", "--format=%h · %cd", "--date=format:%d/%m %H:%M"],
+            cwd=Path(__file__).parent, capture_output=True, text=True, timeout=5,
+        ).stdout.strip() or "?"
+    except OSError:
+        return "?"
+
+
+VERSION = _version()
 
 
 @dataclass(frozen=True)
@@ -29,6 +45,7 @@ SECCIONS: tuple[Seccion, ...] = (
     # Menú por áreas (deseño global §2bis e §2ter)
     Seccion("parcelas", "Parcelas", "map", "Produción"),
     Seccion("mapa", "Mapa", "public", "Produción"),
+    Seccion("terras", "As miñas terras (proba)", "layers", "Produción"),
     Seccion("cultivos", "Cultivos", "spa", "Produción"),
     Seccion("animais", "Animais", "pets", "Produción"),
     Seccion("equipo", "Equipo", "groups", "Xestión"),
@@ -130,6 +147,8 @@ def marco_horta(
                 ).on("click", pechar_sesion):
                     ui.icon("logout").classes("text-h6")
                     ui.label("Pechar sesión")
+                ui.label(f"Versión {VERSION}").classes("text-caption q-px-sm").style(
+                    "color: rgba(255,255,255,.6)")
 
 
 def cabeceira_seccion(titulo: str, migas: str) -> ui.row:

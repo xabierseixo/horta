@@ -19,6 +19,8 @@ from horta.services.parcelas import actualizar_parcela, crear_parcela, xeometria
 
 _SIGPAC_PUNTO = ("https://sigpac-hubcloud.es/servicioconsultassigpac/query/recinfobypoint/4326/"
                  "{lon}/{lat}.json")
+_SIGPAC_PARCELA = ("https://sigpac-hubcloud.es/servicioconsultassigpac/query/recinfoparc/"
+                   "{provincia}/{municipio}/{agregado}/{zona}/{poligono}/{parcela}.json")
 _CATASTRO_PUNTO = ("https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCoordenadas.asmx/"
                    "Consulta_RCCOOR?SRS=EPSG:4326&Coordenada_X={lon}&Coordenada_Y={lat}")
 _ESPERA_S = 15
@@ -90,6 +92,14 @@ def ler_recintos(datos: Any) -> list[Recinto]:
 def recinto_no_punto(lat: float, lon: float) -> Recinto | None:
     recintos = ler_recintos(json.loads(_descargar(_SIGPAC_PUNTO.format(lat=lat, lon=lon))))
     return recintos[0] if recintos else None
+
+
+def recintos_da_parcela(provincia: str, municipio: str, poligono: str, parcela: str,
+                        agregado: str = "0", zona: str = "0") -> list[Recinto]:
+    """Os recintos dunha parcela SIGPAC, pola referencia que trae a declaración da PAC."""
+    return ler_recintos(json.loads(_descargar(_SIGPAC_PARCELA.format(
+        provincia=provincia, municipio=municipio, agregado=agregado or "0", zona=zona or "0",
+        poligono=poligono, parcela=parcela))))
 
 
 def ler_referencia_catastral(xml: bytes) -> str | None:
