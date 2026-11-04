@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from nicegui import app, ui
 
 from horta.db import get_session
 from horta.services.auth import autenticar
+from horta.services.intentos_login import apuntar_fallo, borrar_fallos, minutos_de_espera
 from horta.ui.nav import aplicar_paleta
 from horta.ui.sesion import usuario_actual
 
@@ -26,6 +29,11 @@ def login_page() -> None:
         mensaxe_erro = ui.label("").classes("text-negative")
 
         def tentar_login() -> None:
+            agora = datetime.now()
+            espera = minutos_de_espera(email_input.value, agora)
+            if espera:
+                mensaxe_erro.text = f"Demasiados intentos. Proba de novo dentro de {espera} min"
+                return
             with get_session() as session:
                 usuario = autenticar(session, email_input.value, contrasinal_input.value)
                 if usuario is None:
