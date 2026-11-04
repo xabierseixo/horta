@@ -19,23 +19,27 @@ class Base(DeclarativeBase):
     pass
 
 
-def activar_fk_sqlite(engine: Engine) -> None:
-    """SQLite non comproba as claves foráneas por defecto.
+def configurar_sqlite(engine: Engine) -> None:
+    """Axustes de SQLite que PostgreSQL xa trae de seu.
 
-    Sen isto, un erro de orde de borrado entre táboas relacionadas (coma
-    eliminar_horta) pode pasar desapercibido en desenvolvemento e só
-    fallar en produción (PostgreSQL, que si comproba as FKs).
+    - Claves foráneas: SQLite non as comproba por defecto. Sen isto, un erro de
+      orde de borrado (coma eliminar_horta) só fallaría en PostgreSQL.
+    - WAL e busy_timeout: mentres a actualización do MAPA escribe miles de filas,
+      ler non queda bloqueado e gardar un traballo agarda ata 5 s en vez de dar
+      «database is locked».
     """
 
     @event.listens_for(engine, "connect")
-    def _configurar_fk(dbapi_connection: Any, _connection_record: Any) -> None:
+    def _configurar(dbapi_connection: Any, _connection_record: Any) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
         cursor.close()
 
 
 if DATABASE_URL.startswith("sqlite"):
-    activar_fk_sqlite(engine)
+    configurar_sqlite(engine)
 
 
 @contextmanager

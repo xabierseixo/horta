@@ -38,3 +38,15 @@ def test_erro_sql_non_integrity_non_expon_parametro_sensible() -> None:
             assert SENSIBLE not in str(erro)
         else:
             raise AssertionError("Esperábase un OperationalError")
+
+
+def test_sqlite_espera_e_non_bloquea_lecturas(tmp_path) -> None:
+    """Mentres a actualización do MAPA escribe, gardar un traballo debe agardar, non fallar."""
+    from horta.db import configurar_sqlite
+
+    motor = create_engine(f"sqlite:///{tmp_path / 'proba.db'}")
+    configurar_sqlite(motor)
+    with motor.connect() as conexion:
+        assert conexion.execute(text("PRAGMA journal_mode")).scalar() == "wal"
+        assert conexion.execute(text("PRAGMA busy_timeout")).scalar() == 5000
+        assert conexion.execute(text("PRAGMA foreign_keys")).scalar() == 1
