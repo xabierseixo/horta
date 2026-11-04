@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
+from horta.ui.mensaxes_bd import mensaxe_integridade
 
 
 def executar_accion(session: Session, accion: Callable[[], object]) -> bool:
@@ -27,9 +28,9 @@ def executar_accion(session: Session, accion: Callable[[], object]) -> bool:
         session.rollback()
         ui.notify(str(erro), type="negative")
         return False
-    except IntegrityError:
+    except IntegrityError as erro:
         session.rollback()
-        ui.notify("Xa existe un rexistro con eses datos", type="negative")
+        ui.notify(mensaxe_integridade(erro), type="negative")
         return False
     except Exception as erro:  # noqa: BLE001 — límite deliberado da capa de UI
         session.rollback()

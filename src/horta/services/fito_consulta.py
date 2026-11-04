@@ -281,10 +281,11 @@ def aviso_prazo_colleita(session: Session, cultivo_id: int, data: date) -> str |
                            TratamentoCultivo.cultivo_id == cultivo_id,
                            TratamentoFito.data_fin <= data)
                    .order_by(TratamentoFito.data_fin))
-    for t in tratamentos:
-        prazo = prazo_seguridade(session, t)
-        if prazo is not None and data < prazo:
-            produtos = ", ".join(p.nome_comercial or p.num_rexistro or "" for p in t.produtos)
-            return (f"Ollo: o tratamento do {t.data_fin:%d/%m/%Y} ({produtos}) ten prazo de "
-                    f"seguridade: non se debería colleitar antes do {prazo:%d/%m/%Y}.")
-    return None
+    pendentes = [(prazo, t) for t in tratamentos
+                 if (prazo := prazo_seguridade(session, t)) is not None and data < prazo]
+    if not pendentes:
+        return None
+    prazo, t = max(pendentes, key=lambda par: par[0])
+    produtos = ", ".join(p.nome_comercial or p.num_rexistro or "" for p in t.produtos)
+    return (f"Ollo: o tratamento do {t.data_fin:%d/%m/%Y} ({produtos}) ten prazo de "
+            f"seguridade: non se debería colleitar antes do {prazo:%d/%m/%Y}.")

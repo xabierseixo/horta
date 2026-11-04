@@ -32,6 +32,7 @@ from horta.services.catalogos import describir
 from horta.services.colleitas import listar_colleitas
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import FORMAS_N_P, METAIS_RESIDUO, RESIDUOS, dose_kg_ha
+from horta.services.formato import num_texto
 from horta.services.hortas import TIPOS_XIP, comprobar_rol_horta
 from horta.services.labores import DESBROCE, PODAS, listar_labores
 from horta.services.leiras import superficie_total
@@ -234,7 +235,7 @@ def xerar_caderno(
                     orde_maquina.get(aplicador.maquina_id or 0, "") if aplicador else "",
                     (pr.nome_comercial or pr.materia_activa or "") if pr else "",
                     (pr.num_rexistro or "") if pr else "",
-                    f"{_num(pr.dose)} {describir(session, 'unidade_medida', pr.unidade)}"
+                    f"{num_texto(pr.dose)} {describir(session, 'unidade_medida', pr.unidade)}"
                     if pr and pr.dose is not None else "",
                     describir(session, "eficacia", t.eficacia) if t.eficacia else "",
                     t.notas or ""])
@@ -274,7 +275,7 @@ def xerar_caderno(
                 _intervalo(t.data_inicio, t.data_fin) if t.medidas else "",
                 (pr.nome_comercial or pr.materia_activa or "") if pr else "",
                 (pr.num_rexistro or "") if pr else "",
-                f"{_num(pr.dose)} {describir(session, 'unidade_medida', pr.unidade)}"
+                f"{num_texto(pr.dose)} {describir(session, 'unidade_medida', pr.unidade)}"
                 if pr and pr.dose is not None else "",
                 _intervalo(t.data_inicio, t.data_fin) if pr else "",
                 describir(session, "eficacia", t.eficacia) if t.eficacia else "",
