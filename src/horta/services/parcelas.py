@@ -7,20 +7,16 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from horta.models.abonado import AbonadoCultivo
 from horta.models.analise import Analise
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
-from horta.models.labor import LaborCultivo
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
-from horta.models.pastoreo import PastoreoLeira
-from horta.models.rega import RegaCultivo
 from horta.models.tarefa import Tarefa
-from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
 from horta.models.zona import ParcelaZona
 from horta.services.catalogos import validar_codigo
+from horta.services.conservar import comprobar_conservar
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import persoa_co_papel
@@ -164,41 +160,15 @@ def actualizar_parcela(
 
 def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None:
     comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
-    ids_cultivos = [c.id for c in session.query(Cultivo).filter_by(parcela_id=parcela.id)]
-    if ids_cultivos and session.query(TratamentoCultivo).filter(
-        TratamentoCultivo.cultivo_id.in_(ids_cultivos)
-    ).first():
-        raise OperacionNonPermitidaError(
-            "Esta parcela ten tratamentos fitosanitarios rexistrados e debe conservarse "
-            "(obriga legal)."
-        )
-    if ids_cultivos and session.query(AbonadoCultivo).filter(
-        AbonadoCultivo.cultivo_id.in_(ids_cultivos)
-    ).first():
-        raise OperacionNonPermitidaError(
-            "Esta parcela ten abonados rexistrados e debe conservarse (obriga legal)."
-        )
-    if ids_cultivos and session.query(RegaCultivo).filter(
-            RegaCultivo.cultivo_id.in_(ids_cultivos)).first():
-        raise OperacionNonPermitidaError(
-            "Esta parcela ten regas rexistradas e debe conservarse (obriga legal)."
-        )
-    if ids_cultivos and session.query(LaborCultivo).filter(
-            LaborCultivo.cultivo_id.in_(ids_cultivos)).first():
-        raise OperacionNonPermitidaError(
-            "Esta parcela ten labores rexistrados e debe conservarse (obriga legal)."
-        )
-    if ids_cultivos and session.query(PastoreoLeira).filter(
-        PastoreoLeira.cultivo_id.in_(ids_cultivos)
-    ).first():
-        raise OperacionNonPermitidaError(
-            "Esta parcela ten pastoreos rexistrados e debe conservarse (obriga legal)."
-        )
+    comprobar_conservar(session, parcela)
     session.query(Tarefa).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
     session.query(OutroTraballo).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
     session.query(Analise).filter_by(parcela_id=parcela.id).update({"parcela_id": None})
+    ids_cultivos = [c.id for c in session.query(Cultivo).filter_by(parcela_id=parcela.id)]
     if ids_cultivos:
         session.query(Analise).filter(Analise.cultivo_id.in_(ids_cultivos)).update(
+            {"cultivo_id": None})
+        session.query(Tarefa).filter(Tarefa.cultivo_id.in_(ids_cultivos)).update(
             {"cultivo_id": None})
     cultivos = session.query(Cultivo).filter_by(parcela_id=parcela.id).all()
     for cultivo in cultivos:

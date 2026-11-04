@@ -21,6 +21,7 @@ from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoCultivo
 from horta.models.usuario import Usuario
 from horta.services.catalogos import nome_variedade_cultivo, validar_codigo
+from horta.services.conservar import comprobar_conservar
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.persoas import comprobar_quen
@@ -324,36 +325,7 @@ def eliminar_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> None
     if horta_id is None:
         raise ValueError("A parcela deste cultivo xa non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    if session.query(TratamentoCultivo).filter_by(cultivo_id=cultivo.id).first():
-        raise OperacionNonPermitidaError(
-            "Este cultivo ten tratamentos fitosanitarios rexistrados e debe conservarse "
-            "(obriga legal). Podes marcalo como rematado."
-        )
-    if session.query(AbonadoCultivo).filter_by(cultivo_id=cultivo.id).first():
-        raise OperacionNonPermitidaError(
-            "Este cultivo ten abonados rexistrados e debe conservarse "
-            "(obriga legal). Podes marcalo como rematado."
-        )
-    if session.query(RegaCultivo).filter_by(cultivo_id=cultivo.id).first():
-        raise OperacionNonPermitidaError(
-            "Este cultivo ten regas rexistradas e debe conservarse "
-            "(obriga legal). Podes marcalo como rematado."
-        )
-    if session.query(LaborCultivo).filter_by(cultivo_id=cultivo.id).first():
-        raise OperacionNonPermitidaError(
-            "Este cultivo ten labores rexistrados e debe conservarse "
-            "(obriga legal). Podes marcalo como rematado."
-        )
-    if session.query(Colleita).filter_by(cultivo_id=cultivo.id).first():
-        raise OperacionNonPermitidaError(
-            "Este cultivo ten colleitas rexistradas e debe conservarse. "
-            "Podes marcalo como rematado."
-        )
-    if session.query(PastoreoLeira).filter_by(cultivo_id=cultivo.id).first():
-        raise OperacionNonPermitidaError(
-            "Este cultivo ten pastoreos rexistrados e debe conservarse "
-            "(obriga legal). Podes marcalo como rematado."
-        )
+    comprobar_conservar(session, cultivo)
     session.query(Tarefa).filter_by(cultivo_id=cultivo.id).update({"cultivo_id": None})
     session.query(Analise).filter_by(cultivo_id=cultivo.id).update({"cultivo_id": None})
     session.flush()

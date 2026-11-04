@@ -3,30 +3,51 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from sqlalchemy import delete
+from sqlalchemy import delete, or_
 from sqlalchemy.orm import Session
 
-from horta.models.abonado import Abonado, Fertilizante
+from horta.models.abonado import Fertilizante
 from horta.models.analise import Analise
-from horta.models.animal import Animal
+from horta.models.animal import Animal, AnimalIdentificado
+from horta.models.cartos import ApunteCartos
 from horta.models.categoria import Categoria, persoa_categoria
-from horta.models.coidado_animal import CoidadoAnimal
+from horta.models.colleita import Colleita
 from horta.models.convite import Convite
 from horta.models.cultivo import Cultivo
+from horta.models.envio_cue import EnvioCue, RexistroCue
+from horta.models.foto import Foto
 from horta.models.horta import Horta, HortaMembro, RolHorta
-from horta.models.labor import Labor
+from horta.models.instalacion import Instalacion
+from horta.models.lote import (
+    Clasificacion,
+    ClasificacionClase,
+    Lote,
+    LoteSaida,
+    Mestura,
+    MesturaOrixe,
+    ProdutoVenda,
+    Transformacion,
+    TransformacionEntrada,
+    TransformacionInsumo,
+)
 from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
-from horta.models.pastoreo import Pastoreo
 from horta.models.persoa import Persoa, PersoaPapel
+from horta.models.plan_empresa import (
+    PlanAno,
+    PlanEmpresa,
+    PlanFinanciamento,
+    PlanInvestimento,
+    PlanOferta,
+)
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
-from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
-from horta.models.tratamento_fito import TratamentoFito
 from horta.models.usuario import Usuario
+from horta.models.zona import ParcelaZona
+from horta.services.conservar import comprobar_conservar
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 
 # Campos que se poden modificar dende actualizar_horta. Queda fóra id e
@@ -149,67 +170,102 @@ def actualizar_horta(
 
 
 def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
-    """Elimina a horta e todo o que dependa dela (parcelas, animais, membros).
+    """Elimina a horta e todo o que dependa dela.
 
     Non hai borrado en cascada a nivel de base de datos (sen relacións
     SQLAlchemy nin FKs ON DELETE CASCADE), así que hai que borrar
     explicitamente os rexistros dependentes antes da propia horta.
     """
     comprobar_rol_horta(session, horta.id, actor, {RolHorta.ADMIN})
-    if session.query(TratamentoFito).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten tratamentos fitosanitarios rexistrados e debe conservarse "
-            "(obriga legal)."
-        )
-    if session.query(Abonado).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten abonados rexistrados e debe conservarse (obriga legal)."
-        )
-    if session.query(Rega).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten regas rexistradas e debe conservarse (obriga legal)."
-        )
-    if session.query(Labor).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten labores rexistrados e debe conservarse (obriga legal)."
-        )
-    if session.query(CoidadoAnimal).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten coidados de animais rexistrados e debe conservarse "
-            "(obriga legal)."
-        )
-    if session.query(MovementoAnimal).filter(
-        MovementoAnimal.horta_id == horta.id, MovementoAnimal.tipo != "inicial"
-    ).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten entradas e saídas de animais rexistradas e debe conservarse "
-            "(obriga legal)."
-        )
-    if session.query(ProducionAnimal).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten produción dos animais rexistrada e debe conservarse."
-        )
-    if session.query(Pastoreo).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten pastoreos rexistrados e debe conservarse (obriga legal)."
-        )
-    if session.query(EntradaProduto).filter_by(horta_id=horta.id).first():
-        raise OperacionNonPermitidaError(
-            "Esta explotación ten compras de produtos rexistradas e debe conservarse "
-            "(obriga legal).")
-    session.query(Produto).filter_by(horta_id=horta.id).delete()
-    # Os outros traballos non son de ningún libro oficial: bórranse coa explotación
-    session.query(OutroTraballo).filter_by(horta_id=horta.id).delete()
-    session.query(Fertilizante).filter_by(horta_id=horta.id).delete()
-    for analise in session.query(Analise).filter_by(horta_id=horta.id).all():
-        session.delete(analise)
+    comprobar_conservar(session, horta)
+
+    # 1. Envíos e rexistros CUE
+    session.query(RexistroCue).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.query(EnvioCue).filter_by(horta_id=horta.id).delete(synchronize_session=False)
     session.flush()
-    for tarefa in session.query(Tarefa).filter_by(horta_id=horta.id).all():
-        session.delete(tarefa)
-    # As Tarefas poden referenciar Parcela/Cultivo (FK opcionais) — hai que
-    # borralas e facer flush ANTES de tocar Parcela/Cultivo, senón o borrado
-    # dunha Tarefa violaría a FK se o seu Cultivo/Parcela xa se borrou antes.
+
+    # 2. Plan de empresa e subtáboas (Anexos III, V, VI)
+    plan_ids = [p.id for p in session.query(PlanEmpresa).filter_by(horta_id=horta.id).all()]
+    if plan_ids:
+        inv_ids = [
+            row[0]
+            for row in session.query(PlanInvestimento.id)
+            .filter(PlanInvestimento.plan_id.in_(plan_ids))
+            .all()
+        ]
+        if inv_ids:
+            session.query(PlanOferta).filter(PlanOferta.investimento_id.in_(inv_ids)).delete(
+                synchronize_session=False
+            )
+            session.flush()
+        session.query(PlanInvestimento).filter(PlanInvestimento.plan_id.in_(plan_ids)).delete(
+            synchronize_session=False
+        )
+        session.query(PlanFinanciamento).filter(PlanFinanciamento.plan_id.in_(plan_ids)).delete(
+            synchronize_session=False
+        )
+        session.query(PlanAno).filter(PlanAno.plan_id.in_(plan_ids)).delete(
+            synchronize_session=False
+        )
+        session.flush()
+        session.query(PlanEmpresa).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+        session.flush()
+
+    # 3. Fotos
+    session.query(Foto).filter_by(horta_id=horta.id).delete(synchronize_session=False)
     session.flush()
+
+    # 4. Apuntes de cartos
+    session.query(ApunteCartos).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    # 5. Lotes e todas as súas dependencias
+    t_ids = [
+        row[0]
+        for row in session.query(Transformacion.id).filter_by(horta_id=horta.id).all()
+    ]
+    if t_ids:
+        session.query(TransformacionEntrada).filter(
+            TransformacionEntrada.transformacion_id.in_(t_ids)
+        ).delete(synchronize_session=False)
+        session.query(TransformacionInsumo).filter(
+            TransformacionInsumo.transformacion_id.in_(t_ids)
+        ).delete(synchronize_session=False)
+        session.flush()
+        session.query(Transformacion).filter_by(horta_id=horta.id).delete(
+            synchronize_session=False
+        )
+        session.flush()
+
+    m_ids = [
+        row[0]
+        for row in session.query(Mestura.id).filter_by(horta_id=horta.id).all()
+    ]
+    if m_ids:
+        session.query(MesturaOrixe).filter(MesturaOrixe.mestura_id.in_(m_ids)).delete(
+            synchronize_session=False
+        )
+        session.flush()
+        session.query(Mestura).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+        session.flush()
+
+    cl_ids = [
+        row[0]
+        for row in session.query(Clasificacion.id).filter_by(horta_id=horta.id).all()
+    ]
+    if cl_ids:
+        session.query(ClasificacionClase).filter(
+            ClasificacionClase.clasificacion_id.in_(cl_ids)
+        ).delete(synchronize_session=False)
+        session.flush()
+        session.query(Clasificacion).filter_by(horta_id=horta.id).delete(
+            synchronize_session=False
+        )
+        session.flush()
+
+    session.query(LoteSaida).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
     parcelas = session.query(Parcela).filter_by(horta_id=horta.id).all()
     parcela_ids = [p.id for p in parcelas]
     cultivos = (
@@ -217,32 +273,111 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
         if parcela_ids
         else []
     )
+    cultivo_ids = [c.id for c in cultivos]
+    lote_ids = [row[0] for row in session.query(Lote.id).filter_by(horta_id=horta.id).all()]
+
+    conds = []
+    if cultivo_ids:
+        conds.append(Colleita.cultivo_id.in_(cultivo_ids))
+    if lote_ids:
+        conds.append(Colleita.lote_id.in_(lote_ids))
+    if conds:
+        session.query(Colleita).filter(or_(*conds)).delete(synchronize_session=False)
+        session.flush()
+
+    session.query(ProducionAnimal).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    session.query(Lote).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    session.query(ProdutoVenda).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    # 6. Outros traballos, produtos e fertilizantes
+    session.query(OutroTraballo).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    session.query(EntradaProduto).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    session.query(Produto).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    session.query(Fertilizante).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    # 7. Análises e tarefas
+    for analise in session.query(Analise).filter_by(horta_id=horta.id).all():
+        session.delete(analise)
+    session.flush()
+
+    for tarefa in session.query(Tarefa).filter_by(horta_id=horta.id).all():
+        session.delete(tarefa)
+    session.flush()
+
+    # 8. Cultivos, zonas debuxadas e parcelas
     for cultivo in cultivos:
         session.delete(cultivo)
     session.flush()
+
+    if parcela_ids:
+        session.query(ParcelaZona).filter(ParcelaZona.parcela_id.in_(parcela_ids)).delete(
+            synchronize_session=False
+        )
+        session.flush()
+
     for parcela in parcelas:
         session.delete(parcela)
-    session.query(MovementoAnimal).filter_by(horta_id=horta.id).delete()
     session.flush()
-    for animal in session.query(Animal).filter_by(horta_id=horta.id).all():
+
+    # 9. Animais e instalacións
+    animais = session.query(Animal).filter_by(horta_id=horta.id).all()
+    animal_ids = [a.id for a in animais]
+    if animal_ids:
+        session.query(AnimalIdentificado).filter(AnimalIdentificado.animal_id.in_(animal_ids)).delete(
+            synchronize_session=False
+        )
+        session.flush()
+
+    session.query(MovementoAnimal).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    for animal in animais:
         session.delete(animal)
+    session.flush()
+
+    session.query(Instalacion).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    # 10. Máquinas
+    for maquina in session.query(Maquina).filter_by(horta_id=horta.id).all():
+        session.delete(maquina)
+    session.flush()
+
+    # 11. Membros, convites, categorías e persoas
     for membro in session.query(HortaMembro).filter_by(horta_id=horta.id).all():
         session.delete(membro)
-    ids_persoas = [p.id for p in session.query(Persoa).filter_by(horta_id=horta.id)]
+    session.flush()
+
+    session.query(Convite).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    persoas = session.query(Persoa).filter_by(horta_id=horta.id).all()
+    ids_persoas = [p.id for p in persoas]
     if ids_persoas:
         session.execute(delete(persoa_categoria).where(
             persoa_categoria.c.persoa_id.in_(ids_persoas)))
-    session.query(Categoria).filter_by(horta_id=horta.id).delete()
-    session.query(Convite).filter_by(horta_id=horta.id).delete()
-    for persoa in session.query(Persoa).filter_by(horta_id=horta.id).all():
+        session.flush()
+
+    for persoa in persoas:
         session.delete(persoa)
-    for maquina in session.query(Maquina).filter_by(horta_id=horta.id).all():
-        session.delete(maquina)
-    # SQLAlchemy non ten relationship() entre estes modelos, así que non hai
-    # información de dependencia para ordenar o DELETE automaticamente. Sen
-    # este flush, os borrados poden enviarse na orde inversa (horta antes dos
-    # seus fillos), o que falla en calquera BD que comprobe as FKs.
     session.flush()
+
+    session.query(Categoria).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
+    # 12. A explotación
     session.delete(horta)
     session.commit()
 
