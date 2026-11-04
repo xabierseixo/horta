@@ -40,7 +40,7 @@ def login_page() -> None:
                     apuntar_fallo(email_input.value, agora)
                     mensaxe_erro.text = "Email ou contrasinal incorrectos"
                     return
-                    borrar_fallos(email_input.value)
+                borrar_fallos(email_input.value)
                 app.storage.user["usuario_id"] = usuario.id
                 app.storage.user["usuario_nome"] = usuario.nome
                 app.storage.user["usuario_rol"] = usuario.rol.value
