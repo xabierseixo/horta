@@ -63,9 +63,15 @@ def _validar_especie(session: Session, codigo: str | None, na_data: date) -> Non
         validar_codigo(session, "especie_animal", codigo, na_data)
 
 
+def ten_identificados(session: Session, animal_id: int) -> bool:
+    """Se o grupo ten animais identificados individualmente (crotais, microchip...)."""
+    return session.query(AnimalIdentificado).filter_by(animal_id=animal_id).first() is not None
+
+
 def ten_rexistros(session: Session, animal_id: int) -> bool:
     return (ten_coidados(session, animal_id) or ten_movementos(session, animal_id)
-            or ten_producion(session, animal_id) or ten_pastoreo(session, animal_id))
+            or ten_producion(session, animal_id) or ten_pastoreo(session, animal_id)
+            or ten_identificados(session, animal_id))
 
 
 def _raza_da_especie(
@@ -154,6 +160,11 @@ def actualizar_animal(
 
 def eliminar_animal(session: Session, actor: Usuario, animal: Animal) -> None:
     comprobar_rol_horta(session, animal.horta_id, actor, _ROLES_ESCRITURA)
+    if ten_identificados(session, animal.id):
+        raise OperacionNonPermitidaError(
+            "Este grupo ten animais identificados e debe conservarse (obriga legal). "
+            "Se xa non ten animais, apunta a súa saída ou morte"
+        )
     if ten_rexistros(session, animal.id):
         raise OperacionNonPermitidaError(
             "Este grupo ten coidados, entradas e saídas, produción ou pastoreos apuntados e debe "

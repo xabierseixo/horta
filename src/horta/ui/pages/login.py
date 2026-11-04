@@ -6,7 +6,7 @@ from nicegui import app, ui
 
 from horta.db import get_session
 from horta.services.auth import autenticar
-from horta.services.intentos_login import apuntar_fallo, borrar_fallos, minutos_de_espera
+from horta.services.intentos_login import minutos_de_espera
 from horta.ui.nav import aplicar_paleta
 from horta.ui.sesion import usuario_actual
 
