@@ -297,6 +297,7 @@ def crear_dialogo_tratamento(
                 aplicador = ui.select(op.aplicadores, label="Aplicador").classes("w-full")
                 maquina = ui.select(op.maquinas, label="Máquina (baleiro se é manual)"
                                     ).classes("w-full")
+                horas = ui.input("Horas de traballo").classes("w-full")
                 asesor = ui.select(op.asesores, label="Asesor (opcional)",
                                    clearable=True).classes("w-full")
                 data_asesor = campo_data("Data do asesoramento")
@@ -339,8 +340,9 @@ def crear_dialogo_tratamento(
                                              unidade=f["unidade"],
                                              num_rexistro_mdf=f["mdf"].strip() or None)
                                  for f in estado["medidas"] if f["tipo"]],
-                        aplicadores=[LinhaAplicador(aplicador.value, maquina.value,
-                                                    aplicacion_manual=maquina.value is None)]
+                        aplicadores=[LinhaAplicador(
+                            aplicador.value, maquina.value, aplicacion_manual=maquina.value is None,
+                            horas_utilizacion=parsear_decimal(horas.value))]
                         if aplicador.value else [],
                         asesor=DatosAsesor(asesor.value, data=data_as,
                                            validacion=bool(validacion.value))
@@ -440,6 +442,7 @@ def crear_dialogo_tratamento(
         aplicador.value = _ou_nada(op.aplicadores, a.persoa_id if a else (
             tarefa.persoa_id if tarefa else None))
         maquina.value = _ou_nada(op.maquinas, a.maquina_id if a else None)
+        horas.value = f"{a.horas_utilizacion:g}" if a and a.horas_utilizacion else ""
         asesor.value = _ou_nada(op.asesores, t.asesor.persoa_id if t and t.asesor else None)
         data_asesor.value = (t.asesor.data.isoformat()
                              if t and t.asesor and t.asesor.data else "")
