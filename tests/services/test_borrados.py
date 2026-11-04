@@ -39,7 +39,7 @@ def _crear_usuario(session, email: str = "ana@example.com") -> Usuario:
     return usuario
 
 
-def test_eliminar_horta_con_lote_colleita_foto_cartos_e_zona(session):
+def test_eliminar_horta_con_lote_foto_cartos_e_zona(session):
     ana = _crear_usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "A miña horta")
     parcela = crear_parcela(session, ana, horta.id, "Parcela 1")
@@ -49,6 +49,7 @@ def test_eliminar_horta_con_lote_colleita_foto_cartos_e_zona(session):
     session.flush()
 
     cultivo = crear_cultivo(session, ana, parcela.id, "Tomate", zona_id=zona.id)
+    zona_id = zona.id
 
     pv = ProdutoVenda(horta_id=horta.id, nome="Tomate", unidade="kg")
     session.add(pv)
@@ -64,15 +65,6 @@ def test_eliminar_horta_con_lote_colleita_foto_cartos_e_zona(session):
     )
     session.add(lote)
     session.flush()
-
-    colleita = Colleita(
-        cultivo_id=cultivo.id,
-        lote_id=lote.id,
-        data=date(2026, 6, 1),
-        cantidade=50.0,
-        unidade="kg",
-    )
-    session.add(colleita)
 
     foto = Foto(
         horta_id=horta.id,
@@ -93,18 +85,39 @@ def test_eliminar_horta_con_lote_colleita_foto_cartos_e_zona(session):
     )
     session.add(apunte)
     session.commit()
+    ids = {"horta": horta.id, "cultivo": cultivo.id, "lote": lote.id, "pv": pv.id,
+           "foto": foto.id, "apunte": apunte.id}
 
     eliminar_horta(session, ana, horta)
 
-    assert session.get(Horta, horta.id) is None
-    assert session.query(Parcela).filter_by(horta_id=horta.id).count() == 0
-    assert session.query(Cultivo).filter_by(id=cultivo.id).count() == 0
-    assert session.query(ParcelaZona).filter_by(id=zona.id).count() == 0
-    assert session.query(Colleita).filter_by(id=colleita.id).count() == 0
-    assert session.query(Lote).filter_by(id=lote.id).count() == 0
-    assert session.query(ProdutoVenda).filter_by(id=pv.id).count() == 0
-    assert session.query(Foto).filter_by(id=foto.id).count() == 0
-    assert session.query(ApunteCartos).filter_by(id=apunte.id).count() == 0
+    assert session.get(Horta, ids["horta"]) is None
+    assert session.query(Parcela).filter_by(horta_id=ids["horta"]).count() == 0
+    assert session.query(Cultivo).filter_by(id=ids["cultivo"]).count() == 0
+    assert session.query(ParcelaZona).filter_by(id=zona_id).count() == 0
+    assert session.query(Lote).filter_by(id=ids["lote"]).count() == 0
+    assert session.query(ProdutoVenda).filter_by(id=ids["pv"]).count() == 0
+    assert session.query(Foto).filter_by(id=ids["foto"]).count() == 0
+    assert session.query(ApunteCartos).filter_by(id=ids["apunte"]).count() == 0
+
+
+def test_eliminar_horta_con_colleita_rexeita_operacion(session):
+    ana = _crear_usuario(session, "ana@example.com")
+    horta = crear_horta(session, ana, "A miña horta")
+    parcela = crear_parcela(session, ana, horta.id, "Parcela 1")
+    cultivo = crear_cultivo(session, ana, parcela.id, "Tomate")
+    pv = ProdutoVenda(horta_id=horta.id, nome="Tomate", unidade="kg")
+    session.add(pv)
+    session.flush()
+    lote = Lote(horta_id=horta.id, codigo="2026-TOMATE-001", produto="Tomate", unidade="kg",
+                produto_venda_id=pv.id, data=date(2026, 6, 1))
+    session.add(lote)
+    session.flush()
+    session.add(Colleita(cultivo_id=cultivo.id, lote_id=lote.id, data=date(2026, 6, 1),
+                         cantidade=50.0, unidade="kg"))
+    session.commit()
+
+    with pytest.raises(OperacionNonPermitidaError, match="colleitas"):
+        eliminar_horta(session, ana, horta)
 
 
 def test_eliminar_parcela_con_colleita_rexeita_operacion(session):
@@ -243,7 +256,8 @@ def test_eliminar_horta_con_plan_empresa_instalacion_envio_cue(session):
     instalacion = Instalacion(horta_id=horta.id, tipo="almacen", nome="Almacén central")
     session.add(instalacion)
 
-    envio = EnvioCue(horta_id=horta.id, usuario_id=ana.id, desde=date(2026, 1, 1), ata=date(2026, 1, 31))
+    envio = EnvioCue(horta_id=horta.id, usuario_id=ana.id, desde=date(2026, 1, 1),
+                     ata=date(2026, 1, 31))
     session.add(envio)
     session.commit()
 
