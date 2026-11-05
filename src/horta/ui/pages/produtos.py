@@ -164,7 +164,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
 
             confirmar_eliminacion(
                 "Retirar este abono? Deixa de saír ao abonar; o que xa apuntaches consérvase.",
-                confirmar)
+                confirmar, "Retirar", "archive")
 
         with ui.row():
             ui.button("Nova entrada (compra)", icon="shopping_cart", on_click=nova_entrada)
@@ -219,7 +219,8 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa esta entrada? Non se borra: consérvase no histórico.", confirmar)
+            "Dar de baixa esta entrada? Non se borra: consérvase no histórico.", confirmar,
+            "Dar de baixa", "archive")
 
     with ui.row():
         ui.button("Editar", icon="edit", on_click=editar).props("outline")

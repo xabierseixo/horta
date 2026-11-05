@@ -6,6 +6,7 @@ período que se escolla; o que a app aínda non garda queda en branco.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from datetime import date
 from io import BytesIO
@@ -30,6 +31,7 @@ from horta.services.abonados import listar_abonados, nutrientes_do_abonado
 from horta.services.analises import SOLO, listar_analises
 from horta.services.catalogos import describir
 from horta.services.colleitas import listar_colleitas
+from horta.services.cue import cultivos_do_lote
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import FORMAS_N_P, METAIS_RESIDUO, RESIDUOS, dose_kg_ha
 from horta.services.formato import num_texto
@@ -95,8 +97,13 @@ def xerar_caderno(
     # Tamén os cultivos xa rematados cuxa colleita se vende neste período (Z11)
     lotes_vendidos = {v.lote_id for v in listar_saidas(session, actor, horta_id)
                       if v.tipo == "venda" and v.data <= ata and (v.data_fin or v.data) >= desde}
-    vendidos = {c.cultivo_id for c in listar_colleitas(session, actor, horta_id)
-                if c.lote_id in lotes_vendidos}
+    colleitas_lote: dict[int, list[int]] = defaultdict(list)
+    for col in listar_colleitas(session, actor, horta_id):
+        colleitas_lote[col.lote_id].append(col.cultivo_id)
+    # Os lotes mesturados ou transformados levan os cultivos das súas orixes
+    cultivos_lote = {lote_id: cultivos_do_lote(session, lote_id, colleitas_lote)
+                     for lote_id in lotes_vendidos}
+    vendidos = set().union(*cultivos_lote.values())
     cultivos = [c for c in session.query(Cultivo).filter(Cultivo.parcela_id.in_(parcelas))
                 .order_by(Cultivo.parcela_id, Cultivo.id)
                 if _activo(c, desde, ata) or c.id in vendidos]
@@ -344,7 +351,6 @@ def xerar_caderno(
 
     # 5: as vendas dos lotes de colleitas (a colleita comercializada)
     filas_colleita = []
-    colleitas = listar_colleitas(session, actor, horta_id)
     for venda in listar_saidas(session, actor, horta_id):
         lote = session.get(Lote, venda.lote_id)
         if (venda.tipo != "venda" or lote is None or lote.produto_animal is not None
@@ -355,9 +361,8 @@ def xerar_caderno(
         filas_colleita.append([
             _intervalo(venda.data, venda.data_fin), lote.produto,
             _num(kg) if kg is not None else f"{venda.cantidade:g} {venda.unidade}",
-            ", ".join(str(n) for n in sorted({orde_cultivo[col.cultivo_id] for col in colleitas
-                                              if col.lote_id == lote.id
-                                              and col.cultivo_id in orde_cultivo})),
+            ", ".join(str(n) for n in sorted({orde_cultivo[c] for c in cultivos_lote[lote.id]
+                                              if c in orde_cultivo})),
             venda.albaran_factura or "", lote.codigo, nome_completo(cliente),
             (cliente.nif or "") if cliente else "", (cliente.enderezo or "") if cliente else "",
             (cliente.reaga or "") if cliente else ""])

@@ -5,7 +5,8 @@ from typing import Callable
 from nicegui import ui
 
 
-def confirmar_eliminacion(mensaxe: str, ao_confirmar: Callable[[], None]) -> None:
+def confirmar_eliminacion(mensaxe: str, ao_confirmar: Callable[[], None],
+                          boton: str = "Eliminar", icona: str = "delete") -> None:
     """Pide confirmación antes de executar unha acción destrutiva.
 
     Crea un diálogo novo cada vez que se chama (non un diálogo reutilizado),
@@ -20,5 +21,5 @@ def confirmar_eliminacion(mensaxe: str, ao_confirmar: Callable[[], None]) -> Non
                 dialog.close()
                 ao_confirmar()
 
-            ui.button("Eliminar", icon="delete", on_click=confirmado).props("color=negative")
+            ui.button(boton, icon=icona, on_click=confirmado).props("color=negative")
     dialog.open()

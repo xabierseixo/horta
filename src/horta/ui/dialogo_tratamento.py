@@ -292,7 +292,7 @@ def crear_dialogo_tratamento(
                                                       type="warning")
                                             return
                                         f["dose"] = _txt(cantidade_dende_porcentaxe(
-                                            porcentaxe, litros))
+                                            porcentaxe, litros)).replace(".", ",")
                                         f["total"], f["unidade"] = True, u.value
 
                                     ui.button("Calcular", on_click=calcular).props("flat")
