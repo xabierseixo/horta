@@ -319,23 +319,29 @@ def _van(taxa: float, fluxos: list[float]) -> float:
     return sum(f / (1 + taxa) ** n for n, f in enumerate(fluxos))
 
 
-def indicadores(plan: PlanEmpresa) -> Indicadores:
-    investimento = round(sum(i.importe_sen_iva for i in plan.investimentos), 2)
-    con_iva = round(sum(i.importe_sen_iva * (1 + i.iva_pct / 100)
-                        for i in plan.investimentos), 2)
-    subvencionable = round(sum(custo(plan, i) for i in plan.investimentos), 2)
-    fluxos = [-subvencionable, *(a.fluxo for a in conta(plan))]
-    tir = None
-    # TIR por bisección, se o signo cambia entre -99 % e 100 %
+def _tir(fluxos: list[float]) -> float | None:
+    """TIR por bisección entre -99 % e ata un máximo de 10 000 %."""
     baixo, alto = -0.99, 1.0
-    if subvencionable and _van(baixo, fluxos) * _van(alto, fluxos) < 0:
+    while alto < 100.0 and _van(baixo, fluxos) * _van(alto, fluxos) > 0:
+        alto = min(alto * 2, 100.0)
+    if _van(baixo, fluxos) * _van(alto, fluxos) < 0:
         for _ in range(100):
             medio = (baixo + alto) / 2
             if _van(baixo, fluxos) * _van(medio, fluxos) <= 0:
                 alto = medio
             else:
                 baixo = medio
-        tir = round((baixo + alto) / 2, 4)
+        return round((baixo + alto) / 2, 4)
+    return None
+
+
+def indicadores(plan: PlanEmpresa) -> Indicadores:
+    investimento = round(sum(i.importe_sen_iva for i in plan.investimentos), 2)
+    con_iva = round(sum(i.importe_sen_iva * (1 + i.iva_pct / 100)
+                        for i in plan.investimentos), 2)
+    subvencionable = round(sum(custo(plan, i) for i in plan.investimentos), 2)
+    fluxos = [-subvencionable, *(a.fluxo for a in conta(plan))]
+    tir = _tir(fluxos) if subvencionable else None
     acumulado, payback = 0.0, None
     for n, fluxo in enumerate(fluxos):
         acumulado += fluxo
