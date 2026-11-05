@@ -14,10 +14,12 @@ from horta.services.parcelas import (
     crear_parcela,
     eliminar_parcela,
     listar_parcelas,
+    ten_historial,
 )
 from horta.services.tempo import gardar_lugar
 from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
+from horta.ui.baixa_parcela import dialogo_baixa_parcela
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -241,6 +243,12 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             ui.notify("Selecciona unha parcela na táboa", type="warning")
             return
         parcela_id = taboa.selected[0]["id"]
+        with get_session() as session:
+            escollida = session.get(Parcela, parcela_id)
+            con_historial = escollida is not None and ten_historial(session, escollida)
+        if con_historial:
+            dialogo_baixa_parcela(parcela_id, ui.navigate.reload)
+            return
 
         def confirmar() -> None:
             with get_session() as session:

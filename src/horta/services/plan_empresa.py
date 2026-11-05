@@ -109,13 +109,21 @@ def base_do_real(resumo: Resumo) -> tuple[float, float, float]:
     return round(vendas, 2), round(variables, 2), round(max(fixos, 0), 2)
 
 
+def ano_de_referencia(session: Session, actor: Usuario, horta_id: int,
+                      hoxe: date | None = None) -> int:
+    """O ano pasado se ten datos en Cartos; se non (o primeiro ano), o ano en curso (Y9)."""
+    ano = (hoxe or date.today()).year
+    pasado = resumo_ano(session, actor, horta_id, ano - 1)
+    return ano - 1 if pasado.total_ingresos or pasado.total_gastos else ano
+
+
 def crear_plan(session: Session, actor: Usuario, horta_id: int, titulo: str,
                ano_inicio: int, hoxe: date | None = None) -> PlanEmpresa:
-    """Os 5 anos propóñense iguais ao último ano completo de Cartos."""
+    """Os 5 anos propóñense iguais ao ano de referencia de Cartos."""
     comprobar_rol_horta(session, horta_id, actor, _ROLES)
     if not titulo.strip():
         raise OperacionNonPermitidaError("Pon un título ao plan")
-    real = (hoxe or date.today()).year - 1
+    real = ano_de_referencia(session, actor, horta_id, hoxe)
     vendas, variables, fixos = base_do_real(resumo_ano(session, actor, horta_id, real))
     plan = PlanEmpresa(horta_id=horta_id, titulo=titulo.strip(), ano_inicio=ano_inicio,
                        anos=[PlanAno(ano_n=n, vendas=vendas, custos_variables=variables,

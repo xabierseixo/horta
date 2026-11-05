@@ -149,6 +149,12 @@ def lote_para_entrada(
     if converter(1, unidade, lote.unidade) is None:
         raise OperacionNonPermitidaError(
             f"O lote {codigo} vai en {lote.unidade}: apunta a cantidade nesa unidade")
+    if produto_animal is None and lote.protexido != protexido:
+        # A venda directa ten máximos distintos para cada un (G6)
+        onde = "de invernadoiro" if lote.protexido else "ao aire libre"
+        raise OperacionNonPermitidaError(
+            f"O lote {codigo} é {onde}: as colleitas de invernadoiro e as de aire libre "
+            "van en lotes distintos")
     lote.data = min(lote.data, data)
     return lote
 

@@ -18,6 +18,7 @@ from horta.services.parcelas import (
     eliminar_parcela,
     listar_parcelas,
     puntos_da_xeometria,
+    ten_historial,
     xeometria_debuxada,
 )
 from horta.services.xeo_oficial import (
@@ -40,6 +41,7 @@ from horta.services.zonas import (
     xuntar_zonas,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.baixa_parcela import dialogo_baixa_parcela
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import formatar_superficie
 
@@ -354,6 +356,15 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
 
     async def quitar_parcela(ident: int) -> None:
         p = parcela(ident)
+        with get_session() as session:
+            con_historial = p is not None and ten_historial(session, p)
+        if con_historial:
+            def tras_baixa() -> None:
+                cargar()
+                escoller(None, None)
+
+            dialogo_baixa_parcela(ident, tras_baixa)
+            return
         with ui.dialog() as confirmar, ui.card():
             ui.label(f"Quitar «{p.nome if p else ''}» e as súas zonas?")
             with ui.row():

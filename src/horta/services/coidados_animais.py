@@ -101,9 +101,12 @@ def _validar(
     if datos.num_animais is not None:
         if datos.num_animais < 1:
             raise OperacionNonPermitidaError("O número de animais ten que ser polo menos 1")
-        if datos.num_animais > animal.cantidade:
+        from horta.services.movementos_animais import cantidade_na_data
+
+        daquela = cantidade_na_data(session, animal, datos.data_inicio)
+        if datos.num_animais > daquela:
             raise OperacionNonPermitidaError(
-                f"O grupo só ten {animal.cantidade} animais")
+                f"O {datos.data_inicio:%d/%m/%Y} o grupo só tiña {daquela} animais")
     if datos.tipo == "medicamento":
         if not datos.medicamento and datos.produto_id is None:
             raise OperacionNonPermitidaError("Indica o medicamento")

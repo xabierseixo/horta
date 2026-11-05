@@ -179,6 +179,35 @@ def eliminar_parcela(session: Session, actor: Usuario, parcela: Parcela) -> None
     session.commit()
 
 
+def ten_historial(session: Session, parcela: Parcela) -> bool:
+    """Ten traballos que hai que conservar: non se borra, dáse de baixa (D4)."""
+    try:
+        comprobar_conservar(session, parcela)
+    except OperacionNonPermitidaError:
+        return True
+    return False
+
+
+def dar_de_baixa_parcela(session: Session, actor: Usuario, parcela: Parcela, data: date,
+                         causa: str | None, hoxe: date | None = None) -> Parcela:
+    """A parcela deixa de ser da explotación; o seu historial consérvase para os informes."""
+    comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_ESCRITURA)
+    if data > (hoxe or date.today()):
+        raise OperacionNonPermitidaError("A data de baixa non pode ser futura")
+    if not causa:
+        raise OperacionNonPermitidaError("Indica a causa da baixa")
+    _validar_rea(session, parcela.horta_id, {"data_alta": parcela.data_alta,
+                                             "data_baixa": data, "causa_baixa": causa})
+    seguen = [c.especie for c in session.query(Cultivo).filter_by(parcela_id=parcela.id)
+              if c.data_fin is None or c.data_fin > data]
+    if seguen:
+        raise OperacionNonPermitidaError(
+            f"Remata antes os cultivos que seguen na parcela: {', '.join(seguen)}")
+    parcela.data_baixa, parcela.causa_baixa, parcela.estado = data, causa, "baixa"
+    session.commit()
+    return parcela
+
+
 def listar_parcelas(session: Session, actor: Usuario, horta_id: int) -> list[Parcela]:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
     return list(session.query(Parcela).filter_by(horta_id=horta_id).order_by(Parcela.nome).all())

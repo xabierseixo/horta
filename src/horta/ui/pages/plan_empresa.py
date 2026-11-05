@@ -25,6 +25,7 @@ from horta.services.plan_empresa import (
     TIPOLOXIAS,
     Documento,
     actualizar_plan,
+    ano_de_referencia,
     avisos_plan,
     conta,
     crear_plan,
@@ -73,7 +74,7 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
             pechar_sesion()
             return
         plans = listar_plans(session, actor, horta_id)
-        ano_real = date.today().year - 1
+        ano_real = ano_de_referencia(session, actor, horta_id)
         met = metricas(session, actor, horta_id, ano_real)
         segue = {p.id: seguimento(session, actor, p) for p in plans}
         faltas = {p.id: faltas_plan(session, actor, p) for p in plans}
@@ -88,7 +89,9 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
         ui.button("Novo plan", icon="add", on_click=lambda: _accion(
             lambda s, a: crear_plan(s, a, horta_id, titulo.value or "",
                                     int(parsear_decimal(ano1.value) or date.today().year))))
-    ui.label("Os 5 anos propóñense iguais ao ano pasado en Cartos; cámbiaos na conta."
+    referencia = "ao ano pasado" if ano_real < date.today().year else (
+        f"ao que levas de {ano_real}")
+    ui.label(f"Os 5 anos propóñense iguais {referencia} en Cartos; cámbiaos na conta."
              ).classes("texto-suave text-caption")
 
     for plan in plans:

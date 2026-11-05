@@ -239,7 +239,10 @@ def crear_cultivo(
     if horta_id is None:
         raise ValueError("Esa parcela non existe")
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
-    _validar_rea(session, _valores_rea(None, campos), session.get(Parcela, parcela_id))
+    parcela = session.get(Parcela, parcela_id)
+    if parcela is not None and parcela.data_baixa is not None:
+        raise OperacionNonPermitidaError("Esa parcela está de baixa")
+    _validar_rea(session, _valores_rea(None, campos), parcela)
     comprobar_quen(session, horta_id, campos.get("sementeira_persoa_id"),
                    campos.get("sementeira_horas"), obrigatoria=False)
     _comprobar_semente(session, horta_id, campos.get("entrada_semente_id"))

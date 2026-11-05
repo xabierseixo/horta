@@ -80,6 +80,15 @@ def recalcular(session: Session, animal: Animal) -> None:
     animal.data_baixa = None if total > 0 else ultima
 
 
+def cantidade_na_data(session: Session, animal: Animal, dia: date) -> int:
+    """Animais que había no grupo ese día (G4); sen movementos, os de agora."""
+    movementos = _movementos(session, animal.id)
+    if not movementos:
+        return animal.cantidade
+    return sum(m.cantidade if m.tipo in SUMAN else -m.cantidade
+               for m in movementos if m.data <= dia)
+
+
 def crear_inicial(session: Session, animal: Animal, cantidade: int) -> None:
     session.add(MovementoAnimal(horta_id=animal.horta_id, animal_id=animal.id,
                                 data=animal.data_alta, tipo=INICIAL, cantidade=cantidade))

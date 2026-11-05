@@ -92,8 +92,14 @@ def xerar_caderno(
     horta = session.get(Horta, horta_id)
     assert horta is not None
     parcelas = {p.id: p for p in session.query(Parcela).filter_by(horta_id=horta_id)}
+    # Tamén os cultivos xa rematados cuxa colleita se vende neste período (Z11)
+    lotes_vendidos = {v.lote_id for v in listar_saidas(session, actor, horta_id)
+                      if v.tipo == "venda" and v.data <= ata and (v.data_fin or v.data) >= desde}
+    vendidos = {c.cultivo_id for c in listar_colleitas(session, actor, horta_id)
+                if c.lote_id in lotes_vendidos}
     cultivos = [c for c in session.query(Cultivo).filter(Cultivo.parcela_id.in_(parcelas))
-                .order_by(Cultivo.parcela_id, Cultivo.id) if _activo(c, desde, ata)]
+                .order_by(Cultivo.parcela_id, Cultivo.id)
+                if _activo(c, desde, ata) or c.id in vendidos]
     orde_cultivo = {c.id: i for i, c in enumerate(cultivos, 1)}
     persoas = session.query(Persoa).filter_by(horta_id=horta_id).order_by(Persoa.id).all()
     persoas_por_id = {p.id: p for p in persoas}
