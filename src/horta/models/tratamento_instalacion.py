@@ -36,6 +36,10 @@ class TratamentoInstalacion(ParteComun, FeitoPor, ConMaquina, Base):
     materia_activa: Mapped[str | None] = mapped_column(String(250), default=None)
     cantidade_utilizada: Mapped[float | None] = mapped_column(Float, default=None)
     unidade: Mapped[str | None] = mapped_column(String(20), default=None)
+    # O produto do almacén e a compra de onde saíu, para descontalo (Z8)
+    produto_id: Mapped[int | None] = mapped_column(ForeignKey("produto.id"), default=None)
+    entrada_id: Mapped[int | None] = mapped_column(ForeignKey("entrada_produto.id"),
+                                                   default=None)
     # CUE 1.2–1.3: produto vexetal tratado (lista oficial de cultivos), instalación
     # (local de almacenamento) e eficacia do tratamento
     produto_vexetal: Mapped[int | None] = mapped_column(Integer, default=None)

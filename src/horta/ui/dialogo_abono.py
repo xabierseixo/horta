@@ -7,11 +7,13 @@ from collections.abc import Callable
 from nicegui import ui
 
 from horta.db import get_session
+from horta.models.abonado import Fertilizante
 from horta.services.catalogos import valores_vixentes
 from horta.services.fertilizantes import (
     ESTERCOS,
     RESIDUOS,
     DatosFertilizante,
+    actualizar_fertilizante,
     crear_fertilizante,
     datos_desde_siex,
     opcions_siex,
@@ -30,8 +32,11 @@ _METAIS = (("cadmio", "Cadmio"), ("cobre", "Cobre"), ("niquel", "Níquel"),
            ("cromo_vi", "Cromo VI"), ("arsenico", "Arsénico"), ("cromo", "Cromo total"))
 
 
-def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> ui.dialog:
-    """Crea o diálogo (pechado). Ao gardar chama a `ao_crear(id, nome)`."""
+def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None],
+                       fertilizante: Fertilizante | None = None) -> ui.dialog:
+    """Crea o diálogo (pechado). Ao gardar chama a `ao_crear(id, nome)`.
+
+    Con `fertilizante`, corrixe ese abono en vez de crear un novo (Z4)."""
     with get_session() as session:
         oficiais = opcions_siex(session)
         materiais = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
@@ -40,11 +45,13 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                        for v in valores_vixentes(session, "tratamento_estercos")}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
-        ui.label("Novo abono").classes("text-h6")
+        ui.label("Corrixir abono" if fertilizante else "Novo abono").classes("text-h6")
         oficial = ui.select(oficiais, label="Buscar no catálogo oficial (abonos comerciais)",
                             with_input=True, clearable=True).classes("w-full")
-        ui.label("Ou, se non está (esterco, compost...), enche os datos:").classes(
-            "text-caption")
+        oficial.set_visibility(fertilizante is None)
+        if fertilizante is None:
+            ui.label("Ou, se non está (esterco, compost...), enche os datos:").classes(
+                "text-caption")
         nome = ui.input("Nome (p.ex. Esterco de vaca)").classes("w-full")
         material = ui.select(materiais, label="Tipo de material", with_input=True).classes(
             "w-full")
@@ -52,6 +59,10 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
             n = ui.input("N %").classes("col")
             p = ui.input("P₂O₅ %").classes("col")
             k = ui.input("K₂O %").classes("col")
+        # Os líquidos (xurro, purín...) cóntanse en litros; a densidade pasa a kg (Z2)
+        liquido = ui.checkbox("É líquido (xurro, purín...)")
+        densidade = ui.input("Densidade (kg por litro, se a sabes)").classes("w-full")
+        densidade.bind_visibility_from(liquido, "value")
         # De onde vén (empresa, granxa ou casa) apúntase en cada compra (Produtos)
         tratamento = ui.select(tratamentos, label="Tratamento do esterco (opcional)",
                                clearable=True).classes("w-full")
@@ -72,7 +83,9 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                 for chave, entrada in formas.items():
                     valor = getattr(d, chave)
                     entrada.value = f"{valor:g}" if valor else ""
-            for campo in (nome, material, n, p, k):
+                liquido.value = d.liquido
+                densidade.value = f"{d.densidade:g}" if d.densidade else ""
+            for campo in (nome, material, n, p, k, liquido, densidade):
                 campo.set_enabled(oficial.value is None)
 
         oficial.on_value_change(encher_dende_oficial)
@@ -89,7 +102,8 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                     datos = DatosFertilizante(
                         nome=nome.value or "", material=material.value or "",
                         n_pct=parsear_decimal(n.value), p2o5_pct=parsear_decimal(p.value),
-                        k2o_pct=parsear_decimal(k.value))
+                        k2o_pct=parsear_decimal(k.value), liquido=bool(liquido.value),
+                        densidade=parsear_decimal(densidade.value) if liquido.value else None)
                 for campo, entrada in formas.items():
                     if entrada.value:
                         setattr(datos, campo, parsear_decimal(entrada.value))
@@ -101,11 +115,30 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None]) -> u
                 creado: dict[str, int] = {}
 
                 def accion() -> None:
-                    creado["id"] = crear_fertilizante(session, actor, horta_id, datos).id
+                    if fertilizante is not None:
+                        vello = session.get(Fertilizante, fertilizante.id)
+                        if vello is None:
+                            return
+                        datos.fertilizante_siex_codigo = vello.fertilizante_siex_codigo
+                        creado["id"] = actualizar_fertilizante(session, actor, vello, datos).id
+                    else:
+                        creado["id"] = crear_fertilizante(session, actor, horta_id, datos).id
 
                 if executar_accion(session, accion):
                     dialogo.close()
                     ao_crear(creado["id"], datos.nome.strip())
+
+        if fertilizante is not None:
+            f = fertilizante
+            nome.value, material.value = f.nome, f.material
+            n.value, p.value, k.value = (f"{x:g}" if x is not None else ""
+                                         for x in (f.n_pct, f.p2o5_pct, f.k2o_pct))
+            liquido.value = f.liquido
+            densidade.value = f"{f.densidade:g}" if f.densidade else ""
+            tratamento.value = f.tratamento_estercos
+            for chave, entrada in {**formas, **metais}.items():
+                valor = getattr(f, chave)
+                entrada.value = f"{valor:g}" if valor is not None else ""
 
         with ui.row():
             ui.button("Gardar abono", icon="check", on_click=gardar)

@@ -140,14 +140,18 @@ def crear_horta(
     nome: str,
     descricion: str | None = None,
     uso_profesional: bool = False,
+    son_titular: bool = False,
 ) -> Horta:
     horta = Horta(nome=nome, descricion=descricion, uso_profesional=uso_profesional)
     session.add(horta)
     session.flush()
     membro = HortaMembro(horta_id=horta.id, usuario_id=actor.id, rol=RolHorta.ADMIN)
     session.add(membro)
+    # Quen crea a explotación di se é o titular (Z1); se non, queda como traballador
+    papeis = ["titular", "traballador"] if son_titular else ["traballador"]
     session.add(Persoa(horta_id=horta.id, nome=actor.nome, usuario_id=actor.id,
-                       email=actor.email, papeis_rexistro=[PersoaPapel(papel="traballador")]))
+                       email=actor.email,
+                       papeis_rexistro=[PersoaPapel(papel=p) for p in papeis]))
     session.commit()
     return horta
 

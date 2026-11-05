@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 
 from fastapi import Request
@@ -11,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from horta.actualizacions import activar as activar_actualizacions
 from horta.log import configurar_rexistro
+from horta.segredo import segredo_sesion
 from horta.ui.erros import pagina_erro_html
 
 RUTAS_PUBLICAS = {"/login"}
@@ -108,7 +108,7 @@ def main() -> None:
     ui.run(
         port=8081,
         title="Horta",
-        storage_secret=os.environ.get("HORTA_STORAGE_SECRET", "dev-secret-cambiar-en-produccion"),
+        storage_secret=segredo_sesion(),
         reload=False,
     )
 

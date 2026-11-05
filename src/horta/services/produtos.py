@@ -16,10 +16,11 @@ from horta.models.horta import RolHorta
 from horta.models.lote import Transformacion, TransformacionInsumo
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.tratamento_fito import TratamentoFito, TratamentoProduto
+from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.models.usuario import Usuario
 from horta.services.cartos import comprobar_pago
 from horta.services.errors import OperacionNonPermitidaError
-from horta.services.fertilizantes import dose_kg_ha
+from horta.services.fertilizantes import cantidade_gastada
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.lotes import converter
 from horta.services.persoas import comprobar_quen, persoa_co_papel
@@ -219,8 +220,33 @@ def actualizar_entrada(session: Session, actor: Usuario, entrada: EntradaProduto
 
 def dar_de_baixa_entrada(session: Session, actor: Usuario, entrada: EntradaProduto) -> None:
     comprobar_rol_horta(session, entrada.horta_id, actor, _ROLES_ESCRITURA)
+    if _entrada_usada(session, entrada.id):
+        # O uso seguiría restando do almacén sen a compra (Z7)
+        raise OperacionNonPermitidaError(
+            "Esta compra xa se usou nun traballo: corrixe antes ese traballo")
     entrada.baixa = True
     session.commit()
+
+
+def _entrada_usada(session: Session, entrada_id: int) -> bool:
+    consultas = (
+        session.query(Cultivo.id).filter(Cultivo.entrada_semente_id == entrada_id),
+        session.query(Abonado.id).filter(Abonado.entrada_id == entrada_id,
+                                         Abonado.baixa.is_(False)),
+        session.query(TratamentoProduto.id)
+        .join(TratamentoFito, TratamentoFito.id == TratamentoProduto.tratamento_id)
+        .filter(TratamentoProduto.entrada_id == entrada_id, TratamentoFito.baixa.is_(False)),
+        session.query(TratamentoInstalacion.id).filter(
+            TratamentoInstalacion.entrada_id == entrada_id,
+            TratamentoInstalacion.baixa.is_(False)),
+        session.query(CoidadoAnimal.id).filter(CoidadoAnimal.entrada_id == entrada_id,
+                                               CoidadoAnimal.baixa.is_(False)),
+        session.query(TransformacionInsumo.id)
+        .join(Transformacion, Transformacion.id == TransformacionInsumo.transformacion_id)
+        .filter(TransformacionInsumo.entrada_id == entrada_id,
+                Transformacion.baixa.is_(False)),
+    )
+    return any(c.first() is not None for c in consultas)
 
 
 def listar_entradas(session: Session, actor: Usuario, horta_id: int,
@@ -272,10 +298,11 @@ def _usos(session: Session, produto: Produto) -> list[tuple[float | None, str | 
         for ab in session.query(Abonado).filter_by(fertilizante_id=produto.fertilizante_id,
                                                    baixa=False):
             superficie = sum(le.superficie_ha or 0 for le in ab.leiras)
-            kg_ha = (dose_kg_ha(ab.dose, ab.unidade, fertilizante.densidade if fertilizante
-                                else None) if ab.dose is not None and ab.unidade else None)
-            usos.append((kg_ha * superficie, "kg") if kg_ha is not None and superficie
-                        else (None, None))
+            gasto = (cantidade_gastada(ab.dose, ab.unidade, superficie,
+                                       produto.unidade == "litros",
+                                       fertilizante.densidade if fertilizante else None)
+                     if ab.dose is not None and ab.unidade and superficie else None)
+            usos.append(gasto or (None, None))
     for tp in (session.query(TratamentoProduto)
                .join(TratamentoFito, TratamentoFito.id == TratamentoProduto.tratamento_id)
                .filter(TratamentoProduto.produto_id == produto.id,
@@ -290,6 +317,11 @@ def _usos(session: Session, produto: Produto) -> list[tuple[float | None, str | 
                         else (None, None))
         else:
             usos.append((None, None))
+    for tins in session.query(TratamentoInstalacion).filter_by(produto_id=produto.id,
+                                                               baixa=False):
+        usos.append((tins.cantidade_utilizada, _ABSOLUTAS[tins.unidade])
+                    if tins.cantidade_utilizada is not None and tins.unidade in _ABSOLUTAS
+                    else (None, None))
     for co in session.query(CoidadoAnimal).filter_by(produto_id=produto.id, baixa=False):
         conversor = _UNIDADES_MEDICAMENTO.get(co.unidade or "")
         usos.append((round(co.cantidade * conversor[1], 6), conversor[0])

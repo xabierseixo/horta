@@ -103,6 +103,9 @@ def crear_convite(session: Session, actor: Usuario, persoa: Persoa, rol: RolHort
     return convite
 
 
+_ORDE_ROL = {RolHorta.LECTOR: 0, RolHorta.EDITOR: 1, RolHorta.ADMIN: 2}
+
+
 def convite_valido(session: Session, token: str, agora: datetime | None = None) -> Convite:
     agora = agora or datetime.now(timezone.utc).replace(tzinfo=None)
     convite = session.query(Convite).filter_by(token=token).one_or_none()
@@ -129,7 +132,8 @@ def aceptar_convite(session: Session, token: str, usuario: Usuario,
     if membro is None:
         session.add(HortaMembro(horta_id=convite.horta_id, usuario_id=usuario.id,
                                 rol=convite.rol))
-    else:
+    elif _ORDE_ROL[convite.rol] > _ORDE_ROL[membro.rol]:
+        # Un convite nunca baixa o permiso que xa tiña a conta (D8)
         membro.rol = convite.rol
     persoa.usuario_id = usuario.id
     convite.usado = agora or datetime.now(timezone.utc).replace(tzinfo=None)

@@ -16,6 +16,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.instalacions import listar_instalacions
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
+from horta.services.produtos import listar_entradas, listar_produtos
 from horta.services.textos_catalogo import texto_catalogo
 from horta.services.tratamentos_instalacion import (
     DatosTratamentoInstalacion,
@@ -130,6 +131,14 @@ def dialogo_tratamento_instalacion(
         produtos = {c.codigo: nome for c, nome in buscar_cultivos(session, "", 2000)}
         eficacias = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                      for v in valores_vixentes(session, "eficacia")}
+        # Produtos do almacén e as súas compras, para descontar o que se usa (Z8)
+        do_almacen = [p for p in listar_produtos(session, actor, horta_id)
+                      if p.tipo in ("fitosanitario", "outro")]
+        compras: dict[int, dict[int, str]] = {p.id: {} for p in do_almacen}
+        for e in listar_entradas(session, actor, horta_id):
+            if e.produto_id in compras and not e.baixa:
+                compras[e.produto_id][e.id] = f"{e.data:%d/%m/%Y}" + (
+                    f" · {e.lote_provedor}" if e.lote_provedor else "")
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
@@ -165,8 +174,23 @@ def dialogo_tratamento_instalacion(
                                   clearable=True).classes("w-full")
         tipo_produto = ui.select(tipos_produto, label="Tipo de produto",
                                  clearable=True).classes("w-full")
+        produto = ui.select({p.id: p.nome for p in do_almacen},
+                            label="Produto do almacén (para descontalo)", with_input=True,
+                            clearable=True).classes("w-full")
+        compra = ui.select({}, label="De que compra", clearable=True).classes("w-full")
+        compra.bind_visibility_from(produto, "value", backward=lambda v: v is not None)
         nome_comercial = ui.input("Nome comercial").classes("w-full")
         num_rexistro = ui.input("Nº de rexistro").classes("w-full")
+        por_id = {p.id: p for p in do_almacen}
+
+        def cambiar_produto() -> None:
+            compra.set_options(compras.get(produto.value, {}), value=None)
+            escollido = por_id.get(produto.value)
+            if escollido is not None:
+                nome_comercial.value = escollido.nome
+                num_rexistro.value = escollido.num_rexistro or num_rexistro.value
+
+        produto.on_value_change(cambiar_produto)
         materia_activa = ui.input("Materia activa").classes("w-full")
         with ui.row().classes("w-full no-wrap"):
             cantidade = ui.input("Cantidade utilizada").classes("col")
@@ -198,7 +222,8 @@ def dialogo_tratamento_instalacion(
                         num_rexistro=num_rexistro.value or None,
                         materia_activa=materia_activa.value or None,
                         cantidade_utilizada=parsear_decimal(cantidade.value),
-                        unidade=unidade.value,
+                        unidade=unidade.value, produto_id=produto.value,
+                        entrada_id=compra.value,
                         produto_vexetal=produto_vexetal.value
                         if tipo.value == "postcolleita" else None,
                         instalacion_id=instalacion.value if tipo.value == "local" else None,
@@ -240,6 +265,9 @@ def dialogo_tratamento_instalacion(
         problema.value = t.problema_codigo if t else None
         xustificacion.value = t.xustificacion if t else None
         tipo_produto.value = t.tipo_produto if t else None
+        produto.value = t.produto_id if t and t.produto_id in por_id else None
+        compra.set_options(compras.get(produto.value, {}),
+                           value=t.entrada_id if t else None)
         nome_comercial.value = (t.nome_comercial or "") if t else ""
         num_rexistro.value = (t.num_rexistro or "") if t else ""
         materia_activa.value = (t.materia_activa or "") if t else ""

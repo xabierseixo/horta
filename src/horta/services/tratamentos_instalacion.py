@@ -8,6 +8,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from horta.models.horta import RolHorta
+from horta.models.produto import Produto
 from horta.models.tratamento_fito import TIPOS_PROBLEMA
 from horta.models.tratamento_instalacion import TIPOS_INSTALACION, TratamentoInstalacion
 from horta.models.usuario import Usuario
@@ -17,6 +18,7 @@ from horta.services.hortas import comprobar_rol_horta
 from horta.services.instalacions import comprobar_instalacion
 from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
+from horta.services.produtos import comprobar_entrada_do_produto
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -38,6 +40,8 @@ class DatosTratamentoInstalacion:
     materia_activa: str | None = None
     cantidade_utilizada: float | None = None
     unidade: str | None = None
+    produto_id: int | None = None
+    entrada_id: int | None = None
     produto_vexetal: int | None = None
     instalacion_id: int | None = None
     eficacia: str | None = None
@@ -56,6 +60,11 @@ def _validar(session: Session, datos: DatosTratamentoInstalacion, horta_id: int,
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
     comprobar_maquina(session, horta_id, datos.maquina_id)
     comprobar_instalacion(session, horta_id, datos.instalacion_id)
+    if datos.produto_id is not None:
+        produto = session.get(Produto, datos.produto_id)
+        if produto is None or produto.horta_id != horta_id:
+            raise OperacionNonPermitidaError("Ese produto non é desta explotación")
+    comprobar_entrada_do_produto(session, horta_id, datos.entrada_id, datos.produto_id)
     if not datos.obxecto.strip():
         raise OperacionNonPermitidaError("Indica que se tratou")
     if not (datos.nome_comercial or datos.materia_activa):

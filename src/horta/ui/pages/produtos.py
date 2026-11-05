@@ -10,9 +10,11 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.models.abonado import Fertilizante
 from horta.models.produto import EntradaProduto
 from horta.models.tarefa import Tarefa
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.fertilizantes import retirar_fertilizante
 from horta.services.lotes import (
     AGRUPACIONS,
     CATEGORIAS_VENDA_DIRECTA,
@@ -38,6 +40,7 @@ from horta.ui.campo_pago import CampoPago
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.dialogo_abono import dialogo_novo_abono
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import euros, formatar_decimal, parsear_data, parsear_decimal
 from horta.ui.pages.clasificacions import dialogo_ficha
@@ -127,9 +130,50 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
         def nova_entrada() -> None:
             abrir(None, None, taboa.selected[0]["id"] if taboa.selected else None)
 
+        abonos = {p.id: p.fertilizante_id for p in produtos if p.fertilizante_id}
+
+        def abono_escollido() -> int | None:
+            if not taboa.selected or taboa.selected[0]["id"] not in abonos:
+                ui.notify("Escolle primeiro un abono na táboa", type="warning")
+                return None
+            return abonos[taboa.selected[0]["id"]]
+
+        def corrixir_abono() -> None:
+            if (fertilizante_id := abono_escollido()) is None:
+                return
+            with get_session() as session:
+                fertilizante = session.get(Fertilizante, fertilizante_id)
+            if fertilizante is not None:
+                dialogo_novo_abono(horta_id, lambda *_: ui.navigate.reload(),
+                                   fertilizante).open()
+
+        def retirar_abono() -> None:
+            if (fertilizante_id := abono_escollido()) is None:
+                return
+
+            def confirmar() -> None:
+                with get_session() as session:
+                    actor_actual = usuario_actual(session)
+                    fertilizante = session.get(Fertilizante, fertilizante_id)
+                    if actor_actual is None or fertilizante is None:
+                        return
+                    ok = executar_accion(session, lambda: retirar_fertilizante(
+                        session, actor_actual, fertilizante))
+                if ok:
+                    ui.navigate.reload()
+
+            confirmar_eliminacion(
+                "Retirar este abono? Deixa de saír ao abonar; o que xa apuntaches consérvase.",
+                confirmar)
+
         with ui.row():
             ui.button("Nova entrada (compra)", icon="shopping_cart", on_click=nova_entrada)
             ui.button("Novo produto", icon="add", on_click=abrir_produto).props("outline")
+            if abonos:
+                ui.button("Corrixir abono", icon="edit", on_click=corrixir_abono).props(
+                    "outline")
+                ui.button("Retirar abono", icon="archive", on_click=retirar_abono).props(
+                    "outline")
 
     ui.label("Entradas").classes("text-h6 q-mt-md")
     taboa_entradas = ui.table(

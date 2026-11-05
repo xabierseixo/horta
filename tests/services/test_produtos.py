@@ -159,3 +159,22 @@ def test_diario_e_explotacion_con_compras(session):
     assert traballo.que == "Entrada: 50 kg de Penso"
     with pytest.raises(OperacionNonPermitidaError, match="compras"):
         eliminar_horta(session, ana, horta)
+
+
+def test_non_se_da_de_baixa_unha_compra_de_semente_xa_usada(session):
+    """Z7: o cultivo que usa a compra deixaría o almacén descadrado."""
+    from horta.services.produtos import dar_de_baixa_entrada
+
+    ana, horta, quen, cultivo = _escenario(session)
+    semente = crear_produto(session, ana, horta.id, "semente", "Millo", "kg")
+    compra = crear_entrada(session, ana, DatosEntrada(
+        produto_id=semente.id, data=date(2026, 3, 1), persoa_id=quen.id, cantidade=5,
+        unidade="kg"), hoxe=HOXE)
+    actualizar_cultivo(session, ana, cultivo, entrada_semente_id=compra.id)
+    with pytest.raises(OperacionNonPermitidaError, match="xa se usou"):
+        dar_de_baixa_entrada(session, ana, compra)
+    outra = crear_entrada(session, ana, DatosEntrada(
+        produto_id=semente.id, data=date(2026, 3, 2), persoa_id=quen.id, cantidade=1,
+        unidade="kg"), hoxe=HOXE)
+    dar_de_baixa_entrada(session, ana, outra)
+    assert outra.baixa

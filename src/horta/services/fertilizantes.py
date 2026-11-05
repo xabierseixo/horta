@@ -97,6 +97,39 @@ def crear_fertilizante(
     return fertilizante
 
 
+def actualizar_fertilizante(
+    session: Session, actor: Usuario, fertilizante: Fertilizante, datos: DatosFertilizante
+) -> Fertilizante:
+    """Corrixe un abono xa dado de alta (Z4) e o seu produto (nome e unidade)."""
+    from horta.services.produtos import produto_do_abono, ten_movementos
+
+    comprobar_rol_horta(session, fertilizante.horta_id, actor, _ROLES_ESCRITURA)
+    _validar(session, fertilizante.horta_id, datos)
+    nome = datos.nome.strip()
+    if (session.query(Fertilizante)
+            .filter(Fertilizante.horta_id == fertilizante.horta_id, Fertilizante.nome == nome,
+                    Fertilizante.id != fertilizante.id).first()):
+        raise OperacionNonPermitidaError(f"Xa tes un abono chamado {nome}")
+    produto = produto_do_abono(session, fertilizante)
+    unidade = "litros" if datos.liquido else "kg"
+    if unidade != produto.unidade and ten_movementos(session, produto):
+        raise OperacionNonPermitidaError(
+            "Este abono xa ten compras ou usos: non se pode cambiar se é líquido ou sólido")
+    for campo, valor in vars(datos).items():
+        setattr(fertilizante, campo, valor)
+    fertilizante.nome = nome
+    produto.nome, produto.unidade = nome, unidade
+    session.commit()
+    return fertilizante
+
+
+def retirar_fertilizante(session: Session, actor: Usuario, fertilizante: Fertilizante) -> None:
+    """Deixa de ofrecelo ao abonar; os abonados de antes consérvanse (Z4)."""
+    comprobar_rol_horta(session, fertilizante.horta_id, actor, _ROLES_ESCRITURA)
+    fertilizante.activo = False
+    session.commit()
+
+
 def listar_fertilizantes(
     session: Session, actor: Usuario, horta_id: int, incluir_inactivos: bool = False
 ) -> list[Fertilizante]:
@@ -133,6 +166,19 @@ def dose_kg_ha(dose: float, unidade: str, densidade: float | None) -> float | No
     if unidade in _VOLUME_A_L_HA and densidade:
         return dose * _VOLUME_A_L_HA[unidade] * densidade
     return None
+
+
+def cantidade_gastada(dose: float, unidade: str, superficie_ha: float, en_litros: bool,
+                      densidade: float | None) -> tuple[float, str] | None:
+    """Canto abono se gastou, en litros se o produto se conta en litros (G3) ou en kg."""
+    if en_litros:
+        if unidade in _VOLUME_A_L_HA:
+            return dose * _VOLUME_A_L_HA[unidade] * superficie_ha, "litros"
+        if unidade in _MASA_A_KG_HA and densidade:
+            return dose * _MASA_A_KG_HA[unidade] * superficie_ha / densidade, "litros"
+        return None
+    kg_ha = dose_kg_ha(dose, unidade, densidade)
+    return (kg_ha * superficie_ha, "kg") if kg_ha is not None else None
 
 
 def nutrientes_kg_ha(
