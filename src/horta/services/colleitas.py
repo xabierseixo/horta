@@ -23,6 +23,7 @@ from horta.services.lotes import (
     ficha_para,
     lote_para_entrada,
 )
+from horta.services.maquinaria import comprobar_maquina
 from horta.services.persoas import comprobar_quen
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
@@ -79,6 +80,7 @@ def _validar(
     if datos.data > hoxe:
         raise OperacionNonPermitidaError("A data da colleita non pode ser futura")
     comprobar_quen(session, horta_id, datos.persoa_id, datos.horas)
+    comprobar_maquina(session, horta_id, datos.maquina_id)
     if cultivo.data_inicio is not None and datos.data < cultivo.data_inicio:
         raise OperacionNonPermitidaError("A colleita non pode ser anterior ao inicio do cultivo")
     if datos.superficie_ha is not None:
