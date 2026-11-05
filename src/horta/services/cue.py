@@ -24,7 +24,7 @@ from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, RolHorta
 from horta.models.labor import Labor, LaborCultivo
-from horta.models.lote import Lote
+from horta.models.lote import Lote, Mestura, Transformacion
 from horta.models.maquina import Maquina
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.persoa import Persoa
@@ -174,6 +174,43 @@ def _falta(orixes: dict[str, Orixe], erro: Erro) -> FaltaCue:
     nome = _CAMPOS.get(campo, campo)
     return FaltaCue(orixe, nome if erro.mensaxe == "é obrigatorio" else f"{nome}: {erro.mensaxe}",
                     ruta)
+
+
+def cultivos_do_lote(
+    session: Session,
+    lote_id: int,
+    colleitas_lote: dict[int, list[int]] | None = None,
+    vistos: set[int] | None = None,
+) -> set[int]:
+    """Cultivos das colleitas directas do lote e, cara atrás recursivamente, dos lotes de
+    orixe das súas mesturas e transformacións que non estean de baixa."""
+    if vistos is None:
+        vistos = set()
+    if lote_id in vistos:
+        return set()
+    vistos.add(lote_id)
+
+    if colleitas_lote is not None:
+        cultivos = set(colleitas_lote.get(lote_id, []))
+    else:
+        cultivos = {
+            co.cultivo_id
+            for co in session.query(Colleita).filter_by(lote_id=lote_id, baixa=False)
+        }
+
+    for me in session.query(Mestura).filter_by(lote_id=lote_id, baixa=False):
+        for o in me.orixes:
+            orixe = session.get(Lote, o.lote_id)
+            if orixe is not None and not orixe.baixa:
+                cultivos |= cultivos_do_lote(session, orixe.id, colleitas_lote, vistos)
+
+    for tr in session.query(Transformacion).filter_by(lote_id=lote_id, baixa=False):
+        for e in tr.entradas:
+            orixe = session.get(Lote, e.lote_id)
+            if orixe is not None and not orixe.baixa:
+                cultivos |= cultivos_do_lote(session, orixe.id, colleitas_lote, vistos)
+
+    return cultivos
 
 
 def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata: date) -> Cue:
@@ -486,6 +523,7 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
         cliente = persoas.get(venda.comprador_id or 0)
         kg = converter(venda.cantidade, venda.unidade, "kg")
         entidade = cliente is not None and cliente.tipo == "entidade"
+        cultivos_venda = cultivos_do_lote(session, lote.id, colleitas_lote)
         engadir("ComercializacionVD", {
             "IdAjenaVenta": venda.id,
             "FechaInicio": _data(venda.data), "FechaFin": _data(venda.data_fin),
@@ -506,7 +544,7 @@ def xerar_cue(session: Session, actor: Usuario, horta_id: int, desde: date, ata:
             "Municipio": cliente.concello_codigo[2:] if cliente and cliente.concello_codigo
             else None,
             "CP": cliente.codigo_postal if cliente else None,
-            "DGCs": [dgc(c) for c in sorted(set(colleitas_lote.get(lote.id, [])))],
+            "DGCs": [dgc(c) for c in sorted(cultivos_venda)],
         }, Orixe("lote_saida", venda.id, f"Venda do {venda.data:%d/%m/%Y}"))
 
     # --- Análises
