@@ -95,6 +95,25 @@ def _validar_animal(session: Session, horta_id: int, animal_id: int | None) -> N
             raise OperacionNonPermitidaError("Ese grupo de animais non é desta explotación")
 
 
+def _validar_parcela_e_cultivo(
+    session: Session,
+    horta_id: int,
+    parcela_id: int | None,
+    cultivo_id: int | None,
+) -> None:
+    if parcela_id is not None:
+        parcela = session.get(Parcela, parcela_id)
+        if parcela is None or parcela.horta_id != horta_id:
+            raise OperacionNonPermitidaError("Esa parcela non é desta explotación")
+    if cultivo_id is not None:
+        cultivo = session.get(Cultivo, cultivo_id)
+        if cultivo is None:
+            raise OperacionNonPermitidaError("Ese cultivo non é desta explotación")
+        parcela_cultivo = session.get(Parcela, cultivo.parcela_id)
+        if parcela_cultivo is None or parcela_cultivo.horta_id != horta_id:
+            raise OperacionNonPermitidaError("Ese cultivo non é desta explotación")
+
+
 def crear_tarefa(
     session: Session,
     actor: Usuario,
@@ -105,6 +124,9 @@ def crear_tarefa(
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     _validar_datas(campos.get("data"), campos.get("data_limite"))
     _validar_tipo_e_quen(session, horta_id, campos.get("tipo"), campos.get("persoa_id"))
+    _validar_parcela_e_cultivo(
+        session, horta_id, campos.get("parcela_id"), campos.get("cultivo_id")
+    )
     _validar_animal(session, horta_id, campos.get("animal_id"))
     prioridade = campos.pop("prioridade", "media")
     tarefa = Tarefa(horta_id=horta_id, descricion=descricion, prioridade=prioridade, **campos)
@@ -132,6 +154,12 @@ def actualizar_tarefa(
             "Esta tarefa xa ten o traballo apuntado: non se pode cambiar o tipo")
     _validar_tipo_e_quen(session, tarefa.horta_id, cambios.get("tipo", tarefa.tipo),
                          cambios.get("persoa_id", tarefa.persoa_id))
+    _validar_parcela_e_cultivo(
+        session,
+        tarefa.horta_id,
+        cambios.get("parcela_id", tarefa.parcela_id),
+        cambios.get("cultivo_id", tarefa.cultivo_id),
+    )
     _validar_animal(session, tarefa.horta_id, cambios.get("animal_id", tarefa.animal_id))
     for campo, valor in cambios.items():
         setattr(tarefa, campo, valor)
