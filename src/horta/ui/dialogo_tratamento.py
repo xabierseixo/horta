@@ -39,6 +39,13 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal, parsear_hora
+from horta.ui.pasos_tratamento import (
+    cantidade_dende_porcentaxe,
+    faltan_con_que,
+    faltan_por_que,
+    faltan_que_e_onde,
+    faltan_quen,
+)
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.tempo import EtiquetaTempo
 
@@ -122,6 +129,13 @@ def crear_dialogo_tratamento(
         return {"tipo": _ou_nada(op.tipos_medida, tipo), "cantidade": cantidade,
                 "unidade": _ou_nada(op.unidades, unidade), "mdf": mdf}
 
+    def seguir(faltan: list[str]) -> None:
+        """Pasa ao seguinte paso só se non falta nada; se falta, dío todo xunto (Y3)."""
+        if faltan:
+            ui.notify("Falta: " + "; ".join(faltan), type="warning", multi_line=True)
+            return
+        pasos.next()
+
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(46rem, 96vw)"):
         with ui.stepper().props("vertical").classes("w-full") as pasos:
             with ui.step("1. Que e onde"):
@@ -182,7 +196,8 @@ def crear_dialogo_tratamento(
 
                 orixinais()
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=pasos.next)
+                    ui.button("Seguinte", on_click=lambda: seguir(faltan_que_e_onde(
+                        data_inicio.value, data_fin.value, estado["cultivos"])))
             with ui.step("2. Por que"):
 
                 @ui.refreshable
@@ -211,7 +226,8 @@ def crear_dialogo_tratamento(
                 xustificacions = ui.select(op.xustificacions, label="Xustificacións",
                                            multiple=True).classes("w-full").props("use-chips")
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=pasos.next)
+                    ui.button("Seguinte", on_click=lambda: seguir(faltan_por_que(
+                        estado["problemas"], xustificacions.value)))
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
             with ui.step("3. Con que"):
 
@@ -258,6 +274,28 @@ def crear_dialogo_tratamento(
                                 fila, "etiqueta", backward=bool)
                             ui.checkbox("É a cantidade total, non a dose por hectárea"
                                         ).bind_value(fila, "total")
+                            with ui.expansion("A etiqueta dá a dose en % (mochila)").classes(
+                                    "w-full"):
+                                with ui.row().classes("w-full items-end gap-2"):
+                                    pct = ui.input("% da etiqueta").classes("w-28")
+                                    caldo = ui.input("Litros de caldo").classes("w-32")
+                                    en = ui.select({"4": "L de produto", "5": "kg de produto"},
+                                                   value="4").classes("w-36")
+
+                                    def calcular(f: dict[str, Any] = fila, p: Any = pct,
+                                                 c: Any = caldo, u: Any = en) -> None:
+                                        # Y4: «0,5 %» en 16 L de caldo son 0,08 L de produto
+                                        porcentaxe = parsear_decimal(p.value)
+                                        litros = parsear_decimal(c.value)
+                                        if not porcentaxe or not litros:
+                                            ui.notify("Pon a % e os litros de caldo",
+                                                      type="warning")
+                                            return
+                                        f["dose"] = _txt(cantidade_dende_porcentaxe(
+                                            porcentaxe, litros))
+                                        f["total"], f["unidade"] = True, u.value
+
+                                    ui.button("Calcular", on_click=calcular).props("flat")
 
                     def engadir() -> None:
                         estado["produtos"].append(fila_produto())
@@ -291,7 +329,8 @@ def crear_dialogo_tratamento(
 
                 filas_medidas()
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=pasos.next)
+                    ui.button("Seguinte", on_click=lambda: seguir(faltan_con_que(
+                        estado["produtos"], estado["medidas"])))
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
             with ui.step("4. Quen"):
                 aplicador = ui.select(op.aplicadores, label="Aplicador").classes("w-full")
@@ -305,7 +344,7 @@ def crear_dialogo_tratamento(
                 for campo in (asesor, data_asesor, validacion):
                     campo.set_visibility(bool(op.asesores))
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=pasos.next)
+                    ui.button("Seguinte", on_click=lambda: seguir(faltan_quen(aplicador.value)))
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
             with ui.step(_PASO_RESULTADO):
                 eficacia = ui.select(op.eficacias, label="Eficacia").classes("w-full")
