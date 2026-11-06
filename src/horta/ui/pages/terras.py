@@ -517,13 +517,6 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
                         "blur", lambda e, i=p.id: renomear_parcela(i, e.sender.value or ""))
                 else:
                     ui.label(p.nome).classes("text-h6")
-                ref = _referencia(p)
-                ui.label(f"SIGPAC {ref} · Uso {_uso(p.uso_aproveitamento)}" if ref
-                         else "Sen recinto SIGPAC").classes("texto-suave")
-                if p.referencia_catastral:
-                    ui.label(f"Catastro {p.referencia_catastral}").classes("texto-suave")
-                ui.label(formatar_superficie(p.superficie) if p.superficie else ""
-                         ).classes("texto-suave")
                 seccions_ficha_parcela(horta_id, p.id, pode_editar)
                 contorno = puntos_da_xeometria(p.geometria)
                 if pode_editar:

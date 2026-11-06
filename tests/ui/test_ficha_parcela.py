@@ -19,6 +19,7 @@ def test_datos_caderno_completo() -> None:
         sigpac_poligono="12",
         sigpac_parcela="7477",
         sigpac_subparcela="1",
+        referencia_catastral="15078A012074770001BP",
         uso_aproveitamento="TA",
         superficie=1.5,
         secano_regadio=SecanoRegadio.REGADIO,
@@ -38,6 +39,7 @@ def test_datos_caderno_completo() -> None:
         ("Polígono", "12"),
         ("Parcela", "7477"),
         ("Recinto", "1"),
+        ("Referencia catastral", "15078A012074770001BP"),
         ("Uso SIXPAC", "TA"),
         ("Superficie SIXPAC", "1,50 ha"),
         ("Secano/Regadío", "Regadío"),
@@ -62,6 +64,7 @@ def test_datos_caderno_sen_sigpac() -> None:
     for campo in ["Provincia", "Concello", "Agregado", "Zona", "Polígono", "Parcela", "Recinto"]:
         assert campo not in etiquetas
     assert "Uso SIXPAC" not in etiquetas
+    assert "Referencia catastral" not in etiquetas
 
     assert ("Superficie SIXPAC", "350 m²") in datos
     assert ("Secano/Regadío", "Secano") in datos
@@ -84,3 +87,32 @@ def test_datos_caderno_de_baixa() -> None:
     assert ("Data de alta", "01/01/2025") in datos
     assert ("Data de baixa", "04/11/2026") in datos
     assert ("Causa da baixa", "Fin do arrendamento") in datos
+
+
+def test_datos_caderno_referencia_catastral() -> None:
+    """A referencia catastral vai despois do recinto e só se ten valor."""
+    parcela_con = Parcela(
+        nome="A Leira Nova",
+        sigpac_subparcela="1",
+        referencia_catastral="15078A012074770001BP",
+    )
+    datos_con = datos_caderno(parcela_con, {}, {})
+    assert datos_con == [
+        ("Recinto", "1"),
+        ("Referencia catastral", "15078A012074770001BP"),
+    ]
+
+    parcela_sen = Parcela(
+        nome="A Leira",
+        sigpac_subparcela="1",
+        referencia_catastral=None,
+    )
+    assert datos_caderno(parcela_sen, {}, {}) == [("Recinto", "1")]
+
+    parcela_baleira = Parcela(
+        nome="A Leira",
+        sigpac_subparcela="1",
+        referencia_catastral="   ",
+    )
+    assert datos_caderno(parcela_baleira, {}, {}) == [("Recinto", "1")]
+

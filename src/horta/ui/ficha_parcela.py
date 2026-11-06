@@ -45,6 +45,10 @@ def datos_caderno(
         if valor is not None and str(valor).strip():
             resultado.append((etiqueta, str(valor).strip()))
 
+    ref_cat = str(getattr(parcela, "referencia_catastral", "") or "").strip()
+    if ref_cat:
+        resultado.append(("Referencia catastral", ref_cat))
+
     if parcela.uso_aproveitamento:
         resultado.append(("Uso SIXPAC", str(parcela.uso_aproveitamento).strip()))
 
@@ -136,8 +140,12 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
     # 1. Datos do caderno
     if datos:
         ui.label("Datos do caderno").classes("text-weight-medium q-mt-sm")
-        for etiqueta, valor in datos:
-            ui.label(f"{etiqueta}: {valor}").classes("texto-suave")
+        with ui.element("div").style(
+            "display:grid; grid-template-columns:auto 1fr; gap:2px 12px"
+        ):
+            for etiqueta, valor in datos:
+                ui.label(etiqueta).classes("texto-suave")
+                ui.label(valor)
 
     # 2. Zonas e o que hai en cada unha
     ui.label("Zonas e cultivos").classes("text-weight-medium q-mt-sm")
@@ -145,29 +153,31 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
     for c in cultivos_abertos:
         por_zona[c.zona_id].append(_texto_cultivo(c))
 
-    if not zonas and not cultivos_abertos:
-        ui.label("Sen cultivos agora").classes("texto-suave")
-    else:
-        for z in zonas:
-            cs = por_zona.get(z.id, [])
-            if cs:
-                ui.label(f"{z.nome}: {', '.join(cs)}").classes("texto-suave")
-            else:
-                ui.label(z.nome).classes("texto-suave")
-        if por_zona.get(None):
-            ui.label(f"Sen zona: {', '.join(por_zona[None])}").classes("texto-suave")
-        if not cultivos_abertos:
+    with ui.column().classes("gap-0"):
+        if not zonas and not cultivos_abertos:
             ui.label("Sen cultivos agora").classes("texto-suave")
+        else:
+            for z in zonas:
+                cs = por_zona.get(z.id, [])
+                detalle = f"· {', '.join(cs)}" if cs else "· baleira"
+                with ui.row().classes("items-baseline gap-1"):
+                    ui.label(z.nome).classes("text-weight-bold")
+                    ui.label(detalle).classes("texto-suave")
+            if por_zona.get(None):
+                with ui.row().classes("items-baseline gap-1"):
+                    ui.label("Sen zona").classes("text-weight-bold")
+                    ui.label(f"· {', '.join(por_zona[None])}").classes("texto-suave")
 
     # 3. Historial deste ano
     ui.label("Historial deste ano").classes("text-weight-medium q-mt-sm")
-    if ultimos_traballos:
-        for t in ultimos_traballos:
-            data_str = f"{t.data:%d/%m}" if t.data else ""
-            tipo_str = TIPOS.get(t.tipo, t.tipo)
-            ui.label(f"{data_str} · {tipo_str} · {t.que}").classes("texto-suave")
-    else:
-        ui.label("Aínda non hai traballos este ano").classes("texto-suave")
+    with ui.column().classes("gap-0"):
+        if ultimos_traballos:
+            for t in ultimos_traballos:
+                data_str = f"{t.data:%d/%m}" if t.data else ""
+                tipo_str = TIPOS.get(t.tipo, t.tipo)
+                ui.label(f"{data_str} · {tipo_str} · {t.que}").classes("texto-suave")
+        else:
+            ui.label("Aínda non hai traballos este ano").classes("texto-suave")
 
     # 4. Fotos
     ui.button(
