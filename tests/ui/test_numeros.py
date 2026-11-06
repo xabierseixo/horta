@@ -27,6 +27,20 @@ def test_parsear_data_e_hora():
         parsear_data("32/13/2026")
 
 
+def test_datas_en_dd_mm_aaaa():
+    """Os campos de data escríbense e mostran como 05/11/2026 (X6)."""
+    from datetime import date
+
+    from horta.ui.numeros import parsear_data, texto_data
+
+    assert parsear_data("05/11/2026") == date(2026, 11, 5)
+    assert parsear_data(" 5/1/2026 ") == date(2026, 1, 5)
+    assert texto_data(date(2026, 1, 5)) == "05/01/2026"
+    assert texto_data("2026-01-05") == "05/01/2026"
+    assert texto_data("05/01/2026") == "05/01/2026"
+    assert texto_data(None) == ""
+
+
 def test_formatar_decimal_e_euros():
     assert formatar_decimal(9.8) == "9,8"
     assert formatar_decimal(10.0) == "10"

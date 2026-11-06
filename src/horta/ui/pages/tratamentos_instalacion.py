@@ -25,7 +25,7 @@ from horta.services.tratamentos_instalacion import (
     dar_de_baixa_tratamento_instalacion,
     listar_tratamentos_instalacion,
 )
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -241,7 +241,7 @@ def dialogo_tratamento_instalacion(
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("tratamento_instalacion", data.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

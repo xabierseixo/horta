@@ -80,8 +80,12 @@ body { font-family: Inter, system-ui, sans-serif; background: var(--cor-fondo);
 .texto-suave { color: var(--cor-texto-suave); }
 
 /* Diálogos: ancho mínimo e campos a todo o ancho (só os fillos directos da tarxeta) */
-.q-dialog .q-card { min-width: min(400px, 92vw); }
+.q-dialog__inner > .q-card { min-width: min(400px, 92vw); }
 .q-dialog .q-card > .q-field { width: 100%; }
+/* No móbil, os pasos (tratamento) sen tanto oco á esquerda (Y8) */
+@media (max-width: 599px) {
+  .q-stepper--vertical .q-stepper__step-inner { padding: 0 4px 24px 12px; }
+}
 </style>
 """
 

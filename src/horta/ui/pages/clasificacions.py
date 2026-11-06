@@ -37,7 +37,7 @@ from horta.services.lotes import (
 )
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_quen
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -191,7 +191,7 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("clasificacion", data.value)
 
         def baixa() -> None:
             with get_session() as session:
@@ -308,7 +308,7 @@ def dialogo_mestura(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("mestura", data.value)
 
         def baixa() -> None:
             with get_session() as session:
@@ -499,7 +499,7 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("transformacion", data.value)
 
         def baixa() -> None:
             with get_session() as session:

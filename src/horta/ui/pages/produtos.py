@@ -35,7 +35,7 @@ from horta.services.produtos import (
     listar_entradas,
     listar_produtos,
 )
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campo_pago import CampoPago
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
@@ -337,7 +337,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("entrada_produto", data.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

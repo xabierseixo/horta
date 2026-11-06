@@ -44,8 +44,10 @@ _SIGPAC = (("sigpac_provincia", "Provincia"), ("sigpac_concello", "Concello"),
 
 
 def _referencia(p: Parcela) -> str:
-    partes = [getattr(p, campo) for campo, _ in _SIGPAC]
-    return ":".join(x or "-" for x in partes) if any(partes) else ""
+    """Polígono-parcela-recinto, como se le no SIGPAC (X7); o resto vai no formulario."""
+    if not p.sigpac_poligono:
+        return ""
+    return f"{p.sigpac_poligono}-{p.sigpac_parcela or '-'}-{p.sigpac_subparcela or '-'}"
 
 
 def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:

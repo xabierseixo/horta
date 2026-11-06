@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 from nicegui import app, ui
@@ -58,6 +57,7 @@ from horta.ui.layout import (
     url_seccion,
 )
 from horta.ui.nav import cabeceira_paxina
+from horta.ui.numeros import parsear_data
 from horta.ui.pages.abonados import seccion_abonados
 from horta.ui.pages.analises import seccion_analises
 from horta.ui.pages.animais import seccion_animais
@@ -470,10 +470,7 @@ def _seccion_tarefas(
     def _parsear_data(texto: str) -> Any:
         if not texto:
             return None
-        try:
-            return date.fromisoformat(texto)
-        except ValueError as erro:
-            raise ValueError(f"Data non válida: {texto!r} (usa o formato AAAA-MM-DD)") from erro
+        return parsear_data(texto)
 
     if pode_editar:
         abrir_nova_tarefa = dialogo_nova_tarefa(horta_id)

@@ -4,8 +4,9 @@ estado."""
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -83,6 +84,41 @@ def nome_grupo(especie: str, raza: str | None) -> str:
 def _quen(*ids: int | None) -> tuple[int, ...]:
     return tuple(i for i in ids if i is not None)
 
+
+# «Apuntar traballo» (X5): os usados nos últimos meses van primeiro; sen animais ou sen
+# lotes, os seus tipos pasan a «Outros»
+_DE_ANIMAIS = ("coidado_animal", "movemento_animal", "producion_animal", "pastoreo")
+_DE_LOTES = ("lote_saida", "clasificacion", "mestura", "transformacion")
+_HABITUAIS = ("colleita", "rega", "tratamento", "abonado", "labor", "sementeira", "tarefa")
+_PRINCIPAIS = 6
+
+
+def orde_tipos(usos: dict[str, int], ten_animais: bool, ten_lotes: bool
+               ) -> tuple[list[str], list[str]]:
+    """(principais, outros): os máis usados primeiro e, se faltan, os habituais."""
+    apartados = set()
+    if not ten_animais:
+        apartados |= set(_DE_ANIMAIS)
+    if not ten_lotes:
+        apartados |= set(_DE_LOTES)
+    candidatos = [t for t in TIPOS if t not in apartados]
+    principais = sorted((t for t in candidatos if usos.get(t)), key=lambda t: -usos[t])
+    principais = principais[:_PRINCIPAIS]
+    for tipo in _HABITUAIS:
+        if len(principais) >= _PRINCIPAIS:
+            break
+        if tipo in candidatos and tipo not in principais:
+            principais.append(tipo)
+    return principais, [t for t in TIPOS if t not in principais]
+
+
+def tipos_para_apuntar(session: Session, actor: Usuario, horta_id: int,
+                       hoxe: date | None = None) -> tuple[list[str], list[str]]:
+    hoxe = hoxe or date.today()
+    usos = Counter(t.tipo for t in listar_traballos(session, actor, horta_id,
+                                                    hoxe - timedelta(days=90), hoxe))
+    return orde_tipos(usos, bool(listar_animais(session, actor, horta_id)),
+                      bool(listar_lotes(session, actor, horta_id)))
 
 def listar_traballos(
     session: Session, actor: Usuario, horta_id: int, desde: date | None = None,

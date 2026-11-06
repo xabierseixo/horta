@@ -8,6 +8,7 @@ from pathlib import Path
 
 from nicegui import ui
 
+from horta.ui.accions import mostrar_aviso_pendente
 from horta.ui.sesion import pechar_sesion
 from horta.ui.tema import aplicar_tema
 
@@ -97,6 +98,7 @@ def marco_horta(
 ) -> None:
     """Debuxa o menú lateral e a cabeceira móbil. O contido da páxina vai despois."""
     aplicar_tema()
+    mostrar_aviso_pendente()
     menu = ui.left_drawer(value=False, fixed=True).props(
         'show-if-above :width="248" :breakpoint="1024"'
     ).classes("menu-lateral q-pa-md")

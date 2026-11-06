@@ -27,7 +27,7 @@ from horta.services.fito_consulta import aviso_prazo_colleita
 from horta.services.lotes import listar_lotes, resumo_lotes
 from horta.services.persoas import listar_quen
 from horta.services.textos_catalogo import texto_catalogo
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -266,7 +266,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("colleita", data.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

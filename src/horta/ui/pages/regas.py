@@ -27,7 +27,7 @@ from horta.services.regas import (
     ultimo_sistema_rega,
 )
 from horta.services.textos_catalogo import texto_catalogo
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -234,7 +234,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("rega", data_inicio.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

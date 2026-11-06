@@ -244,3 +244,16 @@ def test_opcions_problemas_sen_rexistro_mapa(session):
     assert nomes_comuns_problemas(session, "enfermidade") == {}
     assert _opcions_problema(session, "enfermidade") == {"77": "Phytophthora infestans"}
     assert etiqueta_problema("Phytophthora infestans", []) == "Phytophthora infestans"
+
+
+def test_problemas_do_cultivo(session):
+    """Os problemas con usos autorizados no cultivo, tamén polas categorías de riba (Y5)."""
+    from horta.services.fito_consulta import problemas_do_cultivo
+
+    _escenario(session)
+    assert problemas_do_cultivo(session, 99, "enfermidade") == {"77"}
+    # Sen usos propios, valen os da categoría de riba (Hortalizas → Mildius)
+    session.query(FitoUso).filter_by(num_rexistro="ES-1").delete()
+    assert problemas_do_cultivo(session, 99, "enfermidade") == {"77"}
+    assert problemas_do_cultivo(session, 98, "enfermidade") == set()
+    assert problemas_do_cultivo(session, None, "enfermidade") == set()

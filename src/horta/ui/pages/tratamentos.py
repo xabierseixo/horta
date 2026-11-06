@@ -17,6 +17,7 @@ from horta.services.fito_consulta import (
     etiqueta_problema,
     nomes_comuns_problemas,
     prazo_seguridade,
+    problemas_do_cultivo,
 )
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
@@ -159,6 +160,10 @@ def dialogo_tratamento_fito(horta_id: int) -> Callable[[TratamentoFito | None], 
             rexistro={p.num_rexistro: f"{p.nome} ({p.num_rexistro})"
                       for p in session.query(FitoProduto).order_by(FitoProduto.nome)},
             superficies={c.id: c.superficie_ha for c in cultivos_horta if c.superficie_ha},
+            problemas_cultivo={c.id: {tipo: problemas_do_cultivo(session, c.cultivo_siex_codigo,
+                                                                 tipo)
+                                      for tipo in TIPOS_PROBLEMA}
+                               for c in cultivos_horta if c.cultivo_siex_codigo is not None},
         )
     if not opcions.problemas["enfermidade"]:
         ui.label(AVISO_SEN_CATALOGOS).classes("text-warning")

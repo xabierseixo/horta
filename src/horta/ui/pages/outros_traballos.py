@@ -24,7 +24,7 @@ from horta.services.outros_traballos import (
 )
 from horta.services.parcelas import listar_parcelas
 from horta.services.persoas import listar_quen
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -101,7 +101,7 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("outro_traballo", data_inicio.value)
 
         def dar_de_baixa() -> None:
             def confirmar() -> None:

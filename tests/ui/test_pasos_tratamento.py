@@ -56,3 +56,12 @@ def test_paso_4():
 
 def test_dose_en_porcentaxe():
     assert cantidade_dende_porcentaxe(0.5, 16) == 0.08
+
+
+def test_ordenar_problemas():
+    """Primeiro os do cultivo; sen nomes repetidos, agás o escollido (Y5)."""
+    from horta.ui.pasos_tratamento import ordenar_problemas
+
+    opcions = {"1": "Fungi", "2": "Fungi", "3": "Fungi", "7": "Albugo spp.", "8": "Mildiu"}
+    assert list(ordenar_problemas(opcions, {"8"}, None)) == ["8", "1", "7"]
+    assert list(ordenar_problemas(opcions, set(), "3")) == ["1", "3", "7", "8"]

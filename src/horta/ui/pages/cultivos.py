@@ -28,7 +28,7 @@ from horta.services.parcelas import listar_parcelas
 from horta.services.persoas import listar_quen
 from horta.services.textos_catalogo import texto_catalogo
 from horta.services.zonas import listar_zonas
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campo_produto import opcions_entradas
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -369,7 +369,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                     ui.notify(aviso, type="warning", timeout=4000)
                     ui.timer(3, ui.navigate.reload, once=True)
                 else:
-                    ui.navigate.reload()
+                    recargar_apuntado("sementeira", data_inicio.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

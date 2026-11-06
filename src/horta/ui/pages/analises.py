@@ -25,7 +25,7 @@ from horta.services.cultivos import listar_cultivos
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.services.textos_catalogo import texto_catalogo
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
@@ -208,7 +208,7 @@ def dialogo_analise(horta_id: int) -> Callable[[Analise | None], None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("analise", data.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

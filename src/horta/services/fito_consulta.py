@@ -76,6 +76,38 @@ def nomes_comuns_problemas(session: Session, catalogo: str) -> dict[str, list[st
     return comuns
 
 
+def problemas_do_cultivo(session: Session, cultivo_siex_codigo: int | None, catalogo: str
+                         ) -> set[str]:
+    """Códigos SIEX dun tipo de problema con algún uso autorizado no cultivo (Y5).
+
+    Só os usos no propio cultivo: os das categorías de riba («Hortalizas», «Cultivos
+    agrícolas») traen pragas de calquera cultivo. Se o cultivo non ten usos propios, eses.
+    Os axentes de riba do problema si contan (un uso en «Oídios» vale para cada oídio),
+    pero non o primeiro nivel («Hongos»)."""
+    if cultivo_siex_codigo is None:
+        return set()
+    atopados = {p.codigo_cultivo for p in session.query(FitoPonteCultivo)
+                .filter_by(cultivo_siex_codigo=cultivo_siex_codigo)}
+    if not atopados:
+        return set()
+
+    def axentes_de(cultivos: set[str]) -> set[str]:
+        return {a for (a,) in session.query(FitoUso.codigo_agente)
+                .filter(FitoUso.codigo_cultivo.in_(cultivos)).distinct()}
+
+    axentes = axentes_de(atopados)
+    if not axentes:
+        todos = {c for (c,) in session.query(FitoUso.codigo_cultivo).distinct()}
+        axentes = axentes_de(_con_superiores_cultivo(atopados, todos))
+    resultado = set()
+    for p in session.query(FitoPonteAxente).filter_by(catalogo=catalogo):
+        partes = p.codigo_agente.split(".")
+        # Desde o segundo nivel («Oídios»): un uso en «Hongos» valería para todos
+        if any(".".join(partes[:n]) in axentes for n in range(min(2, len(partes)),
+                                                            len(partes) + 1)):
+            resultado.add(p.codigo)
+    return resultado
+
 def etiqueta_problema(cientifico: str, nomes_comuns: list[str]) -> str:
     """«Nome común — Nome científico» (ata dous nomes separados por « / ») ou só o científico."""
     if not nomes_comuns:

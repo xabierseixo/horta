@@ -27,7 +27,7 @@ from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.models.tratamento_instalacion import TratamentoInstalacion
-from horta.services.diario import TIPOS, Traballo, listar_traballos
+from horta.services.diario import TIPOS, Traballo, listar_traballos, tipos_para_apuntar
 from horta.services.envio_cue import estado_cue
 from horta.services.fotos import contar_fotos
 from horta.services.persoas import listar_persoas
@@ -164,11 +164,16 @@ class Formularios:
 
 def boton_apuntar_traballo(formularios: Formularios) -> None:
     """Botón «Apuntar traballo» e, no móbil, o mesmo botón sempre á vista abaixo."""
-    with ui.dialog() as escoller, ui.card().style("width: min(34rem, 94vw)"):
-        ui.label("Que fixeches?").classes("text-h6")
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            return
+        principais, outros = tipos_para_apuntar(session, actor, formularios.horta_id)
+
+    def botons(tipos: list[str]) -> None:
         with ui.grid().classes("w-full grid-cols-2 sm:grid-cols-3 gap-2"):
-            for tipo, etiqueta in TIPOS.items():
-                texto = "Tarefa por facer" if tipo == "tarefa" else etiqueta
+            for tipo in tipos:
+                texto = "Tarefa por facer" if tipo == "tarefa" else TIPOS[tipo]
 
                 def escollido(tipo: str = tipo) -> None:
                     escoller.close()
@@ -176,6 +181,12 @@ def boton_apuntar_traballo(formularios: Formularios) -> None:
 
                 ui.button(texto, icon=ICONAS[tipo], on_click=escollido).props(
                     "outline stack").classes("w-full")
+
+    with ui.dialog() as escoller, ui.card().style("width: min(34rem, 94vw)"):
+        ui.label("Que fixeches?").classes("text-h6")
+        botons(principais)
+        with ui.expansion("Outros traballos").classes("w-full"):
+            botons(outros)
         ui.button("Cancelar", on_click=escoller.close).props("flat")
     ui.button("Apuntar traballo", icon="add", on_click=escoller.open)
     with ui.page_sticky(position="bottom-right", x_offset=16, y_offset=16).classes("lt-md"):
@@ -232,7 +243,9 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
             boton_apuntar_traballo(formularios)
 
     hoxe = date.today()
-    with ui.row().classes("w-full items-end gap-2 wrap q-mb-md"):
+    # Pregados, para que no móbil se vexa o primeiro traballo sen baixar (X6)
+    with ui.expansion("Filtrar", icon="filter_list").classes("w-full q-mb-md").props(
+            "dense"), ui.row().classes("w-full items-end gap-2 wrap"):
         tipo = ui.select({"": "Todos os traballos", **TIPOS}, value="", label="Tipo").classes(
             "w-56")
         parcela = ui.select({0: "Todas", **parcelas}, value=0, label="Parcela").classes("w-48")

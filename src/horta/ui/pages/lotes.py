@@ -31,7 +31,7 @@ from horta.services.lotes import (
 )
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas, listar_quen
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campo_pago import CampoPago
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campos import campo_data
@@ -332,7 +332,7 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("lote_saida", data.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

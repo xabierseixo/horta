@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from nicegui import ui
 
+from horta.ui.numeros import texto_data
+
 LOCALE_GL = {
     "days": ["Domingo", "Luns", "Martes", "Mércores", "Xoves", "Venres", "Sábado"],
     "daysShort": ["Dom", "Lun", "Mar", "Mér", "Xov", "Ven", "Sáb"],
@@ -19,12 +21,20 @@ LOCALE_GL = {
 
 
 def campo_data(etiqueta: str, valor: str = "") -> ui.input:
-    """Campo de data con calendario. O valor segue sendo texto AAAA-MM-DD (ver parsear_data)."""
-    with ui.input(etiqueta, value=valor).classes("w-full") as campo:
+    """Campo de data con calendario. O valor é texto DD/MM/AAAA (ver parsear_data); se se
+    lle pon AAAA-MM-DD, pásao a DD/MM/AAAA (X6)."""
+    with ui.input(etiqueta, value=texto_data(valor)).classes("w-full") as campo:
         with ui.menu().props("no-parent-event") as menu:
-            calendario = ui.date(mask="YYYY-MM-DD", on_change=lambda: menu.close())
+            calendario = ui.date(mask="DD/MM/YYYY", on_change=lambda: menu.close())
             calendario.bind_value(campo).props("minimal")
             calendario._props["locale"] = LOCALE_GL
         with campo.add_slot("append"):
             ui.icon("event").on("click", menu.open).classes("cursor-pointer")
+
+    def normalizar() -> None:
+        texto = texto_data(campo.value)
+        if texto != campo.value:
+            campo.value = texto
+
+    campo.on_value_change(normalizar)
     return campo

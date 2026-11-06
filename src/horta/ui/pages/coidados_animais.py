@@ -30,7 +30,7 @@ from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas, listar_quen
 from horta.services.produtos import listar_produtos
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campo_persoa import CampoPersoa
 from horta.ui.campo_produto import CampoProduto, opcions_entradas
 from horta.ui.campos import campo_data
@@ -233,7 +233,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("coidado_animal", data_inicio.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)

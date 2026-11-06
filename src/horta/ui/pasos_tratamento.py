@@ -60,3 +60,19 @@ def faltan_quen(aplicador: int | None) -> list[str]:
 def cantidade_dende_porcentaxe(porcentaxe: float, litros_caldo: float) -> float:
     """Produto que leva o caldo: «0,5 %» en 16 L de mochila son 0,08 L (ou kg)."""
     return round(porcentaxe / 100 * litros_caldo, 4)
+
+
+def ordenar_problemas(opcions: dict[str, str], do_cultivo: set[str], escollido: str | None
+                      ) -> dict[str, str]:
+    """Primeiro os problemas con usos autorizados no cultivo; os nomes repetidos («Fungi»
+    cinco veces) só unha vez, agás o que xa estaba escollido (Y5)."""
+    vistos: set[str] = set()
+    resultado: dict[str, str] = {}
+    for codigo in [c for c in opcions if c in do_cultivo] + [c for c in opcions
+                                                             if c not in do_cultivo]:
+        nome = opcions[codigo]
+        if nome in vistos and codigo != escollido:
+            continue
+        vistos.add(nome)
+        resultado[codigo] = nome
+    return resultado

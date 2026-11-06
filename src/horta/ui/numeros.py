@@ -38,13 +38,29 @@ def euros(valor: float) -> str:
 
 
 def parsear_data(texto: str | None) -> date | None:
-    """AAAA-MM-DD → date. Baleiro → None. Formato incorrecto → mensaxe clara."""
+    """DD/MM/AAAA (ou AAAA-MM-DD) → date. Baleiro → None. Formato incorrecto → mensaxe clara."""
     if not texto or not texto.strip():
         return None
+    texto = texto.strip()
     try:
-        return date.fromisoformat(texto.strip())
+        if "/" in texto:
+            dia, mes, ano = texto.split("/")
+            return date(int(ano), int(mes), int(dia))
+        return date.fromisoformat(texto)
     except ValueError:
-        raise OperacionNonPermitidaError("Data non válida: usa AAAA-MM-DD") from None
+        raise OperacionNonPermitidaError("Data non válida: usa DD/MM/AAAA") from None
+
+
+def texto_data(valor: date | str | None) -> str:
+    """date ou AAAA-MM-DD → DD/MM/AAAA, como se escribe nos campos de data."""
+    if not valor:
+        return ""
+    if isinstance(valor, str):
+        try:
+            return f"{date.fromisoformat(valor):%d/%m/%Y}"
+        except ValueError:
+            return valor
+    return f"{valor:%d/%m/%Y}"
 
 
 def parsear_hora(texto: str | None) -> time | None:

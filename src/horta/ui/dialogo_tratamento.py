@@ -35,7 +35,7 @@ from horta.services.tratamentos_fito import (
     actualizar_tratamento_fito,
     crear_tratamento_fito,
 )
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.numeros import parsear_data, parsear_decimal, parsear_hora
@@ -45,6 +45,7 @@ from horta.ui.pasos_tratamento import (
     faltan_por_que,
     faltan_que_e_onde,
     faltan_quen,
+    ordenar_problemas,
 )
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.tempo import EtiquetaTempo
@@ -70,6 +71,8 @@ class OpcionsTratamento:
     maquinas: dict[int, str]
     rexistro: dict[str, str]
     superficies: dict[int, float] = field(default_factory=dict)  # do cultivo, en ha
+    # cultivo → tipo de problema → códigos con usos autorizados nese cultivo (Y5)
+    problemas_cultivo: dict[int, dict[str, set[str]]] = field(default_factory=dict)
 
 
 def _txt(valor: float | None) -> str:
@@ -154,7 +157,12 @@ def crear_dialogo_tratamento(
                 def seguir_inicio() -> None:
                     # A fin segue ao inicio mentres non se cambiou a man
                     fin, inicio = data_fin.value, data_inicio.value
-                    if not fin or fin == estado["inicio"] or (inicio and fin < inicio):
+                    try:
+                        d_fin, d_inicio = parsear_data(fin), parsear_data(inicio)
+                    except ValueError:
+                        d_fin = d_inicio = None
+                    antes = d_fin is not None and d_inicio is not None and d_fin < d_inicio
+                    if not fin or fin == estado["inicio"] or antes:
                         data_fin.value = inicio
                     estado["inicio"] = inicio
 
@@ -196,8 +204,14 @@ def crear_dialogo_tratamento(
 
                 orixinais()
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=lambda: seguir(faltan_que_e_onde(
-                        data_inicio.value, data_fin.value, estado["cultivos"])))
+
+                    def seguir_paso_1() -> None:
+                        # Os problemas do cultivo escollido van primeiro (Y5)
+                        filas_problemas.refresh()
+                        seguir(faltan_que_e_onde(data_inicio.value, data_fin.value,
+                                                 estado["cultivos"]))
+
+                    ui.button("Seguinte", on_click=seguir_paso_1)
             with ui.step("2. Por que"):
 
                 @ui.refreshable
@@ -211,8 +225,14 @@ def crear_dialogo_tratamento(
 
                             ui.select(ETIQUETA_PROBLEMA, value=fila["tipo"], label="Tipo",
                                       on_change=cambiar_tipo).classes("w-48")
-                            ui.select(op.problemas[fila["tipo"]], label="Problema",
-                                      with_input=True).bind_value(fila, "codigo").classes("grow")
+                            do_cultivo = set().union(*(
+                                op.problemas_cultivo.get(c["cultivo_id"], {}).get(fila["tipo"],
+                                                                                 set())
+                                for c in estado["cultivos"]))
+                            ui.select(ordenar_problemas(op.problemas[fila["tipo"]], do_cultivo,
+                                                        fila["codigo"]),
+                                      label="Problema", with_input=True).bind_value(
+                                fila, "codigo").classes("grow")
                             _papeleira(estado["problemas"], fila, filas_problemas.refresh)
 
                     def engadir() -> None:
@@ -435,7 +455,7 @@ def crear_dialogo_tratamento(
 
                         ok = executar_accion(session, accion)
                     if ok:
-                        ui.navigate.reload()
+                        recargar_apuntado("tratamento", data_inicio.value)
 
                 with ui.stepper_navigation():
                     ui.button("Gardar", icon="check", on_click=gardar)

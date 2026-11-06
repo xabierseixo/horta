@@ -30,7 +30,7 @@ from horta.services.producions_animais import (
     produtos_da_especie,
     propor_lote,
 )
-from horta.ui.accions import executar_accion
+from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
@@ -245,7 +245,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
 
                 ok = executar_accion(session, accion)
             if ok:
-                ui.navigate.reload()
+                recargar_apuntado("producion_animal", data.value)
 
         with ui.row():
             ui.button("Gardar", icon="check", on_click=gardar)
