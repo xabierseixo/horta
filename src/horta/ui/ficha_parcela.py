@@ -11,7 +11,7 @@ from horta.db import get_session
 from horta.models.cultivo import Cultivo
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.services.catalogos import valores_vixentes
-from horta.services.cultivos import nome_cultivo
+from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.diario import TIPOS
 from horta.services.historial import historial_parcela
 from horta.services.textos_catalogo import texto_catalogo
@@ -108,7 +108,7 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
             pechar_sesion()
             return
         parcela = session.get(Parcela, parcela_id)
-        if parcela is None:
+        if parcela is None or parcela.horta_id != horta_id:
             return
 
         nomes_tenencia = {
@@ -121,12 +121,8 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
         }
         datos = datos_caderno(parcela, nomes_tenencia, nomes_causa)
         zonas = listar_zonas(session, actor, parcela)
-        cultivos_abertos = (
-            session.query(Cultivo)
-            .filter(Cultivo.parcela_id == parcela.id, Cultivo.data_fin.is_(None))
-            .order_by(Cultivo.id)
-            .all()
-        )
+        cultivos_abertos = [c for c in listar_cultivos(session, actor, horta_id)
+                            if c.parcela_id == parcela.id and c.data_fin is None]
         ano_actual = date.today().year
         traballos = [
             t for t in historial_parcela(session, actor, parcela)
