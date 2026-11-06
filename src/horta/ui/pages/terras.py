@@ -42,6 +42,7 @@ from horta.services.zonas import (
 )
 from horta.ui.accions import executar_accion
 from horta.ui.baixa_parcela import dialogo_baixa_parcela
+from horta.ui.ficha_parcela import seccions_ficha_parcela
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import formatar_superficie
 
@@ -523,6 +524,7 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
                     ui.label(f"Catastro {p.referencia_catastral}").classes("texto-suave")
                 ui.label(formatar_superficie(p.superficie) if p.superficie else ""
                          ).classes("texto-suave")
+                seccions_ficha_parcela(horta_id, p.id, pode_editar)
                 contorno = puntos_da_xeometria(p.geometria)
                 if pode_editar:
                     with ui.column().classes("gap-1 w-full q-mt-sm"):
