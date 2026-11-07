@@ -51,17 +51,9 @@ def datos_persoa(
     if getattr(persoa, "ropo_numero", None) is not None and str(persoa.ropo_numero).strip():
         resultado.append(("Nº ROPO", str(persoa.ropo_numero).strip()))
 
-    if getattr(persoa, "ropo_tipo_carne", None) is not None:
-        val = (
-            persoa.ropo_tipo_carne.value
-            if hasattr(persoa.ropo_tipo_carne, "value")
-            else str(persoa.ropo_tipo_carne)
-        )
-        if str(val).strip():
-            val_str = str(val).strip()
-            desc = describir_codigo("tipo_carne", val_str) if describir_codigo else val_str
-            carne_txt = desc if desc != val_str else TIPOS_CARNE.get(val_str, val_str)
-            resultado.append(("Tipo de carné", carne_txt))
+    if persoa.ropo_tipo_carne is not None:
+        codigo = persoa.ropo_tipo_carne.value
+        resultado.append(("Tipo de carné", TIPOS_CARNE.get(codigo, codigo)))
 
     if getattr(persoa, "ropo_caducidade", None) is not None:
         data_cad_txt = texto_data(persoa.ropo_caducidade)
