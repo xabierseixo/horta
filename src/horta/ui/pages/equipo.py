@@ -29,7 +29,6 @@ from horta.services.equipo import (
     cambiar_permiso,
     crear_convite,
     duplicados,
-    historial,
     retirar_acceso,
     xuntar_persoas,
 )
@@ -48,6 +47,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.etiquetas import TIPOS_CARNE
 from horta.ui.etiquetas import VINCULOS as ETIQUETAS_VINCULO
+from horta.ui.ficha_persoa import abrir_ficha_persoa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -381,23 +381,11 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             return None
         return next(x for x in persoas if x.id == taboa.selected[0]["id"])
 
-    def ver_historial() -> None:
+    def abrir_ficha() -> None:
         p = escollida()
         if p is None:
             return
-        with get_session() as session:
-            actor = usuario_actual(session)
-            feitos = historial(session, actor, p) if actor else []
-        with ui.dialog() as ventá, ui.card().style("width: min(36rem, 94vw)"):
-            ui.label(f"Historial: {p.nome} {p.apelidos or ''}".strip()).classes("text-h6")
-            if not feitos:
-                ui.label("Aínda non hai nada apuntado con esta persoa.").classes("texto-suave")
-            for f in feitos:
-                importe = f" · {f.importe:.2f} €" if f.importe is not None else ""
-                data = f"{f.data:%d/%m/%Y} · " if f.data else ""
-                ui.label(f"{data}{f.que}{importe}{' · pendente' if f.pendente else ''}")
-            ui.button("Pechar", on_click=ventá.close).props("flat")
-        ventá.open()
+        abrir_ficha_persoa(horta_id, p.id)
 
     def xuntar() -> None:
         queda = escollida()
@@ -471,7 +459,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         ui.button("Nova persoa no equipo" if equipo else "Novo contacto", icon="person_add",
                   on_click=abrir_nova)
         ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
-        ui.button("Historial", icon="history", on_click=ver_historial).props("outline")
+        ui.button("Ficha", icon="description", on_click=abrir_ficha).props("outline")
         if e_admin:
             ui.button("Xuntar con outra", icon="merge", on_click=xuntar).props("outline")
 
