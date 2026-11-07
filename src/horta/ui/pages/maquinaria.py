@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from nicegui import ui
 
 from horta.db import get_session
@@ -17,6 +19,7 @@ from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.ficha_maquina import abrir_ficha_maquina
+from horta.ui.lista_tarxetas import lista_tarxetas
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -53,9 +56,35 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
             ("inspeccion", "Última inspección"), ("aviso", "Inspección (RD 1702/2011)"),
             ("propia", "Propia"), ("activa", "Activa"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai máquinas rexistradas" {TEXTOS_TABOA}'
     )
+
+    abrir_fn: list[Callable[[Maquina | None], None]] = []
+
+    def tocar(mid: int) -> None:
+        m = next((x for x in maquinas if x.id == mid), None)
+        ao_editar = (
+            (lambda: abrir_fn[0](m))
+            if (pode_editar and m is not None and abrir_fn)
+            else None
+        )
+        abrir_ficha_maquina(horta_id, mid, pode_editar, ao_editar=ao_editar)
+
+    elementos_tarxetas = [
+        (
+            m.id,
+            m.alias,
+            " · ".join(
+                p for p in (
+                    tipos_une.get(m.tipo_une, m.tipo_une) if m.tipo_une else "",
+                    m.num_roma or m.num_reganip or m.id_equipo_non_inscribible or "",
+                ) if p
+            ),
+        )
+        for m in maquinas
+    ]
+    lista_tarxetas(elementos_tarxetas, ao_tocar=tocar)
 
     if not pode_editar:
         return
@@ -138,6 +167,8 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
         adquisicion.value = m.data_adquisicion.isoformat() if m and m.data_adquisicion else ""
         dialogo.open()
 
+    abrir_fn.append(abrir)
+
     def editar() -> None:
         if not taboa.selected:
             ui.notify("Escolle primeiro unha máquina na táboa", type="warning")
@@ -146,7 +177,13 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
 
     with ui.row():
         ui.button("Nova máquina", icon="agriculture", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Ficha", icon="description", on_click=lambda: abrir_ficha_maquina(
-            horta_id, taboa.selected[0]["id"], pode_editar) if taboa.selected else ui.notify(
-            "Escolle primeiro unha máquina na táboa", type="warning")).props("outline")
+        ui.button("Editar", icon="edit", on_click=editar).props("outline").classes("so-ordenador")
+        ui.button(
+            "Ficha",
+            icon="description",
+            on_click=lambda: (
+                abrir_ficha_maquina(horta_id, taboa.selected[0]["id"], pode_editar)
+                if taboa.selected
+                else ui.notify("Escolle primeiro unha máquina na táboa", type="warning")
+            ),
+        ).props("outline").classes("so-ordenador")

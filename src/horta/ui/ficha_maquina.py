@@ -90,7 +90,12 @@ def datos_maquina(
     return resultado
 
 
-def abrir_ficha_maquina(horta_id: int, maquina_id: int, pode_editar: bool) -> None:
+def abrir_ficha_maquina(
+    horta_id: int,
+    maquina_id: int,
+    pode_editar: bool,
+    ao_editar: Callable[[], None] | None = None,
+) -> None:
     """Abre o diálogo coa ficha da máquina: datos, historial e fotos."""
     with get_session() as session:
         actor = usuario_actual(session)
@@ -115,4 +120,5 @@ def abrir_ficha_maquina(horta_id: int, maquina_id: int, pode_editar: bool) -> No
         if "maquina" in MODELOS
         else None
     )
-    abrir_ficha(titulo, datos, linas_historial, fotos=accion_fotos)
+    accions = [("Editar", "edit", ao_editar)] if ao_editar is not None else None
+    abrir_ficha(titulo, datos, linas_historial, fotos=accion_fotos, accions=accions)

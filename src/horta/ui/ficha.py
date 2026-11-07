@@ -12,6 +12,7 @@ def abrir_ficha(
     datos: list[tuple[str, str]],
     historial: list[str],
     fotos: Callable[[], None] | None = None,
+    accions: list[tuple[str, str, Callable[[], None]]] | None = None,
 ) -> None:
     """Abre o diálogo coa ficha dun recurso: título, datos, historial e fotos."""
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
@@ -37,6 +38,19 @@ def abrir_ficha(
             ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline").classes(
                 "w-full q-mt-sm"
             )
+
+        if accions:
+            for texto, icona, fn in accions:
+                def manexador(f: Callable[[], None]) -> Callable[[], None]:
+                    def accion() -> None:
+                        dialogo.close()
+                        f()
+
+                    return accion
+
+                ui.button(texto, icon=icona, on_click=manexador(fn)).props("outline").classes(
+                    "w-full q-mt-sm"
+                )
 
         ui.button("Pechar", on_click=dialogo.close).props("flat").classes("w-full q-mt-sm")
 

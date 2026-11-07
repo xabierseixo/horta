@@ -86,6 +86,8 @@ body { font-family: Inter, system-ui, sans-serif; background: var(--cor-fondo);
 @media (max-width: 599px) {
   .q-stepper--vertical .q-stepper__step-inner { padding: 0 4px 24px 12px; }
 }
+@media (max-width: 599px) { .so-ordenador { display: none !important; } }
+@media (min-width: 600px) { .so-movil { display: none !important; } }
 </style>
 """
 
