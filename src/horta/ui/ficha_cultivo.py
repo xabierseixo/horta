@@ -5,8 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from nicegui import ui
-
 from horta.db import get_session
 from horta.models.cultivo import Cultivo
 from horta.services.catalogos import describir
@@ -14,6 +12,7 @@ from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.diario import TIPOS
 from horta.services.fotos import MODELOS
 from horta.services.historial import historial_cultivo
+from horta.ui.ficha import abrir_ficha
 from horta.ui.fotos import abrir_fotos
 from horta.ui.numeros import texto_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -100,39 +99,14 @@ def abrir_ficha_cultivo(horta_id: int, cultivo_id: int, pode_editar: bool) -> No
             key=lambda t: t.data or date.min,
             reverse=True,
         )
-        liñas_historial = [
-            (texto_data(t.data), TIPOS.get(t.tipo, t.tipo), t.que)
+        linas_historial = [
+            f"{texto_data(t.data)} · {TIPOS.get(t.tipo, t.tipo)} · {t.que}"
             for t in traballos
         ]
 
-    with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        ui.label(nome).classes("text-h6")
-
-        if datos:
-            with ui.element("div").style(
-                "display:grid; grid-template-columns:auto 1fr; gap:2px 12px"
-            ):
-                for etiqueta, valor in datos:
-                    ui.label(etiqueta).classes("texto-suave")
-                    ui.label(valor)
-
-        ui.label("Historial").classes("text-weight-medium q-mt-sm")
-        with ui.column().classes("gap-0"):
-            if liñas_historial:
-                for data_str, tipo_str, que_str in liñas_historial:
-                    ui.label(f"{data_str} · {tipo_str} · {que_str}").classes("texto-suave")
-            else:
-                ui.label("Aínda non hai traballos").classes("texto-suave")
-
-        if "cultivo" in MODELOS:
-            ui.button(
-                "Fotos",
-                icon="photo_camera",
-                on_click=lambda: abrir_fotos(
-                    horta_id, "cultivo", cultivo_id, nome, pode_editar
-                ),
-            ).props("outline").classes("w-full q-mt-sm")
-
-        ui.button("Pechar", on_click=dialogo.close).props("flat").classes("w-full q-mt-sm")
-
-    dialogo.open()
+    accion_fotos = (
+        (lambda: abrir_fotos(horta_id, "cultivo", cultivo_id, nome, pode_editar))
+        if "cultivo" in MODELOS
+        else None
+    )
+    abrir_ficha(nome, datos, linas_historial, fotos=accion_fotos)
