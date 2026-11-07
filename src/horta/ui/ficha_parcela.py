@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import date
 
 from nicegui import ui
@@ -16,6 +17,7 @@ from horta.services.diario import TIPOS
 from horta.services.historial import historial_parcela
 from horta.services.textos_catalogo import texto_catalogo
 from horta.services.zonas import listar_zonas
+from horta.ui.ficha_cultivo import abrir_ficha_cultivo
 from horta.ui.fotos import abrir_fotos
 from horta.ui.numeros import texto_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -149,9 +151,12 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
 
     # 2. Zonas e o que hai en cada unha
     ui.label("Zonas e cultivos").classes("text-weight-medium q-mt-sm")
-    por_zona: dict[int | None, list[str]] = defaultdict(list)
+    por_zona: dict[int | None, list[Cultivo]] = defaultdict(list)
     for c in cultivos_abertos:
-        por_zona[c.zona_id].append(_texto_cultivo(c))
+        por_zona[c.zona_id].append(c)
+
+    def abrir_cultivo(cid: int) -> Callable[..., None]:
+        return lambda *_: abrir_ficha_cultivo(horta_id, cid, pode_editar)
 
     with ui.column().classes("gap-0"):
         if not zonas and not cultivos_abertos:
@@ -159,14 +164,28 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
         else:
             for z in zonas:
                 cs = por_zona.get(z.id, [])
-                detalle = f"· {', '.join(cs)}" if cs else "· baleira"
                 with ui.row().classes("items-baseline gap-1"):
                     ui.label(z.nome).classes("text-weight-bold")
-                    ui.label(detalle).classes("texto-suave")
+                    if not cs:
+                        ui.label("· baleira").classes("texto-suave")
+                    else:
+                        ui.label("·").classes("texto-suave")
+                        for idx, c in enumerate(cs):
+                            if idx > 0:
+                                ui.label(",").classes("texto-suave")
+                            ui.label(_texto_cultivo(c)).classes(
+                                "cursor-pointer text-primary"
+                            ).on("click", abrir_cultivo(c.id))
             if por_zona.get(None):
                 with ui.row().classes("items-baseline gap-1"):
                     ui.label("Sen zona").classes("text-weight-bold")
-                    ui.label(f"· {', '.join(por_zona[None])}").classes("texto-suave")
+                    ui.label("·").classes("texto-suave")
+                    for idx, c in enumerate(por_zona[None]):
+                        if idx > 0:
+                            ui.label(",").classes("texto-suave")
+                        ui.label(_texto_cultivo(c)).classes(
+                            "cursor-pointer text-primary"
+                        ).on("click", abrir_cultivo(c.id))
 
     # 3. Historial deste ano
     ui.label("Historial deste ano").classes("text-weight-medium q-mt-sm")
