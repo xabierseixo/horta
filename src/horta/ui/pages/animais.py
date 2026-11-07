@@ -26,9 +26,9 @@ from horta.services.persoas import listar_persoas, nome_completo
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.ficha_animal import abrir_ficha_animal
 from horta.ui.filtros import filtrar_filas
 from horta.ui.fotos import abrir_fotos
-from horta.ui.ficha_animal import abrir_ficha_animal
 from horta.ui.identificados import abrir_identificados
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data, parsear_decimal
