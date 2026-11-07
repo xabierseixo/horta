@@ -74,6 +74,7 @@ class Traballo:
     atrasado: bool = False
     persoas: tuple[int, ...] = ()  # quen o fixo
     sen_quen: bool = False  # feito e sen saber quen o fixo (rexistros de antes)
+    cultivos: frozenset[int] = frozenset()  # cultivos aos que se refire
 
 
 def nome_grupo(especie: str, raza: str | None) -> str:
@@ -163,7 +164,7 @@ def listar_traballos(
             or ", ".join(texto(p.tipo, p.codigo) for p in t.problemas),
             onde(ids[0]) if len(ids) == 1 else f"{len(ids)} cultivos",
             frozenset().union(*(parcela_de(i) for i in ids)), persoas=quen,
-            sen_quen=not quen))
+            sen_quen=not quen, cultivos=frozenset(ids)))
     for a in listar_abonados(session, actor, horta_id):
         abono = session.get(Fertilizante, a.fertilizante_id) if a.fertilizante_id else None
         quen = _quen(a.persoa_id)
@@ -171,24 +172,27 @@ def listar_traballos(
             "abonado", a.id, a.data_inicio, True, abono.nome if abono else "Abonado en verde",
             onde_leiras([le.cultivo_id for le in a.leiras]),
             parcelas_de([le.cultivo_id for le in a.leiras]), persoas=quen,
-            sen_quen=not quen))
+            sen_quen=not quen, cultivos=frozenset(le.cultivo_id for le in a.leiras)))
     for r in listar_regas(session, actor, horta_id):
         traballos.append(Traballo("rega", r.id, r.data_inicio, True,
                                   texto("sistema_rega", r.sistema_rega),
                                   onde_leiras([le.cultivo_id for le in r.leiras]),
                                   parcelas_de([le.cultivo_id for le in r.leiras]),
-                                  persoas=_quen(r.persoa_id), sen_quen=r.persoa_id is None))
+                                  persoas=_quen(r.persoa_id), sen_quen=r.persoa_id is None,
+                                  cultivos=frozenset(le.cultivo_id for le in r.leiras)))
     for lab in listar_labores(session, actor, horta_id):
         traballos.append(Traballo("labor", lab.id, lab.data_inicio, True,
                                   texto("tipo_labor", lab.tipo_labor),
                                   onde_leiras([le.cultivo_id for le in lab.leiras]),
                                   parcelas_de([le.cultivo_id for le in lab.leiras]),
-                                  persoas=_quen(lab.persoa_id), sen_quen=lab.persoa_id is None))
+                                  persoas=_quen(lab.persoa_id), sen_quen=lab.persoa_id is None,
+                                  cultivos=frozenset(le.cultivo_id for le in lab.leiras)))
     for col in listar_colleitas(session, actor, horta_id):
         traballos.append(Traballo("colleita", col.id, col.data, True,
                                   f"{col.cantidade:g} {col.unidade} · lote {col.lote}",
                                   onde(col.cultivo_id), parcela_de(col.cultivo_id),
-                                  persoas=_quen(col.persoa_id), sen_quen=col.persoa_id is None))
+                                  persoas=_quen(col.persoa_id), sen_quen=col.persoa_id is None,
+                                  cultivos=frozenset({col.cultivo_id})))
     for c in cultivos.values():
         if c.data_inicio is not None:
             feita = c.data_inicio <= hoxe
@@ -196,7 +200,8 @@ def listar_traballos(
                 "sementeira", c.id, c.data_inicio, feita,
                 "Plantación" if c.tipo_inicio == "plantacion" else "Sementeira",
                 onde(c.id), parcela_de(c.id), persoas=_quen(c.sementeira_persoa_id),
-                sen_quen=feita and c.sementeira_persoa_id is None))
+                sen_quen=feita and c.sementeira_persoa_id is None,
+                cultivos=frozenset({c.id})))
     for an in listar_analises(session, actor, horta_id):
         sitio = onde(an.cultivo_id) or parcelas.get(an.parcela_id or 0, "")
         traballos.append(Traballo(
@@ -204,7 +209,8 @@ def listar_traballos(
             texto("material_analizado", an.material_analizado), sitio,
             parcela_de(an.cultivo_id) or (frozenset({an.parcela_id}) if an.parcela_id
                                           else frozenset()),
-            persoas=_quen(an.persoa_id), sen_quen=an.persoa_id is None))
+            persoas=_quen(an.persoa_id), sen_quen=an.persoa_id is None,
+            cultivos=frozenset({an.cultivo_id}) if an.cultivo_id else frozenset()))
     for ti in listar_tratamentos_instalacion(session, actor, horta_id):
         traballos.append(Traballo("tratamento_instalacion", ti.id, ti.data, True,
                                   ti.nome_comercial or ti.materia_activa or "", ti.obxecto,
@@ -302,7 +308,8 @@ def listar_traballos(
             parcela_de(ta.cultivo_id) or (frozenset({ta.parcela_id}) if ta.parcela_id
                                           else frozenset()),
             atrasado=not feita and ta.data_limite is not None and ta.data_limite < hoxe,
-            persoas=_quen(ta.persoa_id), sen_quen=feita and ta.persoa_id is None))
+            persoas=_quen(ta.persoa_id), sen_quen=feita and ta.persoa_id is None,
+            cultivos=frozenset({ta.cultivo_id}) if ta.cultivo_id else frozenset()))
 
     por_facer = sorted((t for t in traballos if not t.feito),
                        key=lambda t: (t.data is not None, t.data or hoxe))

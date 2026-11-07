@@ -115,6 +115,18 @@ def historial_parcela(session: Session, actor: Usuario, parcela: Parcela) -> lis
             if t.feito and parcela.id in t.parcelas]
 
 
+def historial_cultivo(session: Session, actor: Usuario, cultivo: Cultivo) -> list[Any]:
+    """Os traballos feitos no cultivo (os do Diario con cultivo.id in t.cultivos)."""
+    from horta.services.diario import listar_traballos
+
+    horta_id = session.query(Parcela.horta_id).filter_by(id=cultivo.parcela_id).scalar()
+    if horta_id is None:
+        raise ValueError("A parcela deste cultivo xa non existe")
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
+    return [t for t in listar_traballos(session, actor, horta_id)
+            if t.feito and cultivo.id in t.cultivos]
+
+
 @dataclass(frozen=True)
 class CultivoNaLeira:
     cultivo: Cultivo
