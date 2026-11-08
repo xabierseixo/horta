@@ -79,6 +79,12 @@ with get_session() as session:
 
 Os demais usuarios créanse desde a propia aplicación.
 
+## 4 bis. Datos legais
+
+Antes de abrir o servizo a outras persoas, o administrador ten que completar en **Administración → Datos legais** os datos do responsable do tratamento: titular, NIF, enderezo e correo de contacto. Opcionalmente, pode engadir o delegado de protección de datos e onde se gardan os datos. Con eles complétanse o aviso legal e a política de privacidade (`/legal/aviso` e `/legal/privacidade`), que cada persoa usuaria ten que aceptar ao entrar por primeira vez.
+
+Os textos son unha base e convén que os revise un asesor antes de usalos.
+
 ## 5. Servizo do sistema
 
 `/etc/systemd/system/agroxest360.service`:
