@@ -93,10 +93,12 @@ def seccion_estatisticas(horta_id: int, pode_editar: bool) -> None:
                     rows=filas,
                 ).classes("w-full taboa").props(f"flat bordered dense {TEXTOS_TABOA}")
         else:
-            ui.label(
-                "Aínda non hai compras de enerxía. Apúntaas en Produtos como un produto de"
-                " tipo Enerxía."
-            ).classes("texto-suave")
+            with ui.column().classes("tarxeta w-full gap-1 q-pa-md"):
+                ui.label("Enerxía").classes("text-subtitle1 text-weight-bold")
+                ui.label(
+                    "Aínda non hai compras de enerxía. Apúntaas en Produtos como un produto de"
+                    " tipo Enerxía."
+                ).classes("texto-suave")
         if cartos is not None:
             _grafica(f"Ingresos e gastos en {ano} (€)", {
                 "xAxis": {"type": "category", "data": _MESES}, "yAxis": {"type": "value"},
