@@ -64,3 +64,7 @@ A aplicación indica en cada momento os datos que faltan para completar o cadern
 - Rexistros autonómicos de explotacións agrarias e gandeiras (REAGA e REGA).
 
 Os rexistros sometidos a obriga legal de conservación non se eliminan: dánse de baixa e mantéñense no histórico.
+
+## Despregamento
+
+As instrucións para instalar a aplicación nun servidor están en [DESPREGAMENTO.md](DESPREGAMENTO.md).
