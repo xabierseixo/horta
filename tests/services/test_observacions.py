@@ -25,6 +25,10 @@ from horta.services.observacions import (
 from horta.services.parcelas import crear_parcela
 
 
+@pytest.fixture(autouse=True)
+def _cultivos_siex(cultivos_siex):
+    cultivos_siex(101, 202)
+
 def _usuario(session, email):
     u = Usuario(
         nome=email, email=email, password_hash="x", rol=RolGlobal.USUARIO, activo=True
