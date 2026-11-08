@@ -64,7 +64,3 @@ A aplicación indica en cada momento os datos que faltan para completar o cadern
 - Rexistros autonómicos de explotacións agrarias e gandeiras (REAGA e REGA).
 
 Os rexistros sometidos a obriga legal de conservación non se eliminan: dánse de baixa e mantéñense no histórico.
-
-## Estado do proxecto
-
-En desenvolvemento. A aplicación aínda non está autorizada como aplicación comercial para o envío do caderno dixital ao SIEX.
