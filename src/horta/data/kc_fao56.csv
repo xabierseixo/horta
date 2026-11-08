@@ -1,0 +1,45 @@
+codigo_siex;nome;cultivo_fao56;kc_ini;kc_mid;kc_end;l_ini;l_dev;l_mid;l_late;nota
+197;Tomate;Tomato;0.6;1.15;0.80;30;40;45;30;Kc end 0.70-0.90 (media). Fases: Mediterranean, April/May
+152;Pemento;Sweet Peppers (bell);0.6;1.05;0.90;25;35;40;20;Fases: Europe and Medit., April/June
+157;Cebola;Onions - dry;0.7;1.05;0.75;15;25;70;40;Fases: Mediterranean, April
+155;Leituga;Lettuce;0.7;1.00;0.95;20;30;15;10;Fases: Mediterranean, April
+169;Allo;Garlic;0.7;1.00;0.70;;;;;Sen fases na táboa 11: Kc medio
+178;Cenoria;Carrots;0.7;1.05;0.95;30;40;60;20;Fases: Mediterranean, Feb/Mar
+183;Espinaca;Spinach;0.7;1.00;0.95;20;20;15;5;Fases: Mediterranean, April
+185;Cabaza;Pumpkin, Winter Squash;0.5;1.00;0.80;25;35;35;25;Fases: Europe, June
+163;Cabaciña;Squash, Zucchini;0.5;0.95;0.75;20;30;25;15;Fases: Medit./Europe, May/June
+165;Cogombro;Cucumber - Fresh Market;0.6;1.00;0.75;20;30;40;15;Fases: Arid Region, June/Aug (única do verán)
+162;Berenxena;Egg Plant;0.6;1.05;0.90;30;45;40;25;Fases: Mediterranean, May/June
+172;Repolo;Cabbage;0.7;1.05;0.95;40;60;50;15;Fases: Calif. Desert, Sept (única)
+175;Berza;Cabbage;0.7;1.05;0.95;40;60;50;15;Mesma especie ca Cabbage (Brassica oleracea)
+509;Col tronchuda;Cabbage;0.7;1.05;0.95;40;60;50;15;Mesma especie ca Cabbage (Brassica oleracea)
+484;Grelos;Turnip (and Rutabaga);0.5;1.10;0.95;;;;;Sen fases na táboa 11: Kc medio
+179;Nabo;Turnip (and Rutabaga);0.5;1.10;0.95;;;;;Sen fases na táboa 11: Kc medio
+99;Pataca;Potato;0.5;1.15;0.75;30;35;50;30;Fases: Europe, April
+82;Remolacha;Sugar Beet;0.35;1.20;0.70;;;;;Sen fases na táboa 11: Kc medio
+49;Faba (alubia);Beans, dry and Pulses;0.4;1.15;0.35;20;30;40;20;Fases: Continental Climates, May/June
+41;Fabón (haba);Fababean (broad bean) - Fresh;0.5;1.15;1.10;15;25;35;15;Fases: Europe, May
+40;Chícharo;Peas - Fresh;0.5;1.15;1.10;15;25;35;15;Fases: Europe, May
+4;Millo;Maize, Field (grain);0.3;1.20;0.60;30;40;50;30;Kc end 0.60 (colleita con humidade alta). Fases: Spain, April
+326;Millo doce;Maize, Sweet;0.3;1.15;1.05;20;25;25;10;Fases: Mediterranean, May/June
+102;Viña;Grapes - Wine;0.30;0.70;0.45;30;60;40;80;Fases: Mid Latitudes (wine), April
+494;Viña - horta;Grapes - Wine;0.30;0.70;0.45;30;60;40;80;Fases: Mid Latitudes (wine), April
+109;Maceira;Apples, Cherries, Pears - active ground cover, no frosts;0.80;1.20;0.85;20;70;90;30;Fases: Deciduous Orchard, High Latitudes, March
+108;Pereira;Apples, Cherries, Pears - active ground cover, no frosts;0.80;1.20;0.85;20;70;90;30;Fases: Deciduous Orchard, High Latitudes, March
+110;Cerdeira;Apples, Cherries, Pears - active ground cover, no frosts;0.80;1.20;0.85;20;70;90;30;Fases: Deciduous Orchard, High Latitudes, March
+111;Ameixeira;Apricots, Peaches, Stone Fruit - active ground cover, no frosts;0.80;1.15;0.85;20;70;90;30;Fases: Deciduous Orchard, High Latitudes, March
+112;Nogueira;Walnut Orchard;0.50;1.10;0.65;20;70;90;30;Fases: Deciduous Orchard, High Latitudes, March
+212;Kiwi;Kiwi;0.40;1.05;1.05;;;;;Sen fases na táboa 11: Kc medio
+216;Arandeira;Berries (bushes);0.30;1.05;0.50;;;;;Sen fases na táboa 11: Kc medio
+192;Framboeseira;Berries (bushes);0.30;1.05;0.50;;;;;Sen fases na táboa 11: Kc medio
+219;Morogo;Strawberries;0.40;0.85;0.75;;;;;Sen fases na táboa 11: Kc medio
+207;Limoeiro;Citrus, no ground cover - 50% canopy;0.65;0.60;0.65;;;;;Perenne: Kc medio
+84;Lúpulo;Hops;0.3;1.05;0.85;;;;;Sen fases na táboa 11: Kc medio
+60;Alfalfa;Alfalfa Hay - averaged cutting effects;0.40;0.95;0.90;;;;;Pradeira: Kc medio dos cortes
+62;Pasteiro permanente;Rye Grass hay - averaged cutting effects;0.95;1.05;1.00;;;;;Pradeira: Kc medio dos cortes
+63;Pasteiro (menos de 5 anos);Rye Grass hay - averaged cutting effects;0.95;1.05;1.00;;;;;Pradeira: Kc medio dos cortes
+69;Raigrás perenne;Rye Grass hay - averaged cutting effects;0.95;1.05;1.00;;;;;Pradeira: Kc medio dos cortes
+78;Raigrás anual;Rye Grass hay - averaged cutting effects;0.95;1.05;1.00;;;;;Pradeira: Kc medio dos cortes
+77;Trevo;Clover hay, Berseem - averaged cutting effects;0.40;0.90;0.85;;;;;Pradeira: Kc medio dos cortes
+556;Trevo branco;Clover hay, Berseem - averaged cutting effects;0.40;0.90;0.85;;;;;Pradeira: Kc medio dos cortes
+555;Trevo violeta;Clover hay, Berseem - averaged cutting effects;0.40;0.90;0.85;;;;;Pradeira: Kc medio dos cortes
