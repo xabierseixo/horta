@@ -10,12 +10,14 @@ dependencies = [
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "nicegui>=3.17.1",
+    "odfpy>=1.4.1",
     "openpyxl>=3.1.5",
     "pydantic>=2.13.5",
     "python-dateutil>=2.9.0.post0",
     "segno>=1.6.6",
     "shapely>=2.2.0",
     "sqlalchemy>=2.0.54",
+    "weasyprint>=70.0",
 ]
 
 [project.scripts]
