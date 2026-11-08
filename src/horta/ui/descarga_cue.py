@@ -42,7 +42,7 @@ def seccion_cue(horta_id: int) -> None:
     hoxe = date.today()
     with ui.column().classes("tarxeta w-full gap-2 q-pa-md q-mt-md"):
         ui.label("Caderno dixital (CUE)").classes("text-subtitle1 text-weight-bold")
-        ui.label("Obrigatorio para as explotacións profesionais desde o 1/1/2027. O caderno "
+        ui.label("Os tratamentos fitosanitarios apúntanse nel desde o 1/1/2027. O caderno "
                  "público da Xunta (XEAGA) non importa ficheiros: o Excel ten todo ordenado "
                  "para pasalo a man. Os datos en JSON son os que enviaría un CUE comercial."
                  ).classes("texto-suave")

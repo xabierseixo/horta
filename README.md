@@ -68,7 +68,7 @@ Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV, XML e JSON.
 ## Marco normativo
 
 - Real Decreto 1311/2012, sobre o uso sostible de produtos fitosanitarios.
-- Caderno Dixital de Explotación Agrícola integrado no SIEX, obrigatorio para as explotacións profesionais desde o 1 de xaneiro de 2027 (Real Decreto 1039/2025).
+- Caderno Dixital de Explotación Agrícola integrado no SIEX (Real Decreto 1054/2022): obrigatorio para rexistrar os tratamentos fitosanitarios desde o 1 de xaneiro de 2027 (Real Decreto 1039/2025); o caderno dixital completo, a partir do próximo marco da PAC.
 - Catálogos e codificacións do SIEX (Anexo V).
 - Rexistros autonómicos de explotacións agrarias e gandeiras (REAGA e REGA).
 
