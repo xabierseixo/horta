@@ -63,3 +63,10 @@ def test_datos_animal_activo() -> None:
 
     assert ("Estado", "De alta") in datos
     assert "Data de baixa" not in etiquetas
+
+
+def test_datos_animal_especie_en_galego() -> None:
+    """A especie sae co nome galego aínda que o catálogo a dea en castelán."""
+    animal = Animal(especie="Poñedoras", especie_codigo="06")
+    datos = datos_animal(animal, lambda _cat, _cod: "Gallinas")
+    assert ("Especie", "Galiñas") in datos

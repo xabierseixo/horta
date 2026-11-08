@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 from horta.db import get_session
 from horta.models.animal import Animal
-from horta.services.animais import listar_animais
+from horta.services.animais import ESPECIES, listar_animais
 from horta.services.catalogos import describir
 from horta.services.fotos import MODELOS
 from horta.services.historial import historial_animal
@@ -26,7 +26,9 @@ def datos_animal(
     resultado: list[tuple[str, str]] = []
 
     if getattr(animal, "especie_codigo", None) is not None and str(animal.especie_codigo).strip():
-        esp = describir_codigo("especie_animal", str(animal.especie_codigo).strip())
+        codigo = str(animal.especie_codigo).strip()
+        # O nome galego da pantalla de Animais; o catálogo do FEGA só vén en castelán
+        esp = ESPECIES.get(codigo) or describir_codigo("especie_animal", codigo)
         if esp and esp.strip():
             resultado.append(("Especie", esp.strip()))
     elif getattr(animal, "especie", None) is not None and str(animal.especie).strip():
