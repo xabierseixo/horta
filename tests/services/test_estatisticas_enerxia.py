@@ -27,9 +27,9 @@ def _escenario(session):
     version = CatalogoVersion(catalogo="t", nome_ficheiro="t", sha256="f" * 64, filas=0)
     session.add(version)
     session.flush()
-    session.add(CatalogoValor(catalogo="tipo_enerxia", codigo="1", descricion="Gasóleo B",
+    session.add(CatalogoValor(catalogo="tipo_enerxia", codigo="2", descricion="DIESEL",
                               version_id=version.id))
-    session.add(CatalogoValor(catalogo="tipo_enerxia", codigo="2", descricion="Electricidade",
+    session.add(CatalogoValor(catalogo="tipo_enerxia", codigo="1", descricion="ELÉCTRICA",
                               version_id=version.id))
     ana = Usuario(nome="ana", email="ana@example.com", password_hash="x",
                   rol=RolGlobal.USUARIO, activo=True)
@@ -45,11 +45,11 @@ def test_duas_entradas_gasoleo_e_unha_luz(session):
     ana, horta, quen = _escenario(session)
     gasoleo = crear_produto(
         session, ana, horta.id, tipo="enerxia", nome="Gasóleo calefacción",
-        unidade="litros", tipo_enerxia="1"
+        unidade="litros", tipo_enerxia="2"
     )
     luz = crear_produto(
         session, ana, horta.id, tipo="enerxia", nome="Luz almacén",
-        unidade="kWh", tipo_enerxia="2"
+        unidade="kWh", tipo_enerxia="1"
     )
     # Entrada 1 de gasóleo: febreiro (mes 2)
     crear_entrada(
@@ -76,15 +76,15 @@ def test_duas_entradas_gasoleo_e_unha_luz(session):
     res = enerxia_por_mes(session, ana, horta.id, 2026)
 
     # Cantidades agrupadas por (descrición do catálogo, unidade)
-    assert ("Gasóleo B", "litros") in res.cantidades
-    assert ("Electricidade", "kWh") in res.cantidades
+    assert ("Diésel", "litros") in res.cantidades
+    assert ("Eléctrica", "kWh") in res.cantidades
     # Gasóleo: febreiro (índice 1) e maio (índice 4)
-    assert res.cantidades[("Gasóleo B", "litros")][1] == 100.0
-    assert res.cantidades[("Gasóleo B", "litros")][4] == 200.0
-    assert sum(res.cantidades[("Gasóleo B", "litros")]) == 300.0
+    assert res.cantidades[("Diésel", "litros")][1] == 100.0
+    assert res.cantidades[("Diésel", "litros")][4] == 200.0
+    assert sum(res.cantidades[("Diésel", "litros")]) == 300.0
     # Luz: maio (índice 4)
-    assert res.cantidades[("Electricidade", "kWh")][4] == 350.0
-    assert sum(res.cantidades[("Electricidade", "kWh")]) == 350.0
+    assert res.cantidades[("Eléctrica", "kWh")][4] == 350.0
+    assert sum(res.cantidades[("Eléctrica", "kWh")]) == 350.0
     # Importe: febreiro 120.50, maio 250.00 + 85.20 = 335.20
     assert res.importe[1] == 120.50
     assert res.importe[4] == 335.20
@@ -96,7 +96,7 @@ def test_entradas_baixa_e_doutro_ano_non_contan(session):
     ana, horta, quen = _escenario(session)
     gasoleo = crear_produto(
         session, ana, horta.id, tipo="enerxia", nome="Gasóleo B",
-        unidade="litros", tipo_enerxia="1"
+        unidade="litros", tipo_enerxia="2"
     )
     # Entrada en 2026
     crear_entrada(
@@ -124,8 +124,8 @@ def test_entradas_baixa_e_doutro_ano_non_contan(session):
     res = enerxia_por_mes(session, ana, horta.id, 2026)
 
     # Só conta a de marzo de 2026
-    assert res.cantidades[("Gasóleo B", "litros")][2] == 50.0
-    assert sum(res.cantidades[("Gasóleo B", "litros")]) == 50.0
+    assert res.cantidades[("Diésel", "litros")][2] == 50.0
+    assert sum(res.cantidades[("Diésel", "litros")]) == 50.0
     assert res.importe[2] == 60.00
     assert round(sum(res.importe), 2) == 60.00
 
