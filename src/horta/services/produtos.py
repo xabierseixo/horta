@@ -37,8 +37,8 @@ TIPOS_PRODUTO: dict[str, str] = {
     "enerxia": "Enerxía (gasóleo, luz...)",
     "outro": "Outro",
 }
-UNIDADES_PRODUTO = ("kg", "litros", "unidades")
-UNIDADES_ENTRADA = ("kg", "t", "litros", "unidades", "ducias")
+UNIDADES_PRODUTO = ("kg", "litros", "unidades", "kWh")
+UNIDADES_ENTRADA = ("kg", "t", "litros", "unidades", "ducias", "kWh")
 # Unidades do catálogo oficial (tratamentos e coidados): absolutas e por hectárea
 _ABSOLUTAS = {"5": "kg", "6": "t", "4": "litros", "11": "unidades"}
 _POR_HECTAREA = {"17": "kg", "18": "litros", "29": "t"}

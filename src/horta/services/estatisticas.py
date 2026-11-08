@@ -15,10 +15,12 @@ from horta.models.horta import Horta, RolHorta
 from horta.models.lote import Clasificacion, Lote
 from horta.models.parcela import Parcela
 from horta.models.producion_animal import ProducionAnimal
+from horta.models.produto import EntradaProduto, Produto
 from horta.models.rega import Rega
 from horta.models.tempo import TempoDia
 from horta.models.usuario import Usuario
 from horta.services.cartos import periodo, resumo_periodo
+from horta.services.catalogos import describir
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.lotes import converter
 from horta.services.producions_animais import PRODUTOS
@@ -111,3 +113,50 @@ def cartos_por_mes(session: Session, actor: Usuario, horta_id: int, ano: int
         ingresos.append(resumo.total_ingresos)
         gastos.append(resumo.total_gastos)
     return ingresos, gastos
+
+
+@dataclass
+class EnerxiaAno:
+    cantidades: dict[tuple[str, str], list[float]] = field(default_factory=dict)
+    importe: list[float] = field(default_factory=lambda: [0.0] * 12)
+
+
+def enerxia_por_mes(session: Session, actor: Usuario, horta_id: int, ano: int) -> EnerxiaAno:
+    """Compras de produtos de tipo enerxía no ano: cantidades por tipo e unidade, e importe."""
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
+    cantidades: dict[tuple[str, str], list[float]] = {}
+    importe: list[float] = [0.0] * 12
+    entradas = (
+        session.query(EntradaProduto, Produto)
+        .join(Produto, Produto.id == EntradaProduto.produto_id)
+        .filter(
+            EntradaProduto.horta_id == horta_id,
+            EntradaProduto.baixa.is_(False),
+            EntradaProduto.data >= date(ano, 1, 1),
+            EntradaProduto.data <= date(ano, 12, 31),
+            Produto.tipo == "enerxia",
+        )
+        .all()
+    )
+    for entrada, produto in entradas:
+        mes = entrada.data.month - 1
+        if entrada.importe is not None:
+            importe[mes] += entrada.importe
+        if entrada.cantidade is not None:
+            tipo_nome = (
+                describir(session, "tipo_enerxia", produto.tipo_enerxia)
+                if produto.tipo_enerxia
+                else produto.nome
+            )
+            unidade = entrada.unidade or produto.unidade
+            clave = (tipo_nome, unidade)
+            if clave not in cantidades:
+                cantidades[clave] = [0.0] * 12
+            cantidades[clave][mes] += entrada.cantidade
+
+    cantidades_redondeadas = {
+        clave: [round(val, 2) for val in valores]
+        for clave, valores in sorted(cantidades.items())
+    }
+    importe_redondeado = [round(val, 2) for val in importe]
+    return EnerxiaAno(cantidades=cantidades_redondeadas, importe=importe_redondeado)

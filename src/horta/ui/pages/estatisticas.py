@@ -11,9 +11,12 @@ from horta.services.estatisticas import (
     auga_por_mes,
     cartos_por_mes,
     clases_do_ano,
+    enerxia_por_mes,
     producion_por_ano,
 )
+from horta.ui.numeros import euros, formatar_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
+from horta.ui.taboas import TEXTOS_TABOA
 
 _MESES = ["xan", "feb", "mar", "abr", "mai", "xuñ", "xul", "ago", "set", "out", "nov", "dec"]
 
@@ -40,6 +43,7 @@ def seccion_estatisticas(horta_id: int, pode_editar: bool) -> None:
             producion = producion_por_ano(session, actor, horta_id, ano)
             clases = clases_do_ano(session, actor, horta_id, ano)
             auga = auga_por_mes(session, actor, horta_id, ano)
+            enerxia = enerxia_por_mes(session, actor, horta_id, ano)
             cartos = cartos_por_mes(session, actor, horta_id, ano) if pode_editar else None
         anos = [str(a) for a in range(ano - 4, ano + 1)]
         if producion:
@@ -63,6 +67,36 @@ def seccion_estatisticas(horta_id: int, pode_editar: bool) -> None:
             "series": [{"name": "Choiva (l/m²)", "type": "bar", "data": auga.choiva},
                        {"name": "Rega (m³)", "type": "line", "yAxisIndex": 1,
                         "data": auga.rega}]})
+        if enerxia.cantidades or any(enerxia.importe):
+            with ui.column().classes("tarxeta w-full gap-1 q-pa-md"):
+                ui.label("Enerxía").classes("text-subtitle1 text-weight-bold")
+                ui.echart({"tooltip": {"trigger": "axis"}, "legend": {"top": 0},
+                           "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
+                           "xAxis": {"type": "category", "data": _MESES},
+                           "yAxis": {"type": "value", "name": "€"},
+                           "series": [{"name": "Importe (€)", "type": "bar",
+                                       "data": enerxia.importe}]}).classes(
+                                           "w-full").style("height: 320px")
+                filas = [
+                    {"tipo": tipo,
+                     "total": f"{formatar_decimal(round(sum(meses), 2))} {unidade}"}
+                    for (tipo, unidade), meses in enerxia.cantidades.items()
+                ]
+                filas.append({"tipo": "Gasto total",
+                              "total": euros(round(sum(enerxia.importe), 2))})
+                ui.table(
+                    columns=[
+                        {"name": "tipo", "label": "Tipo", "field": "tipo", "align": "left"},
+                        {"name": "total", "label": "Total do ano", "field": "total",
+                         "align": "right"},
+                    ],
+                    rows=filas,
+                ).classes("w-full taboa").props(f"flat bordered dense {TEXTOS_TABOA}")
+        else:
+            ui.label(
+                "Aínda non hai compras de enerxía. Apúntaas en Produtos como un produto de"
+                " tipo Enerxía."
+            ).classes("texto-suave")
         if cartos is not None:
             _grafica(f"Ingresos e gastos en {ano} (€)", {
                 "xAxis": {"type": "category", "data": _MESES}, "yAxis": {"type": "value"},
