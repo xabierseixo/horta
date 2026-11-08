@@ -5,13 +5,16 @@ from typing import Any
 from nicegui import app, ui
 
 from horta.db import get_session
+from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, RolHorta
 from horta.models.tempo import EstacionMeteo
 from horta.models.usuario import RolGlobal
 from horta.services.animais import listar_animais
+from horta.services.catalogos import describir
 from horta.services.catalogos_estado import avisos_catalogos
 from horta.services.cultivos import (
     listar_cultivos,
+    nome_cultivo,
 )
 from horta.services.documentos import documentos_con_aviso
 from horta.services.en_regra import requisitos_en_regra
@@ -155,7 +158,13 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         e_admin_global = actor.rol == RolGlobal.ADMIN
         avisos_admin = avisos_catalogos(session) if e_admin_global else []
         avisos_xunta = avisos_cue(session, actor, horta_id)
-        avisos_de_pragas = avisos_pragas(session, actor, horta_id)
+        avisos_de_pragas = []
+        for a_praga in avisos_pragas(session, actor, horta_id):
+            obs = a_praga.observacion
+            cultivo_obs = session.get(Cultivo, obs.cultivo_id)
+            praga = describir(session, obs.problema_tipo, obs.problema_codigo)
+            nome_c = nome_cultivo(cultivo_obs) if cultivo_obs else ""
+            avisos_de_pragas.append(f"{nome_c} · {praga}: {a_praga.texto}")
         docs_aviso = documentos_con_aviso(session, actor, horta_id)
         recs_pendentes = len(recomendacions_pendentes(session, actor, horta_id))
         horta_nome = horta.nome
@@ -317,7 +326,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         for aviso_praga in avisos_de_pragas:
             with ui.row().classes("items-center gap-2 q-mt-sm"):
                 ui.icon("warning").classes("text-warning")
-                ui.label(aviso_praga.texto)
+                ui.label(aviso_praga)
                 ui.link("Seguimento de pragas", url_seccion(horta_id, "pragas"))
         for doc in docs_aviso:
             with ui.row().classes("items-center gap-2 q-mt-sm"):
