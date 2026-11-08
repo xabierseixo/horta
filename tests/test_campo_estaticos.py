@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+
 from starlette.testclient import TestClient
 
 from horta.main import app
@@ -15,7 +16,8 @@ def test_campo_index_devolve_html() -> None:
     assert "text/html" in response.headers.get("content-type", "")
     assert "AgroXest360 Campo" in response.text
     assert "manifest.webmanifest" in response.text
-    assert "sw.js" in response.text
+    assert "/campo/app.js" in response.text
+    assert "sw.js" in client.get("/campo/app.js").text
 
     resp_redirect = client.get("/campo", follow_redirects=True)
     assert resp_redirect.status_code == 200

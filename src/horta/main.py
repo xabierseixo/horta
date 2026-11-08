@@ -57,6 +57,9 @@ def _usuario_precisa_aceptar(usuario_id: int) -> bool:
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # A API e a app do campo usan a súa propia clave: non miran a sesión de NiceGUI
+        if request.url.path.startswith(("/api/", "/campo")):
+            return await call_next(request)
         usuario_autenticado = app.storage.user.get("usuario_id")
         ruta_e_paxina_rexistrada = _ruta_rexistrada(request.url.path)
         if (
