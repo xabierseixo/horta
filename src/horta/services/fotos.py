@@ -24,6 +24,7 @@ from horta.models.horta import RolHorta
 from horta.models.labor import Labor
 from horta.models.lote import Clasificacion, Lote, LoteSaida, Mestura, Transformacion
 from horta.models.movemento_animal import MovementoAnimal
+from horta.models.observacion import ObservacionPraga
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
@@ -51,6 +52,7 @@ MODELOS: dict[str, Any] = {
     "transformacion": Transformacion, "entrada_produto": EntradaProduto,
     "outro_traballo": OutroTraballo, "tarefa": Tarefa,
     "parcela": Parcela, "animal": Animal, "lote": Lote,
+    "observacion": ObservacionPraga,
 }
 
 

@@ -45,6 +45,7 @@ from horta.models.lote import (
 )
 from horta.models.maquina import Maquina
 from horta.models.movemento_animal import MovementoAnimal
+from horta.models.observacion import LimiarPraga, ObservacionPraga
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.pastoreo import Pastoreo, PastoreoAnimal, PastoreoLeira
@@ -164,4 +165,6 @@ __all__ = [
     "ConfiguracionLegal",
     "Documento",
     "Recomendacion",
+    "LimiarPraga",
+    "ObservacionPraga",
 ]
