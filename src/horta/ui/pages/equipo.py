@@ -5,6 +5,7 @@ nas dúas."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 from typing import Any
 
@@ -48,6 +49,7 @@ from horta.ui.campos import campo_data
 from horta.ui.etiquetas import TIPOS_CARNE
 from horta.ui.etiquetas import VINCULOS as ETIQUETAS_VINCULO
 from horta.ui.ficha_persoa import abrir_ficha_persoa
+from horta.ui.lista_tarxetas import lista_tarxetas
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -82,6 +84,30 @@ def _e_contacto(p: Persoa) -> bool:
 
 def _clave_acceso(rol: RolHorta | None) -> str:
     return rol.value if rol is not None else ""
+
+
+def detalle_tarxeta_equipo(fila: dict[str, Any]) -> str:
+    """Devolve o texto de detalle para a tarxeta dun membro do equipo."""
+    partes: list[str] = []
+    funcions = str(fila.get("funcions") or "").strip()
+    if funcions:
+        partes.append(funcions)
+    ropo = str(fila.get("ropo") or "").strip()
+    if ropo:
+        partes.append(f"ROPO ata {ropo}")
+    return " · ".join(partes)
+
+
+def detalle_tarxeta_contacto(fila: dict[str, Any]) -> str:
+    """Devolve o texto de detalle para a tarxeta dun contacto."""
+    partes: list[str] = []
+    papeis = str(fila.get("papeis") or "").strip()
+    if papeis:
+        partes.append(papeis)
+    telefono = str(fila.get("telefono") or "").strip()
+    if telefono:
+        partes.append(telefono)
+    return " · ".join(partes)
 
 
 def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
@@ -130,6 +156,22 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
          "telefono": p.telefono or "", "activa": "si" if p.activa else "non"}
         for p in persoas if _e_contacto(p)
     ]
+
+    accions_fn: dict[str, Callable[[Persoa], None]] = {}
+
+    def tocar(pid: int) -> None:
+        persoa = next((p for p in persoas if p.id == pid), None)
+        if persoa is None:
+            return
+        accions: list[tuple[str, str, Callable[[], None]]] | None = None
+        if pode_editar and "editar" in accions_fn:
+            accions = [("Editar", "edit", lambda p=persoa: accions_fn["editar"](p))]
+            if e_admin and "xuntar" in accions_fn:
+                accions.append(
+                    ("Xuntar con outra", "merge", lambda p=persoa: accions_fn["xuntar"](p))
+                )
+        abrir_ficha_persoa(horta_id, pid, accions=accions)
+
     if equipo:
         ui.label(f"Traballo ao ano: {horas:g} horas = {horas / HORAS_UTA:.2f} UTA").classes(
             "texto-suave")
@@ -139,8 +181,18 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 ("acceso", "Acceso á app"), ("activa", "Activa"))],
             rows=filas_equipo, row_key="id",
             selection="single" if pode_editar else None,
-        ).classes("w-full taboa").props(
+        ).classes("w-full taboa so-ordenador").props(
             f'flat bordered no-data-label="Aínda non hai ninguén no equipo" {TEXTOS_TABOA}')
+
+        @ui.refreshable
+        def debuxar_tarxetas_equipo() -> None:
+            elementos = [
+                (int(r["id"]), str(r["nome"]), detalle_tarxeta_equipo(r))
+                for r in taboa.rows
+            ]
+            lista_tarxetas(elementos, ao_tocar=tocar)
+
+        debuxar_tarxetas_equipo()
     else:
         with ui.row().classes("w-full items-center gap-2"):
             filtro = ui.select({0: "Todas as categorías", **categorias}, value=0,
@@ -154,13 +206,24 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 ("telefono", "Teléfono"), ("activa", "Activa"))],
             rows=filas_contactos, row_key="id",
             selection="single" if pode_editar else None,
-        ).classes("w-full taboa").props(
+        ).classes("w-full taboa so-ordenador").props(
             'flat bordered no-data-label="Aínda non hai clientes, provedores nin outros '
             f'contactos" {TEXTOS_TABOA}')
+
+        @ui.refreshable
+        def debuxar_tarxetas_contactos() -> None:
+            elementos = [
+                (int(r["id"]), str(r["nome"]), detalle_tarxeta_contacto(r))
+                for r in taboa.rows
+            ]
+            lista_tarxetas(elementos, ao_tocar=tocar)
+
+        debuxar_tarxetas_contactos()
 
         def filtrar() -> None:
             taboa.rows = [f for f in filas_contactos
                           if not filtro.value or filtro.value in das_persoas[int(f["id"])]]
+            debuxar_tarxetas_contactos.refresh()
 
         filtro.on_value_change(filtrar)
 
@@ -387,10 +450,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             return
         abrir_ficha_persoa(horta_id, p.id)
 
-    def xuntar() -> None:
-        queda = escollida()
-        if queda is None:
-            return
+    def xuntar_con(queda: Persoa) -> None:
         outras = {p.id: f"{p.nome} {p.apelidos or ''}".strip() for p in persoas
                   if p.id != queda.id}
         with ui.dialog().props("persistent") as ventá, ui.card().style("width: min(30rem, 94vw)"):
@@ -415,11 +475,15 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 ui.button("Cancelar", on_click=ventá.close).props("flat")
         ventá.open()
 
-    def abrir_edicion() -> None:
-        if not taboa.selected:
-            ui.notify("Selecciona unha persoa na táboa", type="warning")
+    def xuntar() -> None:
+        queda = escollida()
+        if queda is None:
             return
-        p = next(x for x in persoas if x.id == taboa.selected[0]["id"])
+        xuntar_con(queda)
+
+    accions_fn["xuntar"] = xuntar_con
+
+    def editar_persoa(p: Persoa) -> None:
         editando["id"] = p.id
         titulo.text = "Editar persoa ou entidade"
         tipo_persoa.value = p.tipo
@@ -455,13 +519,27 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         mostrar_acceso()
         dialogo.open()
 
+    def abrir_edicion() -> None:
+        p = escollida()
+        if p is None:
+            return
+        editar_persoa(p)
+
+    accions_fn["editar"] = editar_persoa
+
     with ui.row():
         ui.button("Nova persoa no equipo" if equipo else "Novo contacto", icon="person_add",
                   on_click=abrir_nova)
-        ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
-        ui.button("Ficha", icon="description", on_click=abrir_ficha).props("outline")
+        ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline").classes(
+            "so-ordenador"
+        )
+        ui.button("Ficha", icon="description", on_click=abrir_ficha).props("outline").classes(
+            "so-ordenador"
+        )
         if e_admin:
-            ui.button("Xuntar con outra", icon="merge", on_click=xuntar).props("outline")
+            ui.button("Xuntar con outra", icon="merge", on_click=xuntar).props("outline").classes(
+                "so-ordenador"
+            )
 
 
 def _dialogo_categorias(horta_id: int) -> None:

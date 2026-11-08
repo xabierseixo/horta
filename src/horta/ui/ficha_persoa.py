@@ -76,7 +76,11 @@ def datos_persoa(
     return resultado
 
 
-def abrir_ficha_persoa(horta_id: int, persoa_id: int) -> None:
+def abrir_ficha_persoa(
+    horta_id: int,
+    persoa_id: int,
+    accions: list[tuple[str, str, Callable[[], None]]] | None = None,
+) -> None:
     """Abre o diálogo coa ficha da persoa: datos e historial."""
     with get_session() as session:
         actor = usuario_actual(session)
@@ -98,4 +102,4 @@ def abrir_ficha_persoa(horta_id: int, persoa_id: int) -> None:
             pendente = " · pendente" if f.pendente else ""
             linas_historial.append(f"{data}{f.que}{importe}{pendente}")
 
-    abrir_ficha(titulo, datos, linas_historial)
+    abrir_ficha(titulo, datos, linas_historial, accions=accions)
