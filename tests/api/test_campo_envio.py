@@ -18,7 +18,6 @@ from horta.models.horta import RolHorta
 from horta.models.labor import Labor
 from horta.models.observacion import ObservacionPraga
 from horta.models.rega import Rega
-from horta.models.tarefa import Tarefa
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo
 from horta.services.dispositivos import crear_dispositivo
