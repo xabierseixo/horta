@@ -57,16 +57,12 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 
 Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV e XML. Os datos do CUE tamén se poden obter en JSON.
 
-A aplicación indica en cada momento os datos que faltan para completar o caderno, sen impedir a súa descarga.
-
 ## Marco normativo
 
 - Real Decreto 1311/2012, sobre o uso sostible de produtos fitosanitarios.
 - Caderno Dixital de Explotación Agrícola integrado no SIEX, obrigatorio para as explotacións profesionais desde o 1 de xaneiro de 2027 (Real Decreto 1039/2025).
 - Catálogos e codificacións do SIEX (Anexo V).
 - Rexistros autonómicos de explotacións agrarias e gandeiras (REAGA e REGA).
-
-Os rexistros sometidos a obriga legal de conservación non se eliminan: dánse de baixa e mantéñense no histórico.
 
 ## Licenza
 
