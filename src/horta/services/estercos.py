@@ -2,21 +2,26 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import date
+from io import BytesIO
 from typing import Any
 
+from openpyxl import Workbook
+from openpyxl.styles import Font
 from sqlalchemy.orm import Session
 
 from horta.models.esterco import MovementoEsterco
-from horta.models.horta import RolHorta
+from horta.models.horta import Horta, RolHorta
 from horta.models.persoa import Persoa
 from horta.models.usuario import Usuario
 from horta.services.animais import ESPECIES
-from horta.services.catalogos import validar_codigo
+from horta.services.catalogos import describir, validar_codigo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.fertilizantes import ESTERCOS
 from horta.services.hortas import comprobar_rol_horta
-from horta.services.persoas import comprobar_quen
+from horta.services.persoas import comprobar_quen, nome_completo, titular_da_horta
 
 _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
@@ -311,3 +316,248 @@ def faltas_documento(mov: MovementoEsterco) -> list[str]:
     if not getattr(mov, "orixe_composicion", None):
         faltas.append("Orixe da composición")
     return faltas
+
+
+class TotaisDict(dict):
+    """Dicionario con acceso por tupla (material, unidade) ou por material."""
+
+    def __getitem__(self, key: Any) -> Any:
+        if isinstance(key, tuple):
+            return super().__getitem__(key)
+        sub = {uni: val for (mat, uni), val in self.items() if mat == key}
+        if sub:
+            return sub
+        return super().__getitem__(key)
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def por_material(self) -> dict[str, dict[str, float]]:
+        res: dict[str, dict[str, float]] = defaultdict(dict)
+        for (mat, uni), val in self.items():
+            res[mat][uni] = val
+        return dict(res)
+
+
+@dataclass
+class ResumoEsterco:
+    """Resumo anual de estercos e puríns: totais e balance de nitróxeno."""
+
+    ano: int
+    cedidos: TotaisDict = field(default_factory=TotaisDict)
+    recibidos: TotaisDict = field(default_factory=TotaisDict)
+    kg_n_cedido: float = 0.0
+    kg_n_recibido: float = 0.0
+    aviso_m3: bool = False
+    nota_m3: str = "Para o cálculo do N con unidade en m³, considérase 1 t = 1 m³."
+
+    @property
+    def totais_cedidos(self) -> TotaisDict:
+        return self.cedidos
+
+    @property
+    def totais_recibidos(self) -> TotaisDict:
+        return self.recibidos
+
+    @property
+    def total_n_cedido(self) -> float:
+        return self.kg_n_cedido
+
+    @property
+    def total_n_recibido(self) -> float:
+        return self.kg_n_recibido
+
+    @property
+    def n_cedido(self) -> float:
+        return self.kg_n_cedido
+
+    @property
+    def n_recibido(self) -> float:
+        return self.kg_n_recibido
+
+
+def documento_anexo_vii(
+    session: Session,
+    actor: Usuario,
+    movemento_id: int,
+) -> bytes:
+    """Xera o documento de acompañamento en Excel (RD 1051/2022, anexo VII punto 1).
+
+    Só é aplicable a cesións de esterco ou purín cara a outra explotación ou xestor.
+    """
+    mov = session.get(MovementoEsterco, movemento_id)
+    if mov is None or mov.baixa:
+        raise OperacionNonPermitidaError("Movemento de esterco non atopado")
+
+    comprobar_rol_horta(session, mov.horta_id, actor, _ROLES_LECTURA)
+
+    if mov.tipo != "cesion":
+        raise OperacionNonPermitidaError(
+            "O documento de acompañamento do anexo VII só se pode xerar para cesións"
+        )
+
+    horta = session.get(Horta, mov.horta_id)
+    assert horta is not None
+
+    titular = titular_da_horta(session, horta.id)
+    outra_parte = mov.outra_parte or session.get(Persoa, mov.outra_parte_id)
+
+    # Enderezo do cedente
+    end_cedente_partes = [
+        horta.enderezo,
+        horta.localidade,
+        horta.codigo_postal,
+        horta.provincia,
+    ]
+    if not any(end_cedente_partes) and titular:
+        end_cedente_partes = [
+            titular.enderezo,
+            titular.localidade,
+            titular.codigo_postal,
+            titular.provincia,
+        ]
+    end_cedente = ", ".join(p for p in end_cedente_partes if p)
+
+    # Identificacións do cedente
+    rega_cedente = horta.codigo_rega or (titular.rega if titular else None) or ""
+    nima_cedente = (titular.nima if titular else None) or ""
+    nif_titular = (titular.nif if titular else None) or ""
+    nome_titular = nome_completo(titular) or horta.nome
+
+    # Identificacións do destinatario
+    nome_recibe = nome_completo(outra_parte)
+    nif_recibe = (outra_parte.nif if outra_parte else None) or ""
+    end_recibe_partes = [
+        outra_parte.enderezo if outra_parte else None,
+        outra_parte.localidade if outra_parte else None,
+        outra_parte.codigo_postal if outra_parte else None,
+        outra_parte.provincia if outra_parte else None,
+    ]
+    end_recibe = ", ".join(p for p in end_recibe_partes if p)
+    rega_recibe = (
+        mov.outra_parte_rega
+        or ((outra_parte.rega or outra_parte.nima) if outra_parte else None)
+        or ""
+    )
+
+    # Datos do produto
+    especie_desc = ESPECIES.get(mov.tipo_animais, mov.tipo_animais)
+    material_desc = describir(session, "material_fertilizante", mov.material) or mov.material
+    orixe_desc = ORIXES_COMPOSICION.get(
+        mov.orixe_composicion or "", mov.orixe_composicion or ""
+    )
+
+    wb = Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "Anexo VII"
+
+    filas: list[list[Any]] = [
+        ["Documento de acompañamento do esterco (RD 1051/2022, anexo VII)"],
+        [],
+        ["1. DATOS DE QUEN CEDE (ORIXE)"],
+        ["Explotación de orixe", horta.nome],
+        ["Titular", nome_titular],
+        ["NIF do titular", nif_titular],
+        ["Enderezo", end_cedente],
+        ["Código REGA", rega_cedente],
+        ["Código NIMA", nima_cedente],
+        [],
+        ["2. DATOS DE QUEN RECIBE (DESTINO)"],
+        ["Destinatario / Centro de xestión", nome_recibe],
+        ["NIF", nif_recibe],
+        ["Enderezo", end_recibe],
+        ["Código REGA ou NIMA", rega_recibe],
+        [],
+        ["3. DATOS DA SUBMINISTRACIÓN"],
+        ["Data da entrega", f"{mov.data:%d/%m/%Y}"],
+        ["Tipo de explotación de orixe", mov.tipo_explotacion],
+        ["Tipo de animais (especie)", especie_desc],
+        ["Material fertilizante", material_desc],
+        ["Cantidade", mov.cantidade],
+        ["Unidade", mov.unidade],
+        [],
+        ["4. CARACTERÍSTICAS AGRONÓMICAS (COMPOSICIÓN)"],
+        [
+            "Nitróxeno total (N)",
+            f"{mov.n_total:g} %" if mov.n_total is not None else "",
+        ],
+        [
+            "Fósforo (P₂O₅)",
+            f"{mov.p2o5:g} %" if mov.p2o5 is not None else "",
+        ],
+        [
+            "Potasio (K₂O)",
+            f"{mov.k2o:g} %" if mov.k2o is not None else "",
+        ],
+        [
+            "Materia orgánica",
+            f"{mov.materia_organica:g} %" if mov.materia_organica is not None else "",
+        ],
+        ["Orixe da composición", orixe_desc],
+        [],
+        ["5. DESTINO"],
+        ["Parcelas de destino", mov.parcelas_destino or ""],
+    ]
+
+    for fila in filas:
+        ws.append(fila)
+
+    ws["A1"].font = Font(bold=True, size=12)
+
+    for row in ws.iter_rows(min_row=3):
+        first = row[0].value
+        if first and str(first).startswith(("1.", "2.", "3.", "4.", "5.")):
+            row[0].font = Font(bold=True)
+        elif len(row) > 1 and row[1].value is not None:
+            row[0].font = Font(bold=True)
+
+    ws.column_dimensions["A"].width = 34
+    ws.column_dimensions["B"].width = 50
+
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def resumo_ano(
+    session: Session,
+    actor: Usuario,
+    horta_id: int,
+    ano: int,
+) -> ResumoEsterco:
+    """Calcula os totais de esterco cedido e recibido no ano e os kg de N."""
+    movs = listar_movementos(session, actor, horta_id, ano=ano)
+    cedidos = TotaisDict()
+    recibidos = TotaisDict()
+    kg_n_cedido = 0.0
+    kg_n_recibido = 0.0
+    aviso_m3 = False
+
+    for m in movs:
+        clave = (m.material, m.unidade)
+        if m.unidade == "m3":
+            aviso_m3 = True
+        if m.tipo == "cesion":
+            cedidos[clave] = round(cedidos.get(clave, 0.0) + m.cantidade, 3)
+            if m.n_total is not None:
+                # 1 t = 1000 kg. Se a unidade é m³, considérase 1 m³ = 1 t = 1000 kg.
+                kg_n = m.cantidade * 1000.0 * (m.n_total / 100.0)
+                kg_n_cedido += kg_n
+        elif m.tipo == "recepcion":
+            recibidos[clave] = round(recibidos.get(clave, 0.0) + m.cantidade, 3)
+            if m.n_total is not None:
+                kg_n = m.cantidade * 1000.0 * (m.n_total / 100.0)
+                kg_n_recibido += kg_n
+
+    return ResumoEsterco(
+        ano=ano,
+        cedidos=cedidos,
+        recibidos=recibidos,
+        kg_n_cedido=round(kg_n_cedido, 2),
+        kg_n_recibido=round(kg_n_recibido, 2),
+        aviso_m3=aviso_m3,
+    )

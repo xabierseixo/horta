@@ -25,6 +25,7 @@ from horta.services.clasificacions import (
 from horta.services.coidados_animais import TIPOS_COIDADO, listar_coidados
 from horta.services.colleitas import listar_colleitas
 from horta.services.cultivos import listar_cultivos, nome_cultivo
+from horta.services.estercos import listar_movementos as listar_movementos_esterco
 from horta.services.labores import listar_labores
 from horta.services.lotes import CANLES, TIPOS_SAIDA, listar_lotes, listar_saidas
 from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
@@ -54,6 +55,7 @@ TIPOS: dict[str, str] = {
     "movemento_animal": "Entrada ou saída de animais",
     "producion_animal": "Produción dos animais",
     "pastoreo": "Pastoreo",
+    "movemento_esterco": "Cesión ou recepción de esterco",
     "lote_saida": "Saída de produto (venda, casa...)",
     "clasificacion": "Clasificación dun lote (tamaños, calidades)",
     "mestura": "Mestura de lotes",
@@ -278,6 +280,23 @@ def listar_traballos(
                                   onde(ids[0]) if len(ids) == 1 else f"{len(ids)} leiras",
                                   frozenset().union(*(parcela_de(i) for i in ids)),
                                   persoas=_quen(pa.persoa_id), sen_quen=pa.persoa_id is None))
+    for me in listar_movementos_esterco(session, actor, horta_id):
+        mat = texto("material_fertilizante", me.material)
+        det = f" de {mat}" if mat else ""
+        accion = "Cesión" if me.tipo == "cesion" else "Recepción"
+        traballos.append(
+            Traballo(
+                "movemento_esterco",
+                me.id,
+                me.data,
+                True,
+                f"{accion}: {me.cantidade:g} {me.unidade}{det}",
+                nomes.get(me.outra_parte_id, "") or me.parcelas_destino or "",
+                frozenset(),
+                persoas=_quen(me.persoa_id),
+                sen_quen=me.persoa_id is None,
+            )
+        )
     for en in listar_entradas(session, actor, horta_id):
         cantidade = f"{en.cantidade:g} {en.unidade} de " if en.cantidade else ""
         traballos.append(Traballo(
