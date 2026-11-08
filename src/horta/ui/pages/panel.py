@@ -8,7 +8,7 @@ from nicegui import ui
 
 from horta.db import get_session
 from horta.models.usuario import RolGlobal
-from horta.services.panel import ResumoExplotacion, resumo_explotacions
+from horta.services.panel import resumo_explotacions
 from horta.ui.lista_tarxetas import lista_tarxetas
 from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual

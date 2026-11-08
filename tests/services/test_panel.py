@@ -139,6 +139,7 @@ def test_ultimo_traballo_feito_dentro_do_ano(session):
         horta_id=horta.id,
         descricion="Reparar valado",
         data_inicio=date(2026, 9, 22),
+        data_fin=date(2026, 9, 22),
     )
     session.add(t_recente)
     session.commit()
@@ -151,6 +152,7 @@ def test_ultimo_traballo_feito_dentro_do_ano(session):
         horta_id=horta.id,
         descricion="Traballo vello",
         data_inicio=date(2024, 1, 1),
+        data_fin=date(2024, 1, 1),
     )
     session.add(t_antigo)
     session.delete(t_recente)
