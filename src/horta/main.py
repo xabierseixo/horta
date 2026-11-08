@@ -109,6 +109,34 @@ def ver_foto(foto_id: int) -> Response:
     return FileResponse(ruta, headers={"Cache-Control": "private, max-age=86400"})
 
 
+@app.get("/documentos/{documento_id}")
+def ver_documento(documento_id: int) -> Response:
+    """Un documento, só para quen pode ver a súa explotación (paso N2)."""
+    from horta.db import get_session
+    from horta.models.documento import Documento
+    from horta.services.documentos import ficheiro_do_documento
+    from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
+    from horta.ui.sesion import usuario_actual
+
+    with get_session() as session:
+        actor = usuario_actual(session)
+        if actor is None:
+            return Response(status_code=401)
+        try:
+            ruta = ficheiro_do_documento(session, actor, documento_id)
+            doc = session.get(Documento, documento_id)
+            nome_orixinal = doc.nome_orixinal if doc else None
+        except (OperacionNonPermitidaError, PermisoDenegadoError):
+            return Response(status_code=404)
+    if not ruta.is_file():
+        return Response(status_code=404)
+    return FileResponse(
+        ruta,
+        filename=nome_orixinal,
+        headers={"Cache-Control": "private, max-age=86400"},
+    )
+
+
 @app.get("/teselas/{capa}/{z}/{x}/{y}")
 def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
     """Tesela do mapa (PNOA, SIGPAC, Catastro) desde a caché do ordenador ou descargada."""

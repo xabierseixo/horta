@@ -30,6 +30,7 @@ A configuración faise con variables de contorno. Gárdanse nun ficheiro, por ex
 HORTA_DATABASE_URL=sqlite:////srv/agroxest360/datos/horta.db
 HORTA_STORAGE_SECRET=<cadea aleatoria longa>
 HORTA_COPIAS_DIR=/srv/agroxest360/datos/copias
+HORTA_DOCUMENTOS_DIR=/srv/agroxest360/datos/documentos
 HORTA_FOTOS_DIR=/srv/agroxest360/datos/fotos
 HORTA_TESELAS_DIR=/srv/agroxest360/datos/teselas
 ```
@@ -39,6 +40,7 @@ HORTA_TESELAS_DIR=/srv/agroxest360/datos/teselas
 | `HORTA_DATABASE_URL` | Base de datos | `sqlite:///horta.db` no cartafol da app |
 | `HORTA_STORAGE_SECRET` | Segredo que asina as sesións | Créase ao chou en `~/.local/share/horta/segredo-sesion` |
 | `HORTA_COPIAS_DIR` | Copias de seguridade diarias | `~/.local/share/horta/copias` |
+| `HORTA_DOCUMENTOS_DIR` | Documentos e certificados | `~/.local/share/horta/documentos` |
 | `HORTA_FOTOS_DIR` | Fotografías | `~/.local/share/horta/fotos` |
 | `HORTA_TESELAS_DIR` | Caché dos mapas | `~/.local/share/horta/teselas` |
 | `HORTA_COPIAS` | `0` desactiva as copias diarias | activadas |

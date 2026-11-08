@@ -13,6 +13,7 @@ from horta.services.catalogos_estado import avisos_catalogos
 from horta.services.cultivos import (
     listar_cultivos,
 )
+from horta.services.documentos import documentos_con_aviso
 from horta.services.en_regra import requisitos_en_regra
 from horta.services.envio_cue import avisos_cue
 from horta.services.errors import PermisoDenegadoError
@@ -67,6 +68,7 @@ from horta.ui.pages.coidados_animais import seccion_coidados
 from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
 from horta.ui.pages.diario import Formularios, boton_apuntar_traballo, seccion_diario
+from horta.ui.pages.documentos import seccion_documentos, texto_aviso_documento
 from horta.ui.pages.equipo import seccion_equipo
 from horta.ui.pages.estatisticas import seccion_estatisticas
 from horta.ui.pages.informes import seccion_informes
@@ -146,6 +148,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         e_admin_global = actor.rol == RolGlobal.ADMIN
         avisos_admin = avisos_catalogos(session) if e_admin_global else []
         avisos_xunta = avisos_cue(session, actor, horta_id)
+        docs_aviso = documentos_con_aviso(session, actor, horta_id)
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
@@ -302,6 +305,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(aviso)
                 ui.link("Informes", url_seccion(horta_id, "informes"))
+        for doc in docs_aviso:
+            with ui.row().classes("items-center gap-2 q-mt-sm"):
+                ui.icon("warning").classes("text-warning")
+                ui.label(texto_aviso_documento(doc))
+                ui.link("Documentos", url_seccion(horta_id, "documentos"))
         if requisitos:
             with ui.column().classes("tarxeta w-full gap-2 q-my-md"):
                 ui.label("Para estar en regra").classes("text-subtitle1 text-weight-bold")
@@ -400,6 +408,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_maquinaria(horta_id, pode_editar)
     elif seccion == "cartos":
         seccion_cartos(horta_id, pode_editar)
+    elif seccion == "documentos":
+        seccion_documentos(horta_id, pode_editar)
     elif seccion == "calendario":
         seccion_calendario(horta_id, pode_editar)
     elif seccion == "mapa":

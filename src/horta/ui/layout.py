@@ -55,6 +55,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("produtos", "Produtos", "shopping_basket", "Xestión"),
     Seccion("lotes", "Lotes", "inventory", "Xestión"),
     Seccion("cartos", "Contas", "euro", "Xestión"),
+    Seccion("documentos", "Documentos", "folder_shared", "Xestión"),
     Seccion("plan", "Plan de empresa", "business_center", "Explotación"),
     Seccion("explotacion", "Datos da explotación", "store", "Explotación", so_admin_horta=True),
     # A táboa de cada tipo de traballo: fóra do menú, chégase desde o Diario
