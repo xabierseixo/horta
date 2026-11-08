@@ -104,7 +104,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
             value="pendente",
             label="Estado",
         ).classes("w-48")
-        ui.link("Visitas do técnico", url_seccion(horta_id, "visitas"))
+        ui.link("Visitas técnicas", url_seccion(horta_id, "visitas"))
 
     taboa = ui.table(
         columns=[
@@ -133,7 +133,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
                 "field": "produtos",
                 "align": "left",
             },
-            {"name": "asesor", "label": "Asesor", "field": "asesor", "align": "left"},
+            {"name": "asesor", "label": "Persoa asesora", "field": "asesor", "align": "left"},
             {"name": "estado", "label": "Estado", "field": "estado", "align": "left"},
             {"name": "avisos", "label": "Avisos", "field": "avisos", "align": "left"},
         ],

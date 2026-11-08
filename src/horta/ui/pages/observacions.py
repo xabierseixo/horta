@@ -274,7 +274,7 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
         filtro_cultivo = ui.select(
             opcions_filtro, value=0, label="Filtrar por cultivo"
         ).classes("w-64")
-        ui.link("Visitas do técnico", url_seccion(horta_id, "visitas"))
+        ui.link("Visitas técnicas", url_seccion(horta_id, "visitas"))
 
     columnas = [
         {"name": "data", "label": "Data", "field": "data"},

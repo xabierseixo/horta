@@ -347,7 +347,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 with ui.row().classes("items-center gap-2 q-mt-sm"):
                     ui.icon("event").classes("text-primary")
                     ui.label(texto_aviso_proxima_visita(v_prox.proxima_visita))
-                    ui.link("Visitas do técnico", url_seccion(horta_id, "visitas"))
+                    ui.link("Visitas técnicas", url_seccion(horta_id, "visitas"))
         if requisitos:
             with ui.column().classes("tarxeta w-full gap-2 q-my-md"):
                 ui.label("Para estar en regra").classes("text-subtitle1 text-weight-bold")

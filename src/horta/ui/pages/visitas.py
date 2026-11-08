@@ -40,7 +40,7 @@ from horta.ui.taboas import TEXTOS_TABOA
 
 COLUMNAS_TABOA = [
     {"name": "data", "label": "Data", "field": "data", "align": "left"},
-    {"name": "asesor", "label": "Asesor", "field": "asesor", "align": "left"},
+    {"name": "asesor", "label": "Persoa asesora", "field": "asesor", "align": "left"},
     {"name": "cultivos", "label": "Cultivos", "field": "cultivos", "align": "left"},
     {
         "name": "num_observacions",
