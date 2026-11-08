@@ -163,6 +163,7 @@ import horta.ui.pages.horta_detalle  # noqa: E402,F401
 import horta.ui.pages.legal  # noqa: E402,F401
 import horta.ui.pages.login  # noqa: E402,F401
 import horta.ui.pages.lote_publico  # noqa: E402,F401
+import horta.ui.pages.panel  # noqa: E402,F401
 
 
 def main() -> None:

@@ -115,6 +115,10 @@ def marco_horta(
             with ui.link(target="/").classes("menu-marca"):
                 ui.icon("eco", color="green-3").classes("text-h5")
                 ui.label("AgroXest360")
+            if len(hortas) >= 2:
+                with ui.link(target="/panel").classes("menu-item w-full"):
+                    ui.icon("dashboard").classes("text-h6")
+                    ui.label("Todas as explotacións")
             ui.select(
                 {**hortas, NOVA_EXPLOTACION: "+ Nova explotación"},
                 value=horta_id,
