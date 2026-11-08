@@ -25,6 +25,7 @@ from horta.services.hortas import (
     estado_rexistro,
     listar_hortas_usuario,
 )
+from horta.services.observacions import avisos_pragas
 from horta.services.parcelas import (
     listar_parcelas,
 )
@@ -154,6 +155,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         e_admin_global = actor.rol == RolGlobal.ADMIN
         avisos_admin = avisos_catalogos(session) if e_admin_global else []
         avisos_xunta = avisos_cue(session, actor, horta_id)
+        avisos_de_pragas = avisos_pragas(session, actor, horta_id)
         docs_aviso = documentos_con_aviso(session, actor, horta_id)
         recs_pendentes = len(recomendacions_pendentes(session, actor, horta_id))
         horta_nome = horta.nome
@@ -312,6 +314,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(aviso)
                 ui.link("Informes", url_seccion(horta_id, "informes"))
+        for aviso in avisos_de_pragas:
+            with ui.row().classes("items-center gap-2 q-mt-sm"):
+                ui.icon("warning").classes("text-warning")
+                ui.label(aviso.texto)
+                ui.link("Seguimento de pragas", url_seccion(horta_id, "pragas"))
         for doc in docs_aviso:
             with ui.row().classes("items-center gap-2 q-mt-sm"):
                 ui.icon("warning").classes("text-warning")
