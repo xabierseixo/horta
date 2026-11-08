@@ -22,7 +22,6 @@ from horta.ui.accions import executar_accion
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import texto_data
-from horta.ui.pages.tratamentos import dialogo_tratamento_fito
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
@@ -65,7 +64,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
         filas = []
         for r in recs:
             c_nomes = [
-                cultivos_horta.get(c.get("cultivo_id"), "")
+                cultivos_horta.get(int(c.get("cultivo_id") or 0), "")
                 for c in (r.cultivos or [])
             ]
             p_nomes = [
@@ -161,6 +160,9 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
 
     if not pode_editar:
         return
+
+    # Aquí e non arriba: tratamentos.py importa este módulo para a súa ligazón
+    from horta.ui.pages.tratamentos import dialogo_tratamento_fito
 
     abrir = dialogo_tratamento_fito(horta_id)
 
