@@ -50,7 +50,9 @@ def login_page() -> None:
         contrasinal_input.on("keydown.enter", tentar_login)
         ui.button("Entrar", on_click=tentar_login)
 
-        with ui.row().classes("texto-suave text-caption q-mt-sm items-center justify-center w-full"):
+        with ui.row().classes(
+            "texto-suave text-caption q-mt-sm items-center justify-center w-full"
+        ):
             ui.link("Aviso legal", "/legal/aviso", new_tab=True).classes(
                 "texto-suave text-caption"
             )
