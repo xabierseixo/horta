@@ -213,3 +213,17 @@ def test_converter():
     # Formato descoñecido levanta ValueError
     with pytest.raises(ValueError):
         converter(xlsx, "formato_inventado", "Caderno", "caderno")
+
+
+def test_a_json_mesmo_contido_que_xml() -> None:
+    import json
+
+    from horta.services.formatos import a_json, converter
+
+    datos = json.loads(a_json(_crear_libro_proba(), "caderno"))
+    assert "caderno" in datos
+    primeira = datos["caderno"][0]
+    assert primeira["filas"][0]["n"] == 1
+    assert all(v != "" for f in primeira["filas"] for v in f["celas"].values())
+    contido, ext = converter(_crear_libro_proba(), "json", "T", "caderno")
+    assert ext == "json" and json.loads(contido) == datos

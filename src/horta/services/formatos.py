@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import csv
 import html
+import json
 import re
 import xml.etree.ElementTree as ET
 import zipfile
@@ -28,6 +29,7 @@ FORMATOS: dict[str, str] = {
     "ods": "ODS (LibreOffice)",
     "csv": "CSV",
     "xml": "XML",
+    "json": "JSON",
 }
 
 
@@ -147,6 +149,19 @@ def a_xml(xlsx: bytes, raiz: str) -> bytes:
 
     ET.indent(root)
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+
+
+def a_json(xlsx: bytes, raiz: str) -> bytes:
+    """O mesmo contido ca o XML, en JSON UTF-8: só as celas non baleiras de cada fila."""
+    follas_json = []
+    for nome_folla, filas in follas(xlsx):
+        filas_json = []
+        for r_idx, fila in enumerate(filas, start=1):
+            celas = {get_column_letter(c): v for c, v in enumerate(fila, start=1) if v != ""}
+            if celas:
+                filas_json.append({"n": r_idx, "celas": celas})
+        follas_json.append({"nome": nome_folla, "filas": filas_json})
+    return json.dumps({raiz: follas_json}, ensure_ascii=False, indent=2).encode("utf-8")
 
 
 def a_ods(xlsx: bytes) -> bytes:
@@ -328,6 +343,8 @@ def converter(
         return a_ods(xlsx), "ods"
     if fmt == "xml":
         return a_xml(xlsx, raiz), "xml"
+    if fmt == "json":
+        return a_json(xlsx, raiz), "json"
     if fmt == "csv":
         return a_csv(xlsx)
 

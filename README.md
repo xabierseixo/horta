@@ -63,7 +63,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Rexistro de medicamentos veterinarios.
 - Plan de empresa (Anexos III e V).
 
-Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV e XML. Os datos do CUE tamén se poden obter en JSON.
+Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV, XML e JSON.
 
 ## Marco normativo
 
