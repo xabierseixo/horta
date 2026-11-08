@@ -216,15 +216,15 @@ def listar_traballos(
     for obs in listar_observacions(session, actor, horta_id):
         problema = texto(obs.problema_tipo, obs.problema_codigo)
         if obs.conto is not None:
-            detalle = f"{obs.conto:g} {obs.unidade_conto}"
+            detalle_obs = f"{obs.conto:g} {obs.unidade_conto}"
         elif obs.nivel:
-            detalle = f"nivel {obs.nivel}"
+            detalle_obs = f"nivel {obs.nivel}"
         else:
-            detalle = ""
+            detalle_obs = ""
         que = (
-            f"{problema}: {detalle}"
-            if problema and detalle
-            else (problema or detalle or "Observación")
+            f"{problema}: {detalle_obs}"
+            if problema and detalle_obs
+            else (problema or detalle_obs or "Observación")
         )
         traballos.append(
             Traballo(
