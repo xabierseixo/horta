@@ -11,7 +11,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from horta.models.cultivo import Cultivo
-from horta.models.horta import RolHorta
+from horta.models.horta import Horta, RolHorta
 from horta.models.parcela import Parcela
 from horta.models.rega import Rega, RegaCultivo
 from horta.models.usuario import Usuario
@@ -269,9 +269,12 @@ def necesidade_rega(
             dias_con_datos=0,
         )
 
-    # 4. A parcela sen estacion_meteo_id -> "sen_estacion"
+    # 4. Sen estación (a da parcela ou, se non ten, a da explotación) -> "sen_estacion"
     parcela = session.get(Parcela, cultivo.parcela_id)
-    if parcela is None or parcela.estacion_meteo_id is None:
+    horta = session.get(Horta, horta_id)
+    estacion_id = (parcela.estacion_meteo_id if parcela else None) or (
+        horta.estacion_meteo_id if horta else None)
+    if estacion_id is None:
         return NecesidadeRega(
             cultivo_id=cultivo_id,
             estado="sen_estacion",
@@ -289,7 +292,7 @@ def necesidade_rega(
     ata = hoxe_data - timedelta(days=1)
 
     tempo_dias = consultar_dias(
-        session, fonte, parcela.estacion_meteo_id, desde, ata, hoxe_data
+        session, fonte, estacion_id, desde, ata, hoxe_data
     )
 
     dias_con_datos = 0

@@ -473,6 +473,14 @@ def test_necesidade_rega_casos_especiais(session):
     res_sen_est = necesidade_rega(session, ana, c_sen_est.id, hoxe=hoxe, fonte=fonte)
     assert res_sen_est.estado == "sen_estacion"
 
+    # 4 bis. Sen estación na parcela pero si na explotación: úsase a da explotación
+    horta.estacion_meteo_id = estacion.id
+    session.commit()
+    res_horta = necesidade_rega(session, ana, c_sen_est.id, hoxe=hoxe, fonte=fonte)
+    assert res_horta.estado != "sen_estacion"
+    horta.estacion_meteo_id = None
+    session.commit()
+
     # 5. Sen datos meteorolóxicos
     c_sen_datos = Cultivo(
         parcela_id=parcela.id,

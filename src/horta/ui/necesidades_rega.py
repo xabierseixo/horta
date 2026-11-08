@@ -30,7 +30,7 @@ def texto_necesidade(n: NecesidadeRega) -> str:
     if n.estado == "sen_coeficiente":
         return "Non hai coeficiente oficial para este cultivo"
     if n.estado == "sen_estacion":
-        return "A parcela non ten estación de MeteoGalicia: escóllea en Parcelas"
+        return "Nin a parcela nin a explotación teñen estación de MeteoGalicia"
     if n.estado == "sen_data_inicio":
         return "Falta a data de sementeira ou plantación"
     if n.estado == "sen_datos":

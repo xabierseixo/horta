@@ -163,7 +163,7 @@ def test_texto_necesidade_sen_estacion(aproximado: bool):
     )
     assert (
         texto_necesidade(n)
-        == "A parcela non ten estación de MeteoGalicia: escóllea en Parcelas"
+        == "Nin a parcela nin a explotación teñen estación de MeteoGalicia"
     )
 
 
