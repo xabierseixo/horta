@@ -43,6 +43,7 @@ from horta.services.plan_empresa import (
     xerar_anexos,
 )
 from horta.ui.accions import executar_accion
+from horta.ui.formato_descarga import descargar_informe, selector_formato
 from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
@@ -277,6 +278,8 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             ui.label(f"{s.ano}: vendas {_e(s.previsto_vendas)} previstas, {_e(s.real_vendas)} "
                      f"reais · marxe {_e(s.previsto_marxe)} prevista, {_e(s.real_marxe)} real")
 
+    formato = selector_formato()
+
     def descargar() -> None:
         with get_session() as session:
             actor = usuario_actual(session)
@@ -288,9 +291,15 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             except OperacionNonPermitidaError as erro:
                 ui.notify(str(erro), type="negative")
                 return
-        ui.download.content(datos, f"plan-empresa-{plan.id}.xlsx")
+        descargar_informe(
+            datos,
+            formato.value or "xlsx",
+            f"plan-empresa-{plan.id}",
+            "Plan de empresa",
+            "plan",
+        )
 
-    ui.button("Descargar Anexo III e V (Excel)", icon="download", on_click=descargar).classes(
+    ui.button("Descargar Anexo III e V", icon="download", on_click=descargar).classes(
         "q-mt-md")
 
 

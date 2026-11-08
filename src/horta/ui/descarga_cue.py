@@ -26,6 +26,7 @@ from horta.services.rea import aceptar, comparar, ler_dgcs
 from horta.services.xeaga import Token, Xeaga, XeagaErro
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
+from horta.ui.formato_descarga import descargar_informe, selector_formato
 from horta.ui.layout import url_seccion
 from horta.ui.numeros import parsear_data
 from horta.ui.pages.diario import SECCION_DO_TIPO
@@ -49,8 +50,9 @@ def seccion_cue(horta_id: int) -> None:
             desde = campo_data("Desde", date(hoxe.year, 1, 1).isoformat()).classes(
                 remove="w-full", add="col")
             ata = campo_data("Ata", hoxe.isoformat()).classes(remove="w-full", add="col")
+        formato = selector_formato()
 
-        def xerar(formato: str) -> None:
+        def xerar(tipo: str) -> None:
             inicio, fin = parsear_data(desde.value), parsear_data(ata.value)
             if inicio is None or fin is None:
                 ui.notify("Indica as dúas datas", type="warning")
@@ -62,13 +64,19 @@ def seccion_cue(horta_id: int) -> None:
                     return
                 cue = xerar_cue(session, actor, horta_id, inicio, fin)
             nome = f"cue-{inicio:%Y%m%d}-{fin:%Y%m%d}"
-            if formato == "json":
+            if tipo == "json":
                 ui.download.content(json_cue(cue), f"{nome}.json")
             else:
-                ui.download.content(excel_xeaga(cue), f"{nome}-para-xeaga.xlsx")
+                descargar_informe(
+                    excel_xeaga(cue),
+                    formato.value or "xlsx",
+                    f"{nome}-para-xeaga",
+                    "Caderno dixital (CUE) para o XEAGA",
+                    "xeaga",
+                )
 
         with ui.row():
-            ui.button("Para pasar ao XEAGA (Excel)", icon="download",
+            ui.button("Para pasar ao XEAGA", icon="download",
                       on_click=lambda: xerar("excel")).props("outline")
             ui.button("Datos do CUE (JSON)", icon="data_object",
                       on_click=lambda: xerar("json")).props("outline flat")

@@ -10,6 +10,7 @@ from horta.db import get_session
 from horta.services.caderno import xerar_caderno
 from horta.services.errors import OperacionNonPermitidaError
 from horta.ui.campos import campo_data
+from horta.ui.formato_descarga import descargar_informe, selector_formato
 from horta.ui.numeros import parsear_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
@@ -18,10 +19,11 @@ def boton_caderno(horta_id: int) -> None:
     hoxe = date.today()
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
         ui.label("Descargar o caderno de explotación").classes("text-h6")
-        ui.label("Excel co modelo oficial da Xunta. Podes descargalo cando queiras, "
+        ui.label("Co modelo oficial da Xunta. Podes descargalo cando queiras, "
                  "para o período que necesites.").classes("text-caption")
         desde = campo_data("Desde", date(hoxe.year, 1, 1).isoformat())
         ata = campo_data("Ata", hoxe.isoformat())
+        formato = selector_formato()
 
         def descargar() -> None:
             inicio, fin = parsear_data(desde.value), parsear_data(ata.value)
@@ -38,7 +40,13 @@ def boton_caderno(horta_id: int) -> None:
                 except OperacionNonPermitidaError as erro:
                     ui.notify(str(erro), type="negative")
                     return
-            ui.download.content(datos, f"caderno-{inicio:%Y%m%d}-{fin:%Y%m%d}.xlsx")
+            descargar_informe(
+                datos,
+                formato.value or "xlsx",
+                f"caderno-{inicio:%Y%m%d}-{fin:%Y%m%d}",
+                "Caderno de explotación",
+                "caderno",
+            )
             dialogo.close()
 
         with ui.row():
@@ -48,7 +56,7 @@ def boton_caderno(horta_id: int) -> None:
 
 
 def boton_libros_gandeiros(horta_id: int) -> None:
-    """Libro de rexistro gandeiro e rexistro de medicamentos veterinarios, nun Excel."""
+    """Libro de rexistro gandeiro e rexistro de medicamentos veterinarios."""
     from horta.services.libros_gandeiros import xerar_libros
 
     hoxe = date.today()
@@ -58,6 +66,7 @@ def boton_libros_gandeiros(horta_id: int) -> None:
                  "visitas) e rexistro de medicamentos veterinarios.").classes("text-caption")
         desde = campo_data("Desde", date(hoxe.year, 1, 1).isoformat())
         ata = campo_data("Ata", hoxe.isoformat())
+        formato = selector_formato()
 
         def descargar() -> None:
             inicio, fin = parsear_data(desde.value), parsear_data(ata.value)
@@ -74,7 +83,13 @@ def boton_libros_gandeiros(horta_id: int) -> None:
                 except OperacionNonPermitidaError as erro:
                     ui.notify(str(erro), type="negative")
                     return
-            ui.download.content(datos, f"libros-animais-{inicio:%Y%m%d}-{fin:%Y%m%d}.xlsx")
+            descargar_informe(
+                datos,
+                formato.value or "xlsx",
+                f"libros-animais-{inicio:%Y%m%d}-{fin:%Y%m%d}",
+                "Libros dos animais",
+                "libros",
+            )
             dialogo.close()
 
         with ui.row():
