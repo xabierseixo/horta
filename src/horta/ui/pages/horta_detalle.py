@@ -227,8 +227,9 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                     value=horta_tipo_xip).classes("w-full")
                 fertilizacion_input = ui.checkbox("Recibe asesoramento en fertilización",
                                                   value=horta_fertilizacion)
-            ui.label("O titular, o representante e o asesor indícanse en Equipo.").classes(
-                "text-caption texto-suave")
+            ui.label(
+                "A persoa titular, a representante e a asesora indícanse en Equipo."
+            ).classes("text-caption texto-suave")
             with ui.expansion("O tempo").classes("w-full"):
                 lugar = CampoLugarTempo()
                 ui.label("A estación vale para os traballos sen parcela e para as parcelas "
@@ -381,8 +382,10 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     elif seccion == "explotacion" and e_horta_admin:
         ui.label({"rexistrada": "Explotación rexistrada", "en_preparacion": "En preparación",
                   "non_profesional": "Non profesional"}[estado]).classes("q-mb-md")
-        ui.label(f"Titular: {nome_titular}" if nome_titular
-                 else "Aínda non se indicou o titular").classes("q-mb-sm")
+        ui.label(
+            f"Titular: {nome_titular}" if nome_titular
+            else "Aínda non se indicou a persoa titular"
+        ).classes("q-mb-sm")
         concello_nome = concellos().get(lugar_tempo[0] or "", lugar_tempo[0] or "")
         visibles = [
             ("Nome", horta_nome),
@@ -403,8 +406,9 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         with ui.row().classes("gap-2"):
             ui.button("Editar datos da explotación", icon="settings",
                       on_click=abrir_config_horta).props("outline")
-            ui.button("Titular e asesor en Equipo", icon="groups", on_click=lambda: ui.navigate.to(
-                url_seccion(horta_id, "equipo"))).props("outline")
+            ui.button("Persoa titular e asesora en Equipo", icon="groups",
+                      on_click=lambda: ui.navigate.to(url_seccion(horta_id, "equipo"))
+                      ).props("outline")
     elif seccion == "parcelas":
         seccion_parcelas(horta_id, pode_editar)
     elif seccion == "cultivos":

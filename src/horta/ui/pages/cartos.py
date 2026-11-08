@@ -74,7 +74,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
             ui.label(f"Resultado ({resumo.periodo.nome}): {euros(resumo.resultado)}").classes(
                 "text-subtitle1 text-weight-bold")
             if resumo.custos.man_de_obra_propia:
-                ui.label(f"Sen contar as horas do titular e a familia (non se pagan): "
+                ui.label(f"Sen contar as horas da persoa titular e a familia (non se pagan): "
                          f"{euros(resumo.resultado_sen_man_propia)}").classes("texto-suave")
             if resumo.custos.sen_custo:
                 ui.label(f"{resumo.custos.sen_custo} traballos con horas quedan sen contar: "

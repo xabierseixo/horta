@@ -177,8 +177,9 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         data_alta = campo_data("Data de alta", date.today().isoformat())
         instalacion = ui.select({}, label="Onde están (instalación)", clearable=True).classes(
             "w-full")
-        titular_animais = ui.select({}, label="Titular dos animais, se non é o da explotación",
-                                    with_input=True, clearable=True).classes("w-full")
+        titular_animais = ui.select(
+            {}, label="Persoa titular dos animais, se non é a da explotación",
+            with_input=True, clearable=True).classes("w-full")
         cantos_actuais = ui.label("").classes("texto-suave")
         notas = ui.textarea("Notas").classes("w-full")
 

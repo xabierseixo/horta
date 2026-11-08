@@ -315,7 +315,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
         pago = CampoPago("Pagada")
         persoa = ui.select(persoas, label="Quen o recibiu").classes("w-full")
         with ui.expansion("Máis datos").classes("w-full"):
-            lote = ui.input("Lote do provedor").classes("w-full")
+            lote = ui.input("Lote da empresa provedora").classes("w-full")
             caducidade = campo_data("Caducidade", "")
             pasaporte = ui.input("Pasaporte fitosanitario (sementes e plantas)").classes(
                 "w-full")

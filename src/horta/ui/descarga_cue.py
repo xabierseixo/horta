@@ -93,7 +93,7 @@ def _xunta(horta_id: int, desde: ui.input, ata: ui.input) -> None:
     xeaga = xeaga_configurada()
     if xeaga is None:
         ui.label("Para enviar desde horta, a app ten que estar dada de alta na Xunta como "
-                 "caderno comercial (trámite MR407B) e o titular autorizala (MR407D). "
+                 "caderno comercial (trámite MR407B) e a persoa titular autorizala (MR407D). "
                  "Mentres tanto, descarga o Excel e pásao ao XEAGA.").classes("texto-suave")
         return
 

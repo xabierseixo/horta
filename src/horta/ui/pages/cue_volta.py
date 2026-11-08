@@ -28,8 +28,8 @@ def cue_volta_page(peticion: str = "", token: str = "") -> None:
         titular = titular_da_horta(session, horta_id)
         if titular is None or not titular.nif or titular.nif != recibido.nif:
             desconectar(actor.id, horta_id)
-            ui.label("Quen se identificou na Xunta non é o titular desta explotación "
-                     "(o NIF non coincide co da ficha do titular).").classes(
+            ui.label("Quen se identificou na Xunta non é a persoa titular desta explotación "
+                     "(o NIF non coincide co da ficha da persoa titular).").classes(
                 "text-negative q-pa-md")
             ui.link("Volver aos informes", url_seccion(horta_id, "informes"))
             return

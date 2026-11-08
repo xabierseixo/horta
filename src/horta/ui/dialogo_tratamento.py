@@ -512,14 +512,14 @@ def crear_dialogo_tratamento(
                 asesor = ui.select(op.asesores, label="Asesor (opcional)",
                                    clearable=True).classes("w-full")
                 data_asesor = campo_data("Data do asesoramento")
-                validacion = ui.checkbox("O asesor validou o tratamento")
+                validacion = ui.checkbox("A persoa asesora validou o tratamento")
                 for campo in (asesor, data_asesor, validacion):
                     campo.set_visibility(bool(op.asesores))
                 with ui.stepper_navigation():
                     def seguir_paso_4() -> None:
                         if estado.get("modo") == "recomendacion":
                             if not asesor.value:
-                                ui.notify("Escolle un asesor", type="warning")
+                                ui.notify("Escolle unha persoa asesora", type="warning")
                                 return
                             pasos.next()
                         else:
@@ -617,7 +617,7 @@ def crear_dialogo_tratamento(
                             if estado.get("modo") == "recomendacion":
                                 if d.asesor is None or not d.asesor.persoa_id:
                                     raise OperacionNonPermitidaError(
-                                        "Escolle un asesor da explotación"
+                                        "Escolle unha persoa asesora da explotación"
                                     )
                                 valida_ata = (
                                     d.data_fin if d.data_fin != d.data_inicio else None
@@ -711,7 +711,7 @@ def crear_dialogo_tratamento(
 
         e_rec = modo == "recomendacion"
         if e_rec:
-            titulo.text = "Recomendación do asesor"
+            titulo.text = "Recomendación da persoa asesora"
             titulo.set_visibility(True)
             data_inicio._props["label"] = "Data da recomendación"
             data_fin._props["label"] = "Válida ata"

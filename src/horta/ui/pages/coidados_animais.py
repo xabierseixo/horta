@@ -168,7 +168,8 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
             num_animais = ui.input("Cantos animais").classes("col")
             identificacion = ui.input("Identificación (se a teñen)").classes("col")
         with ui.column().classes("w-full gap-0") as datos_medicamento:
-            veterinario = CampoPersoa(horta_id, "veterinario", "Veterinario que o receitou")
+            veterinario = CampoPersoa(horta_id, "veterinario",
+                                      "Persoa veterinaria que o receitou")
             receita = ui.input("Nº de receita").classes("w-full")
             # Onde se mercou e a proba de compra: na compra (entrada) do medicamento
             compra = ui.select({}, label="De que compra (onde se mercou)", clearable=True

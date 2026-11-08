@@ -21,8 +21,8 @@ def test_texto_proxima_visita() -> None:
 
 
 def test_texto_aviso_proxima_visita() -> None:
-    assert texto_aviso_proxima_visita(date(2026, 7, 20)) == "Visita do técnico o 20/07"
-    assert texto_aviso_proxima_visita(date(2026, 3, 5)) == "Visita do técnico o 05/03"
+    assert texto_aviso_proxima_visita(date(2026, 7, 20)) == "Visita da persoa técnica o 20/07"
+    assert texto_aviso_proxima_visita(date(2026, 3, 5)) == "Visita da persoa técnica o 05/03"
 
 
 def test_texto_cultivos_visitados() -> None:

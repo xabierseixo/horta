@@ -18,7 +18,7 @@ from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
-_PROPS_TABOA = f'dense no-data-label="Non hai usuarios" {TEXTOS_TABOA}'
+_PROPS_TABOA = f'dense no-data-label="Non hai persoas usuarias" {TEXTOS_TABOA}'
 
 _ROLES_USUARIO = ("admin", "usuario")
 
@@ -50,7 +50,7 @@ def admin_usuarios_page() -> None:
     cabeceira_paxina(mostrar_admin=True)
 
     with ui.dialog().props("persistent") as dialog_crear, ui.card():
-        ui.label("Crear usuario").classes("text-md font-bold")
+        ui.label("Crear persoa usuaria").classes("text-md font-bold")
         nome_input = ui.input("Nome")
         email_input = ui.input("Email")
         contrasinal_input = ui.input("Contrasinal", password=True)
@@ -85,10 +85,10 @@ def admin_usuarios_page() -> None:
             ui.button("Cancelar", on_click=dialog_crear.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Xestión de usuarios").classes("text-xl font-bold")
-        ui.button("Crear usuario", icon="person_add", on_click=dialog_crear.open)
+        ui.label("Xestión de persoas usuarias").classes("text-xl font-bold")
+        ui.button("Crear persoa usuaria", icon="person_add", on_click=dialog_crear.open)
 
-    ui.label("Selecciona un usuario na táboa para editalo.").classes("text-caption")
+    ui.label("Selecciona unha persoa usuaria na táboa para editala.").classes("text-caption")
 
     with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
         busca_input = ui.input("Buscar").props("dense clearable")
@@ -156,7 +156,7 @@ def admin_usuarios_page() -> None:
                     return
                 obxectivo = session.get(Usuario, usuario_id)
                 if obxectivo is None:
-                    ui.notify("Ese usuario xa non existe", type="negative")
+                    ui.notify("Esa persoa usuaria xa non existe", type="negative")
                     return
                 gardado = executar_accion(
                     session,
@@ -183,7 +183,7 @@ def admin_usuarios_page() -> None:
                     return
                 obxectivo = session.get(Usuario, usuario_id)
                 if obxectivo is None:
-                    ui.notify("Ese usuario xa non existe", type="negative")
+                    ui.notify("Esa persoa usuaria xa non existe", type="negative")
                     return
                 accion = desactivar_usuario if obxectivo.activo else activar_usuario
                 feito = executar_accion(session, lambda: accion(session, actor_actual, obxectivo))
@@ -200,7 +200,7 @@ def admin_usuarios_page() -> None:
         if not taboa.selected:
             return
         fila = taboa.selected[0]
-        titulo_edicion.text = f"Editar usuario: {fila['email']}"
+        titulo_edicion.text = f"Editar persoa usuaria: {fila['email']}"
         nome_edit.value = fila["nome"]
         rol_edit.value = fila["rol"]
         boton_activo.text = "Desactivar" if fila["activo"] == "si" else "Activar"

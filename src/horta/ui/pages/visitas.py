@@ -70,7 +70,7 @@ def texto_proxima_visita(data_visita: date | None) -> str:
 
 def texto_aviso_proxima_visita(data_visita: date) -> str:
     """Texto do aviso en Inicio para unha próxima visita."""
-    return f"Visita do técnico o {data_visita:%d/%m}"
+    return f"Visita da persoa técnica o {data_visita:%d/%m}"
 
 
 def texto_cultivos_visitados(nomes: list[str]) -> str:

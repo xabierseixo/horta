@@ -151,7 +151,7 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
     with ui.row().classes("gap-2"):
         empresa = {c: ui.input(e, value="" if getattr(plan, c) is None
                                else f"{getattr(plan, c):g}").classes("w-36")
-                   for c, e in (("traballadores", "Nº de traballadores"),
+                   for c, e in (("traballadores", "Nº de persoas traballadoras"),
                                 ("facturacion", "Facturación (€)"), ("balance", "Balance (€)"))}
     recuperable = ui.checkbox("O IVE é recuperable (se non o é, o investimento conta con IVE)",
                       value=plan.iva_recuperable)
@@ -161,7 +161,7 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                            ("formacion", "4. Formación do promotor"),
                            ("situacion_partida", "Memoria: situación de partida"),
                            ("metodoloxia", "Memoria: metodoloxía de traballo"),
-                           ("mercado", "Memoria: mercado e clientes"))}
+                           ("mercado", "Memoria: mercado e clientela"))}
     with ui.row().classes("gap-2"):
         utas = {c: ui.input(e, value=f"{getattr(plan, c):g}").classes("w-28")
                 for c, e in (("uta_mantidas", "UTA mantidas"), ("uta_creadas", "UTA creadas"),
@@ -173,11 +173,13 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
         "w-48")
     ui.label("Declaracións do Anexo VI-B").classes("text-weight-medium")
     declaracions = {c: ui.checkbox(e, value=getattr(plan, c))
-                    for c, e in (("ofertas_autenticas", "As ofertas son auténticas"),
-                                 ("sen_vinculo_promotor", "Non hai vinculación cos provedores"),
-                                 ("sen_vinculo_entre_provedores",
-                                  "Os provedores de cada gasto non están vinculados entre "
-                                  "eles"))}
+                    for c, e in (
+                        ("ofertas_autenticas", "As ofertas son auténticas"),
+                        ("sen_vinculo_promotor",
+                         "Non hai vinculación coas empresas provedoras"),
+                        ("sen_vinculo_entre_provedores",
+                         "As empresas provedoras de cada gasto non están vinculadas entre elas"),
+                    )}
     ui.button("Gardar os datos", icon="check", on_click=lambda: _accion(
         lambda s, a: actualizar_plan(
             s, a, s.get(PlanEmpresa, plan.id), empresa_nova=nova.value,
@@ -320,8 +322,9 @@ def _ofertas(plan: PlanEmpresa, investimento: PlanInvestimento, provedores: dict
                                         s.get(PlanOferta, o.id)))).props(
                     "flat dense round size=sm color=negative")
         if not provedores:
-            ui.label("Para engadir ofertas, crea os provedores en Persoas → Contactos.").classes(
-                "texto-suave text-caption")
+            ui.label(
+                "Para engadir ofertas, crea as empresas provedoras en Persoas → Contactos."
+            ).classes("texto-suave text-caption")
             return
         with ui.row().classes("items-end gap-2"):
             provedor = ui.select(provedores, label="Provedor").classes("w-48")

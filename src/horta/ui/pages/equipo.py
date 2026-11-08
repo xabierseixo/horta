@@ -208,7 +208,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             rows=filas_contactos, row_key="id",
             selection="single" if pode_editar else None,
         ).classes("w-full taboa so-ordenador").props(
-            'flat bordered no-data-label="Aínda non hai clientes, provedores nin outros '
+            'flat bordered no-data-label="Aínda non hai clientela, empresas provedoras nin outros '
             f'contactos" {TEXTOS_TABOA}')
 
         @ui.refreshable

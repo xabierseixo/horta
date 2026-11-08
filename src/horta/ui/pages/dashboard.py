@@ -45,7 +45,7 @@ def dashboard_page(nova: bool = False) -> None:
         ui.label("Nova explotación").classes("text-md font-bold")
         nome_input = ui.input("Nome")
         profesional_checkbox = ui.checkbox("Uso profesional")
-        titular_checkbox = ui.checkbox("Son o titular da explotación")
+        titular_checkbox = ui.checkbox("Son a persoa titular da explotación")
 
         def crear() -> None:
             if not nome_input.value:

@@ -159,9 +159,9 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
 
         def mostrar_campos() -> None:
             outra_explotacion.set_visibility(tipo.value in CON_OUTRA_EXPLOTACION)
-            outra_parte.set_label("Explotación de orixe (titular anterior)"
+            outra_parte.set_label("Explotación de orixe (persoa titular anterior)"
                                   if tipo.value == "entrada"
-                                  else "Explotación de destino (novo titular)")
+                                  else "Explotación de destino (nova persoa titular)")
             causa.set_visibility(tipo.value == "morte")
             avisar()
 

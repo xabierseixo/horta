@@ -30,12 +30,12 @@ from horta.ui.taboas import TEXTOS_TABOA
 def texto_aviso_recomendacions(n: int) -> str:
     """Texto do aviso en Inicio cando hai recomendacións pendentes."""
     palabra = "recomendación" if n == 1 else "recomendacións"
-    return f"O asesor deixou {n} {palabra} por aplicar"
+    return f"A persoa asesora deixou {n} {palabra} por aplicar"
 
 
 def texto_ligazon_recomendacions(n: int) -> str:
     """Texto da ligazón dende Tratamentos cara a Recomendacións."""
-    return f"Recomendacións do asesor ({n} pendentes)"
+    return f"Recomendacións da persoa asesora ({n} pendentes)"
 
 
 def texto_estado_recomendacion(estado: str) -> str:
