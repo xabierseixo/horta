@@ -252,7 +252,7 @@ def necesidade_rega(
         )
 
     aproximado = any(
-        l is None for l in (coef.l_ini, coef.l_dev, coef.l_mid, coef.l_late)
+        fase is None for fase in (coef.l_ini, coef.l_dev, coef.l_mid, coef.l_late)
     )
 
     # 3. Sen data_inicio -> "sen_data_inicio"
