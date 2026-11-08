@@ -28,6 +28,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 ### Produtos fitosanitarios
 - Integración dos catálogos oficiais do SIEX (FEGA) e do Rexistro de Produtos Fitosanitarios do MAPA.
 - Comprobación da autorización do produto para o cultivo e a praga indicados.
+- Seguimento de pragas e enfermidades: observacións en campo, trampas e mostraxes, limiares de intervención tirados das guías de xestión integrada de pragas do MAPA, avisos e gráficas da evolución, que xustifican cada tratamento.
 - Rexistro do aplicador, co seu carné ROPO, e da maquinaria de aplicación, con número ROMA e REGANIP.
 - Recomendacións do asesor: o técnico deixa a recomendación e o agricultor aplícaa sen volver a apuntar os datos; o tratamento queda validado polo asesor.
 
