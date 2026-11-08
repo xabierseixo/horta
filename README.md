@@ -23,6 +23,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Rexistro mínimo obrigatorio (actividade, lugar, data e responsable), con datos complementarios opcionais.
 - Planificación de tarefas e calendario de actividade.
 - Información meteorolóxica de MeteoGalicia asociada á explotación.
+- Cálculo das necesidades de rega de cada cultivo coa evapotranspiración de MeteoGalicia e os coeficientes de cultivo da FAO (método FAO-56, o mesmo do SiAR do Ministerio).
 
 ### Produtos fitosanitarios
 - Integración dos catálogos oficiais do SIEX (FEGA) e do Rexistro de Produtos Fitosanitarios do MAPA.
@@ -40,7 +41,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 
 ### Xestión
 - Directorio único de persoas e entidades: equipo de traballo, clientes, provedores, asesores e veterinarios.
-- Xestión económica de gastos, ingresos e custos de man de obra.
+- Xestión económica de gastos, ingresos e custos de man de obra, e seguimento do consumo de enerxía.
 - Plan de empresa para solicitudes de axudas.
 - Arquivo de documentos e certificacións (certificado ecolóxico, GlobalG.A.P., seguros, inspeccións, carnés…), con aviso antes da súa caducidade.
 - Acceso multiusuario con permisos de administración, edición ou consulta.
