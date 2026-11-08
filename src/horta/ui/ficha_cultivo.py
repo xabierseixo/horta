@@ -12,8 +12,10 @@ from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.diario import TIPOS
 from horta.services.fotos import MODELOS
 from horta.services.historial import historial_cultivo
+from horta.services.necesidades_rega import necesidade_rega
 from horta.ui.ficha import abrir_ficha
 from horta.ui.fotos import abrir_fotos
+from horta.ui.necesidades_rega import texto_necesidade
 from horta.ui.numeros import texto_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import formatar_superficie
@@ -94,6 +96,9 @@ def abrir_ficha_cultivo(horta_id: int, cultivo_id: int, pode_editar: bool) -> No
 
         nome = nome_cultivo(cultivo)
         datos = datos_cultivo(cultivo, lambda cat, cod: describir(session, cat, cod))
+        nec = necesidade_rega(session, actor, cultivo.id)
+        if nec.estado != "secano":
+            datos.append(("Rega, últimos 7 días", texto_necesidade(nec)))
         traballos = sorted(
             historial_cultivo(session, actor, cultivo),
             key=lambda t: t.data or date.min,

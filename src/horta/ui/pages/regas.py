@@ -15,6 +15,7 @@ from horta.services.catalogos import valores_vixentes
 from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.maquinaria import listar_maquinas
+from horta.services.necesidades_rega import necesidades_horta
 from horta.services.persoas import listar_quen
 from horta.services.regas import (
     UNIDADES_AUGA,
@@ -34,7 +35,7 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.leiras import leiras_escollidas
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
-from horta.ui.numeros import parsear_data, parsear_decimal
+from horta.ui.numeros import formatar_decimal, parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie
@@ -50,13 +51,48 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
             return
         regas = listar_regas(session, actor, horta_id)
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
-        cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
-                    for c in listar_cultivos(session, actor, horta_id)}
+        todos_cultivos = listar_cultivos(session, actor, horta_id)
+        cultivos = {
+            c.id: f"{nome_cultivo(c)} — {parcelas.get(c.parcela_id, '')}"
+            for c in todos_cultivos
+        }
+        cultivos_por_id = {c.id: c for c in todos_cultivos}
         sistemas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                     for v in valores_vixentes(session, "sistema_rega")}
         unidades_cat = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                         for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat.get(c, c) for c in UNIDADES_AUGA}
+        necesidades = necesidades_horta(session, actor, horta_id)
+
+    with ui.column().classes("tarxeta w-full gap-1 q-mb-md"):
+        ui.label("Necesidades de rega (últimos 7 días)").classes(
+            "text-subtitle1 text-weight-bold"
+        )
+        precisan_auga = [n for n in necesidades if n.estado == "ok" and n.falta_mm > 0]
+        if precisan_auga:
+            for n in precisan_auga:
+                nome_leira = cultivos.get(n.cultivo_id, "")
+                falta = formatar_decimal(round(n.falta_mm, 1))
+                ui.label(f"{nome_leira}: faltan uns {falta} l/m²")
+        else:
+            ui.label("Os cultivos de regadío teñen auga dabondo estes días")
+
+        outros = [n for n in necesidades if n.estado not in ("ok", "secano")]
+        if outros:
+            nomes = ", ".join(
+                dict.fromkeys(
+                    nome_cultivo(cultivos_por_id[n.cultivo_id])
+                    for n in outros
+                    if n.cultivo_id in cultivos_por_id
+                )
+            )
+            ui.label(f"Sen cálculo: {nomes} (mira a ficha de cada cultivo)").classes(
+                "text-caption texto-suave"
+            )
+
+        ui.label(
+            "ET0 de MeteoGalicia e coeficientes FAO-56, o método do SiAR (Ministerio)."
+        ).classes("text-caption texto-suave")
 
     filas = [{
         "id": r.id,
