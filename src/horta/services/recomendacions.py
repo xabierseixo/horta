@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Sequence
 from datetime import date, time
 from typing import Any
 
@@ -38,7 +39,7 @@ _OMITIDO = object()
 
 
 def _a_dict(obj: Any) -> Any:
-    if dataclasses.is_dataclass(obj):
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
         return dataclasses.asdict(obj)
     if isinstance(obj, dict):
         return dict(obj)
@@ -46,7 +47,7 @@ def _a_dict(obj: Any) -> Any:
 
 
 def _cultivos_de_dict(
-    cultivos: list[LinhaCultivo | dict[str, Any]]
+    cultivos: Sequence[LinhaCultivo | dict[str, Any]]
 ) -> list[LinhaCultivo]:
     res: list[LinhaCultivo] = []
     for c in cultivos:
@@ -64,7 +65,7 @@ def _cultivos_de_dict(
 
 
 def _problemas_de_dict(
-    problemas: list[Problema | dict[str, Any]]
+    problemas: Sequence[Problema | dict[str, Any]]
 ) -> list[Problema]:
     res: list[Problema] = []
     for p in problemas:
@@ -76,7 +77,7 @@ def _problemas_de_dict(
 
 
 def _produtos_de_dict(
-    produtos: list[LinhaProduto | dict[str, Any]]
+    produtos: Sequence[LinhaProduto | dict[str, Any]]
 ) -> list[LinhaProduto]:
     res: list[LinhaProduto] = []
     for p in produtos:
@@ -99,7 +100,7 @@ def _produtos_de_dict(
 
 
 def _medidas_de_dict(
-    medidas: list[LinhaMedida | dict[str, Any]]
+    medidas: Sequence[LinhaMedida | dict[str, Any]]
 ) -> list[LinhaMedida]:
     res: list[LinhaMedida] = []
     for m in medidas:

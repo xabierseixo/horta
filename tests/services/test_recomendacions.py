@@ -162,7 +162,7 @@ def test_crear_recomendacion_correcta(session):
 
 def test_crear_asesor_sen_papel_rexeitase(session):
     ana, horta, _, cultivo, _, _, _ = _escenario(session)
-    pepe = crear_persoa(session, ana, horta.id, "Pepe", papeis={"peon"})
+    pepe = crear_persoa(session, ana, horta.id, "Pepe", papeis={"traballador"})
     datos = _datos_rec(cultivo, pepe)
     with pytest.raises(OperacionNonPermitidaError, match="Escolle un asesor"):
         crear_recomendacion(session, ana, horta.id, **datos)
@@ -172,7 +172,8 @@ def test_crear_asesor_doutra_horta_rexeitase(session):
     ana, horta, _, cultivo, _, _, _ = _escenario(session)
     outra = crear_horta(session, ana, "Outra Horta")
     asesor_outra = crear_persoa(
-        session, ana, outra.id, "Asesor Outra", papeis={"asesor"}
+        session, ana, outra.id, "Asesor Outra", papeis={"asesor"},
+        ropo_numero="9", ropo_caducidade=D,
     )
     datos = _datos_rec(cultivo, asesor_outra)
     with pytest.raises(OperacionNonPermitidaError, match="Escolle un asesor"):
