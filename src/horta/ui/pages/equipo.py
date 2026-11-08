@@ -160,15 +160,16 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
     accions_fn: dict[str, Callable[[Persoa], None]] = {}
 
     def tocar(pid: int) -> None:
-        persoa = next((p for p in persoas if p.id == pid), None)
-        if persoa is None:
+        atopada = next((p for p in persoas if p.id == pid), None)
+        if atopada is None:
             return
+        persoa: Persoa = atopada
         accions: list[tuple[str, str, Callable[[], None]]] | None = None
         if pode_editar and "editar" in accions_fn:
-            accions = [("Editar", "edit", lambda p=persoa: accions_fn["editar"](p))]
+            accions = [("Editar", "edit", lambda: accions_fn["editar"](persoa))]
             if e_admin and "xuntar" in accions_fn:
                 accions.append(
-                    ("Xuntar con outra", "merge", lambda p=persoa: accions_fn["xuntar"](p))
+                    ("Xuntar con outra", "merge", lambda: accions_fn["xuntar"](persoa))
                 )
         abrir_ficha_persoa(horta_id, pid, accions=accions)
 
