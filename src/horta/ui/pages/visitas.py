@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date, time
-from typing import Any
 
 from nicegui import ui
 from sqlalchemy import func
@@ -263,7 +262,7 @@ def seccion_visitas(horta_id: int, pode_editar: bool) -> None:
             p.id: nome_completo(p)
             for p in listar_persoas(session, actor, horta_id, so_activas=False)
         }
-        contos_obs = dict(
+        contos_obs: dict[int | None, int] = dict(
             session.query(ObservacionPraga.visita_id, func.count(ObservacionPraga.id))
             .filter(
                 ObservacionPraga.horta_id == horta_id,
@@ -271,9 +270,10 @@ def seccion_visitas(horta_id: int, pode_editar: bool) -> None:
                 ObservacionPraga.visita_id.is_not(None),
             )
             .group_by(ObservacionPraga.visita_id)
+            .tuples()
             .all()
         )
-        contos_rec = dict(
+        contos_rec: dict[int | None, int] = dict(
             session.query(Recomendacion.visita_id, func.count(Recomendacion.id))
             .filter(
                 Recomendacion.horta_id == horta_id,
@@ -281,6 +281,7 @@ def seccion_visitas(horta_id: int, pode_editar: bool) -> None:
                 Recomendacion.visita_id.is_not(None),
             )
             .group_by(Recomendacion.visita_id)
+            .tuples()
             .all()
         )
 
@@ -549,7 +550,7 @@ def seccion_visitas(horta_id: int, pode_editar: bool) -> None:
 
     elementos_tarxetas = [
         (
-            f["id"],
+            int(str(f["id"])),
             f"{f['data']} · {f['asesor']}",
             f"{f['cultivos']} · Próxima: {f['proxima_visita']}",
         )
