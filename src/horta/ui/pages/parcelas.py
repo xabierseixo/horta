@@ -69,7 +69,6 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
     filas = [
         {"id": p.id, "nome": p.nome, "superficie": formatar_superficie(p.superficie),
-         "uso": p.uso_aproveitamento or "",
          "sigpac": _referencia(p),
          "rega": {SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
              p.secano_regadio, "") if p.secano_regadio else "",
@@ -86,7 +85,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
         f'flat bordered no-data-label="Aínda non hai parcelas" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
-    tarxetas_da_taboa(taboa, "nome", ["superficie", "uso"], accions_tarxeta)
+    tarxetas_da_taboa(taboa, "nome", ["superficie", "rega"], accions_tarxeta)
 
     if not pode_editar:
         return
