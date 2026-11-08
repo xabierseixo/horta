@@ -27,6 +27,7 @@ class ObservacionPraga(ParteComun, FeitoPor, Base):
     unidade_conto: Mapped[str | None] = mapped_column(String(30), default=None)
     nivel: Mapped[str | None] = mapped_column(String(10), default=None)
     estado_fenoloxico: Mapped[str | None] = mapped_column(String(20), default=None)
+    visita_id: Mapped[int | None] = mapped_column(ForeignKey("visita_campo.id"), default=None)
 
 
 class LimiarPraga(Base):

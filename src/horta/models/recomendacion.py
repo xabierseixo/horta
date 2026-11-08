@@ -31,6 +31,9 @@ class Recomendacion(Base):
     tratamento_id: Mapped[int | None] = mapped_column(
         ForeignKey("tratamento_fito.id"), default=None
     )
+    visita_id: Mapped[int | None] = mapped_column(
+        ForeignKey("visita_campo.id"), default=None
+    )
     baixa: Mapped[bool] = mapped_column(Boolean, default=False)
     creado_por: Mapped[int | None] = mapped_column(ForeignKey("usuario.id"), default=None)
     created_at: Mapped[datetime] = mapped_column(

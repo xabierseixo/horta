@@ -76,6 +76,7 @@ from horta.models.tratamento_fito import (
 )
 from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.models.usuario import RolGlobal, Usuario
+from horta.models.visita import VisitaCampo
 from horta.models.zona import ParcelaZona
 
 __all__ = [
@@ -169,4 +170,5 @@ __all__ = [
     "Recomendacion",
     "LimiarPraga",
     "ObservacionPraga",
+    "VisitaCampo",
 ]

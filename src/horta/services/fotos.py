@@ -35,6 +35,7 @@ from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.models.tratamento_instalacion import TratamentoInstalacion
 from horta.models.usuario import Usuario
+from horta.models.visita import VisitaCampo
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.hortas import comprobar_rol_horta
 
@@ -52,7 +53,7 @@ MODELOS: dict[str, Any] = {
     "transformacion": Transformacion, "entrada_produto": EntradaProduto,
     "outro_traballo": OutroTraballo, "tarefa": Tarefa,
     "parcela": Parcela, "animal": Animal, "lote": Lote,
-    "observacion": ObservacionPraga,
+    "observacion": ObservacionPraga, "visita": VisitaCampo,
 }
 
 
