@@ -15,7 +15,7 @@ def _crear_cultivo(session) -> Cultivo:
     parcela = Parcela(horta_id=horta.id, nome="Parcela Norte", estado="activa")
     session.add(parcela)
     session.flush()
-    cultivo = Cultivo(parcela_id=parcela.id, especie="Tomate", cultivo_siex_codigo=101)
+    cultivo = Cultivo(parcela_id=parcela.id, especie="Tomate")
     session.add(cultivo)
     session.commit()
     return cultivo
