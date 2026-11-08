@@ -152,7 +152,7 @@ def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
     return Response(datos, media_type=mime, headers={"Cache-Control": "private, max-age=604800"})
 
 
-from horta.api.campo import router as campo_router
+from horta.api.campo import router as campo_router  # noqa: E402
 
 app.include_router(campo_router)
 

@@ -148,7 +148,7 @@ def test_datos_dunha_propia_trae_parcelas_cultivos_e_persoas(
         data=date.today(),
         parcela_id=parcela.id,
         cultivo_id=cultivo_aberto.id,
-        tipo="observacion",
+        tipo="rega",
     )
 
     _, clave = crear_dispositivo(session, ana, "Móbil de Ana")
@@ -185,7 +185,7 @@ def test_datos_dunha_propia_trae_parcelas_cultivos_e_persoas(
     assert tarefa.id in ids_tarefas
     tarefa_dto = next(t for t in datos["tarefas_pendentes"] if t["id"] == tarefa.id)
     assert tarefa_dto["descricion"] == "Revisar trampas"
-    assert tarefa_dto["tipo"] == "observacion"
+    assert tarefa_dto["tipo"] == "rega"
 
     # Pragas por cultivo e catálogos de apoio
     assert str(cultivo_aberto.id) in datos["pragas_por_cultivo"]
