@@ -7,7 +7,6 @@ from datetime import date, timedelta
 import pytest
 
 from horta.models.cultivo import Cultivo
-from horta.models.parcela import Parcela
 from horta.models.rega import Rega, RegaCultivo
 from horta.models.tempo import EstacionMeteo, TempoDia
 from horta.models.usuario import RolGlobal, Usuario
@@ -39,6 +38,19 @@ class FonteProba:
 
     def avisos(self, concello_ine):
         return []
+
+
+@pytest.fixture(autouse=True)
+def _cultivos_siex(session):
+    """Os códigos do catálogo de cultivos que usan as probas (a táboa ten clave allea)."""
+    from horta.models.catalogo import CatalogoVersion, CultivoSiex
+
+    v = CatalogoVersion(catalogo="cultivo", nome_ficheiro="x", sha256="e" * 64, filas=5)
+    session.add(v)
+    session.flush()
+    for codigo in (152, 155, 157, 197, 999999):
+        session.add(CultivoSiex(codigo=codigo, nome_oficial=f"CULTIVO {codigo}", version_id=v.id))
+    session.commit()
 
 
 def _crear_usuario(session, email: str) -> Usuario:
