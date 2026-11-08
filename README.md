@@ -31,6 +31,12 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Rexistro do aplicador, co seu carné ROPO, e da maquinaria de aplicación, con número ROMA e REGANIP.
 - Recomendacións do asesor: o técnico deixa a recomendación e o agricultor aplícaa sen volver a apuntar os datos; o tratamento queda validado polo asesor.
 
+### Sensores e internet das cousas (en desenvolvemento)
+- Conexión de sensores de campo e de instalacións: humidade do chan, temperatura e humidade do aire, choiva, mollado de folla, contadores de auga, nivel de depósitos e de fosas de purín, e temperatura de cámaras e almacéns.
+- Recepción das lecturas por internet desde dispositivos propios (ESP32, Arduino), redes LoRaWAN, MQTT ou estacións meteorolóxicas comerciais, sen depender dun fabricante concreto.
+- Gráficas en tempo real e avisos configurables: humidade do chan baixa, risco de xeada, nivel da fosa ou temperatura fóra de rango.
+- Uso dos datos noutras partes da aplicación: confirmar as necesidades de rega coa humidade real do chan, propor o rexistro dunha rega a partir do contador de auga e acompañar a trazabilidade dos lotes coa temperatura de conservación.
+
 ### Gandaría
 - Xestión de animais por grupos, con altas, baixas e movementos.
 - Rexistro da produción (ovos, leite, mel e outros), dos coidados e tratamentos veterinarios e do pastoreo.
