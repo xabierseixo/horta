@@ -49,7 +49,8 @@ def test_detalle_tarxeta_animal_so_espera() -> None:
         "espera": "En tempo de espera ata 10/11/2026",
         "pasto": "",
     }
-    assert detalle_tarxeta_animal(fila) == "Ovellas · 10 animais · En tempo de espera ata 10/11/2026"
+    assert detalle_tarxeta_animal(fila) == (
+        "Ovellas · 10 animais · En tempo de espera ata 10/11/2026")
 
 
 def test_detalle_tarxeta_animal_so_pasto() -> None:

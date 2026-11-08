@@ -121,25 +121,20 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                 animal = session.get(Animal, animal_id)
             if animal is None:
                 return
+            grupo: Animal = animal
             accions = [
-                ("Editar", "edit", lambda a=animal: abrir_fn[0](a) if abrir_fn else None),
+                ("Editar", "edit", lambda: abrir_fn[0](grupo)),
                 ("Entrada ou saída", "swap_horiz",
-                 lambda aid=animal_id: abrir_movemento(None, None, aid)),
-                ("Produción", "egg", lambda aid=animal_id: abrir_producion(None, None, aid)),
-                ("Ao pasto", "landscape", lambda aid=animal_id: abrir_pastoreo(None, None, aid)),
+                 lambda: abrir_movemento(None, None, animal_id)),
+                ("Produción", "egg", lambda: abrir_producion(None, None, animal_id)),
+                ("Ao pasto", "landscape", lambda: abrir_pastoreo(None, None, animal_id)),
             ]
             if animal_id in pastos:
-                accions.append(
-                    ("Saíron do pasto", "logout",
-                     lambda aid=animal_id: abrir_saida(pastos[aid][0]))
-                )
-            accions.append(
-                ("Identificados", "badge",
-                 lambda aid=animal_id: abrir_identificados(horta_id, aid))
-            )
-            accions.append(
-                ("Eliminar", "delete", lambda a=animal: eliminar_grupo(a))
-            )
+                accions.append(("Saíron do pasto", "logout",
+                                lambda: abrir_saida(pastos[animal_id][0])))
+            accions.append(("Identificados", "badge",
+                            lambda: abrir_identificados(horta_id, animal_id)))
+            accions.append(("Eliminar", "delete", lambda: eliminar_grupo(grupo)))
         abrir_ficha_animal(horta_id, animal_id, pode_editar, accions=accions)
 
     @ui.refreshable
