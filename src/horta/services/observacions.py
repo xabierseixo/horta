@@ -109,6 +109,7 @@ def crear_observacion(
     estado_fenoloxico: str | None = None,
     notas: str | None = None,
     persoa_id: int | None = None,
+    visita_id: int | None = None,
 ) -> ObservacionPraga:
     """Rexistra unha nova observación de pragas nun cultivo da explotación."""
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
@@ -126,6 +127,16 @@ def crear_observacion(
         estado_fenoloxico,
         persoa_id,
     )
+    if visita_id is not None:
+        from horta.models.visita import VisitaCampo
+
+        visita = session.get(VisitaCampo, visita_id)
+        if visita is None or visita.horta_id != horta_id:
+            raise OperacionNonPermitidaError(
+                "A visita indicada non pertence a esta explotación"
+            )
+        if visita.baixa:
+            raise OperacionNonPermitidaError("A visita indicada está dada de baixa")
     obs = ObservacionPraga(
         horta_id=horta_id,
         cultivo_id=cultivo_id,
@@ -139,6 +150,7 @@ def crear_observacion(
         estado_fenoloxico=estado_fenoloxico or None,
         notas=notas.strip() if notas and notas.strip() else None,
         persoa_id=persoa_id,
+        visita_id=visita_id,
         creado_por=actor.id,
     )
     session.add(obs)
@@ -162,6 +174,7 @@ def actualizar_observacion(
     estado_fenoloxico: str | None = _SEN_CAMBIO,
     notas: str | None = _SEN_CAMBIO,
     persoa_id: int | None = _SEN_CAMBIO,
+    visita_id: Any = _SEN_CAMBIO,
     **kwargs: Any,
 ) -> ObservacionPraga:
     """Actualiza os datos dunha observación vixente."""
@@ -207,6 +220,19 @@ def actualizar_observacion(
         novo_estado,
         nova_persoa,
     )
+
+    if visita_id is not _SEN_CAMBIO:
+        if visita_id is not None:
+            from horta.models.visita import VisitaCampo
+
+            v = session.get(VisitaCampo, visita_id)
+            if v is None or v.horta_id != observacion.horta_id:
+                raise OperacionNonPermitidaError(
+                    "A visita indicada non pertence a esta explotación"
+                )
+            if v.baixa:
+                raise OperacionNonPermitidaError("A visita indicada está dada de baixa")
+        observacion.visita_id = visita_id
 
     observacion.cultivo_id = novo_cultivo_id
     observacion.data = nova_data

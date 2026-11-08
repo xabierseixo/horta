@@ -201,6 +201,7 @@ def crear_recomendacion(
     medidas: list[LinhaMedida] | None = None,
     valida_ata: date | None = None,
     observacions: str | None = None,
+    visita_id: int | None = None,
 ) -> Recomendacion:
     comprobar_rol_horta(session, horta_id, actor, _ROLES_ESCRITURA)
     medidas_lista = medidas or []
@@ -215,6 +216,16 @@ def crear_recomendacion(
         medidas_lista,
         valida_ata,
     )
+    if visita_id is not None:
+        from horta.models.visita import VisitaCampo
+
+        visita = session.get(VisitaCampo, visita_id)
+        if visita is None or visita.horta_id != horta_id:
+            raise OperacionNonPermitidaError(
+                "A visita indicada non pertence a esta explotación"
+            )
+        if visita.baixa:
+            raise OperacionNonPermitidaError("A visita indicada está dada de baixa")
     rec = Recomendacion(
         horta_id=horta_id,
         asesor_persoa_id=asesor_persoa_id,
@@ -227,6 +238,7 @@ def crear_recomendacion(
         medidas=[_a_dict(m) for m in medidas_lista],
         observacions=observacions,
         estado="pendente",
+        visita_id=visita_id,
         baixa=False,
         creado_por=actor.id if actor else None,
     )
@@ -249,6 +261,7 @@ def actualizar_recomendacion(
     medidas: list[LinhaMedida] | None = None,
     valida_ata: Any = _OMITIDO,
     observacions: Any = _OMITIDO,
+    visita_id: Any = _OMITIDO,
 ) -> Recomendacion:
     if rec.baixa:
         raise OperacionNonPermitidaError(
@@ -295,6 +308,19 @@ def actualizar_recomendacion(
         novas_medidas,
         nova_valida_ata,
     )
+
+    if visita_id is not _OMITIDO:
+        if visita_id is not None:
+            from horta.models.visita import VisitaCampo
+
+            v = session.get(VisitaCampo, visita_id)
+            if v is None or v.horta_id != rec.horta_id:
+                raise OperacionNonPermitidaError(
+                    "A visita indicada non pertence a esta explotación"
+                )
+            if v.baixa:
+                raise OperacionNonPermitidaError("A visita indicada está dada de baixa")
+        rec.visita_id = visita_id
 
     rec.asesor_persoa_id = novo_asesor
     rec.data = nova_data

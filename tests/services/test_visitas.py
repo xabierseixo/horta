@@ -1,9 +1,12 @@
 """Probas do servizo de visitas de campo do persoal asesor técnico (mellora N7)."""
 
 from datetime import date, time, timedelta
+from io import BytesIO
 
 import pytest
+from openpyxl import load_workbook
 
+from horta.models.catalogo import CatalogoValor, CatalogoVersion
 from horta.models.horta import RolHorta
 from horta.models.observacion import ObservacionPraga
 from horta.models.recomendacion import Recomendacion
@@ -12,12 +15,19 @@ from horta.services.cultivos import crear_cultivo
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.fotos import gardar_foto, listar_fotos
 from horta.services.hortas import crear_horta, engadir_membro
+from horta.services.observacions import crear_observacion
 from horta.services.parcelas import crear_parcela
 from horta.services.persoas import crear_persoa
+from horta.services.recomendacions import crear_recomendacion
+from horta.services.tratamentos_fito import LinhaCultivo, LinhaProduto, Problema
 from horta.services.visitas import (
     actualizar_visita,
+    contido_visita,
     crear_visita,
     dar_de_baixa_visita,
+    informe_visita,
+    ligar_observacion,
+    ligar_recomendacion,
     listar_visitas,
     obter_visita,
     proximas_visitas,
@@ -436,3 +446,414 @@ def test_visita_id_en_observacion_e_recomendacion(session):
 
     assert obs.visita_id == visita.id
     assert rec.visita_id == visita.id
+
+
+def _catalogos(session) -> None:
+    v = CatalogoVersion(
+        catalogo="praga",
+        nome_ficheiro="pragas.xlsx",
+        sha256="0" * 64,
+        filas=1,
+    )
+    session.add(v)
+    session.flush()
+    session.add(
+        CatalogoValor(
+            catalogo="praga",
+            codigo="10",
+            descricion="Escaravello da pataca",
+            version_id=v.id,
+        )
+    )
+    session.commit()
+
+
+def test_ligar_observacion_e_recomendacion(session):
+    _catalogos(session)
+    ana, horta, _, cultivo, bieito, xan = _escenario(session)
+    visita = crear_visita(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[cultivo.id],
+    )
+    obs = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=D,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="mostraxe",
+        conto=2.0,
+        unidade_conto="individuos por planta",
+        persoa_id=xan.id,
+    )
+    rec = crear_recomendacion(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        problemas=[Problema(tipo="praga", codigo="10")],
+        xustificacions=["Presenza"],
+        produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
+    )
+
+    assert obs.visita_id is None
+    assert rec.visita_id is None
+
+    ligar_observacion(session, ana, visita, obs)
+    ligar_recomendacion(session, ana, visita, rec)
+
+    assert obs.visita_id == visita.id
+    assert rec.visita_id == visita.id
+
+    # Ligar pasando os identificadores
+    obs2 = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=D,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="mostraxe",
+        conto=1.0,
+        unidade_conto="individuos por planta",
+        persoa_id=xan.id,
+    )
+    ligar_observacion(session, ana, visita.id, obs2.id)
+    assert obs2.visita_id == visita.id
+
+    # Non se pode ligar cunha observación ou recomendación doutra horta
+    outra = crear_horta(session, ana, "Outra Horta 2")
+    p_outra = crear_parcela(session, ana, outra.id, "P2")
+    c_outra = crear_cultivo(session, ana, p_outra.id, "Cenoria")
+    bieito_outra = crear_persoa(
+        session,
+        ana,
+        outra.id,
+        "Asesor 2",
+        papeis={"asesor"},
+        ropo_numero="8",
+    )
+    obs_outra = crear_observacion(
+        session,
+        ana,
+        outra.id,
+        cultivo_id=c_outra.id,
+        data=D,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="mostraxe",
+        conto=1.0,
+        unidade_conto="individuos por planta",
+    )
+    rec_outra = crear_recomendacion(
+        session,
+        ana,
+        outra.id,
+        asesor_persoa_id=bieito_outra.id,
+        data=D,
+        cultivos=[LinhaCultivo(cultivo_id=c_outra.id)],
+        problemas=[Problema(tipo="praga", codigo="10")],
+        xustificacions=["Presenza"],
+        produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
+    )
+
+    with pytest.raises(
+        OperacionNonPermitidaError, match="non pertence á mesma explotación"
+    ):
+        ligar_observacion(session, ana, visita, obs_outra)
+
+    with pytest.raises(
+        OperacionNonPermitidaError, match="non pertence á mesma explotación"
+    ):
+        ligar_recomendacion(session, ana, visita, rec_outra)
+
+    # Lector non pode ligar
+    carlos = _usuario(session, "carlos@example.com")
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
+    with pytest.raises(PermisoDenegadoError):
+        ligar_observacion(session, carlos, visita, obs)
+    with pytest.raises(PermisoDenegadoError):
+        ligar_recomendacion(session, carlos, visita, rec)
+
+
+def test_crear_observacion_e_recomendacion_con_visita_id(session):
+    _catalogos(session)
+    ana, horta, _, cultivo, bieito, xan = _escenario(session)
+    visita = crear_visita(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[cultivo.id],
+    )
+    obs = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=D,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="mostraxe",
+        conto=2.0,
+        unidade_conto="individuos por planta",
+        persoa_id=xan.id,
+        visita_id=visita.id,
+    )
+    rec = crear_recomendacion(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        problemas=[Problema(tipo="praga", codigo="10")],
+        xustificacions=["Presenza"],
+        produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
+        visita_id=visita.id,
+    )
+    assert obs.visita_id == visita.id
+    assert rec.visita_id == visita.id
+
+    # Visita doutra horta rexeitada
+    outra = crear_horta(session, ana, "Outra Horta 3")
+    asesor_outra = crear_persoa(
+        session,
+        ana,
+        outra.id,
+        "Asesor 3",
+        papeis={"asesor"},
+        ropo_numero="7",
+    )
+    p_outra = crear_parcela(session, ana, outra.id, "P3")
+    c_outra = crear_cultivo(session, ana, p_outra.id, "Cenoria")
+    v_outra = crear_visita(
+        session,
+        ana,
+        outra.id,
+        asesor_persoa_id=asesor_outra.id,
+        data=D,
+        cultivos=[c_outra.id],
+    )
+
+    with pytest.raises(
+        OperacionNonPermitidaError, match="non pertence a esta explotación"
+    ):
+        crear_observacion(
+            session,
+            ana,
+            horta.id,
+            cultivo_id=cultivo.id,
+            data=D,
+            problema_tipo="praga",
+            problema_codigo="10",
+            metodo="mostraxe",
+            conto=2.0,
+            unidade_conto="individuos por planta",
+            visita_id=v_outra.id,
+        )
+
+    with pytest.raises(
+        OperacionNonPermitidaError, match="non pertence a esta explotación"
+    ):
+        crear_recomendacion(
+            session,
+            ana,
+            horta.id,
+            asesor_persoa_id=bieito.id,
+            data=D,
+            cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+            problemas=[Problema(tipo="praga", codigo="10")],
+            xustificacions=["Presenza"],
+            produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
+            visita_id=v_outra.id,
+        )
+
+    # Visita dada de baixa rexeitada
+    dar_de_baixa_visita(session, ana, visita)
+    with pytest.raises(
+        OperacionNonPermitidaError, match="dada de baixa"
+    ):
+        crear_observacion(
+            session,
+            ana,
+            horta.id,
+            cultivo_id=cultivo.id,
+            data=D,
+            problema_tipo="praga",
+            problema_codigo="10",
+            metodo="mostraxe",
+            conto=2.0,
+            unidade_conto="individuos por planta",
+            visita_id=visita.id,
+        )
+
+
+def test_contido_visita(session):
+    _catalogos(session)
+    ana, horta, _, cultivo, bieito, xan = _escenario(session)
+    visita = crear_visita(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[cultivo.id],
+    )
+    obs = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=D,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="mostraxe",
+        conto=2.0,
+        unidade_conto="individuos por planta",
+        persoa_id=xan.id,
+        visita_id=visita.id,
+    )
+    rec = crear_recomendacion(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        problemas=[Problema(tipo="praga", codigo="10")],
+        xustificacions=["Presenza"],
+        produtos=[LinhaProduto(tipo_produto="1", unidade="5", nome_comercial="BioFito")],
+        visita_id=visita.id,
+    )
+
+    # Observación e recomendación dadas de baixa non deben aparecer
+    obs_baixa = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=D,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="mostraxe",
+        conto=1.0,
+        unidade_conto="individuos por planta",
+        persoa_id=xan.id,
+        visita_id=visita.id,
+    )
+    obs_baixa.baixa = True
+    rec_baixa = crear_recomendacion(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        problemas=[Problema(tipo="praga", codigo="10")],
+        xustificacions=["Presenza"],
+        produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
+        visita_id=visita.id,
+    )
+    rec_baixa.baixa = True
+    session.commit()
+
+    cv = contido_visita(session, ana, visita.id)
+    assert cv.visita.id == visita.id
+    assert [o.id for o in cv.observacions] == [obs.id]
+    assert [r.id for r in cv.recomendacions] == [rec.id]
+    assert "Pataca" in cv.nomes_cultivos
+    assert [c.id for c in cv.cultivos] == [cultivo.id]
+
+    # Lector pode consultar contido
+    carlos = _usuario(session, "carlos@example.com")
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
+    cv_lector = contido_visita(session, carlos, visita.id)
+    assert cv_lector.visita.id == visita.id
+
+    # Visita inexistente dá erro
+    with pytest.raises(OperacionNonPermitidaError):
+        contido_visita(session, ana, 99999)
+
+
+def test_informe_visita(session):
+    _catalogos(session)
+    ana, horta, _, cultivo, bieito, xan = _escenario(session)
+    visita = crear_visita(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[cultivo.id],
+        hora_inicio=time(10, 0),
+        estado_xeral="Vigor axeitado e bo desenvolvemento",
+        conclusions="Revisar praga en dúas semanas",
+        proxima_visita=D + timedelta(days=14),
+    )
+    crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=D,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="mostraxe",
+        conto=3.0,
+        unidade_conto="individuos por planta",
+        persoa_id=xan.id,
+        visita_id=visita.id,
+    )
+    crear_recomendacion(
+        session,
+        ana,
+        horta.id,
+        asesor_persoa_id=bieito.id,
+        data=D,
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        problemas=[Problema(tipo="praga", codigo="10")],
+        xustificacions=["Presenza confirmada"],
+        produtos=[LinhaProduto(tipo_produto="1", unidade="5", nome_comercial="BioFito")],
+        valida_ata=D + timedelta(days=7),
+        visita_id=visita.id,
+    )
+
+    xlsx_bytes = informe_visita(session, ana, visita.id)
+    assert isinstance(xlsx_bytes, bytes)
+    assert len(xlsx_bytes) > 0
+
+    wb = load_workbook(BytesIO(xlsx_bytes))
+    ws = wb.active
+    assert ws is not None
+
+    valores = [
+        str(cell.value)
+        for row in ws.iter_rows()
+        for cell in row
+        if cell.value is not None
+    ]
+    texto_total = " ".join(valores)
+
+    # Comprobar que leva o título, data, asesor, observación e recomendación
+    assert "Informe da visita de campo" in texto_total
+    assert "10/05/2026" in texto_total
+    assert "Bieito" in texto_total
+    assert "Escaravello da pataca" in texto_total or "10" in texto_total
+    assert "BioFito" in texto_total or "pendente" in texto_total
+
+    # Lector pode xerar o informe
+    carlos = _usuario(session, "carlos@example.com")
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
+    lector_bytes = informe_visita(session, carlos, visita.id)
+    assert len(lector_bytes) > 0
