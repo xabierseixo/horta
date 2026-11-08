@@ -42,17 +42,19 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Directorio único de persoas e entidades: equipo de traballo, clientes, provedores, asesores e veterinarios.
 - Xestión económica de gastos, ingresos e custos de man de obra.
 - Plan de empresa para solicitudes de axudas.
+- Arquivo de documentos e certificacións (certificado ecolóxico, GlobalG.A.P., seguros, inspeccións, carnés…), con aviso antes da súa caducidade.
 - Acceso multiusuario con permisos de administración, edición ou consulta.
+- Cumprimento do RGPD: aviso legal, política de privacidade, aceptación expresa, descarga dos datos persoais e borrado da conta.
 
 ## Documentación xerada
 
-| Documento | Formato |
-|---|---|
-| Caderno de explotación (modelo da Xunta de Galicia) | Excel |
-| Caderno Dixital de Explotación Agrícola (CUE) | Excel e JSON |
-| Libro de rexistro gandeiro | Excel |
-| Rexistro de medicamentos veterinarios | Excel |
-| Plan de empresa (Anexos III e V) | Excel |
+- Caderno de explotación (modelo da Xunta de Galicia).
+- Caderno Dixital de Explotación Agrícola (CUE).
+- Libro de rexistro gandeiro.
+- Rexistro de medicamentos veterinarios.
+- Plan de empresa (Anexos III e V).
+
+Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV e XML. Os datos do CUE tamén se poden obter en JSON.
 
 A aplicación indica en cada momento os datos que faltan para completar o caderno, sen impedir a súa descarga.
 
