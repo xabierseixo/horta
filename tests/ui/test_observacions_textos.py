@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 from horta.models.observacion import ObservacionPraga
 from horta.ui.layout import SECCIONS
-from horta.ui.pages.diario import ICONAS, SECCION_DO_TIPO, _CONSTRUTORES, _MODELOS
+from horta.ui.pages.diario import _CONSTRUTORES, _MODELOS, ICONAS, SECCION_DO_TIPO
 from horta.ui.pages.observacions import (
     dialogo_observacion,
     texto_conto_ou_nivel,

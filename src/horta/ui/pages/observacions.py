@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
-from typing import Any
 
 from nicegui import ui
 
@@ -61,7 +60,7 @@ def texto_conto_ou_nivel(
     """Texto descritivo do conto ou nivel observado para a táboa e as tarxetas."""
     nivel_str = NIVEIS.get(nivel, nivel) if nivel else ""
     if conto is not None:
-        u_str = UNIDADES_CONTO.get(unidade, unidade) if unidade else ""
+        u_str = UNIDADES_CONTO.get(unidade, unidade).lower() if unidade else ""
         txt = f"{conto:g} {u_str}".strip() if u_str else f"{conto:g}"
         if nivel_str:
             txt = f"{txt} ({nivel_str})"
