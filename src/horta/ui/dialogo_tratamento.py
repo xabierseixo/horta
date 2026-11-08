@@ -23,6 +23,12 @@ from horta.services.fito_consulta import (
     dose_etiqueta,
     materia_activa,
 )
+from horta.services.observacions import (
+    NIVEIS,
+    UNIDADES_CONTO,
+    limiar_para,
+    observacions_para_xustificar,
+)
 from horta.services.recomendacions import (
     actualizar_recomendacion,
     crear_recomendacion,
@@ -99,6 +105,66 @@ def _papeleira(lista: list[dict[str, Any]], fila: dict[str, Any],
     ui.button(icon="delete", on_click=quitar).props("flat dense round").tooltip("Quitar")
 
 
+def texto_xustificacion_observacion(
+    obs: Any,
+    limiar: Any = None,
+) -> str:
+    """Texto dunha observación para xustificar o tratamento fitosanitario."""
+    if obs is None:
+        return ""
+    if isinstance(obs, dict):
+        data = obs.get("data")
+        conto = obs.get("conto")
+        unidade = obs.get("unidade_conto")
+        nivel = obs.get("nivel")
+    else:
+        data = getattr(obs, "data", None)
+        conto = getattr(obs, "conto", None)
+        unidade = getattr(obs, "unidade_conto", None)
+        nivel = getattr(obs, "nivel", None)
+
+    if data is None:
+        return ""
+    if isinstance(data, date):
+        data_str = data.strftime("%d/%m")
+    else:
+        d_parseada = parsear_data(str(data))
+        data_str = d_parseada.strftime("%d/%m") if d_parseada else str(data)
+
+    partes_detalle: list[str] = []
+    if conto is not None:
+        if unidade:
+            u_str = UNIDADES_CONTO.get(unidade, unidade).lower()
+            partes_detalle.append(f"{conto:g} {u_str}".strip())
+        else:
+            partes_detalle.append(f"{conto:g}")
+        if nivel:
+            nivel_str = NIVEIS.get(nivel, nivel)
+            partes_detalle.append(f"({nivel_str})")
+    elif nivel:
+        nivel_txt = NIVEIS.get(nivel, nivel).lower()
+        if nivel == "sen":
+            partes_detalle.append("sen presenza")
+        else:
+            partes_detalle.append(f"nivel {nivel_txt}")
+
+    detalle = " ".join(partes_detalle).strip()
+
+    if isinstance(limiar, dict):
+        valor_limiar = limiar.get("valor")
+    elif hasattr(limiar, "valor"):
+        valor_limiar = getattr(limiar, "valor")
+    elif isinstance(limiar, (int, float)):
+        valor_limiar = limiar
+    else:
+        valor_limiar = None
+
+    sufixo_limiar = f" (limiar {valor_limiar:g})" if valor_limiar is not None else ""
+    if detalle:
+        return f"Observación do {data_str}: {detalle}{sufixo_limiar}"
+    return f"Observación do {data_str}{sufixo_limiar}"
+
+
 def crear_dialogo_tratamento(
     horta_id: int, op: OpcionsTratamento
 ) -> Callable[..., None]:
@@ -128,6 +194,60 @@ def crear_dialogo_tratamento(
 
     def cultivo_id_actual() -> int | None:
         return next((f["cultivo_id"] for f in estado["cultivos"] if f["cultivo_id"]), None)
+
+    def primeiro_problema() -> tuple[str, str] | None:
+        for f in estado["problemas"]:
+            if f.get("codigo"):
+                return f.get("tipo", "praga"), f["codigo"]
+        return None
+
+    xustificacion_creada = False
+
+    @ui.refreshable
+    def xustificacion_observacions() -> None:
+        nonlocal xustificacion_creada
+        xustificacion_creada = True
+        cid = cultivo_id_actual()
+        prob = primeiro_problema()
+        if cid is None or prob is None:
+            return
+        try:
+            ata = parsear_data(data_inicio.value) or date.today()
+        except ValueError:
+            ata = date.today()
+        with get_session() as session:
+            actor = usuario_actual(session)
+            if actor is None:
+                return
+            try:
+                obs_list = observacions_para_xustificar(
+                    session, actor, cid, prob[0], prob[1], ata=ata
+                )
+            except Exception:
+                obs_list = []
+            if not obs_list:
+                return
+            for obs in obs_list:
+                limiar = None
+                if obs.unidade_conto and obs.metodo:
+                    try:
+                        limiar = limiar_para(
+                            session,
+                            horta_id,
+                            cid,
+                            obs.problema_tipo,
+                            obs.problema_codigo,
+                            obs.metodo,
+                            obs.unidade_conto,
+                        )
+                    except Exception:
+                        limiar = None
+                txt = texto_xustificacion_observacion(obs, limiar)
+                ui.label(txt).classes("text-caption texto-suave")
+
+    def refrescar_xustificacion() -> None:
+        if xustificacion_creada:
+            xustificacion_observacions.refresh()
 
     def actualizar_etiquetas() -> None:
         cid = cultivo_id_actual()
@@ -184,10 +304,16 @@ def crear_dialogo_tratamento(
                     for fila in estado["cultivos"]:
                         with ui.row().classes("w-full items-end gap-2"):
                             def escoller_cultivo(e: Any, f: dict[str, Any] = fila) -> None:
+                                f["cultivo_id"] = e.value
                                 if not f["superficie"] and e.value in op.superficies:
                                     f["superficie"] = _txt(op.superficies[e.value])
                                 mirar_tempo()
                                 actualizar_etiquetas()
+                                refrescar_xustificacion()
+
+                            def refrescar_cultivos() -> None:
+                                filas_cultivos.refresh()
+                                refrescar_xustificacion()
 
                             ui.select(op.cultivos, label="Cultivo e parcela",
                                       with_input=True, on_change=escoller_cultivo).bind_value(
@@ -196,7 +322,7 @@ def crear_dialogo_tratamento(
                                 "w-28")
                             ui.select(op.estados, label="Estado fenolóxico").bind_value(
                                 fila, "estado").classes("w-40")
-                            _papeleira(estado["cultivos"], fila, filas_cultivos.refresh)
+                            _papeleira(estado["cultivos"], fila, refrescar_cultivos)
 
                     def engadir() -> None:
                         estado["cultivos"].append(fila_cultivo())
@@ -218,6 +344,7 @@ def crear_dialogo_tratamento(
                     def seguir_paso_1() -> None:
                         # Os problemas do cultivo escollido van primeiro (Y5)
                         filas_problemas.refresh()
+                        refrescar_xustificacion()
                         fin_val = (
                             data_fin.value
                             or (data_inicio.value if estado.get("modo") == "recomendacion" else "")
@@ -230,12 +357,20 @@ def crear_dialogo_tratamento(
 
                 @ui.refreshable
                 def filas_problemas() -> None:
+                    def refrescar_problemas() -> None:
+                        filas_problemas.refresh()
+                        refrescar_xustificacion()
+
                     for fila in estado["problemas"]:
                         with ui.row().classes("w-full items-end gap-2"):
 
                             def cambiar_tipo(e: Any, f: dict[str, Any] = fila) -> None:
                                 f["tipo"], f["codigo"] = e.value, None
-                                filas_problemas.refresh()
+                                refrescar_problemas()
+
+                            def escoller_problema(e: Any, f: dict[str, Any] = fila) -> None:
+                                f["codigo"] = e.value
+                                refrescar_xustificacion()
 
                             ui.select(ETIQUETA_PROBLEMA, value=fila["tipo"], label="Tipo",
                                       on_change=cambiar_tipo).classes("w-48")
@@ -245,18 +380,20 @@ def crear_dialogo_tratamento(
                                 for c in estado["cultivos"]))
                             ui.select(ordenar_problemas(op.problemas[fila["tipo"]], do_cultivo,
                                                         fila["codigo"]),
-                                      label="Problema", with_input=True).bind_value(
+                                      label="Problema", with_input=True,
+                                      on_change=escoller_problema).bind_value(
                                 fila, "codigo").classes("grow")
-                            _papeleira(estado["problemas"], fila, filas_problemas.refresh)
+                            _papeleira(estado["problemas"], fila, refrescar_problemas)
 
                     def engadir() -> None:
                         estado["problemas"].append(fila_problema())
-                        filas_problemas.refresh()
+                        refrescar_problemas()
 
                     ui.button("Engadir problema", icon="add", on_click=engadir).props(
                         "flat dense")
 
                 filas_problemas()
+                xustificacion_observacions()
                 xustificacions = ui.select(op.xustificacions, label="Xustificacións",
                                            multiple=True).classes("w-full").props("use-chips")
                 with ui.stepper_navigation():
@@ -462,7 +599,10 @@ def crear_dialogo_tratamento(
 
                 lista_avisos()
                 pasos.on_value_change(
-                    lambda e: lista_avisos.refresh() if e.value == _PASO_RESULTADO else None)
+                    lambda e: lista_avisos.refresh() if e.value == _PASO_RESULTADO else (
+                        refrescar_xustificacion() if e.value == "2. Por que" else None
+                    )
+                )
 
                 def gardar() -> None:
                     with get_session() as session:
@@ -719,6 +859,7 @@ def crear_dialogo_tratamento(
             orixinais,
         ):
             refrescar.refresh()
+        refrescar_xustificacion()
         pasos.set_value("1. Que e onde")
         mirar_tempo()
         dialogo.open()

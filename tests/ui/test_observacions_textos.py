@@ -6,6 +6,7 @@ from datetime import date
 from types import SimpleNamespace
 
 from horta.models.observacion import ObservacionPraga
+from horta.ui.dialogo_tratamento import texto_xustificacion_observacion
 from horta.ui.layout import SECCIONS
 from horta.ui.pages.diario import _CONSTRUTORES, _MODELOS, ICONAS, SECCION_DO_TIPO
 from horta.ui.pages.observacions import (
@@ -184,3 +185,101 @@ def test_constantes_e_dialogo_limiares() -> None:
     assert "mapa.gob.es" in LIGAZON_GUIAS_MAPA
     assert "guía" in HINT_FONTE_LIMIAR.lower()
     assert callable(dialogo_limiares)
+
+
+def test_texto_xustificacion_observacion_con_conto_e_limiar() -> None:
+    obs = SimpleNamespace(
+        data=date(2026, 5, 10),
+        conto=12.0,
+        unidade_conto="capturas por trampa",
+        nivel=None,
+    )
+    limiar = SimpleNamespace(valor=10.0)
+    assert (
+        texto_xustificacion_observacion(obs, limiar)
+        == "Observación do 10/05: 12 capturas por trampa (limiar 10)"
+    )
+
+
+def test_texto_xustificacion_observacion_sen_limiar() -> None:
+    obs = SimpleNamespace(
+        data=date(2026, 5, 10),
+        conto=5.0,
+        unidade_conto="capturas por trampa",
+        nivel=None,
+    )
+    assert (
+        texto_xustificacion_observacion(obs)
+        == "Observación do 10/05: 5 capturas por trampa"
+    )
+
+
+def test_texto_xustificacion_observacion_so_nivel() -> None:
+    obs = SimpleNamespace(
+        data=date(2026, 5, 2),
+        conto=None,
+        unidade_conto=None,
+        nivel="alto",
+    )
+    assert texto_xustificacion_observacion(obs) == "Observación do 02/05: nivel alto"
+    assert (
+        texto_xustificacion_observacion(obs, 15.0)
+        == "Observación do 02/05: nivel alto (limiar 15)"
+    )
+
+
+def test_texto_xustificacion_observacion_so_nivel_sen_presenza() -> None:
+    obs = SimpleNamespace(
+        data=date(2026, 5, 2),
+        conto=None,
+        unidade_conto=None,
+        nivel="sen",
+    )
+    assert texto_xustificacion_observacion(obs) == "Observación do 02/05: sen presenza"
+
+
+def test_texto_xustificacion_observacion_conto_e_nivel() -> None:
+    obs = SimpleNamespace(
+        data=date(2026, 5, 10),
+        conto=10.0,
+        unidade_conto="capturas por trampa",
+        nivel="medio",
+    )
+    limiar = SimpleNamespace(valor=8.0)
+    assert (
+        texto_xustificacion_observacion(obs, limiar)
+        == "Observación do 10/05: 10 capturas por trampa (Medio) (limiar 8)"
+    )
+
+
+def test_texto_xustificacion_observacion_data_en_string() -> None:
+    obs = SimpleNamespace(
+        data="2026-04-18",
+        conto=3.0,
+        unidade_conto="% de follas",
+        nivel=None,
+    )
+    assert (
+        texto_xustificacion_observacion(obs)
+        == "Observación do 18/04: 3 % de follas"
+    )
+
+
+def test_texto_xustificacion_observacion_dicionario() -> None:
+    obs = {
+        "data": date(2026, 6, 1),
+        "conto": 7.0,
+        "unidade_conto": "% de plantas",
+        "nivel": None,
+    }
+    limiar = {"valor": 5.0}
+    assert (
+        texto_xustificacion_observacion(obs, limiar)
+        == "Observación do 01/06: 7 % de plantas (limiar 5)"
+    )
+
+
+def test_texto_xustificacion_observacion_baleiro_ou_sen_data() -> None:
+    assert texto_xustificacion_observacion(None) == ""
+    assert texto_xustificacion_observacion(SimpleNamespace(data=None)) == ""
+
