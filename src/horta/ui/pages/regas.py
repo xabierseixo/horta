@@ -33,6 +33,7 @@ from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.leiras import leiras_escollidas
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -69,8 +70,11 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
             ("data", "Data"), ("cultivo", "Cultivo"), ("sistema", "Sistema"),
             ("auga", "Auga"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai regas" {TEXTOS_TABOA}')
+
+    accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "data", ["cultivo", "auga"], accions_tarxeta)
 
     if not pode_editar:
         return
@@ -106,10 +110,17 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
         confirmar_eliminacion(
             "Dar de baixa esta rega? Non se borra: consérvase no histórico.", confirmar)
 
+    accions_tarxeta += [("Editar", "edit", editar),
+                        ("Dar de baixa", "archive", dar_de_baixa)]
+
     with ui.row():
         ui.button("Apuntar rega", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+        ui.button("Editar", icon="edit", on_click=editar).props("outline").classes(
+            "so-ordenador"
+        )
+        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline").classes(
+            "so-ordenador"
+        )
 
 
 def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:

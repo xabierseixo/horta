@@ -10,7 +10,7 @@ from nicegui import ui
 def abrir_ficha(
     titulo: str,
     datos: list[tuple[str, str]],
-    historial: list[str],
+    historial: list[str] | None,
     fotos: Callable[[], None] | None = None,
     accions: list[tuple[str, str, Callable[[], None]]] | None = None,
 ) -> None:
@@ -26,13 +26,14 @@ def abrir_ficha(
                     ui.label(etiqueta).classes("texto-suave")
                     ui.label(valor)
 
-        ui.label("Historial").classes("text-weight-medium q-mt-sm")
-        with ui.column().classes("gap-0"):
-            if historial:
-                for lina in historial:
-                    ui.label(lina).classes("texto-suave")
-            else:
-                ui.label("Aínda non hai traballos").classes("texto-suave")
+        if historial is not None:
+            ui.label("Historial").classes("text-weight-medium q-mt-sm")
+            with ui.column().classes("gap-0"):
+                if historial:
+                    for lina in historial:
+                        ui.label(lina).classes("texto-suave")
+                else:
+                    ui.label("Aínda non hai traballos").classes("texto-suave")
 
         if fotos is not None:
             ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline").classes(
