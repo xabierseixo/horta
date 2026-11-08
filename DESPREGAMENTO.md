@@ -4,13 +4,23 @@ Instrucións para instalar a aplicación nun servidor e mantela en funcionamento
 
 ## Requisitos
 
-- Servidor Linux (Debian 12, Ubuntu 22.04 ou posterior).
-- Python 3.11 ou posterior e [uv](https://docs.astral.sh/uv/).
-- Bibliotecas do sistema para xerar PDF (WeasyPrint):
-  ```bash
-  sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b
-  ```
-- Un dominio e un proxy inverso con HTTPS (por exemplo, Caddy ou nginx).
+- Calquera sistema onde funcione Python 3.11 ou posterior. Para servidores recoméndase Linux (Debian, Ubuntu, Fedora, Rocky/AlmaLinux, openSUSE, Arch…), pero a aplicación tamén funciona en macOS e Windows.
+- [uv](https://docs.astral.sh/uv/) ou, se non, `pip` (ver o paso 1).
+- A biblioteca Pango, que usa WeasyPrint para xerar os PDF:
+
+  | Sistema | Orde |
+  |---|---|
+  | Debian, Ubuntu | `sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0` |
+  | Fedora, Rocky, AlmaLinux, RHEL | `sudo dnf install pango` |
+  | openSUSE | `sudo zypper install pango` |
+  | Arch | `sudo pacman -S pango` |
+  | Alpine | `sudo apk add pango` |
+  | macOS | `brew install pango` |
+  | Windows | Instalar Pango con [MSYS2](https://www.msys2.org/) (`pacman -S mingw-w64-x86_64-pango`), como indica a documentación de WeasyPrint |
+
+- Un dominio e un proxy inverso con HTTPS: Caddy, nginx ou Apache, por exemplo.
+
+Os exemplos de usuario do sistema e de servizo (pasos 1 e 5) son para Linux con systemd. Noutros sistemas úsase o seu equivalente: un servizo de Windows, `launchd` en macOS ou outro xestor de procesos.
 
 ## 1. Instalación
 
@@ -141,7 +151,11 @@ A aplicación escoita no porto 8081.
 
 ## 6. Proxy inverso con HTTPS
 
-Exemplo con Caddy (`/etc/caddy/Caddyfile`), que obtén o certificado automaticamente:
+A aplicación escoita no porto 8081 en todas as interfaces do servidor. O proxy inverso dálle o dominio e o HTTPS, e ten que permitir WebSocket, porque a interface depende del. Convén pechar o porto 8081 no cortalumes (por exemplo, `ufw deny 8081` ou `firewall-cmd --remove-port=8081/tcp`), para que só se poida entrar a través do proxy.
+
+### Caddy
+
+`/etc/caddy/Caddyfile` (obtén o certificado automaticamente):
 
 ```
 agroxest360.exemplo.gal {
@@ -149,7 +163,51 @@ agroxest360.exemplo.gal {
 }
 ```
 
-Se se usa nginx, o proxy ten que permitir WebSocket (cabeceiras `Upgrade` e `Connection`), porque a interface depende del.
+### nginx
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name agroxest360.exemplo.gal;
+    ssl_certificate     /etc/letsencrypt/live/agroxest360.exemplo.gal/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/agroxest360.exemplo.gal/privkey.pem;
+    client_max_body_size 25m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 1h;
+    }
+}
+```
+
+### Apache (2.4.47 ou posterior)
+
+Activar os módulos: `a2enmod proxy proxy_http proxy_wstunnel headers ssl` (en Debian/Ubuntu; noutros sistemas, cargalos en `httpd.conf`).
+
+```apache
+<VirtualHost *:443>
+    ServerName agroxest360.exemplo.gal
+    SSLEngine on
+    SSLCertificateFile    /etc/letsencrypt/live/agroxest360.exemplo.gal/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/agroxest360.exemplo.gal/privkey.pem
+    LimitRequestBody 26214400
+
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    ProxyPass        / http://127.0.0.1:8081/ upgrade=websocket timeout=3600
+    ProxyPassReverse / http://127.0.0.1:8081/
+</VirtualHost>
+```
+
+Nas versións de Apache anteriores á 2.4.47, o WebSocket configúrase con `mod_rewrite`, redirixindo as peticións con `Upgrade: websocket` a `ws://127.0.0.1:8081/`.
+
+O límite de 25 MB do tamaño das peticións permite subir documentos de ata 20 MB.
 
 ## 7. Catálogos oficiais
 
