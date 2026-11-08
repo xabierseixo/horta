@@ -18,7 +18,7 @@ def pagina_erro_html(titulo: str, mensaxe: str, codigo: int) -> HTMLResponse:
 <html lang="gl">
 <head>
     <meta charset="utf-8">
-    <title>{titulo} — Horta</title>
+    <title>{titulo} — AgroXest360</title>
     <style>
         body {{
             background: {COR_FONDO};

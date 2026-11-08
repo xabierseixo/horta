@@ -23,7 +23,7 @@ def login_page() -> None:
         app.storage.user.clear()
 
     with ui.card().classes("absolute-center"):
-        ui.label("Horta — Acceso").classes("text-xl font-bold")
+        ui.label("AgroXest360 — Acceso").classes("text-xl font-bold")
         email_input = ui.input("Email")
         contrasinal_input = ui.input("Contrasinal", password=True)
         mensaxe_erro = ui.label("").classes("text-negative")

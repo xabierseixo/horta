@@ -107,7 +107,7 @@ def main() -> None:
     activar_actualizacions()
     ui.run(
         port=8081,
-        title="Horta",
+        title="AgroXest360",
         storage_secret=segredo_sesion(),
         reload=False,
     )

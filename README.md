@@ -1,10 +1,10 @@
-# Horta
+# AgroXest360
 
 Aplicación web para a xestión integral de explotacións agrarias e gandeiras de Galiza.
 
 ## Descrición
 
-Horta centraliza nun único rexistro a actividade da explotación: as parcelas e os cultivos, os animais, os traballos realizados, os insumos adquiridos, a produción e a súa comercialización.
+AgroXest360 centraliza nun único rexistro a actividade da explotación: as parcelas e os cultivos, os animais, os traballos realizados, os insumos adquiridos, a produción e a súa comercialización.
 
 A partir dese rexistro, a aplicación xera a documentación esixida pola normativa: o caderno de explotación, os libros de rexistro gandeiro e a trazabilidade dos lotes. Ademais, achega a información económica necesaria para a planificación da explotación. Cada dato introdúcese unha soa vez e utilízase en todos os documentos nos que é necesario.
 

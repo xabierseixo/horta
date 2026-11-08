@@ -107,13 +107,13 @@ def marco_horta(
         ui.button(icon="menu", on_click=menu.toggle).props(
             'flat round color=white aria-label="Abrir menú"'
         )
-        ui.label(hortas.get(horta_id, "Horta")).classes("text-white text-subtitle1")
+        ui.label(hortas.get(horta_id, "AgroXest360")).classes("text-white text-subtitle1")
 
     with menu:
         with ui.column().classes("w-full gap-1 no-wrap").style("min-height: 100%"):
             with ui.link(target="/").classes("menu-marca"):
                 ui.icon("eco", color="green-3").classes("text-h5")
-                ui.label("Horta")
+                ui.label("AgroXest360")
             ui.select(
                 {**hortas, NOVA_EXPLOTACION: "+ Nova explotación"},
                 value=horta_id,

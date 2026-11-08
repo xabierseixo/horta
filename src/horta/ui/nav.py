@@ -20,7 +20,7 @@ def cabeceira_paxina(*, titulo_horta: str | None = None, mostrar_admin: bool = F
     """
     aplicar_paleta()
     with ui.row().classes("w-full items-center q-mb-md"):
-        ui.link("🌱 Horta", "/").classes("text-lg font-bold no-underline")
+        ui.link("🌱 AgroXest360", "/").classes("text-lg font-bold no-underline")
         if titulo_horta is not None:
             ui.label("›").classes("text-grey")
             ui.label(titulo_horta).classes("text-lg")
