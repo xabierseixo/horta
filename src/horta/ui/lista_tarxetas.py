@@ -13,9 +13,11 @@ from horta.ui.ficha import abrir_ficha
 def lista_tarxetas(
     elementos: list[tuple[int, str, str]],
     ao_tocar: Callable[[int], None],
+    baleiro: str = "Aínda non hai nada apuntado",
 ) -> None:
     """Debuxa unha lista de tarxetas para pantallas móbiles."""
     if not elementos:
+        ui.label(baleiro).classes("so-movil texto-suave")
         return
 
     with ui.column().classes("so-movil w-full gap-2"):
@@ -85,7 +87,8 @@ def tarxetas_da_taboa(
                 accions=accions or None,
             )
 
-        lista_tarxetas(elementos, ao_tocar=ao_tocar)
+        baleiro = taboa.props.get("no-data-label") or "Aínda non hai nada apuntado"
+        lista_tarxetas(elementos, ao_tocar=ao_tocar, baleiro=str(baleiro))
 
     debuxar()
     return debuxar
