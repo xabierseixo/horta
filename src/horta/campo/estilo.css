@@ -1,0 +1,528 @@
+:root {
+  --cor-primaria: #2F7D4F;
+  --cor-primaria-escura: #1F5C38;
+  --cor-menu: #1F3A2B;
+  --cor-fondo: #F4F6F3;
+  --cor-superficie: #FFFFFF;
+  --cor-bordo: #B8C7BD;
+  --cor-bordo-escuro: #738C7A;
+  --cor-texto: #102016;
+  --cor-texto-suave: #35473B;
+  --cor-ok: #1F5C38;
+  --cor-ok-fondo: #DCEFE2;
+  --cor-ok-bordo: #6CAE83;
+  --cor-aviso: #8A4E00;
+  --cor-aviso-fondo: #FFF1D6;
+  --cor-aviso-bordo: #F0B859;
+  --cor-erro: #B3261E;
+  --cor-erro-fondo: #FDE8E7;
+  --cor-erro-bordo: #E58682;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--cor-fondo);
+  color: var(--cor-texto);
+  font-size: 18px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+}
+
+.contedor-app {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 12px 14px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Cabeceira */
+.cabeceira-app {
+  background: var(--cor-superficie);
+  border: 2px solid var(--cor-bordo);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cabeceira-fila-superior {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icona-marca {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.titulo-marca {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--cor-primaria-escura);
+  letter-spacing: -0.01em;
+}
+
+/* Indicador de cobertura */
+.indicador-cobertura {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.indicador-cobertura.con {
+  background-color: var(--cor-ok-fondo);
+  color: var(--cor-ok);
+  border-color: var(--cor-ok-bordo);
+}
+
+.indicador-cobertura.sen {
+  background-color: var(--cor-aviso-fondo);
+  color: var(--cor-aviso);
+  border-color: var(--cor-aviso-bordo);
+}
+
+.punto-estado {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* Barra da explotación */
+.barra-explotacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background-color: var(--cor-fondo);
+  border-radius: 8px;
+  border: 1px solid var(--cor-bordo);
+  font-size: 15px;
+}
+
+.info-explotacion {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.etiqueta-pequena {
+  color: var(--cor-texto-suave);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.nome-explotacion {
+  color: var(--cor-texto);
+  font-weight: 700;
+}
+
+.btn-ligazon {
+  background: none;
+  border: none;
+  color: var(--cor-primaria-escura);
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Barra de sincronización */
+.barra-sincronizacion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 2px solid var(--cor-fondo);
+  padding-top: 8px;
+}
+
+.estado-sincro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.texto-datos {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.accions-cola {
+  display: flex;
+  gap: 8px;
+}
+
+.accions-cola > .btn {
+  flex: 1;
+}
+
+/* Tarxetas e Contedores */
+.tarxeta {
+  background: var(--cor-superficie);
+  border: 2px solid var(--cor-bordo);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.titulo-seccion {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--cor-texto);
+  line-height: 1.2;
+}
+
+.texto-explicativo {
+  font-size: 16px;
+  color: var(--cor-texto-suave);
+}
+
+.texto-axuda {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  line-height: 1.4;
+}
+
+/* Botóns */
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 52px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primario {
+  background-color: var(--cor-primaria);
+  color: #FFFFFF;
+}
+
+.btn-primario:active {
+  background-color: var(--cor-primaria-escura);
+}
+
+.btn-secundario {
+  background-color: var(--cor-fondo);
+  color: var(--cor-texto);
+  border-color: var(--cor-bordo-escuro);
+}
+
+.btn-pequeno {
+  min-height: 42px;
+  padding: 6px 12px;
+  font-size: 15px;
+}
+
+.btn-bloque {
+  width: 100%;
+}
+
+.btn-perigo {
+  background-color: var(--cor-erro-fondo);
+  color: var(--cor-erro);
+  border-color: var(--cor-erro-bordo);
+}
+
+/* Reixa de accións principais no campo */
+.reixa-accions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn-accion {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 72px;
+  padding: 14px 18px;
+  background-color: var(--cor-superficie);
+  border: 3px solid var(--cor-bordo);
+  border-radius: 16px;
+  color: var(--cor-texto);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-accion:active {
+  background-color: var(--cor-fondo);
+  border-color: var(--cor-primaria);
+  transform: scale(0.99);
+}
+
+.icono-accion {
+  font-size: 34px;
+  flex-shrink: 0;
+  width: 44px;
+  text-align: center;
+}
+
+.texto-accion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titulo-accion {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.subtitulo-accion {
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+  font-weight: 500;
+}
+
+/* Campos de Formulario */
+.campo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.fila-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 440px) {
+  .fila-campos {
+    grid-template-columns: 1fr;
+  }
+}
+
+.etiqueta {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.input-texto,
+.input-select,
+.input-textarea {
+  min-height: 52px;
+  padding: 10px 14px;
+  font-size: 18px;
+  color: var(--cor-texto);
+  background-color: #FFFFFF;
+  border: 2px solid var(--cor-bordo-escuro);
+  border-radius: 10px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.input-texto:focus,
+.input-select:focus,
+.input-textarea:focus {
+  outline: none;
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 3px rgba(47, 125, 79, 0.2);
+}
+
+.input-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Formulario */
+.cabeceira-formulario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 2px solid var(--cor-fondo);
+  padding-bottom: 10px;
+}
+
+.titulo-formulario {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.accions-formulario {
+  margin-top: 12px;
+}
+
+/* Avisos e Notificacións */
+.contedor-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aviso {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  border: 2px solid transparent;
+}
+
+.aviso-ok {
+  background-color: var(--cor-ok-fondo);
+  color: var(--cor-ok);
+  border-color: var(--cor-ok-bordo);
+}
+
+.aviso-info {
+  background-color: #E6F0FA;
+  color: #124A80;
+  border-color: #92BCE3;
+}
+
+.aviso-erro {
+  background-color: var(--cor-erro-fondo);
+  color: var(--cor-erro);
+  border-color: var(--cor-erro-bordo);
+}
+
+.btn-pechar-aviso {
+  background: none;
+  border: none;
+  font-size: 20px;
+  font-weight: 800;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 12px;
+}
+
+/* Listas (Explotacións, Tarefas, Cola) */
+.lista-botons,
+.lista-tarefas,
+.lista-cola {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-explotacion {
+  min-height: 64px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.item-tarefa,
+.item-cola {
+  background: var(--cor-fondo);
+  border: 2px solid var(--cor-bordo);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-tarefa:active {
+  border-color: var(--cor-primaria);
+}
+
+.item-tarefa-fila-superior,
+.item-cola-fila-superior {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.item-tarefa-titulo,
+.item-cola-titulo {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.item-tarefa-data,
+.item-cola-data {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.item-tarefa-detalles,
+.item-cola-detalles {
+  font-size: 15px;
+  color: var(--cor-texto-suave);
+}
+
+.item-cola-erro {
+  background-color: var(--cor-erro-fondo);
+  color: var(--cor-erro);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--cor-erro-bordo);
+}
+
+.item-cola-pe {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.accions-cola-vista {
+  margin-top: 12px;
+}
+
+.oculta {
+  display: none !important;
+}

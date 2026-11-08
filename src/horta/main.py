@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from fastapi import Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from nicegui import Client, app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -33,6 +35,7 @@ def ruta_e_publica(path: str) -> bool:
         or path.startswith("/legal/aviso")
         or path.startswith("/legal/privacidade")
         or path.startswith("/api/")
+        or path.startswith("/campo")
     )
 
 
@@ -155,6 +158,9 @@ def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
 from horta.api.campo import router as campo_router  # noqa: E402
 
 app.include_router(campo_router)
+
+_CAMPO_DIR = Path(__file__).parent / "campo"
+app.mount("/campo", StaticFiles(directory=_CAMPO_DIR, html=True), name="campo")
 
 
 import horta.ui.admin.catalogos  # noqa: E402,F401

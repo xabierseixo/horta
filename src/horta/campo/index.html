@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="gl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>AgroXest360 Campo</title>
+  <link rel="manifest" href="/campo/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/campo/icona.svg">
+  <meta name="theme-color" content="#2F7D4F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="AgroXest360 Campo">
+  <link rel="stylesheet" href="/campo/estilo.css">
+</head>
+<body>
+  <div id="app" class="contedor-app">
+    <!-- Barra superior de estado -->
+    <header class="cabeceira-app">
+      <div class="cabeceira-fila-superior">
+        <div class="marca">
+          <img src="/campo/icona.svg" alt="Icona folla" class="icona-marca">
+          <h1 class="titulo-marca">AgroXest360 Campo</h1>
+        </div>
+        <div id="indicador-rede" class="indicador-cobertura con" role="status">
+          <span class="punto-estado"></span>
+          <span id="texto-indicador-rede">Con cobertura</span>
+        </div>
+      </div>
+
+      <div id="barra-explotacion" class="barra-explotacion oculta">
+        <div class="info-explotacion">
+          <span class="etiqueta-pequena">Explotación:</span>
+          <strong id="nome-explotacion-activa" class="nome-explotacion">—</strong>
+        </div>
+        <button id="btn-cambiar-explotacion" class="btn-ligazon" type="button">Cambiar</button>
+      </div>
+
+      <div id="barra-sincronizacion" class="barra-sincronizacion oculta">
+        <div class="estado-sincro">
+          <span id="texto-data-datos" class="texto-datos">Sen datos descargados</span>
+          <button id="btn-actualizar-datos" class="btn btn-pequeno" type="button">Actualizar datos</button>
+        </div>
+        <div class="accions-cola">
+          <button id="btn-ver-cola" class="btn btn-secundario btn-pequeno" type="button">
+            Por enviar (<span id="conta-pendentes">0</span>)
+          </button>
+          <button id="btn-enviar-cola" class="btn btn-primario btn-pequeno" type="button">
+            Enviar agora
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Notificacións / Avisos -->
+    <div id="contedor-avisos" class="contedor-avisos" aria-live="polite"></div>
+
+    <!-- 1. Vista Conexión -->
+    <section id="vista-conexion" class="vista">
+      <div class="tarxeta">
+        <h2 class="titulo-seccion">Conectar dispositivo</h2>
+        <p class="texto-explicativo">
+          Introduce a clave do teu dispositivo móbil para conectar coa app e descargar os datos da explotación.
+        </p>
+        <div class="campo-grupo">
+          <label for="input-clave" class="etiqueta">Clave do dispositivo</label>
+          <input id="input-clave" type="text" class="input-texto" placeholder="Pega aquí a clave" autocomplete="off" spellcheck="false">
+        </div>
+        <button id="btn-conectar-dispositivo" class="btn btn-primario btn-bloque" type="button">
+          Conectar dispositivo
+        </button>
+        <p class="texto-axuda">
+          Podes xerar unha clave dende a aplicación principal en Dispositivos móbiles ou escanear o código QR co móbil.
+        </p>
+      </div>
+    </section>
+
+    <!-- 2. Vista Selección de Explotación -->
+    <section id="vista-explotacions" class="vista oculta">
+      <div class="tarxeta">
+        <h2 class="titulo-seccion">Escolle a explotación</h2>
+        <p class="texto-explicativo">Selecciona a explotación coa que vas traballar no campo:</p>
+        <div id="lista-explotacions" class="lista-botons"></div>
+      </div>
+    </section>
+
+    <!-- 3. Vista Principal (Menú de Traballos) -->
+    <section id="vista-principal" class="vista oculta">
+      <h2 class="titulo-seccion">Apuntar traballo no campo</h2>
+      <div class="reixa-accions">
+        <button class="btn-accion" type="button" data-tipo="observacion">
+          <span class="icono-accion">🐛</span>
+          <span class="texto-accion">
+            <strong class="titulo-accion">Observación de praga</strong>
+            <span class="subtitulo-accion">Cultivo, praga, reconto ou nivel</span>
+          </span>
+        </button>
+
+        <button class="btn-accion" type="button" data-tipo="rega">
+          <span class="icono-accion">💧</span>
+          <span class="texto-accion">
+            <strong class="titulo-accion">Rega</strong>
+            <span class="subtitulo-accion">Litros ou m³, cultivo e sistema</span>
+          </span>
+        </button>
+
+        <button class="btn-accion" type="button" data-tipo="labor">
+          <span class="icono-accion">🚜</span>
+          <span class="texto-accion">
+            <strong class="titulo-accion">Labor</strong>
+            <span class="subtitulo-accion">Tipo de labor, cultivo e máquina</span>
+          </span>
+        </button>
+
+        <button class="btn-accion" type="button" data-tipo="colleita">
+          <span class="icono-accion">🧺</span>
+          <span class="texto-accion">
+            <strong class="titulo-accion">Colleita</strong>
+            <span class="subtitulo-accion">Cantidade, cultivo e lote</span>
+          </span>
+        </button>
+
+        <button class="btn-accion" type="button" data-tipo="tarefas">
+          <span class="icono-accion">✅</span>
+          <span class="texto-accion">
+            <strong class="titulo-accion">Facer unha tarefa</strong>
+            <span class="subtitulo-accion">Completar tarefas pendentes</span>
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 4. Vista Formulario de Rexistro -->
+    <section id="vista-formulario" class="vista oculta">
+      <div class="tarxeta">
+        <div class="cabeceira-formulario">
+          <button id="btn-cancelar-formulario" class="btn btn-secundario btn-pequeno" type="button">← Volver</button>
+          <h2 id="titulo-formulario" class="titulo-formulario">Apuntar</h2>
+        </div>
+
+        <form id="form-rexistro" novalidate>
+          <input type="hidden" id="form-tipo-rexistro">
+
+          <!-- Campos Comúns: Data e Quen o fixo -->
+          <div class="fila-campos">
+            <div class="campo-grupo">
+              <label for="campo-data" class="etiqueta">Data *</label>
+              <input id="campo-data" type="date" class="input-texto" required>
+            </div>
+            <div class="campo-grupo">
+              <label for="campo-persoa" class="etiqueta">Quen o fixo</label>
+              <select id="campo-persoa" class="input-select">
+                <option value="">(Selecciona unha persoa)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Campos Específicos Dinámicos -->
+          <div id="campos-dinamicos"></div>
+
+          <!-- Campo Notas Común -->
+          <div class="campo-grupo">
+            <label for="campo-notas" class="etiqueta">Notas adicionais</label>
+            <textarea id="campo-notas" class="input-textarea" rows="2" placeholder="Observacións ou detalles"></textarea>
+          </div>
+
+          <div class="accions-formulario">
+            <button type="submit" class="btn btn-primario btn-bloque">
+              Gardar no móbil
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 5. Vista Tarefas Pendentes -->
+    <section id="vista-tarefas" class="vista oculta">
+      <div class="tarxeta">
+        <div class="cabeceira-formulario">
+          <button id="btn-voltar-tarefas" class="btn btn-secundario btn-pequeno" type="button">← Volver</button>
+          <h2 class="titulo-formulario">Tarefas pendentes</h2>
+        </div>
+        <p class="texto-explicativo">Toca nunha tarefa para marcala como feita:</p>
+        <div id="lista-tarefas-pendentes" class="lista-tarefas"></div>
+      </div>
+    </section>
+
+    <!-- 6. Vista Cola de Pendentes -->
+    <section id="vista-cola" class="vista oculta">
+      <div class="tarxeta">
+        <div class="cabeceira-formulario">
+          <button id="btn-voltar-cola" class="btn btn-secundario btn-pequeno" type="button">← Volver</button>
+          <h2 class="titulo-formulario">Traballos por enviar</h2>
+        </div>
+        <div id="lista-cola-rexistros" class="lista-cola"></div>
+        <div class="accions-cola-vista">
+          <button id="btn-enviar-cola-vista" class="btn btn-primario btn-bloque" type="button">
+            Enviar agora á explotación
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="/campo/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "AgroXest360 Campo",
+  "short_name": "Campo",
+  "description": "App de campo sen cobertura para AgroXest360",
+  "start_url": "/campo/",
+  "scope": "/campo/",
+  "display": "standalone",
+  "background_color": "#F4F6F3",
+  "theme_color": "#2F7D4F",
+  "lang": "gl",
+  "icons": [
+    {
+      "src": "/campo/icona.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
