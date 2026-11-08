@@ -8,7 +8,7 @@ AgroXest360 centraliza nun único rexistro a actividade da explotación: as parc
 
 A partir dese rexistro, a aplicación xera a documentación esixida pola normativa: o caderno de explotación, os libros de rexistro gandeiro e a trazabilidade dos lotes. Ademais, achega a información económica necesaria para a planificación da explotación. Cada dato introdúcese unha soa vez e utilízase en todos os documentos nos que é necesario.
 
-Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como a producións de autoconsumo. Está optimizada para o seu uso en dispositivos móbiles, o que permite rexistrar a actividade directamente no campo.
+Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como a producións de autoconsumo, e tamén aos técnicos asesores e ás cooperativas que as acompañan. Está optimizada para o seu uso en dispositivos móbiles, o que permite rexistrar a actividade directamente no campo, mesmo sen cobertura.
 
 ## Funcionalidades
 
@@ -17,6 +17,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Visualización das parcelas sobre cartografía.
 - Xestión de cultivos por parcela: especie, variedade, superficie, datas e sistema de cultivo.
 - Ficha de cada parcela e de cada cultivo co seu historial completo.
+- Estimación da colleita de cada cultivo.
 
 ### Rexistro da actividade
 - Sementeiras e plantacións, labores, regas, fertilización, tratamentos fitosanitarios, colleitas e toma de mostras.
@@ -30,7 +31,17 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Comprobación da autorización do produto para o cultivo e a praga indicados.
 - Seguimento de pragas e enfermidades: observacións en campo, trampas e mostraxes, limiares de intervención tirados das guías de xestión integrada de pragas do MAPA, avisos e gráficas da evolución, que xustifican cada tratamento.
 - Rexistro do aplicador, co seu carné ROPO, e da maquinaria de aplicación, con número ROMA e REGANIP.
+
+### Asesoramento técnico
 - Recomendacións do asesor: o técnico deixa a recomendación e o agricultor aplícaa sen volver a apuntar os datos; o tratamento queda validado polo asesor.
+- Visitas de campo: cada visita reúne as observacións e as recomendacións do técnico e xera un informe para asinar.
+- Panel con todas as explotacións que leva un técnico ou unha cooperativa, cos avisos de cada unha.
+- Acceso para inspectores e auditores limitado á información que lles corresponde.
+
+### Fertilización, estercos e purín
+- Rexistro dos abonados coa súa composición e a súa achega de nutrientes.
+- Cesións e recepcións de esterco e purín entre explotacións, coa súa composición e orixe.
+- Documento de acompañamento do esterco segundo o anexo VII do Real Decreto 1051/2022.
 
 ### Sensores e internet das cousas
 - Conexión de sensores de campo e de instalacións: humidade do chan, temperatura e humidade do aire, choiva, mollado de folla, contadores de auga, nivel de depósitos e de fosas de purín, e temperatura de cámaras e almacéns.
@@ -50,18 +61,24 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 ### Xestión
 - Directorio único de persoas e entidades: equipo de traballo, clientes, provedores, asesores e veterinarios.
 - Xestión económica de gastos, ingresos e custos de man de obra, e seguimento do consumo de enerxía.
-- Plan de empresa para solicitudes de axudas.
+- Plan de empresa para solicitudes de axudas, elaborado a partir dos datos reais da explotación.
 - Arquivo de documentos e certificacións (certificado ecolóxico, GlobalG.A.P., seguros, inspeccións, carnés…), con aviso antes da súa caducidade.
 - Acceso multiusuario con permisos de administración, edición ou consulta.
-- Panel con todas as explotacións dunha persoa usuaria e os seus avisos, pensado para técnicos asesores e cooperativas.
 - Cumprimento do RGPD: aviso legal, política de privacidade, aceptación expresa, descarga dos datos persoais e borrado da conta.
+
+### Uso no campo e idiomas
+- Aplicación instalable no móbil que permite rexistrar a actividade sen cobertura e sincroniza os datos ao recuperar a conexión.
+- Interface multilingüe: o galego é a lingua base e as traducións xestiónanse con catálogos estándar (gettext), de modo que cada persoa usuaria escolle o seu idioma. Os documentos oficiais xéranse sempre no idioma que esixe a administración.
 
 ## Documentación xerada
 
 - Caderno de explotación (modelo da Xunta de Galicia).
 - Caderno Dixital de Explotación Agrícola (CUE).
+- Caderno de rexistros para a certificación GlobalG.A.P.
 - Libro de rexistro gandeiro.
 - Rexistro de medicamentos veterinarios.
+- Documento de acompañamento do esterco (anexo VII do Real Decreto 1051/2022).
+- Informe da visita de campo do técnico.
 - Plan de empresa (Anexos III e V).
 
 Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV, XML e JSON.
@@ -70,8 +87,10 @@ Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV, XML e JSON.
 
 - Real Decreto 1311/2012, sobre o uso sostible de produtos fitosanitarios.
 - Caderno Dixital de Explotación Agrícola integrado no SIEX (Real Decreto 1054/2022): obrigatorio para rexistrar os tratamentos fitosanitarios desde o 1 de xaneiro de 2027 (Real Decreto 1039/2025); o caderno dixital completo, a partir do próximo marco da PAC.
+- Real Decreto 1051/2022, sobre a nutrición sostible nos solos agrarios.
 - Catálogos e codificacións do SIEX (Anexo V).
 - Rexistros autonómicos de explotacións agrarias e gandeiras (REAGA e REGA).
+- Regulamento (UE) 2016/679 (RGPD) e Lei Orgánica 3/2018, de protección de datos persoais.
 
 ## Licenza
 
