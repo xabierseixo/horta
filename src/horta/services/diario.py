@@ -28,6 +28,7 @@ from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.labores import listar_labores
 from horta.services.lotes import CANLES, TIPOS_SAIDA, listar_lotes, listar_saidas
 from horta.services.movementos_animais import TIPOS_MOVEMENTO, listar_movementos
+from horta.services.observacions import listar_observacions
 from horta.services.outros_traballos import listar_outros_traballos
 from horta.services.pastoreos import listar_pastoreos
 from horta.services.persoas import listar_persoas
@@ -47,6 +48,7 @@ TIPOS: dict[str, str] = {
     "colleita": "Colleita",
     "sementeira": "Sementeira ou plantación",
     "analise": "Toma de mostras",
+    "observacion": "Observación de pragas",
     "tratamento_instalacion": "Tratamento en almacén ou instalación",
     "coidado_animal": "Coidado de animais",
     "movemento_animal": "Entrada ou saída de animais",
@@ -211,6 +213,33 @@ def listar_traballos(
                                           else frozenset()),
             persoas=_quen(an.persoa_id), sen_quen=an.persoa_id is None,
             cultivos=frozenset({an.cultivo_id}) if an.cultivo_id else frozenset()))
+    for obs in listar_observacions(session, actor, horta_id):
+        problema = texto(obs.problema_tipo, obs.problema_codigo)
+        if obs.conto is not None:
+            detalle = f"{obs.conto:g} {obs.unidade_conto}"
+        elif obs.nivel:
+            detalle = f"nivel {obs.nivel}"
+        else:
+            detalle = ""
+        que = (
+            f"{problema}: {detalle}"
+            if problema and detalle
+            else (problema or detalle or "Observación")
+        )
+        traballos.append(
+            Traballo(
+                "observacion",
+                obs.id,
+                obs.data,
+                True,
+                que,
+                onde(obs.cultivo_id),
+                parcela_de(obs.cultivo_id),
+                persoas=_quen(obs.persoa_id),
+                sen_quen=obs.persoa_id is None,
+                cultivos=frozenset({obs.cultivo_id}),
+            )
+        )
     for ti in listar_tratamentos_instalacion(session, actor, horta_id):
         traballos.append(Traballo("tratamento_instalacion", ti.id, ti.data, True,
                                   ti.nome_comercial or ti.materia_activa or "", ti.obxecto,

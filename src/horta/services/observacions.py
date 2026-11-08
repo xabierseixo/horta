@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -42,6 +43,15 @@ NIVEIS: dict[str, str] = {
     "medio": "Medio",
     "alto": "Alto",
 }
+
+
+@dataclass
+class AvisoPraga:
+    """Aviso dunha observación que supera o limiar ou presenta nivel alto."""
+
+    observacion: ObservacionPraga
+    limiar: LimiarPraga | None
+    texto: str
 
 _SEN_CAMBIO: Any = object()
 
@@ -411,3 +421,105 @@ def supera_limiar(obs: ObservacionPraga | Any, limiar: LimiarPraga | Any) -> boo
     if conto is None or valor is None:
         return False
     return float(conto) >= float(valor)
+
+
+def avisos_pragas(
+    session: Session,
+    actor: Usuario,
+    horta_id: int,
+    hoxe: date | None = None,
+    dias: int = 14,
+) -> list[AvisoPraga]:
+    """Avisos de pragas que superan o limiar de intervención ou teñen nivel alto.
+
+    Devolve como moito un aviso por cultivo e problema (a observación máis recente
+    que xere aviso) rexistrado nos últimos `dias`.
+    """
+    comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
+    data_referencia = hoxe or date.today()
+    desde = data_referencia - timedelta(days=dias)
+
+    observacions = listar_observacions(
+        session, actor, horta_id, desde=desde, ata=data_referencia
+    )
+
+    avisos: list[AvisoPraga] = []
+    vistos: set[tuple[int, str, str]] = set()
+
+    for obs in observacions:
+        limiar = None
+        if obs.unidade_conto:
+            limiar = limiar_para(
+                session,
+                horta_id,
+                obs.cultivo_id,
+                obs.problema_tipo,
+                obs.problema_codigo,
+                obs.metodo,
+                obs.unidade_conto,
+            )
+        supera = limiar is not None and supera_limiar(obs, limiar)
+        e_aviso = supera or (obs.nivel == "alto")
+        if not e_aviso:
+            continue
+
+        chave = (obs.cultivo_id, obs.problema_tipo, obs.problema_codigo)
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+
+        if supera and limiar is not None:
+            texto = (
+                f"Supera o limiar de intervención ({limiar.valor:g} {limiar.unidade_conto}): "
+                f"conto de {obs.conto:g} {obs.unidade_conto}"
+            )
+        elif obs.nivel == "alto":
+            if limiar is not None:
+                texto = (
+                    f"Nivel alto observado (limiar de intervención: "
+                    f"{limiar.valor:g} {limiar.unidade_conto})"
+                )
+            else:
+                texto = "Nivel alto observado sen limiar de intervención definido"
+        else:
+            texto = "Aviso de praga"
+
+        avisos.append(AvisoPraga(observacion=obs, limiar=limiar, texto=texto))
+
+    return avisos
+
+
+def observacions_para_xustificar(
+    session: Session,
+    actor: Usuario,
+    cultivo_id: int,
+    problema_tipo: str,
+    problema_codigo: str,
+    ata: date,
+    dias: int = 30,
+) -> list[ObservacionPraga]:
+    """Observacións do cultivo e problema nos `dias` anteriores a `ata`.
+
+    Úsase como xustificación GIP ao apuntar un tratamento fitosanitario.
+    """
+    cultivo = session.get(Cultivo, cultivo_id)
+    parcela = session.get(Parcela, cultivo.parcela_id) if cultivo else None
+    if cultivo is None or parcela is None:
+        raise OperacionNonPermitidaError("O cultivo indicado non existe")
+    comprobar_rol_horta(session, parcela.horta_id, actor, _ROLES_LECTURA)
+
+    desde = ata - timedelta(days=dias)
+    return list(
+        session.query(ObservacionPraga)
+        .filter(
+            ObservacionPraga.horta_id == parcela.horta_id,
+            ObservacionPraga.cultivo_id == cultivo_id,
+            ObservacionPraga.problema_tipo == problema_tipo,
+            ObservacionPraga.problema_codigo == problema_codigo,
+            ObservacionPraga.baixa.is_(False),
+            ObservacionPraga.data >= desde,
+            ObservacionPraga.data <= ata,
+        )
+        .order_by(ObservacionPraga.data.desc(), ObservacionPraga.id.desc())
+        .all()
+    )

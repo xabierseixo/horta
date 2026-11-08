@@ -9,10 +9,13 @@ from horta.models.horta import RolHorta
 from horta.models.persoa import Persoa
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.cultivos import crear_cultivo
+from horta.services.diario import TIPOS, listar_traballos
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.hortas import crear_horta, engadir_membro
 from horta.services.observacions import (
+    AvisoPraga,
     actualizar_observacion,
+    avisos_pragas,
     crear_observacion,
     dar_de_baixa_limiar,
     dar_de_baixa_observacion,
@@ -20,6 +23,7 @@ from horta.services.observacions import (
     limiar_para,
     listar_limiares,
     listar_observacions,
+    observacions_para_xustificar,
     supera_limiar,
 )
 from horta.services.parcelas import crear_parcela
@@ -595,3 +599,362 @@ def test_gardar_listar_e_dar_de_baixa_limiar(session):
     # Dar de baixa
     dar_de_baixa_limiar(session, ana, limiar)
     assert listar_limiares(session, ana, horta.id) == []
+
+
+def test_avisos_pragas_supera_limiar(session):
+    ana, horta, _, cultivo, persoa = _escenario(session)
+    limiar = gardar_limiar(
+        session,
+        ana,
+        horta.id,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        unidade_conto="capturas por trampa",
+        valor=5.0,
+        fonte="Guía GIP",
+    )
+    # Observación con conto menor ca o limiar -> non xera aviso
+    crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=date(2026, 5, 8),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=3.0,
+        unidade_conto="capturas por trampa",
+        nivel="baixo",
+        persoa_id=persoa.id,
+    )
+    avisos_iniciais = avisos_pragas(session, ana, horta.id, hoxe=date(2026, 5, 10))
+    assert avisos_iniciais == []
+
+    # Observación que supera o limiar -> xera aviso
+    obs_supera = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=date(2026, 5, 9),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=6.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    avisos = avisos_pragas(session, ana, horta.id, hoxe=date(2026, 5, 10))
+    assert len(avisos) == 1
+    aviso = avisos[0]
+    assert isinstance(aviso, AvisoPraga)
+    assert aviso.observacion.id == obs_supera.id
+    assert aviso.limiar is not None
+    assert aviso.limiar.id == limiar.id
+    assert "Supera o limiar de intervención" in aviso.texto
+
+
+def test_avisos_pragas_nivel_alto_sen_limiar(session):
+    ana, horta, _, cultivo, persoa = _escenario(session)
+    # Non hai limiar rexistrado para este problema
+    obs = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=date(2026, 5, 10),
+        problema_tipo="enfermidade",
+        problema_codigo="20",
+        metodo="sintomas",
+        nivel="alto",
+        persoa_id=persoa.id,
+    )
+    avisos = avisos_pragas(session, ana, horta.id, hoxe=date(2026, 5, 12))
+    assert len(avisos) == 1
+    aviso = avisos[0]
+    assert aviso.observacion.id == obs.id
+    assert aviso.limiar is None
+    assert "Nivel alto" in aviso.texto
+
+
+def test_avisos_pragas_antiga_non_sae(session):
+    ana, horta, _, cultivo, persoa = _escenario(session)
+    # Observación de hai máis de 14 días respecto a hoxe (2026-05-20)
+    crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=date(2026, 5, 1),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="sintomas",
+        nivel="alto",
+        persoa_id=persoa.id,
+    )
+    # Con hoxe = 20/05/2026 e dias=14 (desde = 06/05/2026), non sae
+    avisos = avisos_pragas(session, ana, horta.id, hoxe=date(2026, 5, 20), dias=14)
+    assert avisos == []
+
+    # Se ampliamos a ventá de días (dias=25), si sae
+    avisos_ampliado = avisos_pragas(session, ana, horta.id, hoxe=date(2026, 5, 20), dias=25)
+    assert len(avisos_ampliado) == 1
+
+
+def test_avisos_pragas_so_mais_recente_por_cultivo_e_problema(session):
+    ana, horta, parcela, cultivo1, persoa = _escenario(session)
+    cultivo2 = crear_cultivo(session, ana, parcela.id, "Millo", cultivo_siex_codigo=202)
+
+    gardar_limiar(
+        session,
+        ana,
+        horta.id,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        unidade_conto="capturas por trampa",
+        valor=5.0,
+        fonte="Guía GIP",
+    )
+    # Dúas observacións con aviso para o mesmo cultivo1 e praga 10
+    obs_antiga = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 5, 5),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=8.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    obs_recente = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 5, 12),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=15.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    # Outra observación para outro cultivo (cultivo2)
+    obs_outro_cultivo = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo2.id,
+        data=date(2026, 5, 10),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=9.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    # Outra observación para o mesmo cultivo1 pero outro problema (praga 11)
+    obs_outro_problema = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 5, 11),
+        problema_tipo="praga",
+        problema_codigo="11",
+        metodo="sintomas",
+        nivel="alto",
+        persoa_id=persoa.id,
+    )
+
+    avisos = avisos_pragas(session, ana, horta.id, hoxe=date(2026, 5, 15), dias=14)
+    # 3 avisos: cultivo1+praga10 (só a máis recente), cultivo2+praga10 e cultivo1+praga11
+    assert len(avisos) == 3
+    ids_observacions = [a.observacion.id for a in avisos]
+    assert obs_recente.id in ids_observacions
+    assert obs_antiga.id not in ids_observacions
+    assert obs_outro_cultivo.id in ids_observacions
+    assert obs_outro_problema.id in ids_observacions
+
+
+def test_observacions_para_xustificar(session):
+    ana, horta, parcela, cultivo1, persoa = _escenario(session)
+    cultivo2 = crear_cultivo(session, ana, parcela.id, "Millo", cultivo_siex_codigo=202)
+
+    # 1. Observación válida dentro dos 30 días
+    obs1 = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 5, 10),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=5.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    # 2. Outra observación válida máis antiga pero dentro dos 30 días
+    obs2 = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 5, 2),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="sintomas",
+        nivel="medio",
+        persoa_id=persoa.id,
+    )
+    # 3. Observación de hai máis de 30 días respecto a 2026-05-15
+    crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 4, 1),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=4.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    # 4. Observación para outro problema (praga 11)
+    crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 5, 8),
+        problema_tipo="praga",
+        problema_codigo="11",
+        metodo="sintomas",
+        nivel="alto",
+        persoa_id=persoa.id,
+    )
+    # 5. Observación para outro cultivo
+    crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo2.id,
+        data=date(2026, 5, 9),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=6.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    # 6. Observación dada de baixa
+    obs_baixa = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo1.id,
+        data=date(2026, 5, 7),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=7.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    dar_de_baixa_observacion(session, ana, obs_baixa)
+
+    # Consulta de xustificacións
+    xustificacions = observacions_para_xustificar(
+        session, ana, cultivo1.id, "praga", "10", ata=date(2026, 5, 15), dias=30
+    )
+    assert [o.id for o in xustificacions] == [obs1.id, obs2.id]
+
+    # Cultivo inexistente
+    with pytest.raises(OperacionNonPermitidaError, match="cultivo"):
+        observacions_para_xustificar(
+            session, ana, 999999, "praga", "10", ata=date(2026, 5, 15)
+        )
+
+    # Usuario sen permisos
+    outro_usuario = _usuario(session, "sen_permiso@example.com")
+    with pytest.raises(PermisoDenegadoError):
+        observacions_para_xustificar(
+            session, outro_usuario, cultivo1.id, "praga", "10", ata=date(2026, 5, 15)
+        )
+
+
+def test_observacions_aparecen_no_diario(session):
+    ana, horta, _, cultivo, persoa = _escenario(session)
+    d = date(2026, 5, 10)
+    obs = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=d,
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=5.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    obs_nivel = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=date(2026, 5, 11),
+        problema_tipo="enfermidade",
+        problema_codigo="20",
+        metodo="sintomas",
+        nivel="alto",
+        persoa_id=persoa.id,
+    )
+    # Observación de baixa
+    obs_baixa = crear_observacion(
+        session,
+        ana,
+        horta.id,
+        cultivo_id=cultivo.id,
+        data=date(2026, 5, 12),
+        problema_tipo="praga",
+        problema_codigo="10",
+        metodo="trampa",
+        conto=1.0,
+        unidade_conto="capturas por trampa",
+        persoa_id=persoa.id,
+    )
+    dar_de_baixa_observacion(session, ana, obs_baixa)
+
+    assert "observacion" in TIPOS
+    assert TIPOS["observacion"] == "Observación de pragas"
+
+    traballos = listar_traballos(
+        session, ana, horta.id, desde=date(2026, 5, 1), ata=date(2026, 5, 31)
+    )
+    traballos_obs = [t for t in traballos if t.tipo == "observacion"]
+    assert len(traballos_obs) == 2
+    # Ordenados dos máis novos aos máis vellos
+    assert traballos_obs[0].id == obs_nivel.id
+    assert traballos_obs[1].id == obs.id
+
+    t = traballos_obs[1]
+    assert t.tipo == "observacion"
+    assert t.id == obs.id
+    assert t.data == d
+    assert t.feito is True
+    assert t.persoas == (persoa.id,)
+    assert t.sen_quen is False
+    assert t.cultivos == frozenset({cultivo.id})
+    assert cultivo.parcela_id in t.parcelas
+    assert "10: 5 capturas por trampa" in t.que
+    assert "20: nivel alto" in traballos_obs[0].que
