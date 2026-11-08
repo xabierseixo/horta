@@ -58,6 +58,7 @@ from horta.models.plan_empresa import (
 )
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
+from horta.models.recomendacion import Recomendacion
 from horta.models.rega import Rega, RegaBoaPractica, RegaCultivo
 from horta.models.tarefa import Tarefa
 from horta.models.tempo import EstacionMeteo, TempoDia
@@ -162,4 +163,5 @@ __all__ = [
     "TratamentoAsesor",
     "ConfiguracionLegal",
     "Documento",
+    "Recomendacion",
 ]
