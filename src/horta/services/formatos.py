@@ -6,21 +6,21 @@ Recibe os bytes dun .xlsx xerado con openpyxl e convérteo ao formato pedido.
 from __future__ import annotations
 
 import csv
-from datetime import date, datetime
-from decimal import Decimal
 import html
-from io import BytesIO, StringIO
 import re
-from typing import Any
 import xml.etree.ElementTree as ET
 import zipfile
+from datetime import date, datetime
+from decimal import Decimal
+from io import BytesIO, StringIO
+from typing import Any
 
+import weasyprint
 from odf.opendocument import OpenDocumentSpreadsheet
 from odf.table import Table, TableCell, TableRow
 from odf.text import P
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
-import weasyprint
 
 FORMATOS: dict[str, str] = {
     "xlsx": "Excel",
@@ -199,16 +199,22 @@ def a_pdf(xlsx: bytes, titulo: str) -> bytes:
                         if (r, c) != (min_r, min_c):
                             covered_cells.add((r, c))
 
-        # Atopar a primeira fila con datos
-        primeira_fila_datos: int | None = None
-        for r_idx, fila in enumerate(filas, start=1):
-            if any(c != "" for c in fila):
-                primeira_fila_datos = r_idx
-                break
-
         filas_html: list[str] = []
+        # A cabeceira de columnas é a primeira fila con varios datos despois dun título
+        agarda_cabeceira = True
         for r in range(1, num_rows + 1):
-            es_cabeceira = (r == primeira_fila_datos)
+            fila = filas[r - 1]
+            con_datos = sum(1 for cel in fila if cel != "")
+            if con_datos == 0 and (r, 1) not in merge_origin:
+                continue
+            if num_cols > 1 and con_datos == 1 and fila[0] != "" and (r, 1) not in merge_origin:
+                # Título dunha sección: ocupa toda a liña
+                filas_html.append(f'<tr><td class="titulo" colspan="{num_cols}">'
+                                  f"{html.escape(fila[0])}</td></tr>")
+                agarda_cabeceira = True
+                continue
+            es_cabeceira = agarda_cabeceira and con_datos > 1
+            agarda_cabeceira = False
             tag = "th" if es_cabeceira else "td"
             celas_html: list[str] = []
 
@@ -277,13 +283,20 @@ def a_pdf(xlsx: bytes, titulo: str) -> bytes:
     table {{
       border-collapse: collapse;
       width: 100%;
-      font-size: 8pt;
+      table-layout: fixed;
+      font-size: 7pt;
+    }}
+    td.titulo {{
+      font-weight: bold;
+      font-size: 9pt;
+      background: #eee;
     }}
     th, td {{
       border: 0.5pt solid #555;
       padding: 3px 5px;
       text-align: left;
       vertical-align: top;
+      overflow-wrap: anywhere;
     }}
     th {{
       font-weight: bold;

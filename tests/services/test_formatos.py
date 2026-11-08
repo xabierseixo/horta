@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date
-from io import BytesIO
 import xml.etree.ElementTree as ET
 import zipfile
+from datetime import date
+from io import BytesIO
 
-from openpyxl import Workbook
 import pytest
+from openpyxl import Workbook
 
 from horta.services.formatos import (
     FORMATOS,
