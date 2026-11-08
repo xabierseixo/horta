@@ -16,6 +16,7 @@ from horta.models.colleita import Colleita
 from horta.models.comprobacion_catalogo import ComprobacionCatalogo
 from horta.models.convite import Convite
 from horta.models.cultivo import Cultivo
+from horta.models.documento import Documento
 from horta.models.envio_cue import EnvioCue, RexistroCue
 from horta.models.fertilizante import FertilizanteSiex
 from horta.models.fito_rexistro import (
@@ -160,4 +161,5 @@ __all__ = [
     "TratamentoAplicador",
     "TratamentoAsesor",
     "ConfiguracionLegal",
+    "Documento",
 ]
