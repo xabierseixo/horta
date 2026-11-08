@@ -297,7 +297,8 @@ def faltas_documento(mov: MovementoEsterco) -> list[str]:
         faltas.append("Tipo de explotación")
     if not getattr(mov, "tipo_animais", None):
         faltas.append("Tipo de animais")
-    if getattr(mov, "cantidade", None) is None or getattr(mov, "cantidade", None) <= 0:
+    cantidade = getattr(mov, "cantidade", None)
+    if cantidade is None or cantidade <= 0:
         faltas.append("Cantidade")
     if getattr(mov, "n_total", None) is None:
         faltas.append("Nitróxeno total (N)")

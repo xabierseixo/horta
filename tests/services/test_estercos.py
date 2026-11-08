@@ -9,7 +9,6 @@ from horta.models.horta import RolHorta
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 from horta.services.estercos import (
-    ORIXES_COMPOSICION,
     actualizar_movemento,
     crear_movemento,
     dar_de_baixa_movemento,
@@ -47,7 +46,7 @@ def _escenario(session):
     ana = _usuario(session, "ana@example.com")
     horta = crear_horta(session, ana, "Horta")
     outra_parte = crear_contacto(
-        session, ana, horta.id, "Granxa Veciña", "explotacion", rega="ES150000001"
+        session, ana, horta.id, "Granxa Veciña", "explotacion", rega="ES150000000001"
     )
     return ana, horta, outra_parte
 
