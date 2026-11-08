@@ -3,7 +3,9 @@ os movementos, a produción e o pastoreo teñen as súas táboas."""
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
+from typing import Any
 
 from nicegui import ui
 
@@ -31,6 +33,7 @@ from horta.ui.filtros import filtrar_filas
 from horta.ui.fotos import abrir_fotos
 from horta.ui.identificados import abrir_identificados
 from horta.ui.layout import url_seccion
+from horta.ui.lista_tarxetas import lista_tarxetas
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.movementos_animais import dialogo_movemento
 from horta.ui.pages.pastoreos import dialogo_pastoreo, dialogo_saida
@@ -45,6 +48,24 @@ def _razas(valores: list[tuple[str, str]], especie: str | None) -> list[str]:
     if not especie:
         return []
     return [nome for codigo, nome in valores if codigo[:-4] == str(int(especie))]
+
+
+def detalle_tarxeta_animal(fila: dict[str, Any]) -> str:
+    """Devolve a liña de detalle para a tarxeta dun grupo de animais."""
+    partes: list[str] = []
+    especie = fila.get("especie")
+    if especie:
+        partes.append(str(especie))
+    cantidade = fila.get("cantidade")
+    if cantidade is not None:
+        partes.append(f"{cantidade} animal" if cantidade == 1 else f"{cantidade} animais")
+    espera = fila.get("espera")
+    if espera:
+        partes.append(str(espera))
+    pasto = fila.get("pasto")
+    if pasto:
+        partes.append(str(pasto))
+    return " · ".join(partes)
 
 
 def seccion_animais(horta_id: int, pode_editar: bool) -> None:
@@ -88,13 +109,54 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             ("cantidade", "Cantos"), ("espera", "Medicamentos"), ("pasto", "Pasto"))],
         rows=todas_as_filas, row_key="id", selection="single" if pode_editar else None,
         pagination=10,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai animais" {TEXTOS_TABOA}')
+
+    abrir_fn: list[Callable[[Animal | None], None]] = []
+
+    def tocar(animal_id: int) -> None:
+        accions: list[tuple[str, str, Callable[[], None]]] | None = None
+        if pode_editar:
+            with get_session() as session:
+                animal = session.get(Animal, animal_id)
+            if animal is None:
+                return
+            accions = [
+                ("Editar", "edit", lambda a=animal: abrir_fn[0](a) if abrir_fn else None),
+                ("Entrada ou saída", "swap_horiz",
+                 lambda aid=animal_id: abrir_movemento(None, None, aid)),
+                ("Produción", "egg", lambda aid=animal_id: abrir_producion(None, None, aid)),
+                ("Ao pasto", "landscape", lambda aid=animal_id: abrir_pastoreo(None, None, aid)),
+            ]
+            if animal_id in pastos:
+                accions.append(
+                    ("Saíron do pasto", "logout",
+                     lambda aid=animal_id: abrir_saida(pastos[aid][0]))
+                )
+            accions.append(
+                ("Identificados", "badge",
+                 lambda aid=animal_id: abrir_identificados(horta_id, aid))
+            )
+            accions.append(
+                ("Eliminar", "delete", lambda a=animal: eliminar_grupo(a))
+            )
+        abrir_ficha_animal(horta_id, animal_id, pode_editar, accions=accions)
+
+    @ui.refreshable
+    def debuxar_tarxetas() -> None:
+        elementos = [
+            (int(fila["id"]), str(fila["nome"]), detalle_tarxeta_animal(fila))
+            for fila in taboa.rows
+        ]
+        lista_tarxetas(elementos, ao_tocar=tocar)
+
+    debuxar_tarxetas()
 
     def refrescar() -> None:
         taboa.rows = filtrar_filas(todas_as_filas, busca.value or "",
                                    ["nome", "especie", "raza"], {"estado": estado.value or None})
         taboa.update()
+        debuxar_tarxetas.refresh()
 
     busca.on_value_change(refrescar)
     estado.on_value_change(refrescar)
@@ -207,6 +269,8 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         notas.value = (animal.notas or "") if animal else ""
         dialogo.open()
 
+    abrir_fn.append(abrir)
+
     def seleccionado() -> Animal | None:
         if not taboa.selected:
             ui.notify("Escolle primeiro un grupo na táboa", type="warning")
@@ -237,11 +301,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             return
         abrir_saida(pastos[animal.id][0])
 
-    def eliminar() -> None:
-        animal = seleccionado()
-        if animal is None:
-            return
-
+    def eliminar_grupo(animal: Animal) -> None:
         def confirmar() -> None:
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -257,22 +317,57 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             f"Eliminar o grupo «{animal.especie}»? Só se pode se non ten nada apuntado.",
             confirmar)
 
+    def eliminar() -> None:
+        animal = seleccionado()
+        if animal is not None:
+            eliminar_grupo(animal)
+
     with ui.row():
         ui.button("Novo grupo", icon="add", on_click=lambda: abrir(None))
-        ui.button("Entrada ou saída", icon="swap_horiz", on_click=movemento).props("outline")
-        ui.button("Produción", icon="egg", on_click=producion).props("outline")
-        ui.button("Ao pasto", icon="landscape", on_click=ao_pasto).props("outline")
-        ui.button("Saíron do pasto", icon="logout", on_click=saida_do_pasto).props("outline")
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Identificados", icon="badge", on_click=lambda: abrir_identificados(
-            horta_id, taboa.selected[0]["id"]) if taboa.selected else ui.notify(
-            "Escolle primeiro un grupo na táboa", type="warning")).props("outline")
-        ui.button("Ficha", icon="description", on_click=lambda: abrir_ficha_animal(
-            horta_id, taboa.selected[0]["id"], pode_editar) if taboa.selected else ui.notify(
-            "Escolle primeiro un grupo na táboa", type="warning")).props("outline")
-        ui.button("Fotos", icon="photo_camera", on_click=lambda: abrir_fotos(
-            horta_id, "animal", taboa.selected[0]["id"], "grupo de animais", pode_editar)
-            if taboa.selected else ui.notify("Escolle primeiro un grupo na táboa",
-                                             type="warning")).props("outline")
+        ui.button("Entrada ou saída", icon="swap_horiz", on_click=movemento).props(
+            "outline"
+        ).classes("so-ordenador")
+        ui.button("Produción", icon="egg", on_click=producion).props("outline").classes(
+            "so-ordenador"
+        )
+        ui.button("Ao pasto", icon="landscape", on_click=ao_pasto).props("outline").classes(
+            "so-ordenador"
+        )
+        ui.button("Saíron do pasto", icon="logout", on_click=saida_do_pasto).props(
+            "outline"
+        ).classes("so-ordenador")
+        ui.button("Editar", icon="edit", on_click=editar).props("outline").classes(
+            "so-ordenador"
+        )
+        ui.button(
+            "Identificados",
+            icon="badge",
+            on_click=lambda: (
+                abrir_identificados(horta_id, taboa.selected[0]["id"])
+                if taboa.selected
+                else ui.notify("Escolle primeiro un grupo na táboa", type="warning")
+            ),
+        ).props("outline").classes("so-ordenador")
+        ui.button(
+            "Ficha",
+            icon="description",
+            on_click=lambda: (
+                abrir_ficha_animal(horta_id, taboa.selected[0]["id"], pode_editar)
+                if taboa.selected
+                else ui.notify("Escolle primeiro un grupo na táboa", type="warning")
+            ),
+        ).props("outline").classes("so-ordenador")
+        ui.button(
+            "Fotos",
+            icon="photo_camera",
+            on_click=lambda: (
+                abrir_fotos(
+                    horta_id, "animal", taboa.selected[0]["id"], "grupo de animais", pode_editar
+                )
+                if taboa.selected
+                else ui.notify("Escolle primeiro un grupo na táboa", type="warning")
+            ),
+        ).props("outline").classes("so-ordenador")
         ui.button("Eliminar", icon="delete", on_click=eliminar).props(
-            "outline color=negative")
+            "outline color=negative"
+        ).classes("so-ordenador")

@@ -58,7 +58,12 @@ def datos_animal(
     return resultado
 
 
-def abrir_ficha_animal(horta_id: int, animal_id: int, pode_editar: bool) -> None:
+def abrir_ficha_animal(
+    horta_id: int,
+    animal_id: int,
+    pode_editar: bool,
+    accions: list[tuple[str, str, Callable[[], None]]] | None = None,
+) -> None:
     """Abre o diálogo coa ficha do grupo de animais: datos, historial e fotos."""
     with get_session() as session:
         actor = usuario_actual(session)
@@ -83,4 +88,4 @@ def abrir_ficha_animal(horta_id: int, animal_id: int, pode_editar: bool) -> None
         if "animal" in MODELOS
         else None
     )
-    abrir_ficha(titulo, datos, linas_historial, fotos=accion_fotos)
+    abrir_ficha(titulo, datos, linas_historial, fotos=accion_fotos, accions=accions)
