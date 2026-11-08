@@ -61,10 +61,19 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 ### Xestión
 - Directorio único de persoas e entidades: equipo de traballo, clientes, provedores, asesores e veterinarios.
 - Xestión económica de gastos, ingresos e custos de man de obra, e seguimento do consumo de enerxía.
-- Plan de empresa para solicitudes de axudas, elaborado a partir dos datos reais da explotación.
 - Arquivo de documentos e certificacións (certificado ecolóxico, GlobalG.A.P., seguros, inspeccións, carnés…), con aviso antes da súa caducidade.
 - Acceso multiusuario con permisos de administración, edición ou consulta.
 - Cumprimento do RGPD: aviso legal, política de privacidade, aceptación expresa, descarga dos datos persoais e borrado da conta.
+
+### Facturación
+- Emisión de facturas de venda conectada co sistema VERI*FACTU da Axencia Tributaria: cada factura xera o seu rexistro, encadeado e con código QR, e envíase á Axencia no momento da súa emisión.
+- Facturas ligadas ás saídas dos lotes, de modo que cada venda queda rexistrada unha soa vez para a contabilidade, a trazabilidade e a fiscalidade.
+
+### Plan de empresa
+- Elaboración do plan de empresa para as axudas ao desenvolvemento rural (programa Leader de AGADER, Anexos III e V) e para a incorporación de persoas agricultoras mozas.
+- Proposta da conta de resultados a cinco anos a partir dos datos reais da explotación: produción, vendas, gastos e horas de traballo.
+- Investimentos, ofertas, amortizacións e financiamento.
+- Seguimento do previsto fronte ao real durante os anos de compromiso da axuda.
 
 ### Uso no campo e idiomas
 - Aplicación instalable no móbil que permite rexistrar a actividade sen cobertura e sincroniza os datos ao recuperar a conexión.
@@ -79,7 +88,8 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Rexistro de medicamentos veterinarios.
 - Documento de acompañamento do esterco (anexo VII do Real Decreto 1051/2022).
 - Informe da visita de campo do técnico.
-- Plan de empresa (Anexos III e V).
+- Plan de empresa (Anexos III e V de AGADER).
+- Facturas de venda con código QR de VERI*FACTU.
 
 Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV, XML e JSON.
 
@@ -90,6 +100,7 @@ Todos eles poden descargarse en Excel, PDF, ODS (LibreOffice), CSV, XML e JSON.
 - Real Decreto 1051/2022, sobre a nutrición sostible nos solos agrarios.
 - Catálogos e codificacións do SIEX (Anexo V).
 - Rexistros autonómicos de explotacións agrarias e gandeiras (REAGA e REGA).
+- Real Decreto 1007/2023, sobre os sistemas informáticos de facturación (VERI*FACTU).
 - Regulamento (UE) 2016/679 (RGPD) e Lei Orgánica 3/2018, de protección de datos persoais.
 
 ## Licenza
