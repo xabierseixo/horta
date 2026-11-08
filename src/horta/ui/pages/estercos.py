@@ -12,7 +12,7 @@ from horta.models.esterco import MovementoEsterco
 from horta.models.persoa import Persoa
 from horta.models.tarefa import Tarefa
 from horta.services.animais import ESPECIES
-from horta.services.catalogos import describir, valores_vixentes
+from horta.services.catalogos import valores_vixentes
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.estercos import (
     ORIXES_COMPOSICION,
@@ -79,12 +79,12 @@ def texto_resumo_material(descricion: str, cantidade: float, unidade: str) -> st
 
 def texto_resumo_n(kg_n: float) -> str:
     """Texto descritivo do total de nitróxeno."""
-    return f"{kg_n:g} kg"
+    return f"{kg_n:g} kg de N"
 
 
 def dialogo_esterco(
     horta_id: int,
-) -> Callable[[MovementoEsterco | None, Tarefa | None], None]:
+) -> Callable[..., None]:
     """Constrúe o diálogo de apuntar ou editar un movemento de esterco."""
     with get_session() as session:
         actor = usuario_actual(session)
@@ -325,13 +325,7 @@ def dialogo_esterco(
             )
             parcelas_destino.value = (mov.parcelas_destino or "") if mov else ""
             notas.value = (mov.notas or "") if mov else ""
-            with get_session() as s:
-                actor_prop = usuario_actual(s)
-                quen_prop = (
-                    mov.persoa_id
-                    if mov
-                    else (proposta_quen(s, actor_prop, horta_id) if actor_prop else None)
-                )
+            quen_prop = mov.persoa_id if mov else proposta_quen(horta_id, tarefa)
             quen.value = quen_prop if quen_prop in persoas_quen else None
             horas.value = f"{mov.horas:g}" if mov and mov.horas is not None else ""
         finally:
