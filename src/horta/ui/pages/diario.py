@@ -15,6 +15,7 @@ from horta.models.analise import Analise
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
+from horta.models.esterco import MovementoEsterco
 from horta.models.labor import Labor
 from horta.models.lote import Clasificacion, LoteSaida, Mestura, Transformacion
 from horta.models.movemento_animal import MovementoAnimal
@@ -48,6 +49,7 @@ from horta.ui.pages.clasificacions import (
 from horta.ui.pages.coidados_animais import dialogo_coidado
 from horta.ui.pages.colleitas import dialogo_colleita
 from horta.ui.pages.cultivos import dialogo_cultivo
+from horta.ui.pages.estercos import dialogo_esterco
 from horta.ui.pages.labores import dialogo_labor
 from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.pages.movementos_animais import dialogo_movemento
@@ -68,6 +70,7 @@ ICONAS = {
     "observacion": "bug_report",
     "tratamento_instalacion": "warehouse", "coidado_animal": "pets",
     "movemento_animal": "swap_horiz", "producion_animal": "egg", "pastoreo": "landscape",
+    "movemento_esterco": "compost",
     "lote_saida": "sell", "entrada_produto": "shopping_cart", "outro_traballo": "build",
     "clasificacion": "filter_list", "mestura": "merge", "transformacion": "blender",
     "tarefa": "task_alt",
@@ -79,6 +82,7 @@ SECCION_DO_TIPO = {
     "observacion": "pragas",
     "tratamento_instalacion": "tratamentos", "coidado_animal": "coidados",
     "movemento_animal": "movementos", "producion_animal": "producion", "pastoreo": "pastoreo",
+    "movemento_esterco": "estercos",
     "lote_saida": "lotes", "entrada_produto": "produtos", "tarefa": "tarefas",
     "clasificacion": "lotes", "mestura": "lotes", "transformacion": "lotes",
     # Sen táboa propia: a súa lista é o propio Diario
@@ -90,7 +94,8 @@ _MODELOS: dict[str, type[Base]] = {
     "observacion": ObservacionPraga,
     "tratamento_instalacion": TratamentoInstalacion, "coidado_animal": CoidadoAnimal,
     "movemento_animal": MovementoAnimal, "producion_animal": ProducionAnimal,
-    "pastoreo": Pastoreo, "lote_saida": LoteSaida, "entrada_produto": EntradaProduto,
+    "pastoreo": Pastoreo, "movemento_esterco": MovementoEsterco,
+    "lote_saida": LoteSaida, "entrada_produto": EntradaProduto,
     "clasificacion": Clasificacion, "mestura": Mestura, "transformacion": Transformacion,
     "outro_traballo": OutroTraballo,
 }
@@ -101,6 +106,7 @@ _CONSTRUTORES: dict[str, Callable[[int], Callable[..., None]]] = {
     "tratamento_instalacion": dialogo_tratamento_instalacion,
     "coidado_animal": dialogo_coidado, "movemento_animal": dialogo_movemento,
     "producion_animal": dialogo_producion, "pastoreo": dialogo_pastoreo,
+    "movemento_esterco": dialogo_esterco,
     "lote_saida": dialogo_saida, "entrada_produto": dialogo_entrada,
     "clasificacion": dialogo_clasificacion, "mestura": dialogo_mestura,
     "transformacion": dialogo_transformacion,

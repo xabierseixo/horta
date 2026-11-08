@@ -35,6 +35,7 @@ from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_abono import dialogo_novo_abono
 from horta.ui.facer_tarefa import rematar_tarefa
+from horta.ui.layout import url_seccion
 from horta.ui.leiras import leiras_escollidas
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import parsear_data, parsear_decimal
@@ -86,6 +87,10 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
                  if balance.sen_calcular else "")
         ui.label(f"{cultivos[cultivo_id]}: {' · '.join(partes) or 'nada'} kg/ha{aviso}").classes(
             "text-body2")
+    ui.link(
+        "Cesións e recepcións de esterco",
+        url_seccion(horta_id, "estercos"),
+    ).classes("q-mb-sm inline-block")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivo", "Cultivo"), ("abono", "Abono"), ("dose", "Dose"),
