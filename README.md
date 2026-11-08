@@ -1,6 +1,6 @@
 # Horta
 
-Aplicación web para a xestión integral de explotacións agrarias e gandeiras de Galicia.
+Aplicación web para a xestión integral de explotacións agrarias e gandeiras de Galiza.
 
 ## Descrición
 
