@@ -36,6 +36,7 @@ from horta.ui.campo_produto import CampoProduto, opcions_entradas
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -80,8 +81,11 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
             ("data", "Data"), ("grupo", "Animais"), ("que", "Que"), ("detalle", "Detalle"),
             ("quen", "Quen"), ("espera", "Tempo de espera ata"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai coidados apuntados" {TEXTOS_TABOA}')
+
+    accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "data", ["grupo", "que"], accions_tarxeta)
 
     if not pode_editar:
         return
@@ -116,10 +120,14 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
         confirmar_eliminacion(
             "Dar de baixa este rexistro? Non se borra: consérvase no histórico.", confirmar)
 
+    accions_tarxeta += [("Editar", "edit", editar),
+                        ("Dar de baixa", "archive", dar_de_baixa)]
+
     with ui.row():
         ui.button("Apuntar coidado", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+        with ui.row().classes("so-ordenador"):
+            ui.button("Editar", icon="edit", on_click=editar).props("outline")
+            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_coidado(horta_id: int) -> Callable[..., None]:
