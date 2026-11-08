@@ -5,7 +5,7 @@ Instrucións para instalar a aplicación nun servidor e mantela en funcionamento
 ## Requisitos
 
 - Servidor Linux (Debian 12, Ubuntu 22.04 ou posterior).
-- Python 3.11 e [uv](https://docs.astral.sh/uv/).
+- Python 3.11 ou posterior e [uv](https://docs.astral.sh/uv/).
 - Bibliotecas do sistema para xerar PDF (WeasyPrint):
   ```bash
   sudo apt install libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b
@@ -21,6 +21,30 @@ git clone https://github.com/xabierseixo/horta.git app
 cd app
 uv sync --no-dev
 ```
+
+`uv sync` instala todas as dependencias de Python coas versións exactas fixadas en `uv.lock`. As principais son:
+
+| Paquete | Para que |
+|---|---|
+| nicegui | Interface web |
+| sqlalchemy e alembic | Base de datos e migracións |
+| pydantic | Validación de datos |
+| bcrypt | Cifrado dos contrasinais |
+| httpx | Conexión con servizos externos (MeteoGalicia, MAPA, XEAGA) |
+| openpyxl, weasyprint e odfpy | Informes en Excel, PDF e ODS |
+| shapely | Xeometría das parcelas |
+| segno | Códigos QR dos lotes |
+| loguru | Rexistro de erros |
+| python-dateutil | Cálculo de datas |
+
+Sen uv, pódense instalar con pip nun contorno virtual (Python 3.11 ou posterior):
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install .
+```
+
+Neste caso, nos pasos seguintes substitúese `uv run` por `.venv/bin/` (por exemplo, `.venv/bin/alembic upgrade head` e `.venv/bin/horta`).
 
 ## 2. Configuración
 
