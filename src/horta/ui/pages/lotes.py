@@ -38,6 +38,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.fotos import abrir_fotos
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pages.clasificacions import (
     abrir_paxina_publica,
@@ -90,9 +91,12 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             ("codigo", "Lote"), ("produto", "Produto"), ("queda", "Queda"),
             ("entrou", "Entrou"), ("saiu", "Saíu"), ("categoria", "Venda directa"))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         'flat bordered no-data-label="Aínda non hai lotes: saen das colleitas e da '
         f'produción dos animais" {TEXTOS_TABOA}')
+
+    accions_tarxeta_lotes: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "codigo", ["produto", "queda"], accions_tarxeta_lotes)
 
     abrir = dialogo_saida(horta_id) if pode_editar else None
     if pode_editar and abrir is not None:
@@ -133,22 +137,41 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             if lote_id is not None:
                 abrir_fotos(horta_id, "lote", lote_id, por_id[lote_id].codigo, pode_editar)
 
+        def paxina_publica() -> None:
+            lid = lote_escollido()
+            if lid is not None:
+                abrir_paxina_publica(lid)
+
+        def trazabilidade() -> None:
+            lid = lote_escollido()
+            if lid is not None:
+                abrir_trazabilidade(lid)
+
+        accions_tarxeta_lotes += [
+            ("Vender", "sell", vender),
+            ("Fotos", "photo_camera", fotos),
+            ("Outra saída", "output", outra),
+            ("Clasificar", "filter_list", clasificar),
+            ("Ficha do produto", "tune", ficha),
+            ("Páxina pública", "qr_code", paxina_publica),
+            ("Trazabilidade", "account_tree", trazabilidade),
+        ]
+
         with ui.row():
-            ui.button("Vender", icon="sell", on_click=vender)
-            ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
-            ui.button("Outra saída", icon="output", on_click=outra).props("outline")
-            ui.button("Clasificar", icon="filter_list", on_click=clasificar).props("outline")
             ui.button("Mesturar lotes", icon="merge", on_click=lambda: abrir_mestura(None)
                       ).props("outline")
-            ui.button("Ficha do produto", icon="tune", on_click=ficha).props("outline")
             ui.button("Transformar", icon="blender", on_click=lambda: abrir_transformacion(None)
                       ).props("outline")
-            ui.button("Páxina pública", icon="qr_code", on_click=lambda: (
-                abrir_paxina_publica(lid) if (lid := lote_escollido()) is not None else None)
-                      ).props("outline")
-            ui.button("Trazabilidade", icon="account_tree", on_click=lambda: (
-                abrir_trazabilidade(lid) if (lid := lote_escollido()) is not None else None)
-                      ).props("outline")
+            with ui.row().classes("so-ordenador"):
+                ui.button("Vender", icon="sell", on_click=vender)
+                ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
+                ui.button("Outra saída", icon="output", on_click=outra).props("outline")
+                ui.button("Clasificar", icon="filter_list", on_click=clasificar).props("outline")
+                ui.button("Ficha do produto", icon="tune", on_click=ficha).props("outline")
+                ui.button("Páxina pública", icon="qr_code", on_click=paxina_publica
+                          ).props("outline")
+                ui.button("Trazabilidade", icon="account_tree", on_click=trazabilidade
+                          ).props("outline")
 
     ui.label("Saídas").classes("text-h6 q-mt-md")
     filas_saidas = [{
@@ -169,8 +192,14 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
             ("data", "Data"), ("que", "Que"), ("canto", "Canto"), ("lote", "Lote"),
             ("a_quen", "A quen"), ("prezo", "Prezo"), ("quen", "Quen"))],
         rows=filas_saidas, row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non saíu nada" {TEXTOS_TABOA}')
+
+    accions_tarxeta_saidas: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(
+        taboa_saidas, "data", ["que", "canto", "lote"], accions_tarxeta_saidas
+    )
+
     if not pode_editar or abrir is None:
         return
 
@@ -203,7 +232,10 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
         confirmar_eliminacion(
             "Dar de baixa esta saída? Non se borra: consérvase no histórico.", confirmar)
 
-    with ui.row():
+    accions_tarxeta_saidas += [("Editar", "edit", editar),
+                               ("Dar de baixa", "archive", dar_de_baixa)]
+
+    with ui.row().classes("so-ordenador"):
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
         ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
 

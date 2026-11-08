@@ -42,6 +42,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_abono import dialogo_novo_abono
 from horta.ui.facer_tarefa import rematar_tarefa
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import euros, formatar_decimal, parsear_data, parsear_decimal
 from horta.ui.pages.clasificacions import dialogo_ficha
 from horta.ui.quen import proposta_quen
@@ -78,15 +79,24 @@ def _seccion_vendes(horta_id: int, pode_editar: bool) -> None:
                "clases": ", ".join(clases_da_ficha(f)),
                "venda": categorias.get(f.categoria_venda_directa or "", "")} for f in fichas],
         row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         'flat bordered no-data-label="Aparecen soas coa primeira colleita ou produción" '
         f'{TEXTOS_TABOA}')
+    accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "nome", ["lotes", "venda"], accions_tarxeta)
     if pode_editar:
         abrir_ficha = dialogo_ficha()
         por_id = {f.id: f for f in fichas}
-        ui.button("Editar", icon="edit", on_click=lambda: abrir_ficha(
-            por_id[taboa.selected[0]["id"]], None) if taboa.selected else ui.notify(
-            "Escolle primeiro un produto na táboa", type="warning")).props("outline")
+
+        def editar() -> None:
+            if not taboa.selected:
+                ui.notify("Escolle primeiro un produto na táboa", type="warning")
+                return
+            abrir_ficha(por_id[taboa.selected[0]["id"]], None)
+
+        accions_tarxeta.append(("Editar", "edit", editar))
+        with ui.row().classes("so-ordenador"):
+            ui.button("Editar", icon="edit", on_click=editar).props("outline")
 
 
 def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
@@ -117,9 +127,11 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
                "entrou": f"{formatar_decimal(contas[p.id].entrou)} {p.unidade}",
                "usado": f"{formatar_decimal(contas[p.id].usado)} {p.unidade}"} for p in produtos],
         row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         'flat bordered no-data-label="Aínda non hai produtos: apunta a primeira compra" '
         f'{TEXTOS_TABOA}')
+    accions_tarxeta_produtos: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "produto", ["queda", "tipo"], accions_tarxeta_produtos)
     if any(c.sen_contar or c.entradas_sen_cantidade for c in contas.values()):
         ui.label("(?) hai compras ou usos sen cantidade: o que queda non é seguro.").classes(
             "text-caption texto-suave")
@@ -170,10 +182,13 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
             ui.button("Nova entrada (compra)", icon="shopping_cart", on_click=nova_entrada)
             ui.button("Novo produto", icon="add", on_click=abrir_produto).props("outline")
             if abonos:
-                ui.button("Corrixir abono", icon="edit", on_click=corrixir_abono).props(
-                    "outline")
-                ui.button("Retirar abono", icon="archive", on_click=retirar_abono).props(
-                    "outline")
+                accions_tarxeta_produtos += [("Corrixir abono", "edit", corrixir_abono),
+                                             ("Retirar abono", "archive", retirar_abono)]
+                with ui.row().classes("so-ordenador"):
+                    ui.button("Corrixir abono", icon="edit", on_click=corrixir_abono).props(
+                        "outline")
+                    ui.button("Retirar abono", icon="archive", on_click=retirar_abono).props(
+                        "outline")
 
     ui.label("Entradas").classes("text-h6 q-mt-md")
     taboa_entradas = ui.table(
@@ -187,8 +202,12 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
                "prezo": euros(e.importe) if e.importe is not None else ""}
               for e in entradas],
         row_key="id", selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai entradas" {TEXTOS_TABOA}')
+    accions_tarxeta_entradas: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(
+        taboa_entradas, "data", ["produto", "canto", "provedor"], accions_tarxeta_entradas
+    )
     if not pode_editar or abrir is None:
         return
 
@@ -222,7 +241,10 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
             "Dar de baixa esta entrada? Non se borra: consérvase no histórico.", confirmar,
             "Dar de baixa", "archive")
 
-    with ui.row():
+    accions_tarxeta_entradas += [("Editar", "edit", editar),
+                                 ("Dar de baixa", "archive", dar_de_baixa)]
+
+    with ui.row().classes("so-ordenador"):
         ui.button("Editar", icon="edit", on_click=editar).props("outline")
         ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
 

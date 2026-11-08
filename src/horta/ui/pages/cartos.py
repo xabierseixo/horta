@@ -30,6 +30,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.campo_pago import CampoPago
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.lista_tarxetas import lista_tarxetas
 from horta.ui.numeros import euros, formatar_decimal, parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
@@ -110,7 +111,17 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
             ("pago", "Cobrado ou pagado"))]
         ui.table(columns=columnas, rows=filas, row_key="id", selection="single",
                  on_select=lambda e: abrir(e.selection[0]["id"]) if e.selection else None
-                 ).classes("w-full").props(TEXTOS_TABOA)
+                 ).classes("w-full so-ordenador").props(
+                     f'no-data-label="Aínda non hai apuntes" {TEXTOS_TABOA}')
+        elementos = [
+            (
+                f["id"],
+                f["concepto"] or f["categoria"],
+                " · ".join(str(f[c]) for c in ("data", "importe", "pago") if f.get(c)),
+            )
+            for f in filas
+        ]
+        lista_tarxetas(elementos, ao_tocar=abrir, baleiro="Aínda non hai apuntes")
 
     with ui.row().classes("items-center gap-2"):
         def opcions() -> dict[str, str]:
