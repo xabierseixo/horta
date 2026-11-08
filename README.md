@@ -70,7 +70,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Facturas ligadas ás saídas dos lotes, de modo que cada venda queda rexistrada unha soa vez para a contabilidade, a trazabilidade e a fiscalidade.
 
 ### Plan de empresa
-- Elaboración do plan de empresa para as axudas ao desenvolvemento rural (programa Leader de AGADER, Anexos III e V) e para a incorporación de persoas agricultoras mozas.
+- Elaboración do plan de empresa para as axudas ao desenvolvemento rural (programa Leader de AGADER, Anexos III e V) e para a incorporación de persoas agricultoras.
 - Proposta da conta de resultados a cinco anos a partir dos datos reais da explotación: produción, vendas, gastos e horas de traballo.
 - Investimentos, ofertas, amortizacións e financiamento.
 - Seguimento do previsto fronte ao real durante os anos de compromiso da axuda.
