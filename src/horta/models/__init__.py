@@ -29,6 +29,7 @@ from horta.models.foto import Foto
 from horta.models.horta import Horta, HortaMembro, RolHorta
 from horta.models.instalacion import Instalacion
 from horta.models.labor import Labor, LaborCultivo
+from horta.models.legal import ConfiguracionLegal
 from horta.models.lote import (
     Clasificacion,
     ClasificacionClase,
@@ -158,4 +159,5 @@ __all__ = [
     "TratamentoMedida",
     "TratamentoAplicador",
     "TratamentoAsesor",
+    "ConfiguracionLegal",
 ]
