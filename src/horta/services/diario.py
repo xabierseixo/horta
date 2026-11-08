@@ -280,21 +280,21 @@ def listar_traballos(
                                   onde(ids[0]) if len(ids) == 1 else f"{len(ids)} leiras",
                                   frozenset().union(*(parcela_de(i) for i in ids)),
                                   persoas=_quen(pa.persoa_id), sen_quen=pa.persoa_id is None))
-    for me in listar_movementos_esterco(session, actor, horta_id):
-        mat = texto("material_fertilizante", me.material)
+    for mov_e in listar_movementos_esterco(session, actor, horta_id):
+        mat = texto("material_fertilizante", mov_e.material)
         det = f" de {mat}" if mat else ""
-        accion = "Cesión" if me.tipo == "cesion" else "Recepción"
+        accion = "Cesión" if mov_e.tipo == "cesion" else "Recepción"
         traballos.append(
             Traballo(
                 "movemento_esterco",
-                me.id,
-                me.data,
+                mov_e.id,
+                mov_e.data,
                 True,
-                f"{accion}: {me.cantidade:g} {me.unidade}{det}",
-                nomes.get(me.outra_parte_id, "") or me.parcelas_destino or "",
+                f"{accion}: {mov_e.cantidade:g} {mov_e.unidade}{det}",
+                nomes.get(mov_e.outra_parte_id, "") or mov_e.parcelas_destino or "",
                 frozenset(),
-                persoas=_quen(me.persoa_id),
-                sen_quen=me.persoa_id is None,
+                persoas=_quen(mov_e.persoa_id),
+                sen_quen=mov_e.persoa_id is None,
             )
         )
     for en in listar_entradas(session, actor, horta_id):

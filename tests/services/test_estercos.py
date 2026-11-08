@@ -625,7 +625,9 @@ def test_documento_anexo_vii_cesion(session):
     assert "ES150000000001" in valores
     # Datos do produto
     assert "Bovino de leite" in valores
-    assert "Material 5" in valores
+    from horta.services.catalogos import describir
+
+    assert describir(session, "material_fertilizante", "5") in valores
     assert "12.5" in valores
     assert "t" in valores
     # Composición e orixe
@@ -888,14 +890,16 @@ def test_movementos_no_diario(session):
     assert t_rec.id == mov2.id
     assert t_rec.data == date(2026, 5, 2)
     assert t_rec.feito is True
-    assert "Recepción: 20 m3 de Material 1" in t_rec.que
+    from horta.services.catalogos import describir
+
+    assert f"Recepción: 20 m3 de {describir(session, 'material_fertilizante', '1')}" in t_rec.que
     assert t_rec.onde == "Granxa Veciña"
     assert t_rec.sen_quen is True
 
     assert t_ces.id == mov1.id
     assert t_ces.data == date(2026, 4, 10)
     assert t_ces.feito is True
-    assert "Cesión: 10 t de Material 5" in t_ces.que
+    assert f"Cesión: 10 t de {describir(session, 'material_fertilizante', '5')}" in t_ces.que
     assert t_ces.onde == "Granxa Veciña"
     assert t_ces.sen_quen is True
 
