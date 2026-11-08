@@ -498,7 +498,7 @@ def test_ligar_observacion_e_recomendacion(session):
         horta.id,
         asesor_persoa_id=bieito.id,
         data=D,
-        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=None)],
         problemas=[Problema(tipo="praga", codigo="10")],
         xustificacions=["Presenza"],
         produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
@@ -553,6 +553,7 @@ def test_ligar_observacion_e_recomendacion(session):
         metodo="mostraxe",
         conto=1.0,
         unidade_conto="individuos por planta",
+        persoa_id=bieito_outra.id,
     )
     rec_outra = crear_recomendacion(
         session,
@@ -560,7 +561,7 @@ def test_ligar_observacion_e_recomendacion(session):
         outra.id,
         asesor_persoa_id=bieito_outra.id,
         data=D,
-        cultivos=[LinhaCultivo(cultivo_id=c_outra.id)],
+        cultivos=[LinhaCultivo(cultivo_id=c_outra.id, superficie_ha=None)],
         problemas=[Problema(tipo="praga", codigo="10")],
         xustificacions=["Presenza"],
         produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
@@ -616,7 +617,7 @@ def test_crear_observacion_e_recomendacion_con_visita_id(session):
         horta.id,
         asesor_persoa_id=bieito.id,
         data=D,
-        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=None)],
         problemas=[Problema(tipo="praga", codigo="10")],
         xustificacions=["Presenza"],
         produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
@@ -661,7 +662,8 @@ def test_crear_observacion_e_recomendacion_con_visita_id(session):
             conto=2.0,
             unidade_conto="individuos por planta",
             visita_id=v_outra.id,
-        )
+        persoa_id=xan.id,
+    )
 
     with pytest.raises(
         OperacionNonPermitidaError, match="non pertence a esta explotación"
@@ -672,7 +674,7 @@ def test_crear_observacion_e_recomendacion_con_visita_id(session):
             horta.id,
             asesor_persoa_id=bieito.id,
             data=D,
-            cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+            cultivos=[LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=None)],
             problemas=[Problema(tipo="praga", codigo="10")],
             xustificacions=["Presenza"],
             produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
@@ -696,7 +698,8 @@ def test_crear_observacion_e_recomendacion_con_visita_id(session):
             conto=2.0,
             unidade_conto="individuos por planta",
             visita_id=visita.id,
-        )
+        persoa_id=xan.id,
+    )
 
 
 def test_contido_visita(session):
@@ -730,7 +733,7 @@ def test_contido_visita(session):
         horta.id,
         asesor_persoa_id=bieito.id,
         data=D,
-        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=None)],
         problemas=[Problema(tipo="praga", codigo="10")],
         xustificacions=["Presenza"],
         produtos=[LinhaProduto(tipo_produto="1", unidade="5", nome_comercial="BioFito")],
@@ -759,7 +762,7 @@ def test_contido_visita(session):
         horta.id,
         asesor_persoa_id=bieito.id,
         data=D,
-        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=None)],
         problemas=[Problema(tipo="praga", codigo="10")],
         xustificacions=["Presenza"],
         produtos=[LinhaProduto(tipo_produto="1", unidade="5")],
@@ -821,7 +824,7 @@ def test_informe_visita(session):
         horta.id,
         asesor_persoa_id=bieito.id,
         data=D,
-        cultivos=[LinhaCultivo(cultivo_id=cultivo.id)],
+        cultivos=[LinhaCultivo(cultivo_id=cultivo.id, superficie_ha=None)],
         problemas=[Problema(tipo="praga", codigo="10")],
         xustificacions=["Presenza confirmada"],
         produtos=[LinhaProduto(tipo_produto="1", unidade="5", nome_comercial="BioFito")],
