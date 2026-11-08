@@ -143,6 +143,12 @@ def marco_horta(
                     with ui.link(target="/admin/catalogos").classes("menu-item w-full"):
                         ui.icon("library_books").classes("text-h6")
                         ui.label("Catálogos oficiais")
+                    with ui.link(target="/admin/legal").classes("menu-item w-full"):
+                        ui.icon("gavel").classes("text-h6")
+                        ui.label("Datos legais")
+                with ui.link(target="/conta").classes("menu-item w-full"):
+                    ui.icon("person").classes("text-h6")
+                    ui.label("A miña conta")
                 with ui.element("button").props('type="button"').classes(
                     "menu-item w-full menu-boton"
                 ).on("click", pechar_sesion):

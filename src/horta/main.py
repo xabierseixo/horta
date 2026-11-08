@@ -24,6 +24,33 @@ def _ruta_rexistrada(path: str) -> bool:
     return False
 
 
+def ruta_e_publica(path: str) -> bool:
+    """Comproba se unha ruta é accesible sen sesión de usuario."""
+    return (
+        path in RUTAS_PUBLICAS
+        or path.startswith("/convite/")
+        or path.startswith("/lote/")
+        or path.startswith("/legal/aviso")
+        or path.startswith("/legal/privacidade")
+    )
+
+
+def ruta_pide_aceptacion(path: str, e_rexistrada: bool) -> bool:
+    """Indica se a ruta require comprobar se o usuario ten a política aceptada."""
+    return e_rexistrada and path != "/login" and not path.startswith("/legal/")
+
+
+def _usuario_precisa_aceptar(usuario_id: int) -> bool:
+    """Le o usuario e comproba se está activo e ten a política pendente de aceptación."""
+    from horta.db import get_session
+    from horta.models.usuario import Usuario
+    from horta.services.legal import precisa_aceptar
+
+    with get_session() as session:
+        usuario = session.get(Usuario, usuario_id)
+        return bool(usuario and usuario.activo and precisa_aceptar(usuario))
+
+
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         usuario_autenticado = app.storage.user.get("usuario_id")
@@ -31,11 +58,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if (
             not usuario_autenticado
             and ruta_e_paxina_rexistrada
-            and request.url.path not in RUTAS_PUBLICAS
-            and not request.url.path.startswith("/convite/")
-            and not request.url.path.startswith("/lote/")
+            and not ruta_e_publica(request.url.path)
         ):
             return RedirectResponse("/login")
+        if (
+            usuario_autenticado
+            and ruta_pide_aceptacion(request.url.path, ruta_e_paxina_rexistrada)
+            and _usuario_precisa_aceptar(usuario_autenticado)
+        ):
+            return RedirectResponse("/legal/aceptar")
         return await call_next(request)
 
 
@@ -94,11 +125,14 @@ def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
 
 import horta.ui.admin.catalogos  # noqa: E402,F401
 import horta.ui.admin.copias  # noqa: E402,F401
+import horta.ui.admin.legal  # noqa: E402,F401
 import horta.ui.admin.usuarios  # noqa: E402,F401
+import horta.ui.pages.conta  # noqa: E402,F401
 import horta.ui.pages.convite  # noqa: E402,F401
 import horta.ui.pages.cue_volta  # noqa: E402,F401
 import horta.ui.pages.dashboard  # noqa: E402,F401
 import horta.ui.pages.horta_detalle  # noqa: E402,F401
+import horta.ui.pages.legal  # noqa: E402,F401
 import horta.ui.pages.login  # noqa: E402,F401
 import horta.ui.pages.lote_publico  # noqa: E402,F401
 

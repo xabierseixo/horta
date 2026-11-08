@@ -49,3 +49,12 @@ def login_page() -> None:
         email_input.on("keydown.enter", tentar_login)
         contrasinal_input.on("keydown.enter", tentar_login)
         ui.button("Entrar", on_click=tentar_login)
+
+        with ui.row().classes("texto-suave text-caption q-mt-sm items-center justify-center w-full"):
+            ui.link("Aviso legal", "/legal/aviso", new_tab=True).classes(
+                "texto-suave text-caption"
+            )
+            ui.label("·")
+            ui.link("Política de privacidade", "/legal/privacidade", new_tab=True).classes(
+                "texto-suave text-caption"
+            )
