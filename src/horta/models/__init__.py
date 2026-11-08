@@ -18,6 +18,7 @@ from horta.models.convite import Convite
 from horta.models.cultivo import Cultivo
 from horta.models.documento import Documento
 from horta.models.envio_cue import EnvioCue, RexistroCue
+from horta.models.esterco import MovementoEsterco
 from horta.models.fertilizante import FertilizanteSiex
 from horta.models.fito_rexistro import (
     FitoMateria,
@@ -90,6 +91,7 @@ __all__ = [
     "Animal",
     "CoidadoAnimal",
     "MovementoAnimal",
+    "MovementoEsterco",
     "ProducionAnimal",
     "Produto",
     "Pastoreo",
