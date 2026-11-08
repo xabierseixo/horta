@@ -45,13 +45,8 @@ def _formatear_data_politica(version_iso: str) -> str:
 
 
 def _ler_ficheiro_legal(cal: str) -> str:
-    try:
-        from importlib.resources import files
-
-        return files("horta.data.legal").joinpath(f"{cal}.md").read_text(encoding="utf-8")
-    except Exception:
-        ruta = Path(__file__).resolve().parents[1] / "data" / "legal" / f"{cal}.md"
-        return ruta.read_text(encoding="utf-8")
+    return (Path(__file__).resolve().parents[1] / "data" / "legal" / f"{cal}.md").read_text(
+        encoding="utf-8")
 
 
 def ler_configuracion(session: Session) -> ConfiguracionLegal | None:
@@ -153,15 +148,10 @@ def exportar_meus_datos(session: Session, actor: Usuario) -> bytes:
     conta_info = {
         "nome": actor.nome,
         "email": actor.email,
-        "rol": actor.rol.value if hasattr(actor.rol, "value") else str(actor.rol),
+        "rol": actor.rol.value,
         "activo": actor.activo,
         "data_alta": actor.created_at.isoformat() if actor.created_at else None,
-        "created_at": actor.created_at.isoformat() if actor.created_at else None,
-        "version": actor.politica_version,
         "politica_version": actor.politica_version,
-        "data_politica": (
-            actor.politica_aceptada_en.isoformat() if actor.politica_aceptada_en else None
-        ),
         "politica_aceptada_en": (
             actor.politica_aceptada_en.isoformat() if actor.politica_aceptada_en else None
         ),

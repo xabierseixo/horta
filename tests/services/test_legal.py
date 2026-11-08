@@ -18,7 +18,6 @@ from horta.services.legal import (
     borrar_minha_conta,
     exportar_meus_datos,
     gardar_configuracion,
-    ler_configuracion,
     precisa_aceptar,
     texto_legal,
 )
@@ -158,7 +157,7 @@ def test_exportar_meus_datos(session: Session) -> None:
 
 def test_borrar_minha_conta_caso_normal(session: Session) -> None:
     u = _crear_usuario(session, "borrame@example.com")
-    horta = crear_horta(session, u, "Horta Solitaria")
+    crear_horta(session, u, "Horta Solitaria")
     persoa = session.query(Persoa).filter_by(usuario_id=u.id).first()
     assert persoa is not None
     uid = u.id
