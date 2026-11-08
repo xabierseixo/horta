@@ -171,7 +171,8 @@ def crear_dialogo_tratamento(
     """Constrúe o diálogo e devolve a función que o abre (None = tratamento novo)."""
     estado: dict[str, Any] = {"id": None, "cultivos": [], "problemas": [], "produtos": [],
                               "medidas": [], "orixinais": "", "tarefa": None,
-                              "modo": "tratamento", "recomendacion_id": None}
+                              "modo": "tratamento", "recomendacion_id": None,
+                              "visita_id": None}
 
     def fila_cultivo(cultivo_id: int | None = None, superficie: str = "",
                      fenoloxico: str | None = None) -> dict[str, Any]:
@@ -636,6 +637,7 @@ def crear_dialogo_tratamento(
                                         medidas=d.medidas,
                                         valida_ata=valida_ata,
                                         observacions=d.notas,
+                                        visita_id=estado.get("visita_id"),
                                     )
                                 else:
                                     rec = session.get(Recomendacion, rec_id)
@@ -643,6 +645,9 @@ def crear_dialogo_tratamento(
                                         raise OperacionNonPermitidaError(
                                             "A recomendación xa non existe"
                                         )
+                                    visita_kw = {}
+                                    if estado.get("visita_id") is not None:
+                                        visita_kw["visita_id"] = estado["visita_id"]
                                     actualizar_recomendacion(
                                         session,
                                         actor,
@@ -656,6 +661,7 @@ def crear_dialogo_tratamento(
                                         medidas=d.medidas,
                                         valida_ata=valida_ata,
                                         observacions=d.notas,
+                                        **visita_kw,
                                     )
                             else:
                                 tratamento = (session.get(TratamentoFito, estado["id"])
@@ -690,12 +696,18 @@ def crear_dialogo_tratamento(
         tarefa: Tarefa | None = None,
         recomendacion: Recomendacion | None = None,
         modo: str = "tratamento",
+        visita_id: int | None = None,
     ) -> None:
         hoxe = date.today().isoformat()
         estado["modo"] = modo
         estado["tarefa"] = tarefa.id if tarefa else None
         estado["id"] = t.id if t else None
         estado["recomendacion_id"] = recomendacion.id if recomendacion else None
+        estado["visita_id"] = (
+            visita_id if visita_id is not None else (
+                recomendacion.visita_id if recomendacion else None
+            )
+        )
 
         e_rec = modo == "recomendacion"
         if e_rec:

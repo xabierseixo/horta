@@ -62,6 +62,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("tratamentos", "Tratamentos", "sanitizer", None, no_menu=True),
     Seccion("recomendacions", "Recomendacións do asesor", "assignment", None, no_menu=True),
     Seccion("pragas", "Seguimento de pragas", "bug_report", None, no_menu=True),
+    Seccion("visitas", "Visitas do técnico", "person_pin_circle", None, no_menu=True),
     Seccion("fertilizacion", "Abonados", "compost", None, no_menu=True),
     Seccion("estercos", "Estercos e purín", "compost", None, no_menu=True),
     Seccion("rega", "Regas", "water_drop", None, no_menu=True),

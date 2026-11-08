@@ -20,6 +20,7 @@ from horta.services.recomendacions import (
 )
 from horta.ui.accions import executar_accion
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.layout import url_seccion
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import texto_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -103,6 +104,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
             value="pendente",
             label="Estado",
         ).classes("w-48")
+        ui.link("Visitas do técnico", url_seccion(horta_id, "visitas"))
 
     taboa = ui.table(
         columns=[

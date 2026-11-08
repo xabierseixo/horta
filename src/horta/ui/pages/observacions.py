@@ -42,6 +42,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.fotos import abrir_fotos
+from horta.ui.layout import url_seccion
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.pasos_tratamento import ordenar_problemas
@@ -268,11 +269,12 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
                 "texto-suave"
             )
 
-    with ui.row().classes("w-full items-center q-mb-sm"):
+    with ui.row().classes("w-full items-center justify-between q-mb-sm"):
         opcions_filtro = {0: "Todos os cultivos", **cultivos}
         filtro_cultivo = ui.select(
             opcions_filtro, value=0, label="Filtrar por cultivo"
         ).classes("w-64")
+        ui.link("Visitas do técnico", url_seccion(horta_id, "visitas"))
 
     columnas = [
         {"name": "data", "label": "Data", "field": "data"},
@@ -479,7 +481,7 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
             if c.cultivo_siex_codigo is not None
         }
 
-    editando: dict[str, int | None] = {"id": None, "tarefa": None}
+    editando: dict[str, int | None] = {"id": None, "tarefa": None, "visita_id": None}
 
     with (
         ui.dialog().props("persistent") as dialogo,
@@ -574,6 +576,7 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
                             estado_fenoloxico=fenoloxico,
                             notas=notas_txt,
                             persoa_id=persoa.value,
+                            visita_id=editando.get("visita_id"),
                         )
                         rematar_tarefa(session, actor_actual, editando["tarefa"], novo)
                     else:
@@ -607,9 +610,13 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
     def abrir(
         obs: ObservacionPraga | None = None,
         tarefa: Tarefa | None = None,
+        visita_id: int | None = None,
     ) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = obs.id if obs else None
+        editando["visita_id"] = (
+            visita_id if visita_id is not None else (obs.visita_id if obs else None)
+        )
         titulo.text = "Editar observación" if obs else "Nova observación"
         cultivo.value = (
             obs.cultivo_id

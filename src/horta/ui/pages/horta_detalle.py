@@ -45,6 +45,7 @@ from horta.services.tarefas import (
     marcar_pendente,
 )
 from horta.services.tempo import concellos, gardar_lugar
+from horta.services.visitas import proximas_visitas
 from horta.ui.accions import executar_accion
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
@@ -97,6 +98,7 @@ from horta.ui.pages.regas import seccion_regas
 from horta.ui.pages.terras import seccion_terras
 from horta.ui.pages.tratamentos import seccion_tratamentos_fito
 from horta.ui.pages.tratamentos_instalacion import seccion_tratamentos_instalacion
+from horta.ui.pages.visitas import seccion_visitas, texto_aviso_proxima_visita
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 from horta.ui.tempo import CampoLugarTempo, predicion_inicio
@@ -168,6 +170,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             avisos_de_pragas.append(f"{nome_c} · {praga}: {a_praga.texto}")
         docs_aviso = documentos_con_aviso(session, actor, horta_id)
         recs_pendentes = len(recomendacions_pendentes(session, actor, horta_id))
+        visitas_proximas = proximas_visitas(session, actor, horta_id)
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
@@ -339,6 +342,12 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(texto_aviso_recomendacions(recs_pendentes))
                 ui.link("Recomendacións", url_seccion(horta_id, "recomendacions"))
+        for v_prox in visitas_proximas:
+            if v_prox.proxima_visita:
+                with ui.row().classes("items-center gap-2 q-mt-sm"):
+                    ui.icon("event").classes("text-primary")
+                    ui.label(texto_aviso_proxima_visita(v_prox.proxima_visita))
+                    ui.link("Visitas do técnico", url_seccion(horta_id, "visitas"))
         if requisitos:
             with ui.column().classes("tarxeta w-full gap-2 q-my-md"):
                 ui.label("Para estar en regra").classes("text-subtitle1 text-weight-bold")
@@ -413,6 +422,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_abonados(horta_id, pode_editar)
     elif seccion == "estercos":
         seccion_estercos(horta_id, pode_editar)
+    elif seccion == "visitas":
+        seccion_visitas(horta_id, pode_editar)
     elif seccion == "rega":
         seccion_regas(horta_id, pode_editar)
     elif seccion == "labores":
