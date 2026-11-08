@@ -62,6 +62,26 @@ def test_texto_necesidade_ok_con_falta_aproximado():
     )
 
 
+def test_texto_necesidade_ok_con_falta_et0_estimada():
+    n = NecesidadeRega(
+        cultivo_id=1,
+        estado="ok",
+        etc_mm=21.0,
+        choiva_efectiva_mm=8.0,
+        rega_mm=5.0,
+        falta_mm=8.0,
+        kc_actual=0.6,
+        aproximado=True,
+        dias_con_datos=7,
+        et0_estimada=True,
+    )
+    assert (
+        texto_necesidade(n)
+        == "Faltan uns 8 l/m² (gastou 21, choveu 8 útiles, regouse 5) · "
+        "aproximado: a estación non mide a evapotranspiración e calcúlase coa temperatura (FAO-56)"
+    )
+
+
 def test_texto_necesidade_ok_sen_falta():
     n = NecesidadeRega(
         cultivo_id=1,
@@ -113,6 +133,26 @@ def test_texto_necesidade_ok_sen_falta_aproximado():
     assert (
         texto_necesidade(n)
         == "Non fai falta regar (gastou 15 l/m², choveu 10 útiles, regouse 10) · cálculo aproximado"
+    )
+
+
+def test_texto_necesidade_ok_sen_falta_et0_estimada():
+    n = NecesidadeRega(
+        cultivo_id=1,
+        estado="ok",
+        etc_mm=15.0,
+        choiva_efectiva_mm=10.0,
+        rega_mm=10.0,
+        falta_mm=0.0,
+        kc_actual=0.6,
+        aproximado=True,
+        dias_con_datos=7,
+        et0_estimada=True,
+    )
+    assert (
+        texto_necesidade(n)
+        == "Non fai falta regar (gastou 15 l/m², choveu 10 útiles, regouse 10) · "
+        "aproximado: a estación non mide a evapotranspiración e calcúlase coa temperatura (FAO-56)"
     )
 
 
@@ -196,4 +236,7 @@ def test_texto_necesidade_sen_datos(aproximado: bool):
         aproximado=aproximado,
         dias_con_datos=0,
     )
-    assert texto_necesidade(n) == "Aínda non hai datos do tempo destes días"
+    assert (
+        texto_necesidade(n)
+        == "A estación non ten datos de temperatura nin evapotranspiración destes días"
+    )

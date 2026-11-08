@@ -17,9 +17,11 @@ from horta.services.necesidades_rega import (
     auga_regada_mm,
     choiva_efectiva,
     coeficientes,
+    et0_hargreaves,
     kc_do_dia,
     necesidade_rega,
     necesidades_horta,
+    radiacion_extraterrestre,
 )
 from horta.services.parcelas import crear_parcela
 
@@ -414,6 +416,7 @@ def test_necesidade_rega_calculo_completo(session):
     # kc_actual é o Kc de onte (2026-07-07, día 6 desde sementeira -> 0.6)
     assert resultado.kc_actual == 0.6
     assert resultado.aproximado is False
+    assert resultado.et0_estimada is False
     assert resultado.dias_con_datos == 7
 
 
@@ -592,3 +595,123 @@ def test_necesidades_horta(session):
     outro = _crear_usuario(session, "sen_rol@example.com")
     with pytest.raises(PermisoDenegadoError):
         necesidades_horta(session, outro, horta.id)
+
+
+def test_radiacion_extraterrestre_exemplo_fao56():
+    # Exemplo 8 de FAO-56: latitude -20°, 3 de setembro dá Ra = 32,2 MJ m⁻² día⁻¹ (±0,1)
+    # Nun ano non bisesto (p.ex. 2023 ou 2026), o 3 de setembro é o día J = 246
+    dia = date(2023, 9, 3)
+    ra = radiacion_extraterrestre(-20.0, dia)
+    assert ra == pytest.approx(32.2, abs=0.1)
+
+
+def test_et0_hargreaves_calculo_manual():
+    # Caso calculado a man:
+    # Tmin = 10.0 °C, Tmax = 20.0 °C -> Tmedia = 15.0 °C
+    # Ra = 30.0 MJ m⁻² día⁻¹
+    # ET0 = 0.0023 * (15.0 + 17.8) * sqrt(10.0) * 0.408 * 30.0
+    #     = 0.0023 * 32.8 * 3.16227766 * 0.408 * 30.0 ≈ 2.920 mm/día
+    et0 = et0_hargreaves(10.0, 20.0, 30.0)
+    assert et0 == pytest.approx(2.92, abs=0.01)
+
+    # Se Tmax < Tmin devolve 0
+    assert et0_hargreaves(20.0, 10.0, 30.0) == 0.0
+    # Se Tmax == Tmin devolve 0
+    assert et0_hargreaves(15.0, 15.0, 30.0) == 0.0
+
+
+def test_necesidade_rega_et0_hargreaves(session):
+    ana, horta, parcela, estacion = _escenario(session)
+    cultivo = Cultivo(
+        parcela_id=parcela.id,
+        especie="Tomate",
+        cultivo_siex_codigo=197,
+        data_inicio=date(2026, 7, 1),
+        superficie_ha=0.01,
+    )
+    session.add(cultivo)
+    session.commit()
+
+    hoxe = date(2026, 7, 8)
+    desde = date(2026, 7, 1)
+
+    # Estación cos días sen et0 pero con temperaturas
+    for n in range(7):
+        dia = desde + timedelta(days=n)
+        session.add(
+            TempoDia(
+                estacion_id=estacion.id,
+                data=dia,
+                et0=None,
+                t_min=12.0,
+                t_max=22.0,
+                choiva=0.0,
+                fonte="MeteoGalicia",
+            )
+        )
+    session.commit()
+
+    fonte = FonteProba()
+    resultado = necesidade_rega(
+        session,
+        ana,
+        cultivo.id,
+        dias=7,
+        hoxe=hoxe,
+        fonte=fonte,
+    )
+
+    assert resultado.cultivo_id == cultivo.id
+    assert resultado.estado == "ok"
+    assert resultado.et0_estimada is True
+    assert resultado.aproximado is True
+    assert resultado.dias_con_datos == 7
+    assert resultado.etc_mm > 0.0
+    assert resultado.falta_mm > 0.0
+
+
+def test_necesidade_rega_dias_sen_et0_nin_temperaturas(session):
+    ana, horta, parcela, estacion = _escenario(session)
+    cultivo = Cultivo(
+        parcela_id=parcela.id,
+        especie="Tomate",
+        cultivo_siex_codigo=197,
+        data_inicio=date(2026, 7, 1),
+        superficie_ha=0.01,
+    )
+    session.add(cultivo)
+    session.commit()
+
+    hoxe = date(2026, 7, 8)
+    desde = date(2026, 7, 1)
+
+    # Días con choiva pero sen et0 nin temperaturas (non contan)
+    for n in range(7):
+        dia = desde + timedelta(days=n)
+        session.add(
+            TempoDia(
+                estacion_id=estacion.id,
+                data=dia,
+                et0=None,
+                t_min=None,
+                t_max=None,
+                choiva=5.0,
+                fonte="MeteoGalicia",
+            )
+        )
+    session.commit()
+
+    fonte = FonteProba()
+    resultado = necesidade_rega(
+        session,
+        ana,
+        cultivo.id,
+        dias=7,
+        hoxe=hoxe,
+        fonte=fonte,
+    )
+
+    assert resultado.cultivo_id == cultivo.id
+    assert resultado.estado == "sen_datos"
+    assert resultado.dias_con_datos == 0
+    assert resultado.et0_estimada is False

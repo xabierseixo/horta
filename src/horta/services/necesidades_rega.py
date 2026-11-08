@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import math
 from dataclasses import dataclass
 from datetime import date, timedelta
 from functools import cache
@@ -14,6 +15,7 @@ from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, RolHorta
 from horta.models.parcela import Parcela
 from horta.models.rega import Rega, RegaCultivo
+from horta.models.tempo import EstacionMeteo
 from horta.models.usuario import Usuario
 from horta.services.hortas import comprobar_rol_horta
 from horta.services.meteogalicia import Fonte, MeteoGalicia
@@ -53,6 +55,7 @@ class NecesidadeRega:
     kc_actual: float | None
     aproximado: bool
     dias_con_datos: int
+    et0_estimada: bool = False
 
 
 def _parse_int_ou_none(valor: str | None) -> int | None:
@@ -135,6 +138,39 @@ def choiva_efectiva(choiva_mm: float | None) -> float:
     if choiva_mm is None or choiva_mm <= 0:
         return 0.0
     return choiva_mm * PORCENTAXE_CHOIVA_EFECTIVA
+
+
+def radiacion_extraterrestre(lat_graos: float, dia: date) -> float:
+    """Devolve a radiación extraterrestre Ra en MJ m⁻² día⁻¹ (FAO-56, ec. 21–25)."""
+    j = dia.timetuple().tm_yday
+    dr = 1.0 + 0.033 * math.cos(2.0 * math.pi * j / 365.0)
+    delta = 0.409 * math.sin(2.0 * math.pi * j / 365.0 - 1.39)
+    phi = math.radians(lat_graos)
+    arg_acos = -math.tan(phi) * math.tan(delta)
+    arg_acos = max(-1.0, min(1.0, arg_acos))
+    omega_s = math.acos(arg_acos)
+    ra = (
+        (24.0 * 60.0 / math.pi)
+        * 0.0820
+        * dr
+        * (
+            omega_s * math.sin(phi) * math.sin(delta)
+            + math.cos(phi) * math.cos(delta) * math.sin(omega_s)
+        )
+    )
+    return max(0.0, ra)
+
+
+def et0_hargreaves(t_min: float, t_max: float, ra: float) -> float:
+    """Calcula a evapotranspiración de referencia ET0 pola ecuación de Hargreaves (FAO-56, ec. 52).
+
+    Devolve a ET0 en mm/día. Se t_max < t_min, devolve 0.0.
+    """
+    if t_max < t_min:
+        return 0.0
+    t_media = (t_max + t_min) / 2.0
+    et0 = 0.0023 * (t_media + 17.8) * math.sqrt(t_max - t_min) * 0.408 * ra
+    return max(0.0, et0)
 
 
 def auga_regada_mm(
@@ -295,19 +331,36 @@ def necesidade_rega(
         session, fonte, estacion_id, desde, ata, hoxe_data
     )
 
+    estacion = session.get(EstacionMeteo, estacion_id)
+    lat_estacion = estacion.lat if estacion is not None else None
+
     dias_con_datos = 0
     etc_total = 0.0
     choiva_total = 0.0
+    et0_estimada = False
 
     dia_actual = desde
     while dia_actual <= ata:
         tempo = tempo_dias.get(dia_actual)
-        if tempo is not None and tempo.et0 is not None:
-            dias_desde_inicio = (dia_actual - cultivo.data_inicio).days
-            kc = kc_do_dia(coef, dias_desde_inicio)
-            etc_total += kc * tempo.et0
-            choiva_total += choiva_efectiva(tempo.choiva)
-            dias_con_datos += 1
+        if tempo is not None:
+            et0_dia: float | None = None
+            if tempo.et0 is not None:
+                et0_dia = tempo.et0
+            elif (
+                lat_estacion is not None
+                and tempo.t_min is not None
+                and tempo.t_max is not None
+            ):
+                ra = radiacion_extraterrestre(lat_estacion, dia_actual)
+                et0_dia = et0_hargreaves(tempo.t_min, tempo.t_max, ra)
+                et0_estimada = True
+
+            if et0_dia is not None:
+                dias_desde_inicio = (dia_actual - cultivo.data_inicio).days
+                kc = kc_do_dia(coef, dias_desde_inicio)
+                etc_total += kc * et0_dia
+                choiva_total += choiva_efectiva(tempo.choiva)
+                dias_con_datos += 1
         dia_actual += timedelta(days=1)
 
     if dias_con_datos == 0:
@@ -322,6 +375,9 @@ def necesidade_rega(
             aproximado=aproximado,
             dias_con_datos=0,
         )
+
+    if et0_estimada:
+        aproximado = True
 
     rega_total = auga_regada_mm(session, cultivo, desde, ata)
     dias_onte = (ata - cultivo.data_inicio).days
@@ -343,6 +399,7 @@ def necesidade_rega(
         kc_actual=kc_actual,
         aproximado=aproximado,
         dias_con_datos=dias_con_datos,
+        et0_estimada=et0_estimada,
     )
 
 

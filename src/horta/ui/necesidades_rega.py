@@ -21,7 +21,12 @@ def texto_necesidade(n: NecesidadeRega) -> str:
             texto = (
                 f"Non fai falta regar (gastou {etc} l/m², choveu {choiva} útiles, regouse {rega})"
             )
-        if n.aproximado:
+        if n.et0_estimada:
+            texto += (
+                " · aproximado: a estación non mide a evapotranspiración "
+                "e calcúlase coa temperatura (FAO-56)"
+            )
+        elif n.aproximado:
             texto += " · cálculo aproximado"
         return texto
 
@@ -34,6 +39,6 @@ def texto_necesidade(n: NecesidadeRega) -> str:
     if n.estado == "sen_data_inicio":
         return "Falta a data de sementeira ou plantación"
     if n.estado == "sen_datos":
-        return "Aínda non hai datos do tempo destes días"
+        return "A estación non ten datos de temperatura nin evapotranspiración destes días"
 
     return ""
