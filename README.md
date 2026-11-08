@@ -8,7 +8,7 @@ Horta centraliza nun único rexistro a actividade da explotación: as parcelas e
 
 A partir dese rexistro, a aplicación xera a documentación esixida pola normativa: o caderno de explotación, os libros de rexistro gandeiro e a trazabilidade dos lotes. Ademais, achega a información económica necesaria para a planificación da explotación. Cada dato introdúcese unha soa vez e utilízase en todos os documentos nos que é necesario.
 
-Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como a producións de autoconsumo. Desenvolvida integramente en galego, está optimizada para o seu uso en dispositivos móbiles, o que permite rexistrar a actividade directamente no campo.
+Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como a producións de autoconsumo. Está optimizada para o seu uso en dispositivos móbiles, o que permite rexistrar a actividade directamente no campo.
 
 ## Funcionalidades
 
