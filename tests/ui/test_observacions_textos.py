@@ -85,7 +85,7 @@ def test_texto_cultivo_limiar() -> None:
     cultivo1 = SimpleNamespace(especie="Pataca", variedade=None, cultivo_siex_codigo=101)
     cultivo2 = SimpleNamespace(especie="Millo", variedade="Doce", cultivo_siex_codigo=202)
     assert texto_cultivo_limiar(101, [cultivo1, cultivo2]) == "Pataca"
-    assert texto_cultivo_limiar(202, [cultivo1, cultivo2]) == "Millo (Doce)"
+    assert texto_cultivo_limiar(202, [cultivo1, cultivo2]) == "Millo Doce"
     assert texto_cultivo_limiar(999, [cultivo1, cultivo2]) == "Cultivo SIEX 999"
 
 

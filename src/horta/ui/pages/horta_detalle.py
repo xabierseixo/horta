@@ -314,10 +314,10 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(aviso)
                 ui.link("Informes", url_seccion(horta_id, "informes"))
-        for aviso in avisos_de_pragas:
+        for aviso_praga in avisos_de_pragas:
             with ui.row().classes("items-center gap-2 q-mt-sm"):
                 ui.icon("warning").classes("text-warning")
-                ui.label(aviso.texto)
+                ui.label(aviso_praga.texto)
                 ui.link("Seguimento de pragas", url_seccion(horta_id, "pragas"))
         for doc in docs_aviso:
             with ui.row().classes("items-center gap-2 q-mt-sm"):

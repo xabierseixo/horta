@@ -171,8 +171,8 @@ def opcions_grafica_evolucion(
         valor_limiar: float | None = None
         if isinstance(lim_obj, (int, float)):
             valor_limiar = float(lim_obj)
-        elif hasattr(lim_obj, "valor") and lim_obj.valor is not None:
-            valor_limiar = float(lim_obj.valor)
+        elif (valor_obj := getattr(lim_obj, "valor", None)) is not None:
+            valor_limiar = float(valor_obj)
 
         if valor_limiar is not None:
             serie["markLine"] = {
