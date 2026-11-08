@@ -115,8 +115,8 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                      f'no-data-label="Aínda non hai apuntes" {TEXTOS_TABOA}')
         elementos = [
             (
-                f["id"],
-                f["concepto"] or f["categoria"],
+                int(f["id"]),
+                str(f["concepto"] or f["categoria"]),
                 " · ".join(str(f[c]) for c in ("data", "importe", "pago") if f.get(c)),
             )
             for f in filas
