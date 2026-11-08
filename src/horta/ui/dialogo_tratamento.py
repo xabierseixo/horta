@@ -134,7 +134,7 @@ def texto_xustificacion_observacion(
     partes_detalle: list[str] = []
     if conto is not None:
         if unidade:
-            u_str = UNIDADES_CONTO.get(unidade, unidade).lower()
+            u_str = (UNIDADES_CONTO.get(unidade) or unidade).lower()
             partes_detalle.append(f"{conto:g} {u_str}".strip())
         else:
             partes_detalle.append(f"{conto:g}")
@@ -142,7 +142,7 @@ def texto_xustificacion_observacion(
             nivel_str = NIVEIS.get(nivel, nivel)
             partes_detalle.append(f"({nivel_str})")
     elif nivel:
-        nivel_txt = NIVEIS.get(nivel, nivel).lower()
+        nivel_txt = (NIVEIS.get(nivel) or nivel).lower()
         if nivel == "sen":
             partes_detalle.append("sen presenza")
         else:
