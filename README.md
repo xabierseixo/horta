@@ -44,6 +44,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Plan de empresa para solicitudes de axudas.
 - Arquivo de documentos e certificacións (certificado ecolóxico, GlobalG.A.P., seguros, inspeccións, carnés…), con aviso antes da súa caducidade.
 - Acceso multiusuario con permisos de administración, edición ou consulta.
+- Panel con todas as explotacións dunha persoa usuaria e os seus avisos, pensado para técnicos asesores e cooperativas.
 - Cumprimento do RGPD: aviso legal, política de privacidade, aceptación expresa, descarga dos datos persoais e borrado da conta.
 
 ## Documentación xerada
