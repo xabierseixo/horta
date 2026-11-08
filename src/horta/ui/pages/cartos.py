@@ -1,4 +1,4 @@
-"""Sección Cartos: resumo do ano,
+"""Sección Contas: resumo do ano,
 pendente de cobrar e de pagar por persoa, e os outros gastos e ingresos."""
 
 from __future__ import annotations

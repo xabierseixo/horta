@@ -104,7 +104,7 @@ def auga_por_mes(session: Session, actor: Usuario, horta_id: int, ano: int) -> A
 
 def cartos_por_mes(session: Session, actor: Usuario, horta_id: int, ano: int
                    ) -> tuple[list[float], list[float]]:
-    """Ingresos e gastos de cada mes (o mesmo cálculo que en Cartos)."""
+    """Ingresos e gastos de cada mes (o mesmo cálculo que en Contas)."""
     ingresos, gastos = [], []
     for mes in range(1, 13):
         resumo = resumo_periodo(session, actor, horta_id, periodo("mes", date(ano, mes, 1)))

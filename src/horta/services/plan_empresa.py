@@ -1,6 +1,6 @@
 """Plan de empresa (paso 16).
 
-A conta a 5 anos propónse desde o real (Cartos) e edítase; as amortizacións saen do
+A conta a 5 anos propónse desde o real (Contas) e edítase; as amortizacións saen do
 investimento e os xuros dos préstamos. VAN, TIR e pay-back calcúlanse. Seguimento: o
 previsto de cada ano ao lado do real. Ofertas (Anexo VI-A), o que lle falta para
 presentalo e a documentación do art. 18 da convocatoria MR701L (DOG do 2/2/2026)."""
@@ -111,7 +111,7 @@ def base_do_real(resumo: Resumo) -> tuple[float, float, float]:
 
 def ano_de_referencia(session: Session, actor: Usuario, horta_id: int,
                       hoxe: date | None = None) -> int:
-    """O ano pasado se ten datos en Cartos; se non (o primeiro ano), o ano en curso (Y9)."""
+    """O ano pasado se ten datos en Contas; se non (o primeiro ano), o ano en curso (Y9)."""
     ano = (hoxe or date.today()).year
     pasado = resumo_ano(session, actor, horta_id, ano - 1)
     return ano - 1 if pasado.total_ingresos or pasado.total_gastos else ano
@@ -119,7 +119,7 @@ def ano_de_referencia(session: Session, actor: Usuario, horta_id: int,
 
 def crear_plan(session: Session, actor: Usuario, horta_id: int, titulo: str,
                ano_inicio: int, hoxe: date | None = None) -> PlanEmpresa:
-    """Os 5 anos propóñense iguais ao ano de referencia de Cartos."""
+    """Os 5 anos propóñense iguais ao ano de referencia de Contas."""
     comprobar_rol_horta(session, horta_id, actor, _ROLES)
     if not titulo.strip():
         raise OperacionNonPermitidaError("Pon un título ao plan")

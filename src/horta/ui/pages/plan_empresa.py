@@ -92,7 +92,7 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
                                     int(parsear_decimal(ano1.value) or date.today().year))))
     referencia = "ao ano pasado" if ano_real < date.today().year else (
         f"ao que levas de {ano_real}")
-    ui.label(f"Os 5 anos propóñense iguais {referencia} en Cartos; cámbiaos na conta."
+    ui.label(f"Os 5 anos propóñense iguais {referencia} en Contas; cámbiaos na conta."
              ).classes("texto-suave text-caption")
 
     for plan in plans:
