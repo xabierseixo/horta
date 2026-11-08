@@ -213,3 +213,14 @@ def test_borrar_minha_conta_admin_global_se_hai_outro(session: Session) -> None:
     session.refresh(admin2)
     assert admin2.activo is False
     assert admin2.nome == "Conta borrada"
+
+
+def test_aviso_legal_inclue_licenza_e_codigo_fonte(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("HORTA_CODIGO_FONTE", raising=False)
+    texto = texto_legal(session, "aviso")
+    assert "AGPL-3.0-or-later" in texto
+    assert "https://github.com/xabierseixo/horta" in texto
+    monkeypatch.setenv("HORTA_CODIGO_FONTE", "https://exemplo.gal/codigo")
+    assert "https://exemplo.gal/codigo" in texto_legal(session, "aviso")

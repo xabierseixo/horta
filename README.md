@@ -65,6 +65,10 @@ A aplicación indica en cada momento os datos que faltan para completar o cadern
 
 Os rexistros sometidos a obriga legal de conservación non se eliminan: dánse de baixa e mantéñense no histórico.
 
+## Licenza
+
+AgroXest360 é software libre, publicado baixo a licenza [GNU Affero General Public License v3.0 ou posterior](LICENSE) (AGPL-3.0-or-later). Calquera persoa pode usala, estudala, modificala e redistribuíla. Se se ofrece como servizo web, o código fonte, incluídas as modificacións, ten que estar dispoñible para as persoas que a usan.
+
 ## Despregamento
 
 As instrucións para instalar a aplicación nun servidor están en [DESPREGAMENTO.md](DESPREGAMENTO.md).

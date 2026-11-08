@@ -23,16 +23,20 @@ AgroXest360 é unha aplicación web para a xestión de explotacións agrarias e 
 
 ## 4. Propiedade intelectual
 
-O software, o deseño e os textos da aplicación pertencen ao seu titular ou aos seus autores. Os datos introducidos pola persoa usuaria pertencen a ela.
+O software publícase como software libre, nas condicións do apartado 6. Os datos introducidos pola persoa usuaria pertencen a ela.
 
 ## 5. Responsabilidade
 
 O titular procura que o servizo funcione de forma continua e segura, pero non garante a ausencia de interrupcións ou erros. Recoméndase descargar periodicamente os informes e os rexistros obrigatorios.
 
-## 6. Protección de datos
+## 6. Licenza e código fonte
+
+AgroXest360 é software libre, distribuído baixo a licenza GNU Affero General Public License, versión 3 ou posterior (AGPL-3.0-or-later). O código fonte da versión en uso está dispoñible en {codigo_fonte}.
+
+## 7. Protección de datos
 
 O tratamento dos datos persoais réxese pola [Política de privacidade](/legal/privacidade).
 
-## 7. Lexislación aplicable
+## 8. Lexislación aplicable
 
 Este aviso réxese pola lexislación española.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import secrets
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -18,6 +19,7 @@ from horta.services.auth import hash_password
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
 
 VERSION_POLITICA = "2026-11-08"
+CODIGO_FONTE = "https://github.com/xabierseixo/horta"
 
 CAMPOS_CONFIGURACION = {
     "nome",
@@ -47,6 +49,11 @@ def _formatear_data_politica(version_iso: str) -> str:
 def _ler_ficheiro_legal(cal: str) -> str:
     return (Path(__file__).resolve().parents[1] / "data" / "legal" / f"{cal}.md").read_text(
         encoding="utf-8")
+
+
+def codigo_fonte() -> str:
+    """Onde está o código fonte da versión en uso (AGPL, sección 13)."""
+    return os.environ.get("HORTA_CODIGO_FONTE") or CODIGO_FONTE
 
 
 def ler_configuracion(session: Session) -> ConfiguracionLegal | None:
@@ -122,6 +129,7 @@ def texto_legal(session: Session, cal: str) -> str:
         "{correo}": correo,
         "{dpd}": dpd,
         "{localizacion}": localizacion,
+        "{codigo_fonte}": codigo_fonte(),
     }
 
     for marcador, valor in substitucions.items():

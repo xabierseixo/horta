@@ -1,7 +1,9 @@
 [project]
 name = "horta"
 version = "0.1.0"
-description = "Add your description here"
+description = "Xestión integral de explotacións agrarias e gandeiras: rexistro da actividade, caderno de explotación, CUE e trazabilidade"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

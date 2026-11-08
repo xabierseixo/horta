@@ -43,6 +43,7 @@ HORTA_TESELAS_DIR=/srv/agroxest360/datos/teselas
 | `HORTA_TESELAS_DIR` | Caché dos mapas | `~/.local/share/horta/teselas` |
 | `HORTA_COPIAS` | `0` desactiva as copias diarias | activadas |
 | `HORTA_ACTUALIZAR` | `0` desactiva a descarga automática dos catálogos e do rexistro de fitosanitarios | activada |
+| `HORTA_CODIGO_FONTE` | Enderezo do código fonte que se mostra no aviso legal (obriga da licenza AGPL) | `https://github.com/xabierseixo/horta` |
 | `HORTA_XEAGA_URL`, `HORTA_XEAGA_APP` | Conexión co caderno dixital da Xunta (XEAGA) | sen conexión |
 
 O segredo pódese xerar con:
