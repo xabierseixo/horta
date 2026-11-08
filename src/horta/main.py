@@ -32,6 +32,7 @@ def ruta_e_publica(path: str) -> bool:
         or path.startswith("/lote/")
         or path.startswith("/legal/aviso")
         or path.startswith("/legal/privacidade")
+        or path.startswith("/api/")
     )
 
 
@@ -149,6 +150,11 @@ def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
         return Response(status_code=404)
     datos, mime = resultado
     return Response(datos, media_type=mime, headers={"Cache-Control": "private, max-age=604800"})
+
+
+from horta.api.campo import router as campo_router
+
+app.include_router(campo_router)
 
 
 import horta.ui.admin.catalogos  # noqa: E402,F401
