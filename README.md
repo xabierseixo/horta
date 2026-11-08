@@ -8,7 +8,7 @@ AgroXest360 centraliza nun único rexistro a actividade da explotación: as parc
 
 A partir dese rexistro, a aplicación xera a documentación esixida pola normativa: o caderno de explotación, os libros de rexistro gandeiro e a trazabilidade dos lotes. Ademais, achega a información económica necesaria para a planificación da explotación. Cada dato introdúcese unha soa vez e utilízase en todos os documentos nos que é necesario.
 
-Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como a producións de autoconsumo, e tamén aos técnicos asesores e ás cooperativas que as acompañan. Está optimizada para o seu uso en dispositivos móbiles, o que permite rexistrar a actividade directamente no campo, mesmo sen cobertura.
+Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como a producións de autoconsumo, e tamén ao persoal técnico de asesoramento e ás cooperativas que as acompañan. Está optimizada para o seu uso en dispositivos móbiles, o que permite rexistrar a actividade directamente no campo, mesmo sen cobertura.
 
 ## Funcionalidades
 
@@ -33,10 +33,10 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Rexistro do aplicador, co seu carné ROPO, e da maquinaria de aplicación, con número ROMA e REGANIP.
 
 ### Asesoramento técnico
-- Recomendacións do asesor: o técnico deixa a recomendación e o agricultor aplícaa sen volver a apuntar os datos; o tratamento queda validado polo asesor.
-- Visitas de campo: cada visita reúne as observacións e as recomendacións do técnico e xera un informe para asinar.
-- Panel con todas as explotacións que leva un técnico ou unha cooperativa, cos avisos de cada unha.
-- Acceso para inspectores e auditores limitado á información que lles corresponde.
+- Recomendacións de asesoramento: a persoa asesora deixa a recomendación e a persoa responsable da explotación aplícaa sen volver a apuntar os datos; o tratamento queda validado pola persoa asesora.
+- Visitas de campo: cada visita reúne as observacións e as recomendacións da persoa técnica e xera un informe para asinar.
+- Panel con todas as explotacións que leva unha persoa técnica ou unha cooperativa, cos avisos de cada unha.
+- Acceso para o persoal de inspección e auditoría limitado á información que lle corresponde.
 
 ### Fertilización, estercos e purín
 - Rexistro dos abonados coa súa composición e a súa achega de nutrientes.
@@ -54,12 +54,12 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Rexistro da produción (ovos, leite, mel e outros), dos coidados e tratamentos veterinarios e do pastoreo.
 
 ### Insumos, produción e comercialización
-- Catálogo de insumos e rexistro de entradas: provedor, lote, cantidade e prezo.
+- Catálogo de insumos e rexistro de entradas: empresa provedora, lote, cantidade e prezo.
 - Xestión de lotes de produto e das súas saídas: venda, autoconsumo, transformación e perdas.
-- Trazabilidade completa de cada lote, cunha páxina pública opcional para o consumidor.
+- Trazabilidade completa de cada lote, cunha páxina pública opcional para quen merca o produto.
 
 ### Xestión
-- Directorio único de persoas e entidades: equipo de traballo, clientes, provedores, asesores e veterinarios.
+- Directorio único de persoas e entidades: equipo de traballo, clientela, empresas provedoras, asesoramento e servizos veterinarios.
 - Xestión económica de gastos, ingresos e custos de man de obra, e seguimento do consumo de enerxía.
 - Arquivo de documentos e certificacións (certificado ecolóxico, GlobalG.A.P., seguros, inspeccións, carnés…), con aviso antes da súa caducidade.
 - Acceso multiusuario con permisos de administración, edición ou consulta.
@@ -87,7 +87,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Libro de rexistro gandeiro.
 - Rexistro de medicamentos veterinarios.
 - Documento de acompañamento do esterco (anexo VII do Real Decreto 1051/2022).
-- Informe da visita de campo do técnico.
+- Informe da visita de campo da persoa técnica.
 - Plan de empresa (Anexos III e V de AGADER).
 - Facturas de venda con código QR de VERI*FACTU.
 
