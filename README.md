@@ -1,41 +1,70 @@
 # Horta
 
-**Horta** é unha aplicación web en galego para levar o día a día dunha explotación agraria ou gandeira: o que se fai no campo e cos animais, o que se compra, o que se colle e o que se vende.
+Aplicación web para a xestión integral de explotacións agrarias e gandeiras de Galicia.
 
-A idea é simple: **apúntase o traballo unha vez e os papeis saen sós**. O caderno de explotación, os libros dos animais, a trazabilidade dos lotes ou as contas non se enchen á man. A app xéraos a partir do que xa está apuntado.
+## Descrición
 
-Serve tanto para unha horta de autoconsumo como para unha pequena explotación profesional que ten que cumprir coa normativa.
+Horta centraliza nun único rexistro a actividade da explotación: as parcelas e os cultivos, os animais, os traballos realizados, os insumos adquiridos, a produción e a súa comercialización.
 
-## Que se pode facer
+A partir dese rexistro, a aplicación xera a documentación esixida pola normativa: o caderno de explotación, os libros de rexistro gandeiro e a trazabilidade dos lotes. Ademais, achega a información económica necesaria para a planificación da explotación. Cada dato introdúcese unha soa vez e utilízase en todos os documentos nos que é necesario.
 
-**As terras e os cultivos.** As parcelas debúxanse nun mapa e levan a súa referencia SIGPAC. Cada parcela ten a súa ficha: os seus datos, o que está plantado e todo o que se lle fixo.
+Está deseñada para explotacións profesionais suxeitas a obrigas de rexistro e tamén para producións de autoconsumo. A interface está en galego e adaptada ao uso desde dispositivos móbiles.
 
-**Os traballos.** Sementeiras, regas, abonados, tratamentos, labores, colleitas e análises. Para apuntar un traballo abonda con dicir que se fixo, onde, cando e quen o fixo; o resto é opcional. Os traballos que quedan por facer apúntanse como tarefas e aparecen no calendario.
+## Funcionalidades
 
-**Os tratamentos fitosanitarios.** Fanse cos catálogos oficiais e co rexistro de produtos autorizados do Ministerio. A app avisa se un produto non está autorizado para ese cultivo, pero non impide apuntalo.
+### Base territorial e produtiva
+- Rexistro de parcelas con referencia SIGPAC e catastral, réxime de tenencia e sistema de explotación.
+- Visualización das parcelas sobre cartografía.
+- Xestión de cultivos por parcela: especie, variedade, superficie, datas e sistema de cultivo.
+- Ficha de cada parcela e de cada cultivo co seu historial completo.
 
-**Os animais.** Lévanse por grupos. Apúntanse as entradas e saídas, o que producen (ovos, leite, mel…), os coidados e medicamentos e o pastoreo.
+### Rexistro da actividade
+- Sementeiras e plantacións, labores, regas, fertilización, tratamentos fitosanitarios, colleitas e toma de mostras.
+- Rexistro mínimo obrigatorio (actividade, lugar, data e responsable), con datos complementarios opcionais.
+- Planificación de tarefas e calendario de actividade.
+- Información meteorolóxica de MeteoGalicia asociada á explotación.
 
-**O que entra e o que sae.** Os produtos que se compran (sementes, abonos, pensos…) e os lotes do que se produce, coa súa saída: venda, casa, transformación ou perda. Cada lote pode ter unha páxina pública para quen o merca, onde se ve de onde vén e que se lle fixo.
+### Produtos fitosanitarios
+- Integración dos catálogos oficiais do SIEX (FEGA) e do Rexistro de Produtos Fitosanitarios do MAPA.
+- Comprobación da autorización do produto para o cultivo e a praga indicados.
+- Rexistro do aplicador, co seu carné ROPO, e da maquinaria de aplicación, con número ROMA e REGANIP.
 
-**As persoas.** O equipo e os contactos (clientes, provedores, asesor, veterinario…) están nunha soa lista. Varias persoas poden usar a mesma explotación, cada unha co seu permiso: administrar, apuntar ou só mirar.
+### Gandaría
+- Xestión de animais por grupos, con altas, baixas e movementos.
+- Rexistro da produción (ovos, leite, mel e outros), dos coidados e tratamentos veterinarios e do pastoreo.
 
-**Os cartos.** Gastos, ingresos e horas de traballo, e o plan de empresa para pedir axudas.
+### Insumos, produción e comercialización
+- Catálogo de insumos e rexistro de entradas: provedor, lote, cantidade e prezo.
+- Xestión de lotes de produto e das súas saídas: venda, autoconsumo, transformación e perdas.
+- Trazabilidade completa de cada lote, cunha páxina pública opcional para o consumidor.
 
-**O tempo.** A previsión de MeteoGalicia para a zona da explotación.
+### Xestión
+- Directorio único de persoas e entidades: equipo de traballo, clientes, provedores, asesores e veterinarios.
+- Xestión económica de gastos, ingresos e custos de man de obra.
+- Plan de empresa para solicitudes de axudas.
+- Acceso multiusuario con permisos de administración, edición ou consulta.
 
-**No móbil.** Está pensada para usala no campo: cada lista sae en tarxetas e, ao tocar unha, ábrese a súa ficha.
+## Documentación xerada
 
-## Os papeis que saen dela
+| Documento | Formato |
+|---|---|
+| Caderno de explotación (modelo da Xunta de Galicia) | Excel |
+| Caderno Dixital de Explotación Agrícola (CUE) | Excel e JSON |
+| Libro de rexistro gandeiro | Excel |
+| Rexistro de medicamentos veterinarios | Excel |
+| Plan de empresa (Anexos III e V) | Excel |
 
-- **Caderno de explotación**, co modelo da Xunta, en Excel.
-- **Caderno dixital (CUE)**, obrigatorio para as explotacións profesionais desde o 1 de xaneiro de 2027. A app prepara os datos ordenados para pasalos.
-- **Libro de rexistro gandeiro** e **rexistro de medicamentos veterinarios**.
-- **Plan de empresa** para as axudas, cos anexos que se piden.
-- **Que lle falta ao caderno:** un aviso dos datos que aínda faltan, para completalos cando se poida.
+A aplicación indica en cada momento os datos que faltan para completar o caderno, sen impedir a súa descarga.
 
-Os datos obrigatorios non se borran nunca: os rexistros dan de baixa e consérvanse no histórico, como pide a normativa.
+## Marco normativo
 
-## Estado
+- Real Decreto 1311/2012, sobre o uso sostible de produtos fitosanitarios.
+- Caderno Dixital de Explotación Agrícola integrado no SIEX, obrigatorio para as explotacións profesionais desde o 1 de xaneiro de 2027 (Real Decreto 1039/2025).
+- Catálogos e codificacións do SIEX (Anexo V).
+- Rexistros autonómicos de explotacións agrarias e gandeiras (REAGA e REGA).
 
-En desenvolvemento. Aínda non está en uso real nin é unha aplicación autorizada para enviar o caderno dixital.
+Os rexistros sometidos a obriga legal de conservación non se eliminan: dánse de baixa e mantéñense no histórico.
+
+## Estado do proxecto
+
+En desenvolvemento. A aplicación aínda non está autorizada como aplicación comercial para o envío do caderno dixital ao SIEX.
