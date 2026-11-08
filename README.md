@@ -29,6 +29,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Integración dos catálogos oficiais do SIEX (FEGA) e do Rexistro de Produtos Fitosanitarios do MAPA.
 - Comprobación da autorización do produto para o cultivo e a praga indicados.
 - Rexistro do aplicador, co seu carné ROPO, e da maquinaria de aplicación, con número ROMA e REGANIP.
+- Recomendacións do asesor: o técnico deixa a recomendación e o agricultor aplícaa sen volver a apuntar os datos; o tratamento queda validado polo asesor.
 
 ### Gandaría
 - Xestión de animais por grupos, con altas, baixas e movementos.
