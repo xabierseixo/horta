@@ -21,6 +21,7 @@ from horta.services.fito_consulta import (
 )
 from horta.services.maquinaria import listar_maquinas
 from horta.services.persoas import listar_persoas
+from horta.services.recomendacions import recomendacions_pendentes
 from horta.services.textos_catalogo import texto_catalogo
 from horta.services.tratamentos_fito import (
     dar_de_baixa_tratamento_fito,
@@ -31,7 +32,9 @@ from horta.ui.accions import executar_accion
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_tratamento import OpcionsTratamento, crear_dialogo_tratamento
+from horta.ui.layout import url_seccion
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
+from horta.ui.pages.recomendacions import texto_ligazon_recomendacions
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
@@ -57,6 +60,7 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
         if actor is None:
             pechar_sesion()
             return
+        n_pendentes = len(recomendacions_pendentes(session, actor, horta_id))
         filas = []
         for t in listar_tratamentos_fito(session, actor, horta_id):
             cultivos = [session.get(Cultivo, c.cultivo_id) for c in t.cultivos]
@@ -73,6 +77,11 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                 "cue": "completo" if not faltas_para_cue(t)
                 else "falta: " + ", ".join(faltas_para_cue(t)),
             })
+
+    ui.link(
+        texto_ligazon_recomendacions(n_pendentes),
+        url_seccion(horta_id, "recomendacions"),
+    ).classes("q-mb-sm inline-block")
 
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
@@ -141,7 +150,7 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
                       on_click=dar_de_baixa).props("outline")
 
 
-def dialogo_tratamento_fito(horta_id: int) -> Callable[[TratamentoFito | None], None]:
+def dialogo_tratamento_fito(horta_id: int) -> Callable[..., None]:
     """Constrúe o diálogo do tratamento fitosanitario e devolve a función que o abre."""
     with get_session() as session:
         actor = usuario_actual(session)

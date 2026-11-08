@@ -425,6 +425,30 @@ def aplicar_recomendacion(
     return tratamento
 
 
+def ligar_tratamento(
+    session: Session,
+    actor: Usuario,
+    rec: Recomendacion,
+    tratamento: TratamentoFito,
+) -> None:
+    comprobar_rol_horta(session, rec.horta_id, actor, _ROLES_ESCRITURA)
+    if rec.baixa:
+        raise OperacionNonPermitidaError(
+            "Unha recomendación dada de baixa non se pode aplicar"
+        )
+    if rec.estado != "pendente":
+        raise OperacionNonPermitidaError(
+            "Só se poden aplicar recomendacións pendentes"
+        )
+    if tratamento.horta_id != rec.horta_id:
+        raise OperacionNonPermitidaError(
+            "O tratamento non pertence á mesma explotación"
+        )
+    rec.estado = "aplicada"
+    rec.tratamento_id = tratamento.id
+    session.commit()
+
+
 def descartar_recomendacion(
     session: Session, actor: Usuario, rec: Recomendacion, motivo: str
 ) -> Recomendacion:
@@ -470,6 +494,7 @@ __all__ = [
     "crear_recomendacion",
     "dar_de_baixa_recomendacion",
     "descartar_recomendacion",
+    "ligar_tratamento",
     "listar_recomendacions",
     "obter_recomendacion",
     "recomendacion_a_datos",

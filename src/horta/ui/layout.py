@@ -60,6 +60,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("explotacion", "Datos da explotación", "store", "Explotación", so_admin_horta=True),
     # A táboa de cada tipo de traballo: fóra do menú, chégase desde o Diario
     Seccion("tratamentos", "Tratamentos", "sanitizer", None, no_menu=True),
+    Seccion("recomendacions", "Recomendacións do asesor", "assignment", None, no_menu=True),
     Seccion("fertilizacion", "Abonados", "compost", None, no_menu=True),
     Seccion("rega", "Regas", "water_drop", None, no_menu=True),
     Seccion("labores", "Labores", "grass", None, no_menu=True),

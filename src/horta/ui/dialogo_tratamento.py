@@ -8,10 +8,11 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from nicegui import ui
+from nicegui import app, ui
 
 from horta.db import get_session
 from horta.models.horta import Horta
+from horta.models.recomendacion import Recomendacion
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TratamentoFito
 from horta.services.errors import OperacionNonPermitidaError
@@ -21,6 +22,12 @@ from horta.services.fito_consulta import (
     comprobar_tratamento,
     dose_etiqueta,
     materia_activa,
+)
+from horta.services.recomendacions import (
+    actualizar_recomendacion,
+    crear_recomendacion,
+    ligar_tratamento,
+    recomendacion_a_datos,
 )
 from horta.services.tratamentos_fito import (
     UNIDADES_DOSE,
@@ -94,10 +101,11 @@ def _papeleira(lista: list[dict[str, Any]], fila: dict[str, Any],
 
 def crear_dialogo_tratamento(
     horta_id: int, op: OpcionsTratamento
-) -> Callable[[TratamentoFito | None], None]:
+) -> Callable[..., None]:
     """Constrúe o diálogo e devolve a función que o abre (None = tratamento novo)."""
     estado: dict[str, Any] = {"id": None, "cultivos": [], "problemas": [], "produtos": [],
-                              "medidas": [], "orixinais": "", "tarefa": None}
+                              "medidas": [], "orixinais": "", "tarefa": None,
+                              "modo": "tratamento", "recomendacion_id": None}
 
     def fila_cultivo(cultivo_id: int | None = None, superficie: str = "",
                      fenoloxico: str | None = None) -> dict[str, Any]:
@@ -140,6 +148,8 @@ def crear_dialogo_tratamento(
         pasos.next()
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(46rem, 96vw)"):
+        titulo = ui.label("").classes("text-h6 q-mb-sm")
+        titulo.set_visibility(False)
         with ui.stepper().props("vertical").classes("w-full") as pasos:
             with ui.step("1. Que e onde"):
                 with ui.row().classes("w-full"):
@@ -208,7 +218,11 @@ def crear_dialogo_tratamento(
                     def seguir_paso_1() -> None:
                         # Os problemas do cultivo escollido van primeiro (Y5)
                         filas_problemas.refresh()
-                        seguir(faltan_que_e_onde(data_inicio.value, data_fin.value,
+                        fin_val = (
+                            data_fin.value
+                            or (data_inicio.value if estado.get("modo") == "recomendacion" else "")
+                        )
+                        seguir(faltan_que_e_onde(data_inicio.value, fin_val,
                                                  estado["cultivos"]))
 
                     ui.button("Seguinte", on_click=seguir_paso_1)
@@ -364,7 +378,16 @@ def crear_dialogo_tratamento(
                 for campo in (asesor, data_asesor, validacion):
                     campo.set_visibility(bool(op.asesores))
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=lambda: seguir(faltan_quen(aplicador.value)))
+                    def seguir_paso_4() -> None:
+                        if estado.get("modo") == "recomendacion":
+                            if not asesor.value:
+                                ui.notify("Escolle un asesor", type="warning")
+                                return
+                            pasos.next()
+                        else:
+                            seguir(faltan_quen(aplicador.value))
+
+                    ui.button("Seguinte", on_click=seguir_paso_4)
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
             with ui.step(_PASO_RESULTADO):
                 eficacia = ui.select(op.eficacias, label="Eficacia").classes("w-full")
@@ -375,11 +398,16 @@ def crear_dialogo_tratamento(
                 def datos() -> DatosTratamento:
                     inicio = parsear_data(data_inicio.value)
                     fin = parsear_data(data_fin.value)
+                    if estado.get("modo") == "recomendacion" and fin is None:
+                        fin = inicio
                     if inicio is None or fin is None:
                         raise OperacionNonPermitidaError("Indica as datas de inicio e fin")
-                    data_as = parsear_data(data_asesor.value)
+                    e_rec = estado.get("modo") == "recomendacion"
+                    data_as = parsear_data(data_asesor.value) if not e_rec else inicio
+                    val_as = bool(validacion.value) if not e_rec else True
                     return DatosTratamento(
-                        data_inicio=inicio, data_fin=fin, hora=parsear_hora(hora.value),
+                        data_inicio=inicio, data_fin=fin,
+                        hora=parsear_hora(hora.value) if not e_rec else None,
                         cultivos=[LinhaCultivo(f["cultivo_id"], parsear_decimal(f["superficie"]),
                                                f["estado"])
                                   for f in estado["cultivos"] if f["cultivo_id"] is not None],
@@ -402,11 +430,11 @@ def crear_dialogo_tratamento(
                         aplicadores=[LinhaAplicador(
                             aplicador.value, maquina.value, aplicacion_manual=maquina.value is None,
                             horas_utilizacion=parsear_decimal(horas.value))]
-                        if aplicador.value else [],
+                        if (aplicador.value and not e_rec) else [],
                         asesor=DatosAsesor(asesor.value, data=data_as,
-                                           validacion=bool(validacion.value))
+                                           validacion=val_as)
                         if asesor.value else None,
-                        eficacia=eficacia.value,
+                        eficacia=eficacia.value if not e_rec else None,
                         notas=notas.value or None,
                     )
 
@@ -445,72 +473,251 @@ def crear_dialogo_tratamento(
 
                         def accion() -> None:
                             d = datos()
-                            tratamento = (session.get(TratamentoFito, estado["id"])
-                                          if estado["id"] else None)
-                            if tratamento is None:
-                                novo = crear_tratamento_fito(session, actor, horta_id, d)
-                                rematar_tarefa(session, actor, estado["tarefa"], novo)
+                            if estado.get("modo") == "recomendacion":
+                                if d.asesor is None or not d.asesor.persoa_id:
+                                    raise OperacionNonPermitidaError(
+                                        "Escolle un asesor da explotación"
+                                    )
+                                valida_ata = (
+                                    d.data_fin if d.data_fin != d.data_inicio else None
+                                )
+                                rec_id = estado.get("recomendacion_id")
+                                if rec_id is None:
+                                    crear_recomendacion(
+                                        session,
+                                        actor,
+                                        horta_id,
+                                        asesor_persoa_id=d.asesor.persoa_id,
+                                        data=d.data_inicio,
+                                        cultivos=d.cultivos,
+                                        problemas=d.problemas,
+                                        xustificacions=d.xustificacions,
+                                        produtos=d.produtos,
+                                        medidas=d.medidas,
+                                        valida_ata=valida_ata,
+                                        observacions=d.notas,
+                                    )
+                                else:
+                                    rec = session.get(Recomendacion, rec_id)
+                                    if rec is None:
+                                        raise OperacionNonPermitidaError(
+                                            "A recomendación xa non existe"
+                                        )
+                                    actualizar_recomendacion(
+                                        session,
+                                        actor,
+                                        rec,
+                                        asesor_persoa_id=d.asesor.persoa_id,
+                                        data=d.data_inicio,
+                                        cultivos=d.cultivos,
+                                        problemas=d.problemas,
+                                        xustificacions=d.xustificacions,
+                                        produtos=d.produtos,
+                                        medidas=d.medidas,
+                                        valida_ata=valida_ata,
+                                        observacions=d.notas,
+                                    )
                             else:
-                                actualizar_tratamento_fito(session, actor, tratamento, d)
+                                tratamento = (session.get(TratamentoFito, estado["id"])
+                                              if estado["id"] else None)
+                                if tratamento is None:
+                                    novo = crear_tratamento_fito(session, actor, horta_id, d)
+                                    rec_id = estado.get("recomendacion_id")
+                                    if rec_id:
+                                        rec = session.get(Recomendacion, rec_id)
+                                        if rec is not None:
+                                            ligar_tratamento(session, actor, rec, novo)
+                                    rematar_tarefa(session, actor, estado["tarefa"], novo)
+                                else:
+                                    actualizar_tratamento_fito(session, actor, tratamento, d)
 
                         ok = executar_accion(session, accion)
                     if ok:
-                        recargar_apuntado("tratamento", data_inicio.value)
+                        if estado.get("modo") == "recomendacion":
+                            dialogo.close()
+                            app.storage.user["aviso"] = "Recomendación gardada"
+                            ui.navigate.reload()
+                        else:
+                            recargar_apuntado("tratamento", data_inicio.value)
 
                 with ui.stepper_navigation():
                     ui.button("Gardar", icon="check", on_click=gardar)
                     ui.button("Atrás", on_click=pasos.previous).props("flat")
         ui.button("Pechar", on_click=dialogo.close).props("flat")
 
-    def abrir(t: TratamentoFito | None, tarefa: Tarefa | None = None) -> None:
+    def abrir(
+        t: TratamentoFito | None = None,
+        tarefa: Tarefa | None = None,
+        recomendacion: Recomendacion | None = None,
+        modo: str = "tratamento",
+    ) -> None:
         hoxe = date.today().isoformat()
+        estado["modo"] = modo
         estado["tarefa"] = tarefa.id if tarefa else None
         estado["id"] = t.id if t else None
-        data_inicio.value = t.data_inicio.isoformat() if t else hoxe
-        data_fin.value = t.data_fin.isoformat() if t else hoxe
-        estado["inicio"] = data_inicio.value
-        hora.value = t.hora.strftime("%H:%M") if t and t.hora else ""
-        estado["cultivos"] = [fila_cultivo(c.cultivo_id, _txt(c.superficie_ha),
-                                           c.estado_fenoloxico)
-                              for c in t.cultivos] if t else []
-        estado["problemas"] = [fila_problema(p.tipo, p.codigo) for p in t.problemas] if t else []
-        estado["produtos"] = [fila_produto(tipo_produto=p.tipo_produto,
-                                           nome=p.nome_comercial or "",
-                                           num=p.num_rexistro or "",
-                                           materia=p.materia_activa or "",
-                                           dose=_txt(p.dose if p.dose is not None
-                                                     else p.cantidade),
-                                           unidade=p.unidade,
-                                           total=p.dose is None and p.cantidade is not None)
-                              for p in t.produtos] if t else []
-        estado["medidas"] = [fila_medida(m.tipo_medida, _txt(m.cantidade), m.unidade,
-                                         m.num_rexistro_mdf or "")
-                             for m in t.medidas] if t else []
+        estado["recomendacion_id"] = recomendacion.id if recomendacion else None
+
+        e_rec = modo == "recomendacion"
+        if e_rec:
+            titulo.text = "Recomendación do asesor"
+            titulo.set_visibility(True)
+            data_inicio._props["label"] = "Data da recomendación"
+            data_fin._props["label"] = "Válida ata"
+        else:
+            titulo.text = ""
+            titulo.set_visibility(False)
+            data_inicio._props["label"] = "Data de inicio"
+            data_fin._props["label"] = "Data de fin"
+        data_inicio.update()
+        data_fin.update()
+
+        aplicador.set_visibility(not e_rec)
+        maquina.set_visibility(not e_rec)
+        horas.set_visibility(not e_rec)
+        eficacia.set_visibility(not e_rec)
+        hora.set_visibility(not e_rec)
+        data_asesor.set_visibility(not e_rec and bool(op.asesores))
+        validacion.set_visibility(not e_rec and bool(op.asesores))
+        asesor.set_visibility(True if e_rec else bool(op.asesores))
+        asesor._props["label"] = "Asesor" if e_rec else "Asesor (opcional)"
+        asesor.update()
+
+        if recomendacion is not None:
+            d = recomendacion_a_datos(recomendacion)
+            if e_rec:
+                data_inicio.value = d.data_inicio.isoformat()
+                data_fin.value = (recomendacion.valida_ata or d.data_inicio).isoformat()
+            else:
+                data_inicio.value = hoxe
+                data_fin.value = hoxe
+            estado["inicio"] = data_inicio.value
+            hora.value = ""
+            estado["cultivos"] = [
+                fila_cultivo(c.cultivo_id, _txt(c.superficie_ha), c.estado_fenoloxico)
+                for c in d.cultivos
+            ]
+            estado["problemas"] = [
+                fila_problema(p.tipo, p.codigo) for p in d.problemas
+            ]
+            estado["produtos"] = [
+                fila_produto(
+                    tipo_produto=p.tipo_produto,
+                    nome=p.nome_comercial or "",
+                    num=p.num_rexistro or "",
+                    materia=p.materia_activa or "",
+                    dose=_txt(p.dose if p.dose is not None else p.cantidade),
+                    unidade=p.unidade,
+                    total=p.dose is None and p.cantidade is not None,
+                )
+                for p in d.produtos
+            ]
+            estado["medidas"] = [
+                fila_medida(
+                    m.tipo_medida, _txt(m.cantidade), m.unidade, m.num_rexistro_mdf or ""
+                )
+                for m in d.medidas
+            ]
+            estado["orixinais"] = ""
+            xustificacions.value = [x for x in d.xustificacions if x in op.xustificacions]
+            aplicador.value = None
+            maquina.value = None
+            horas.value = ""
+            asesor.value = _ou_nada(op.asesores, recomendacion.asesor_persoa_id)
+            data_asesor.value = recomendacion.data.isoformat()
+            validacion.value = True
+            eficacia.value = None
+            notas.value = d.notas or ""
+        elif t is not None:
+            data_inicio.value = t.data_inicio.isoformat()
+            data_fin.value = t.data_fin.isoformat()
+            estado["inicio"] = data_inicio.value
+            hora.value = t.hora.strftime("%H:%M") if t.hora else ""
+            estado["cultivos"] = [
+                fila_cultivo(c.cultivo_id, _txt(c.superficie_ha), c.estado_fenoloxico)
+                for c in t.cultivos
+            ]
+            estado["problemas"] = [fila_problema(p.tipo, p.codigo) for p in t.problemas]
+            estado["produtos"] = [
+                fila_produto(
+                    tipo_produto=p.tipo_produto,
+                    nome=p.nome_comercial or "",
+                    num=p.num_rexistro or "",
+                    materia=p.materia_activa or "",
+                    dose=_txt(p.dose if p.dose is not None else p.cantidade),
+                    unidade=p.unidade,
+                    total=p.dose is None and p.cantidade is not None,
+                )
+                for p in t.produtos
+            ]
+            estado["medidas"] = [
+                fila_medida(
+                    m.tipo_medida, _txt(m.cantidade), m.unidade, m.num_rexistro_mdf or ""
+                )
+                for m in t.medidas
+            ]
+            orixinais_t = [
+                (etiqueta, valor)
+                for etiqueta, valor in (
+                    ("produto", t.orixinal_produto),
+                    ("dose", t.orixinal_dose),
+                    ("aplicador", t.orixinal_aplicador),
+                    ("equipo", t.orixinal_equipo),
+                    ("asesoramento", t.orixinal_asesoramento),
+                )
+                if valor
+            ]
+            estado["orixinais"] = " · ".join(f"{e}: {v}" for e, v in orixinais_t)
+            xustificacions.value = [
+                x.codigo for x in t.xustificacions if x.codigo in op.xustificacions
+            ]
+            a = t.aplicadores[0] if t.aplicadores else None
+            aplicador.value = _ou_nada(
+                op.aplicadores, a.persoa_id if a else (tarefa.persoa_id if tarefa else None)
+            )
+            maquina.value = _ou_nada(op.maquinas, a.maquina_id if a else None)
+            horas.value = f"{a.horas_utilizacion:g}" if a and a.horas_utilizacion else ""
+            asesor.value = _ou_nada(op.asesores, t.asesor.persoa_id if t.asesor else None)
+            data_asesor.value = (
+                t.asesor.data.isoformat() if t.asesor and t.asesor.data else ""
+            )
+            validacion.value = bool(t.asesor and t.asesor.validacion)
+            eficacia.value = _ou_nada(op.eficacias, t.eficacia if t else None)
+            notas.value = t.notas or ""
+        else:
+            data_inicio.value = hoxe
+            data_fin.value = hoxe
+            estado["inicio"] = data_inicio.value
+            hora.value = ""
+            estado["cultivos"] = []
+            estado["problemas"] = []
+            estado["produtos"] = []
+            estado["medidas"] = []
+            estado["orixinais"] = ""
+            xustificacions.value = []
+            aplicador.value = _ou_nada(
+                op.aplicadores, tarefa.persoa_id if tarefa else None
+            )
+            maquina.value = None
+            horas.value = ""
+            asesor.value = None
+            data_asesor.value = ""
+            validacion.value = False
+            eficacia.value = None
+            notas.value = ""
+
         estado["cultivos"] = estado["cultivos"] or [
-            fila_cultivo(tarefa.cultivo_id if tarefa else None)]
+            fila_cultivo(tarefa.cultivo_id if tarefa else None)
+        ]
         estado["problemas"] = estado["problemas"] or [fila_problema()]
         estado["produtos"] = estado["produtos"] or [fila_produto()]
-        orixinais_t = [(etiqueta, valor) for etiqueta, valor in (
-            ("produto", t.orixinal_produto), ("dose", t.orixinal_dose),
-            ("aplicador", t.orixinal_aplicador), ("equipo", t.orixinal_equipo),
-            ("asesoramento", t.orixinal_asesoramento)) if valor] if t else []
-        estado["orixinais"] = " · ".join(f"{e}: {v}" for e, v in orixinais_t)
-        xustificacions.value = [x.codigo for x in t.xustificacions
-                                if x.codigo in op.xustificacions] if t else []
-        a = t.aplicadores[0] if t and t.aplicadores else None
-        aplicador.value = _ou_nada(op.aplicadores, a.persoa_id if a else (
-            tarefa.persoa_id if tarefa else None))
-        maquina.value = _ou_nada(op.maquinas, a.maquina_id if a else None)
-        horas.value = f"{a.horas_utilizacion:g}" if a and a.horas_utilizacion else ""
-        asesor.value = _ou_nada(op.asesores, t.asesor.persoa_id if t and t.asesor else None)
-        data_asesor.value = (t.asesor.data.isoformat()
-                             if t and t.asesor and t.asesor.data else "")
-        validacion.value = bool(t and t.asesor and t.asesor.validacion)
-        eficacia.value = _ou_nada(op.eficacias, t.eficacia if t else None)
-        notas.value = (t.notas or "") if t else ""
         actualizar_etiquetas()
-        for refrescar in (filas_cultivos, filas_problemas, filas_produtos, filas_medidas,
-                          orixinais):
+        for refrescar in (
+            filas_cultivos,
+            filas_problemas,
+            filas_produtos,
+            filas_medidas,
+            orixinais,
+        ):
             refrescar.refresh()
         pasos.set_value("1. Que e onde")
         mirar_tempo()

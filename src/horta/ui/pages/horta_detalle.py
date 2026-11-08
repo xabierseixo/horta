@@ -29,6 +29,7 @@ from horta.services.parcelas import (
     listar_parcelas,
 )
 from horta.services.persoas import nome_completo, titular_da_horta
+from horta.services.recomendacions import recomendacions_pendentes
 from horta.services.tarefas import (
     actualizar_tarefa,
     contar_tarefas_pendentes,
@@ -82,6 +83,10 @@ from horta.ui.pages.pastoreos import seccion_pastoreo
 from horta.ui.pages.plan_empresa import seccion_plan_empresa
 from horta.ui.pages.producions_animais import seccion_producion
 from horta.ui.pages.produtos import seccion_produtos
+from horta.ui.pages.recomendacions import (
+    seccion_recomendacions,
+    texto_aviso_recomendacions,
+)
 from horta.ui.pages.regas import seccion_regas
 from horta.ui.pages.terras import seccion_terras
 from horta.ui.pages.tratamentos import seccion_tratamentos_fito
@@ -149,6 +154,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         avisos_admin = avisos_catalogos(session) if e_admin_global else []
         avisos_xunta = avisos_cue(session, actor, horta_id)
         docs_aviso = documentos_con_aviso(session, actor, horta_id)
+        recs_pendentes = len(recomendacions_pendentes(session, actor, horta_id))
         horta_nome = horta.nome
         horta_descricion = horta.descricion
         horta_uso_profesional = horta.uso_profesional
@@ -310,6 +316,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(texto_aviso_documento(doc))
                 ui.link("Documentos", url_seccion(horta_id, "documentos"))
+        if recs_pendentes:
+            with ui.row().classes("items-center gap-2 q-mt-sm"):
+                ui.icon("warning").classes("text-warning")
+                ui.label(texto_aviso_recomendacions(recs_pendentes))
+                ui.link("Recomendacións", url_seccion(horta_id, "recomendacions"))
         if requisitos:
             with ui.column().classes("tarxeta w-full gap-2 q-my-md"):
                 ui.label("Para estar en regra").classes("text-subtitle1 text-weight-bold")
@@ -376,6 +387,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
     elif seccion == "tratamentos":
         seccion_tratamentos_fito(horta_id, pode_editar)
         seccion_tratamentos_instalacion(horta_id, pode_editar)
+    elif seccion == "recomendacions":
+        seccion_recomendacions(horta_id, pode_editar)
     elif seccion == "fertilizacion":
         seccion_abonados(horta_id, pode_editar)
     elif seccion == "rega":

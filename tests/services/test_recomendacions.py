@@ -19,15 +19,18 @@ from horta.services.recomendacions import (
     crear_recomendacion,
     dar_de_baixa_recomendacion,
     descartar_recomendacion,
+    ligar_tratamento,
     listar_recomendacions,
     recomendacions_pendentes,
 )
 from horta.services.tratamentos_fito import (
+    DatosTratamento,
     LinhaAplicador,
     LinhaCultivo,
     LinhaMedida,
     LinhaProduto,
     Problema,
+    crear_tratamento_fito,
 )
 
 D = date(2026, 5, 10)
@@ -393,3 +396,80 @@ def test_avisos_recomendacion(session):
     rec = crear_recomendacion(session, ana, horta.id, **_datos_rec(cultivo, bieito))
     avisos = avisos_recomendacion(session, rec)
     assert isinstance(avisos, list)
+
+
+def test_ligar_tratamento_correcto(session):
+    ana, horta, _, cultivo, xan, bieito, maquina = _escenario(session)
+    rec = crear_recomendacion(session, ana, horta.id, **_datos_rec(cultivo, bieito))
+    datos_t = DatosTratamento(
+        data_inicio=D,
+        data_fin=D,
+        cultivos=[LinhaCultivo(cultivo.id, 0.1, "6")],
+        problemas=[Problema("enfermidade", "10")],
+        xustificacions=["1"],
+        produtos=[LinhaProduto("1", "5", num_rexistro="ES-1", cantidade=2.0)],
+        medidas=[],
+        aplicadores=[LinhaAplicador(persoa_id=xan.id, maquina_id=maquina.id)],
+    )
+    tratamento = crear_tratamento_fito(session, ana, horta.id, datos_t)
+
+    ligar_tratamento(session, ana, rec, tratamento)
+    assert rec.estado == "aplicada"
+    assert rec.tratamento_id == tratamento.id
+
+
+def test_ligar_tratamento_validacions(session):
+    ana, horta, _, cultivo, xan, bieito, maquina = _escenario(session)
+    rec = crear_recomendacion(session, ana, horta.id, **_datos_rec(cultivo, bieito))
+    datos_t = DatosTratamento(
+        data_inicio=D,
+        data_fin=D,
+        cultivos=[LinhaCultivo(cultivo.id, 0.1, "6")],
+        problemas=[Problema("enfermidade", "10")],
+        xustificacions=["1"],
+        produtos=[LinhaProduto("1", "5", num_rexistro="ES-1", cantidade=2.0)],
+        medidas=[],
+        aplicadores=[LinhaAplicador(persoa_id=xan.id, maquina_id=maquina.id)],
+    )
+    tratamento = crear_tratamento_fito(session, ana, horta.id, datos_t)
+
+    # Lector non pode ligar
+    carlos = _usuario(session, "carlos@example.com")
+    engadir_membro(session, ana, horta.id, carlos, RolHorta.LECTOR)
+    with pytest.raises(PermisoDenegadoError):
+        ligar_tratamento(session, carlos, rec, tratamento)
+
+    # Tratamento doutra horta rexeitase
+    outra = crear_horta(session, ana, "Outra")
+    p2 = crear_parcela(session, ana, outra.id, "P2")
+    c2 = crear_cultivo(session, ana, p2.id, "Alface")
+    t_outra = crear_tratamento_fito(
+        session,
+        ana,
+        outra.id,
+        DatosTratamento(
+            data_inicio=D,
+            data_fin=D,
+            cultivos=[LinhaCultivo(c2.id, 0.1)],
+            problemas=[Problema("enfermidade", "10")],
+            xustificacions=["1"],
+            produtos=[LinhaProduto("1", "5", cantidade=1.0)],
+            medidas=[],
+            aplicadores=[],
+        ),
+    )
+    with pytest.raises(OperacionNonPermitidaError, match="mesma explotación"):
+        ligar_tratamento(session, ana, rec, t_outra)
+
+    # Ligar con éxito
+    ligar_tratamento(session, ana, rec, tratamento)
+
+    # Xa non pendente
+    with pytest.raises(OperacionNonPermitidaError, match="pendente"):
+        ligar_tratamento(session, ana, rec, tratamento)
+
+    # Dada de baixa
+    rec2 = crear_recomendacion(session, ana, horta.id, **_datos_rec(cultivo, bieito))
+    dar_de_baixa_recomendacion(session, ana, rec2)
+    with pytest.raises(OperacionNonPermitidaError, match="baixa"):
+        ligar_tratamento(session, ana, rec2, tratamento)
