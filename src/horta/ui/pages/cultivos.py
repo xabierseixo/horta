@@ -32,6 +32,7 @@ from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campo_produto import opcions_entradas
 from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -93,9 +94,12 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
             ("faltan", ""))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai cultivos" {TEXTOS_TABOA}'
     )
+
+    accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "cultivo", ["parcela", "inicio"], accions_tarxeta)
 
     if not pode_editar:
         return
@@ -126,10 +130,15 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
 
         confirmar_eliminacion("Eliminar este cultivo?", confirmar)
 
+    accions_tarxeta += [("Editar", "edit", editar),
+                        ("Eliminar", "delete", eliminar)]
+
     with ui.row():
         ui.button("Novo cultivo", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Eliminar", icon="delete", on_click=eliminar).props("outline color=negative")
+        with ui.row().classes("so-ordenador"):
+            ui.button("Editar", icon="edit", on_click=editar).props("outline")
+            ui.button("Eliminar", icon="delete", on_click=eliminar).props(
+                "outline color=negative")
 
 
 def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:

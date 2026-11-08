@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from nicegui import ui
 
 from horta.db import get_session
@@ -15,6 +17,7 @@ from horta.services.instalacions import (
 )
 from horta.ui.accions import executar_accion
 from horta.ui.historial import abrir_historial
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
@@ -35,8 +38,11 @@ def seccion_instalacions(horta_id: int, pode_editar: bool) -> None:
                "enderezo": i.enderezo or "", "catastro": i.referencia_catastral or "",
                "estado": "En uso" if i.activa else "Sen uso"} for i in instalacions],
         row_key="id", selection="single",
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai instalacións" {TEXTOS_TABOA}')
+
+    accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "nome", ["tipo", "estado"], accions_tarxeta)
 
     def escollida() -> int | None:
         if not taboa.selected:
@@ -44,6 +50,11 @@ def seccion_instalacions(horta_id: int, pode_editar: bool) -> None:
             return None
         return int(taboa.selected[0]["id"])
 
+    def historial() -> None:
+        if (i := escollida()) is not None:
+            abrir_historial("instalacion", i)
+
+    editar: Callable[[], None] | None = None
     with ui.row():
         if pode_editar:
             editando: dict[str, int | None] = {"id": None}
@@ -99,8 +110,15 @@ def seccion_instalacions(horta_id: int, pode_editar: bool) -> None:
                 notas.value = (instalacion.notas or "") if instalacion else ""
                 dialogo.open()
 
+            def editar() -> None:
+                if (i := escollida()) is not None:
+                    abrir(por_id[i])
+
+            accions_tarxeta.append(("Editar", "edit", editar))
             ui.button("Nova instalación", icon="add", on_click=lambda: abrir(None))
-            ui.button("Editar", icon="edit", on_click=lambda: abrir(por_id[i]) if (
-                i := escollida()) is not None else None).props("outline")
-        ui.button("Historial", icon="history", on_click=lambda: abrir_historial(
-            "instalacion", i) if (i := escollida()) is not None else None).props("outline")
+
+        accions_tarxeta.append(("Historial", "history", historial))
+        with ui.row().classes("so-ordenador"):
+            if editar is not None:
+                ui.button("Editar", icon="edit", on_click=editar).props("outline")
+            ui.button("Historial", icon="history", on_click=historial).props("outline")

@@ -31,6 +31,7 @@ from horta.ui.accions import executar_accion
 from horta.ui.catalogos_aviso import AVISO_SEN_CATALOGOS
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.dialogo_tratamento import OpcionsTratamento, crear_dialogo_tratamento
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
@@ -79,9 +80,12 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
             ("produtos", "Produtos"), ("prazo", "Non colleitar antes do"), ("cue", "CUE"))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai tratamentos rexistrados" {TEXTOS_TABOA}'
     )
+
+    accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "data", ["cultivos", "produtos"], accions_tarxeta)
 
     if not pode_editar:
         return
@@ -126,12 +130,15 @@ def seccion_tratamentos_fito(horta_id: int, pode_editar: bool) -> None:
             confirmar,
         )
 
+    accions_tarxeta += [("Editar", "edit", editar),
+                        ("Dar de baixa", "archive", dar_de_baixa)]
+
     with ui.row():
         ui.button("Novo tratamento", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa o seleccionado", icon="archive", on_click=dar_de_baixa).props(
-            "outline"
-        )
+        with ui.row().classes("so-ordenador"):
+            ui.button("Editar", icon="edit", on_click=editar).props("outline")
+            ui.button("Dar de baixa o seleccionado", icon="archive",
+                      on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_tratamento_fito(horta_id: int) -> Callable[[TratamentoFito | None], None]:

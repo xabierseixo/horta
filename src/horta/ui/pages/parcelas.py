@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from nicegui import ui
@@ -26,6 +27,7 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.etiquetas import ESTADOS_PARCELA
 from horta.ui.fotos import abrir_fotos
 from horta.ui.historial import abrir_historial
+from horta.ui.lista_tarxetas import tarxetas_da_taboa
 from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
@@ -67,6 +69,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
     filas = [
         {"id": p.id, "nome": p.nome, "superficie": formatar_superficie(p.superficie),
+         "uso": p.uso_aproveitamento or "",
          "sigpac": _referencia(p),
          "rega": {SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
              p.secano_regadio, "") if p.secano_regadio else "",
@@ -79,8 +82,11 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             ("rega", "Secano/regadío"), ("estado", "Estado"))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
-    ).classes("w-full taboa").props(
+    ).classes("w-full taboa so-ordenador").props(
         f'flat bordered no-data-label="Aínda non hai parcelas" {TEXTOS_TABOA}')
+
+    accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
+    tarxetas_da_taboa(taboa, "nome", ["superficie", "uso"], accions_tarxeta)
 
     if not pode_editar:
         return
@@ -240,6 +246,18 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
         lugar.cargar(p.concello_ine, p.estacion_meteo_id, p.lat, p.lon)
         dialogo.open()
 
+    def historial() -> None:
+        if not taboa.selected:
+            ui.notify("Selecciona unha parcela na táboa", type="warning")
+            return
+        abrir_historial("parcela", taboa.selected[0]["id"])
+
+    def fotos() -> None:
+        if not taboa.selected:
+            ui.notify("Selecciona unha parcela na táboa", type="warning")
+            return
+        abrir_fotos(horta_id, "parcela", taboa.selected[0]["id"], "parcela", pode_editar)
+
     def eliminar() -> None:
         if not taboa.selected:
             ui.notify("Selecciona unha parcela na táboa", type="warning")
@@ -264,14 +282,16 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
         confirmar_eliminacion("Eliminar esta parcela e os seus cultivos?", confirmar)
 
+    accions_tarxeta += [("Editar", "edit", abrir_edicion),
+                        ("Historial", "history", historial),
+                        ("Fotos", "photo_camera", fotos),
+                        ("Eliminar", "delete", eliminar)]
+
     with ui.row():
         ui.button("Nova parcela", icon="add", on_click=abrir_nova)
-        ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
-        ui.button("Historial", icon="history", on_click=lambda: abrir_historial(
-            "parcela", taboa.selected[0]["id"]) if taboa.selected else ui.notify(
-            "Selecciona unha parcela na táboa", type="warning")).props("outline")
-        ui.button("Fotos", icon="photo_camera", on_click=lambda: abrir_fotos(
-            horta_id, "parcela", taboa.selected[0]["id"], "parcela", pode_editar)
-            if taboa.selected else ui.notify("Selecciona unha parcela na táboa",
-                                             type="warning")).props("outline")
-        ui.button("Eliminar", icon="delete", on_click=eliminar).props("outline color=negative")
+        with ui.row().classes("so-ordenador"):
+            ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
+            ui.button("Historial", icon="history", on_click=historial).props("outline")
+            ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
+            ui.button("Eliminar", icon="delete", on_click=eliminar).props(
+                "outline color=negative")
