@@ -59,6 +59,6 @@ def test_seccion_visitas_rexistrada() -> None:
     seccions_dict = {s.clave: s for s in SECCIONS}
     assert "visitas" in seccions_dict
     sec = seccions_dict["visitas"]
-    assert sec.etiqueta == "Visitas do técnico"
+    assert sec.etiqueta == "Visitas técnicas"
     assert sec.icona == "person_pin_circle"
     assert sec.no_menu is True
