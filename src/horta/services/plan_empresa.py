@@ -7,9 +7,12 @@ presentalo e a documentación do art. 18 da convocatoria MR701L (DOG do 2/2/2026
 
 from __future__ import annotations
 
+import functools
+import json
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -92,7 +95,7 @@ CAMPOS_PLAN = frozenset({
     "ofertas_autenticas", "sen_vinculo_promotor", "sen_vinculo_entre_provedores",
     "dafo_debilidades", "dafo_ameazas", "dafo_fortalezas", "dafo_oportunidades",
     "clientela", "competencia", "mk_produto", "mk_prezo", "mk_canles", "mk_comunicacion",
-    "argumentos", "organizacion", "riscos", "permisos"})
+    "argumentos", "organizacion", "riscos", "permisos", "escenario_pct", "ote_recan"})
 
 # Apartados e campos da memoria complementaria (art. 18.1.p)
 SECCIONS_MEMORIA: dict[str, tuple[str, ...]] = {
@@ -181,6 +184,26 @@ def crear_plan(session: Session, actor: Usuario, horta_id: int, titulo: str,
     return plan
 
 
+# --- RECAN (Red Contable Agraria Nacional) do MAPA
+
+
+@functools.cache
+def _datos_recan() -> dict[str, Any]:
+    ruta = Path(__file__).parent.parent / "data" / "recan_galicia_2023.json"
+    with open(ruta, encoding="utf-8") as f:
+        return json.load(f)
+
+
+@functools.cache
+def orientacions_recan() -> dict[str, str]:
+    datos = _datos_recan()
+    return {k: str(v["nome"]) for k, v in datos.get("orientacions", {}).items()}
+
+
+def fonte_recan() -> str:
+    return str(_datos_recan().get("fonte", ""))
+
+
 def actualizar_plan(session: Session, actor: Usuario, plan: PlanEmpresa,
                     **cambios: Any) -> PlanEmpresa:
     _plan(session, actor, plan.id)
@@ -196,6 +219,14 @@ def actualizar_plan(session: Session, actor: Usuario, plan: PlanEmpresa,
         raise OperacionNonPermitidaError("Escolle a tipoloxía do proxecto")
     if not 0 <= (cambios.get("taxa_desconto", plan.taxa_desconto) or 0) < 1:
         raise OperacionNonPermitidaError("A taxa de desconto vai en tanto por un (p.ex. 0,03)")
+    if "escenario_pct" in cambios:
+        pct = cambios["escenario_pct"]
+        if pct is None or not (1 <= pct <= 90):
+            raise OperacionNonPermitidaError("A variación dos escenarios vai do 1 ao 90 %")
+    if "ote_recan" in cambios:
+        ote = cambios["ote_recan"]
+        if ote is not None and ote not in orientacions_recan():
+            raise OperacionNonPermitidaError("Esa orientación da RECAN non existe")
     for campo, valor in cambios.items():
         setattr(plan, campo, valor)
     session.commit()
@@ -532,7 +563,7 @@ def vendas_do_ano(venda: PlanVenda, ano_n: int) -> tuple[float, float]:
     return importe, custo
 
 
-def conta(plan: PlanEmpresa) -> list[AnoConta]:
+def conta(plan: PlanEmpresa, factor_vendas: float = 1.0) -> list[AnoConta]:
     amortizacion = sum(custo(plan, i) / i.vida_util_anos
                        for i in plan.investimentos if i.vida_util_anos)
     xuros_ano: dict[int, float] = defaultdict(float)
@@ -545,10 +576,11 @@ def conta(plan: PlanEmpresa) -> list[AnoConta]:
     for ano in sorted(plan.anos, key=lambda a: a.ano_n):
         if hai_detalle:
             cifras = [vendas_do_ano(v, ano.ano_n) for v in plan.vendas_detalle]
-            vendas = round(sum(c[0] for c in cifras), 2)
-            variables = round(sum(c[1] for c in cifras), 2) if hai_custo else ano.custos_variables
+            vendas = round(sum(c[0] for c in cifras) * factor_vendas, 2)
+            variables = (round(sum(c[1] for c in cifras), 2)
+                         if hai_custo else ano.custos_variables)
         else:
-            vendas = ano.vendas
+            vendas = round(ano.vendas * factor_vendas, 2)
             variables = ano.custos_variables
         d = round(amortizacion, 2)
         e = round(vendas - (variables + ano.custos_fixos + d), 2)
@@ -610,12 +642,12 @@ def _tir(fluxos: list[float]) -> float | None:
     return None
 
 
-def indicadores(plan: PlanEmpresa) -> Indicadores:
+def indicadores(plan: PlanEmpresa, factor_vendas: float = 1.0) -> Indicadores:
     investimento = round(sum(i.importe_sen_iva for i in plan.investimentos), 2)
     con_iva = round(sum(i.importe_sen_iva * (1 + i.iva_pct / 100)
                         for i in plan.investimentos), 2)
     subvencionable = round(sum(custo(plan, i) for i in plan.investimentos), 2)
-    fluxos = [-subvencionable, *(a.fluxo for a in conta(plan))]
+    fluxos = [-subvencionable, *(a.fluxo for a in conta(plan, factor_vendas=factor_vendas))]
     tir = _tir(fluxos) if subvencionable else None
     acumulado, payback = 0.0, None
     for n, fluxo in enumerate(fluxos):
@@ -811,6 +843,304 @@ def faltas_memoria(plan: PlanEmpresa) -> list[str]:
     if not plan.obxectivos:
         faltas.append("Obxectivos e indicadores")
     return faltas
+
+
+# --- Escenarios, semáforo, revisión e comparación RECAN
+
+
+@dataclass(frozen=True)
+class Escenario:
+    nome: str
+    factor: float
+    vendas_ano1: float
+    beneficio_ano1: float
+    van: float
+    tir: float | None
+    payback: int | None
+
+
+def escenarios(plan: PlanEmpresa) -> list[Escenario]:
+    pct = (plan.escenario_pct if plan.escenario_pct is not None else 20.0) / 100.0
+    casos = [
+        ("Pesimista", round(1.0 - pct, 4)),
+        ("Normal", 1.0),
+        ("Optimista", round(1.0 + pct, 4)),
+    ]
+    resultado = []
+    for nome, factor in casos:
+        filas = conta(plan, factor_vendas=factor)
+        ano1 = filas[0]
+        ind = indicadores(plan, factor_vendas=factor)
+        resultado.append(
+            Escenario(
+                nome=nome,
+                factor=factor,
+                vendas_ano1=ano1.vendas,
+                beneficio_ano1=ano1.beneficio,
+                van=ind.van,
+                tir=ind.tir,
+                payback=ind.payback,
+            )
+        )
+    return resultado
+
+
+@dataclass(frozen=True)
+class Sinal:
+    nome: str
+    cor: str  # «verde», «amarelo» ou «vermello»
+    texto: str
+
+
+def semaforo(plan: PlanEmpresa) -> list[Sinal]:
+    ind = indicadores(plan)
+
+    # 1. VAN
+    if ind.van > 0:
+        sinal_van = Sinal("VAN", "verde", "O proxecto recupera o investimento e a taxa pedida")
+    else:
+        sinal_van = Sinal("VAN", "vermello",
+                          "O proxecto non recupera o investimento e a taxa pedida")
+
+    # 2. TIR
+    # Os límites de 3 e 5 anos no pay-back e os 2 puntos (+0,02) de TIR sobre a taxa
+    # de desconto son orientativos.
+    taxa = plan.taxa_desconto or 0.0
+    if ind.tir is not None and ind.tir >= taxa + 0.02:
+        sinal_tir = Sinal("TIR", "verde",
+                          f"A TIR ({ind.tir:.1%}) supera con folgura a taxa pedida ({taxa:.1%})")
+    elif ind.tir is not None and ind.tir >= taxa:
+        sinal_tir = Sinal("TIR", "amarelo",
+                          f"A TIR ({ind.tir:.1%}) cobre a taxa pedida ({taxa:.1%}), "
+                          "con pouca marxe")
+    else:
+        if ind.tir is not None:
+            msg_tir = f"A TIR ({ind.tir:.1%}) non acada a taxa pedida ({taxa:.1%})"
+        else:
+            msg_tir = "A TIR non se pode calcular"
+        sinal_tir = Sinal("TIR", "vermello", msg_tir)
+
+    # 3. Pay-back
+    if ind.payback is not None and ind.payback <= 3:
+        sinal_payback = Sinal("Pay-back", "verde",
+                              f"O investimento recupérase no ano {ind.payback}")
+    elif ind.payback is not None and ind.payback in (4, 5):
+        sinal_payback = Sinal("Pay-back", "amarelo",
+                              f"O investimento tarda {ind.payback} anos en recuperarse")
+    else:
+        sinal_payback = Sinal("Pay-back", "vermello",
+                              "O investimento non se recupera nos 5 anos")
+
+    # 4. Caixa do ano 1
+    meses_tes = tesouraria(plan)
+    negativos = [t for t in meses_tes if t.saldo < 0]
+    if not negativos:
+        sinal_caixa = Sinal("Caixa do ano 1", "verde",
+                            "A tesouraría mantense en positivo durante todo o ano")
+    else:
+        mes_min = min(negativos, key=lambda t: t.saldo)
+        sinal_caixa = Sinal(
+            "Caixa do ano 1",
+            "vermello",
+            f"No mes {mes_min.mes} a caixa queda en {_euros(mes_min.saldo)}: "
+            f"precisas polo menos {_euros(-mes_min.saldo)} máis para empezar",
+        )
+
+    # 5. Escenario pesimista
+    esc_pesimista = next(e for e in escenarios(plan) if e.nome == "Pesimista")
+    pct_val = plan.escenario_pct if plan.escenario_pct is not None else 20.0
+    pct_str = (
+        f"{int(pct_val)}"
+        if pct_val == int(pct_val)
+        else f"{pct_val:.1f}".replace(".", ",")
+    )
+    if esc_pesimista.van > 0:
+        sinal_pesimista = Sinal(
+            "Escenario pesimista",
+            "verde",
+            f"Aguanta unha baixada das vendas do {pct_str} %",
+        )
+    else:
+        sinal_pesimista = Sinal(
+            "Escenario pesimista",
+            "amarelo",
+            f"Non aguanta unha baixada das vendas do {pct_str} % (VAN negativa)",
+        )
+
+    return [sinal_van, sinal_tir, sinal_payback, sinal_caixa, sinal_pesimista]
+
+
+@dataclass(frozen=True)
+class Comparacion:
+    indicador: str
+    plan: float | None
+    media: float | None
+    unidade: str
+    nota: str | None = None
+
+
+def comparar_recan(
+    session: Session, actor: Usuario, plan: PlanEmpresa
+) -> list[Comparacion]:
+    _plan(session, actor, plan.id)
+    if not plan.ote_recan:
+        return []
+    datos_all = _datos_recan().get("orientacions", {})
+    if plan.ote_recan not in datos_all:
+        return []
+    datos_ote = datos_all[plan.ote_recan]
+    mostra = int(datos_ote.get("mostra", 0))
+
+    # Ano 1 de conta
+    filas_conta = conta(plan)
+    ano1 = filas_conta[0]
+    a = ano1.vendas
+    b = ano1.variables
+    c = ano1.fixos
+    d = ano1.amortizacions
+    g = ano1.beneficio
+
+    xuros_ano: dict[int, float] = defaultdict(float)
+    for fonte in plan.financiamento:
+        for n, xuro in enumerate(xuros(fonte), start=1):
+            xuros_ano[n] += xuro
+    xuros_ano1 = xuros_ano.get(1, 0.0)
+
+    # Superficie (ha) e UTA
+    parcelas = session.query(Parcela).filter_by(
+        horta_id=plan.horta_id, data_baixa=None
+    ).all()
+    sup_total = sum(p.superficie or 0.0 for p in parcelas)
+    superficie: float | None = sup_total if sup_total > 0 else None
+
+    total_uta = (plan.uta_mantidas or 0.0) + (plan.uta_creadas or 0.0)
+    uta: float | None = total_uta if total_uta > 0 else None
+
+    # 1. Produción por hectárea (€/ha): A / superficie fronte a SE131 / SE025
+    plan_prod_ha = round(a / superficie) if superficie else None
+    se025 = datos_ote.get("SE025")
+    recan_prod_ha = round(datos_ote["SE131"] / se025) if se025 and se025 > 0 else None
+    nota1 = (
+        f"Media con poucas explotacións na mostra ({mostra})"
+        if mostra < 15
+        else None
+    )
+
+    # 2. Produción por UTA (€/UTA): A / UTA fronte a SE131 / SE010
+    plan_prod_uta = round(a / uta) if uta else None
+    se010 = datos_ote.get("SE010")
+    recan_prod_uta = round(datos_ote["SE131"] / se010) if se010 and se010 > 0 else None
+
+    # 3. Custos sobre a produción (%): (B + C + D + xuros) / A * 100 fronte a SE270 / SE131 * 100
+    plan_custos_pct = (
+        round((b + c + d + xuros_ano1) / a * 100, 1) if a > 0 else None
+    )
+    se131 = datos_ote.get("SE131")
+    recan_custos_pct = (
+        round(datos_ote["SE270"] / se131 * 100, 1) if se131 and se131 > 0 else None
+    )
+
+    # 4. Resultado por UTA (€/UTA): G / UTA fronte a SE420 / SE010
+    plan_res_uta = round(g / uta) if uta else None
+    recan_res_uta = round(datos_ote["SE420"] / se010) if se010 and se010 > 0 else None
+    nota4 = "A RECAN inclúe as subvencións correntes; o plan non"
+
+    return [
+        Comparacion("Produción por hectárea", plan_prod_ha, recan_prod_ha, "€/ha", nota1),
+        Comparacion("Produción por UTA", plan_prod_uta, recan_prod_uta, "€/UTA", None),
+        Comparacion("Custos sobre a produción", plan_custos_pct, recan_custos_pct, "%", None),
+        Comparacion("Resultado por UTA", plan_res_uta, recan_res_uta, "€/UTA", nota4),
+    ]
+
+
+@dataclass(frozen=True)
+class Revision:
+    afirmable: list[str]
+    falta_probar: list[str]
+
+
+def revision(session: Session, actor: Usuario, plan: PlanEmpresa) -> Revision:
+    _plan(session, actor, plan.id)
+    afirmable: list[str] = []
+    falta_probar: list[str] = []
+
+    # Vendas
+    ano_ref = ano_de_referencia(session, actor, plan.horta_id)
+    real_vendas, _, _ = base_do_real(resumo_ano(session, actor, plan.horta_id, ano_ref))
+    filas = conta(plan)
+    a_ano1 = filas[0].vendas if filas else 0.0
+
+    if real_vendas > 0 and a_ano1 <= round(real_vendas * 1.10, 2):
+        afirmable.append(
+            f"As vendas do ano 1 ({_euros(a_ano1)}) están ao nivel das reais de "
+            f"{ano_ref} ({_euros(real_vendas)})"
+        )
+    elif real_vendas > 0:
+        x_val = round(((a_ano1 - real_vendas) / real_vendas) * 100, 1)
+        x_str = f"{int(x_val)}" if x_val.is_integer() else f"{x_val:.1f}".replace(".", ",")
+        falta_probar.append(
+            f"As vendas do ano 1 ({_euros(a_ano1)}) son {x_str} % máis cás reais de {ano_ref}: "
+            "achega contratos, cartas de interese ou prezos de mercado"
+        )
+    else:
+        falta_probar.append(
+            f"As vendas do ano 1 ({_euros(a_ano1)}) non teñen vendas reais detrás: "
+            "achega contratos, cartas de interese ou prezos de mercado"
+        )
+
+    # Ofertas
+    faltan_ofertas = [
+        i.concepto
+        for i in plan.investimentos
+        if len(i.ofertas) < 3 and not (i.motivo_sen_ofertas or "").strip()
+    ]
+    if not faltan_ofertas:
+        afirmable.append("Todos os gastos teñen tres ofertas ou o motivo")
+    else:
+        falta_probar.append(f"Faltan ofertas en: {', '.join(faltan_ofertas)}")
+
+    # Financiamento
+    ind = indicadores(plan)
+    if abs(ind.financiamento - ind.investimento_con_iva) <= 1:
+        afirmable.append(
+            f"O financiamento ({_euros(ind.financiamento)}) cadra co investimento con IVE "
+            f"({_euros(ind.investimento_con_iva)})"
+        )
+    else:
+        falta_probar.append(
+            f"O financiamento ({_euros(ind.financiamento)}) non cadra co investimento con IVE "
+            f"({_euros(ind.investimento_con_iva)})"
+        )
+
+    # Memoria
+    faltas_mem = faltas_memoria(plan)
+    if faltas_mem:
+        falta_probar.append(f"Completar a memoria: {', '.join(faltas_mem)}")
+
+    # Media galega
+    if plan.ote_recan:
+        comps = comparar_recan(session, actor, plan)
+        comp_uta = next((c for c in comps if c.indicador == "Produción por UTA"), None)
+        if (
+            comp_uta
+            and comp_uta.plan is not None
+            and comp_uta.media is not None
+            and comp_uta.media > 0
+        ):
+            if comp_uta.plan > 2 * comp_uta.media:
+                ratio = comp_uta.plan / comp_uta.media
+                n_val = round(ratio, 1)
+                n_str = (
+                    f"{int(n_val)}"
+                    if n_val.is_integer()
+                    else f"{n_val:.1f}".replace(".", ",")
+                )
+                falta_probar.append(
+                    f"A produción por UTA prevista é {n_str} veces a media galega da RECAN: "
+                    "explica por que"
+                )
+
+    return Revision(afirmable=afirmable, falta_probar=falta_probar)
 
 
 @dataclass(frozen=True)

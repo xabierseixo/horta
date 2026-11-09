@@ -71,6 +71,8 @@ class PlanEmpresa(Base):
     uta_outros: Mapped[float] = mapped_column(Float, default=0)
     # Para o VAN (en tanto por un)
     taxa_desconto: Mapped[float] = mapped_column(Float, default=0.03)
+    escenario_pct: Mapped[float] = mapped_column(Float, default=20)
+    ote_recan: Mapped[str | None] = mapped_column(String(10), default=None)
     baixa: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc))
