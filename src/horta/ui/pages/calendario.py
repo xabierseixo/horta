@@ -9,17 +9,18 @@ from functools import partial
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.services.diario import listar_traballos
 from horta.services.persoas import listar_persoas
-from horta.ui.campos import LOCALE_GL
+from horta.ui.campos import obter_locale
 from horta.ui.pages.diario import Formularios, tarxeta
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 # capa → (nome, atribución, orde, zoom mínimo)
 CAPAS = {
-    "pnoa": ("Ortofoto (PNOA)", "PNOA © IGN", 1, 0),
-    "sigpac": ("Recintos SIGPAC", "SIGPAC © FEGA", 10, 15),
-    "catastro": ("Catastro (propiedade)", "© Dirección Xeral do Catastro", 11, 15),
+    "pnoa": (N_("Ortofoto (PNOA)"), "PNOA © IGN", 1, 0),
+    "sigpac": (N_("Recintos SIGPAC"), "SIGPAC © FEGA", 10, 15),
+    "catastro": (N_("Catastro (propiedade)"), "© Dirección Xeral do Catastro", 11, 15),
 }
 # Centro de Galicia, se a explotación non ten coordenadas
 _GALICIA = (42.75, -8.0)
@@ -43,7 +44,7 @@ def seccion_calendario(horta_id: int, pode_editar: bool) -> None:
 
     calendario = ui.date(value=date.today().isoformat(), mask="YYYY-MM-DD")
     calendario._props["events"] = [d.replace("-", "/") for d in por_dia]
-    calendario._props["locale"] = LOCALE_GL
+    calendario._props["locale"] = obter_locale()
 
     @ui.refreshable
     def do_dia() -> None:
@@ -54,7 +55,7 @@ def seccion_calendario(horta_id: int, pode_editar: bool) -> None:
             "text-subtitle1 text-weight-bold q-mt-md")
         lista = por_dia.get(dia, [])
         if not lista:
-            ui.label("Nada apuntado nin por facer este día.").classes("texto-suave")
+            ui.label(_("Nada apuntado nin por facer este día.")).classes("texto-suave")
         with ui.column().classes("w-full gap-2"):
             for t in lista:
                 tarxeta(t, partial(formularios.editar, t) if formularios else lambda: None,

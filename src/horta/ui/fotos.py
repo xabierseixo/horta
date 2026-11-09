@@ -6,6 +6,7 @@ from __future__ import annotations
 from nicegui import events, ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.foto import Foto
 from horta.services.fotos import dar_de_baixa_foto, gardar_foto, listar_fotos
 from horta.ui.accions import executar_accion
@@ -15,7 +16,7 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 
 def abrir_fotos(horta_id: int, que: str, ref_id: int, titulo: str, pode_editar: bool) -> None:
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        ui.label(f"Fotos: {titulo}").classes("text-h6")
+        ui.label(_("Fotos: {titulo}").format(titulo=titulo)).classes("text-h6")
 
         @ui.refreshable
         def galeria() -> None:
@@ -26,7 +27,7 @@ def abrir_fotos(horta_id: int, que: str, ref_id: int, titulo: str, pode_editar: 
                     return
                 fotos = listar_fotos(session, actor, horta_id, que, ref_id)
             if not fotos:
-                ui.label("Aínda non hai fotos.").classes("texto-suave")
+                ui.label(_("Aínda non hai fotos.")).classes("texto-suave")
             with ui.grid().classes("w-full grid-cols-2 sm:grid-cols-3 gap-2"):
                 for foto in fotos:
                     with ui.column().classes("gap-0"):
@@ -37,7 +38,7 @@ def abrir_fotos(horta_id: int, que: str, ref_id: int, titulo: str, pode_editar: 
                             ui.label(f"{foto.data:%d/%m/%Y}").classes("text-caption")
                             if pode_editar:
                                 ui.button(icon="delete", on_click=lambda f=foto: (
-                                    confirmar_eliminacion("Dar de baixa esta foto?",
+                                    confirmar_eliminacion(_("Dar de baixa esta foto?"),
                                                           lambda: baixa(f.id)))).props(
                                     "flat dense round size=sm color=negative")
 
@@ -64,10 +65,10 @@ def abrir_fotos(horta_id: int, que: str, ref_id: int, titulo: str, pode_editar: 
 
         galeria()
         if pode_editar:
-            subida = ui.upload(label="Engadir foto", on_upload=subir, auto_upload=True,
+            subida = ui.upload(label=_("Engadir foto"), on_upload=subir, auto_upload=True,
                                multiple=True, max_file_size=10 * 1024 * 1024).props(
                 'accept="image/*" flat bordered').classes("w-full")
-        ui.button("Pechar", on_click=dialogo.close).props("flat")
+        ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
     dialogo.open()
 
 

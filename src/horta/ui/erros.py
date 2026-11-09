@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi.responses import HTMLResponse
 
+from horta.idiomas import _, idioma_actual
 from horta.ui.tema import COR_ERRO as COR_NEGATIVA
 from horta.ui.tema import COR_FONDO, COR_PRIMARIA, COR_TEXTO
 
@@ -14,8 +15,9 @@ def pagina_erro_html(titulo: str, mensaxe: str, codigo: int) -> HTMLResponse:
     construírse con ui.*.
     """
     cor_titulo = COR_NEGATIVA if codigo >= 500 else COR_PRIMARIA
+    idioma = idioma_actual()
     html = f"""<!DOCTYPE html>
-<html lang="gl">
+<html lang="{idioma}">
 <head>
     <meta charset="utf-8">
     <title>{titulo} — AgroXest360</title>
@@ -39,7 +41,7 @@ def pagina_erro_html(titulo: str, mensaxe: str, codigo: int) -> HTMLResponse:
     <div class="caixa">
         <h1>{titulo}</h1>
         <p>{mensaxe}</p>
-        <a href="/">← Volver ao inicio</a>
+        <a href="/">{_("← Volver ao inicio")}</a>
     </div>
 </body>
 </html>"""

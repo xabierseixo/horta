@@ -10,7 +10,7 @@ import segno
 from nicegui import app, ui
 
 from horta.db import get_session
-from horta.idiomas import IDIOMA_BASE, idiomas_disponibles
+from horta.idiomas import IDIOMA_BASE, _, idiomas_disponibles
 from horta.models.dispositivo import Dispositivo
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.dispositivos import (
@@ -42,7 +42,7 @@ def formato_data_alta(data: datetime | None) -> str:
 def formato_ultimo_uso(data: datetime | None) -> str:
     """Formata a data do último uso ou indica que non hai rexistro."""
     if data is None:
-        return "Nunca"
+        return _("Nunca")
     return f"{data:%d/%m/%Y}"
 
 
@@ -59,14 +59,16 @@ def conta_page() -> None:
         actor_idioma = actor.idioma or IDIOMA_BASE
         e_admin_global = actor.rol == RolGlobal.ADMIN
         data_politica = (
-            f"Política aceptada o {actor.politica_aceptada_en:%d/%m/%Y}"
+            _("Política aceptada o {data}").format(
+                data=f"{actor.politica_aceptada_en:%d/%m/%Y}"
+            )
             if actor.politica_aceptada_en
-            else "Política pendente de aceptación"
+            else _("Política pendente de aceptación")
         )
         dispositivos = [d for d in listar_dispositivos(session, actor) if not d.revogado]
 
     cabeceira_paxina(mostrar_admin=e_admin_global)
-    ui.label("A miña conta").classes("text-h6")
+    ui.label(_("A miña conta")).classes("text-h6")
 
     def descargar_datos() -> None:
         with get_session() as session:
@@ -78,10 +80,12 @@ def conta_page() -> None:
         ui.download.content(contido, "os-meus-datos.json")
 
     with ui.dialog() as dialog_borrar, ui.card().classes("w-full max-w-md"):
-        ui.label("Borrar a miña conta").classes("text-h6 text-negative")
+        ui.label(_("Borrar a miña conta")).classes("text-h6 text-negative")
         ui.label(
-            "A conta queda borrada e non poderás entrar máis. "
-            "Os rexistros obrigatorios das explotacións consérvanse, como esixe a normativa."
+            _(
+                "A conta queda borrada e non poderás entrar máis. "
+                "Os rexistros obrigatorios das explotacións consérvanse, como esixe a normativa."
+            )
         )
         campo_confirmar = ui.input(placeholder="BORRAR").classes("w-full")
 
@@ -99,9 +103,9 @@ def conta_page() -> None:
                 pechar_sesion()
 
         with ui.row().classes("justify-end gap-2 w-full q-mt-md"):
-            ui.button("Cancelar", on_click=dialog_borrar.close).props("flat")
+            ui.button(_("Cancelar"), on_click=dialog_borrar.close).props("flat")
             boton_confirmar = ui.button(
-                "Borrar a miña conta",
+                _("Borrar a miña conta"),
                 icon="delete_forever",
                 on_click=confirmar_borrado,
             ).props("color=negative")
@@ -124,9 +128,9 @@ def conta_page() -> None:
         ui.dialog().props("persistent") as dialog_qr,
         ui.card().classes("w-full max-w-md items-center text-center gap-3"),
     ):
-        ui.label("Conectar o móbil").classes("text-h6 font-bold")
+        ui.label(_("Conectar o móbil")).classes("text-h6 font-bold")
         ui.label(
-            "Le o código coa cámara do teu móbil para abrir a app conectada:"
+            _("Le o código coa cámara do teu móbil para abrir a app conectada:")
         ).classes("texto-suave text-caption")
         qr_img = ui.image().style("width: 14rem; height: 14rem")
         enderezo_label = ui.label("").classes(
@@ -138,23 +142,23 @@ def conta_page() -> None:
             u = url_actual.get("url")
             if u:
                 ui.run_javascript(f"navigator.clipboard.writeText({json.dumps(u)})")
-                ui.notify("Enderezo copiado ao portapapeis", type="positive")
+                ui.notify(_("Enderezo copiado ao portapapeis"), type="positive")
 
         boton_copiar = ui.button(
-            "Copiar enderezo", icon="content_copy", on_click=copiar_enderezo
+            _("Copiar enderezo"), icon="content_copy", on_click=copiar_enderezo
         ).props("outline")
         ui.label(
-            "Este código só se mostra agora. Se o perdes, crea outro."
+            _("Este código só se mostra agora. Se o perdes, crea outro.")
         ).classes("text-warning text-caption")
 
         def pechar_qr() -> None:
             dialog_qr.close()
             ui.navigate.reload()
 
-        ui.button("Pechar", on_click=pechar_qr).props("flat")
+        ui.button(_("Pechar"), on_click=pechar_qr).props("flat")
 
     def abrir_dialogo_qr(clave: str) -> None:
-        enderezo_label.text = "Xerando código..."
+        enderezo_label.text = _("Xerando código...")
         boton_copiar.disable()
         dialog_qr.open()
 
@@ -172,16 +176,18 @@ def conta_page() -> None:
         ui.dialog().props("persistent") as dialog_nome,
         ui.card().classes("w-full max-w-md"),
     ):
-        ui.label("Conectar un móbil").classes("text-h6 font-bold")
+        ui.label(_("Conectar un móbil")).classes("text-h6 font-bold")
         ui.label(
-            "Indica un nome para identificar este móbil (por exemplo, «Móbil de Ana»):"
+            _("Indica un nome para identificar este móbil (por exemplo, «Móbil de Ana»):")
         ).classes("texto-suave text-caption")
-        campo_nome = ui.input("Nome do móbil", placeholder="Móbil de Ana").classes("w-full")
+        campo_nome = ui.input(
+            _("Nome do móbil"), placeholder=_("Móbil de Ana")
+        ).classes("w-full")
 
         def crear() -> None:
             nome_disp = (campo_nome.value or "").strip()
             if not nome_disp:
-                ui.notify("Indica o nome do dispositivo", type="warning")
+                ui.notify(_("Indica o nome do dispositivo"), type="warning")
                 return
             with get_session() as s:
                 actor_db = usuario_actual(s)
@@ -194,15 +200,15 @@ def conta_page() -> None:
                 )
             if not feito or not creado:
                 return
-            _, clave = creado[0]
+            _disp, clave = creado[0]
             dialog_nome.close()
             abrir_dialogo_qr(clave)
 
         campo_nome.on("keydown.enter", crear)
 
         with ui.row().classes("justify-end gap-2 w-full q-mt-md"):
-            ui.button("Cancelar", on_click=dialog_nome.close).props("flat")
-            ui.button("Conectar", icon="check", on_click=crear)
+            ui.button(_("Cancelar"), on_click=dialog_nome.close).props("flat")
+            ui.button(_("Conectar"), icon="check", on_click=crear)
 
     def abrir_dialogo_nome() -> None:
         campo_nome.value = ""
@@ -219,14 +225,19 @@ def conta_page() -> None:
                     s, lambda: revogar_dispositivo(s, actor_db, disp)
                 )
             if feito:
-                ui.notify(f"Dispositivo «{disp_nome}» desconectado", type="positive")
+                ui.notify(
+                    _("Dispositivo «{disp_nome}» desconectado").format(disp_nome=disp_nome),
+                    type="positive",
+                )
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            f"Desconectar o dispositivo «{disp_nome}»? "
-            "Non poderá volver acceder á app do campo.",
+            _(
+                "Desconectar o dispositivo «{disp_nome}»? "
+                "Non poderá volver acceder á app do campo."
+            ).format(disp_nome=disp_nome),
             confirmar,
-            boton="Desconectar",
+            boton=_("Desconectar"),
             icona="link_off",
         )
 
@@ -236,23 +247,23 @@ def conta_page() -> None:
         ui.label(data_politica).classes("texto-suave")
 
         with ui.row().classes("gap-4 q-my-sm"):
-            ui.link("Aviso legal", "/legal/aviso", new_tab=True)
-            ui.link("Política de privacidade", "/legal/privacidade", new_tab=True)
+            ui.link(_("Aviso legal"), "/legal/aviso", new_tab=True)
+            ui.link(_("Política de privacidade"), "/legal/privacidade", new_tab=True)
 
         with ui.row().classes("gap-3 q-mt-md wrap"):
             ui.button(
-                "Descargar os meus datos",
+                _("Descargar os meus datos"),
                 icon="download",
                 on_click=descargar_datos,
             ).props("outline")
             ui.button(
-                "Borrar a miña conta",
+                _("Borrar a miña conta"),
                 icon="delete",
                 on_click=abrir_dialogo_borrar,
             ).props("color=negative")
 
     with ui.card().classes("w-full max-w-xl q-pa-md gap-3 q-mt-md"):
-        ui.label("Idioma").classes("text-subtitle1 text-weight-bold")
+        ui.label(_("Idioma")).classes("text-subtitle1 text-weight-bold")
         opcions = idiomas_disponibles()
         idioma_seleccionado = actor_idioma if actor_idioma in opcions else IDIOMA_BASE
 
@@ -275,35 +286,37 @@ def conta_page() -> None:
         ui.select(
             options=opcions,
             value=idioma_seleccionado,
-            label="Idioma da aplicación",
+            label=_("Idioma da aplicación"),
             on_change=ao_cambiar_idioma,
         ).classes("w-full")
 
         if len(opcions) <= 1:
             ui.label(
-                "Polo momento só hai galego. Pódense engadir máis idiomas sen cambiar a app."
+                _("Polo momento só hai galego. Pódense engadir máis idiomas sen cambiar a app.")
             ).classes("texto-suave")
 
     with ui.card().classes("w-full max-w-xl q-pa-md gap-3 q-mt-md"):
-        ui.label("App do campo (sen cobertura)").classes("text-subtitle1 text-weight-bold")
+        ui.label(_("App do campo (sen cobertura)")).classes("text-subtitle1 text-weight-bold")
         ui.label(
-            "Para apuntar no campo sen cobertura, conecta o teu móbil: "
-            "le o código coa cámara e engade a app á pantalla de inicio."
+            _(
+                "Para apuntar no campo sen cobertura, conecta o teu móbil: "
+                "le o código coa cámara e engade a app á pantalla de inicio."
+            )
         ).classes("texto-suave")
 
         with ui.row().classes("gap-3 items-center wrap"):
             ui.button(
-                "Conectar un móbil",
+                _("Conectar un móbil"),
                 icon="smartphone",
                 on_click=abrir_dialogo_nome,
             )
-            ui.link("Abrir a app do campo", "/campo/", new_tab=True)
+            ui.link(_("Abrir a app do campo"), "/campo/", new_tab=True)
 
-        ui.label("Móbiles conectados").classes("text-subtitle2 text-weight-bold q-mt-sm")
+        ui.label(_("Móbiles conectados")).classes("text-subtitle2 text-weight-bold q-mt-sm")
 
         with ui.column().classes("w-full gap-2"):
             if not dispositivos:
-                ui.label("Aínda non hai ningún móbil conectado.").classes(
+                ui.label(_("Aínda non hai ningún móbil conectado.")).classes(
                     "texto-suave text-caption"
                 )
             else:
@@ -315,10 +328,12 @@ def conta_page() -> None:
                                 alta = formato_data_alta(disp.creado_en)
                                 uso = formato_ultimo_uso(disp.ultimo_uso)
                                 ui.label(
-                                    f"Alta: {alta} · Último uso: {uso}"
+                                    _("Alta: {alta} · Último uso: {uso}").format(
+                                        alta=alta, uso=uso
+                                    )
                                 ).classes("texto-suave text-caption")
                             ui.button(
-                                "Desconectar",
+                                _("Desconectar"),
                                 icon="link_off",
-                                on_click=lambda _=None, d=disp: desconectar(d.id, d.nome),
+                                on_click=lambda _e=None, d=disp: desconectar(d.id, d.nome),
                             ).props("flat color=negative dense")

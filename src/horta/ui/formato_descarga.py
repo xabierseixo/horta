@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from nicegui import ui
 
+from horta.idiomas import _
 from horta.services.formatos import FORMATOS, converter
 
 
 def selector_formato() -> ui.select:
     """Selector do formato de descarga para informes."""
-    return ui.select(FORMATOS, value="xlsx", label="Formato")
+    return ui.select(FORMATOS, value="xlsx", label=_("Formato"))
 
 
 def descargar_informe(

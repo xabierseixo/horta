@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, time
 
+from horta.idiomas import _
 from horta.services.errors import OperacionNonPermitidaError
 
 
@@ -17,7 +18,9 @@ def parsear_decimal(texto: str | float | int | None) -> float | None:
     try:
         return float(limpo)
     except ValueError:
-        raise OperacionNonPermitidaError(f"«{texto}» non é un número") from None
+        raise OperacionNonPermitidaError(
+            _("«{texto}» non é un número").format(texto=texto)
+        ) from None
 
 
 def formatar_decimal(valor: float | int | None) -> str:
@@ -48,7 +51,7 @@ def parsear_data(texto: str | None) -> date | None:
             return date(int(ano), int(mes), int(dia))
         return date.fromisoformat(texto)
     except ValueError:
-        raise OperacionNonPermitidaError("Data non válida: usa DD/MM/AAAA") from None
+        raise OperacionNonPermitidaError(_("Data non válida: usa DD/MM/AAAA")) from None
 
 
 def texto_data(valor: date | str | None) -> str:
@@ -70,4 +73,4 @@ def parsear_hora(texto: str | None) -> time | None:
     try:
         return time.fromisoformat(texto.strip())
     except ValueError:
-        raise OperacionNonPermitidaError("Hora non válida: usa HH:MM") from None
+        raise OperacionNonPermitidaError(_("Hora non válida: usa HH:MM")) from None

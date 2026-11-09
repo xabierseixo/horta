@@ -3,6 +3,7 @@ from __future__ import annotations
 from nicegui import app, ui
 from sqlalchemy.orm import Session
 
+from horta.idiomas import _
 from horta.models.usuario import Usuario
 from horta.services.auth import obter_usuario_activo
 
@@ -26,4 +27,4 @@ def pechar_sesion() -> None:
 
 
 def boton_pechar_sesion() -> None:
-    ui.button("Pechar sesión", icon="logout", on_click=pechar_sesion).props("flat")
+    ui.button(_("Pechar sesión"), icon="logout", on_click=pechar_sesion).props("flat")

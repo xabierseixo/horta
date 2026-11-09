@@ -6,6 +6,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.services.trazabilidade import trazabilidade_publica
 from horta.ui.tema import aplicar_tema
 
@@ -17,18 +18,26 @@ def paxina_lote(token: str) -> None:
         resultado = trazabilidade_publica(session, token)
     with ui.column().classes("w-full q-pa-md").style("max-width: 44rem; margin: auto"):
         if resultado is None:
-            ui.label("Este lote non existe ou xa non está publicado.").classes("text-h6")
+            ui.label(_("Este lote non existe ou xa non está publicado.")).classes("text-h6")
             return
         traz, explotacion = resultado
         ui.label(traz.lote.produto).classes("text-h5 text-weight-bold")
-        ui.label(f"Lote {traz.lote.codigo} · {explotacion}").classes("texto-suave")
-        for titulo, lineas in (("De onde vén", traz.orixe), ("Que se lle fixo", traz.fixose),
-                               ("Preparación", traz.dentro)):
+        ui.label(
+            _("Lote {codigo} · {explotacion}").format(
+                codigo=traz.lote.codigo, explotacion=explotacion
+            )
+        ).classes("texto-suave")
+        for titulo, lineas in (
+            (_("De onde vén"), traz.orixe),
+            (_("Que se lle fixo"), traz.fixose),
+            (_("Preparación"), traz.dentro),
+        ):
             ui.label(titulo).classes("text-subtitle1 text-weight-bold q-mt-md")
             if not lineas:
-                ui.label("Nada apuntado.").classes("texto-suave")
+                ui.label(_("Nada apuntado.")).classes("texto-suave")
             for linea in lineas:
                 data = f"{linea.data:%d/%m/%Y} · " if linea.data else ""
                 ui.label(f"{data}{linea.texto}")
-        ui.label("Información do caderno da explotación, apuntada pola propia explotación."
-                 ).classes("texto-suave text-caption q-mt-lg")
+        ui.label(
+            _("Información do caderno da explotación, apuntada pola propia explotación.")
+        ).classes("texto-suave text-caption q-mt-lg")

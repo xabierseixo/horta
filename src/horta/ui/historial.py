@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.animal import Animal
 from horta.models.horta import RolHorta
 from horta.models.instalacion import Instalacion
@@ -44,13 +45,19 @@ def abrir_historial(que: str, ref_id: int) -> None:
             if parcela is None:
                 return
             titulo = parcela.nome
-            seccions.append(("Cultivos (rotación)", [
+            seccions.append((_("Cultivos (rotación)"), [
                 (f"{_data(c.cultivo.data_inicio)}{c.cultivo.especie}"
                  f"{f' ({c.cultivo.variedade})' if c.cultivo.variedade else ''}", c.aviso)
                 for c in rotacion(session, actor, parcela)]))
-            seccions.append(("Traballos", [
-                (f"{_data(t.data)}{TIPOS[t.tipo]}{f': {t.que}' if t.que else ''}", None)
-                for t in historial_parcela(session, actor, parcela)]))
+            seccions.append((_("Traballos"), [
+                (
+                    f"{_data(t.data)}"
+                    f"{_(TIPOS[t.tipo]) if t.tipo in TIPOS else t.tipo}"
+                    f"{f': {t.que}' if t.que else ''}",
+                    None,
+                )
+                for t in historial_parcela(session, actor, parcela)
+            ]))
         else:
             if que == "animal":
                 animal = session.get(Animal, ref_id)
@@ -69,16 +76,16 @@ def abrir_historial(que: str, ref_id: int) -> None:
                 if maquina is None:
                     return
                 titulo, feitos = maquina.alias, historial_maquina(session, actor, maquina)
-            seccions.append(("Traballos", [(f"{_data(f.data)}{f.que}", None) for f in feitos]))
+            seccions.append((_("Traballos"), [(f"{_data(f.data)}{f.que}", None) for f in feitos]))
     with ui.dialog() as dialogo, ui.card().style("width: min(40rem, 96vw)"):
-        ui.label(f"Historial: {titulo}").classes("text-h6")
+        ui.label(_("Historial: {titulo}").format(titulo=titulo)).classes("text-h6")
         for nome, lineas in seccions:
             ui.label(nome).classes("text-subtitle1 text-weight-bold q-mt-sm")
             if not lineas:
-                ui.label("Nada apuntado.").classes("texto-suave")
+                ui.label(_("Nada apuntado.")).classes("texto-suave")
             for texto, aviso in lineas:
                 ui.label(texto)
                 if aviso:
                     ui.label(aviso).classes("etiqueta-aviso")
-        ui.button("Pechar", on_click=dialogo.close).props("flat")
+        ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
     dialogo.open()

@@ -4,6 +4,7 @@ from typing import Callable
 
 from nicegui import ui
 
+from horta.idiomas import _
 from horta.ui.boton_confirmar import boton_para
 
 
@@ -19,11 +20,11 @@ def confirmar_eliminacion(mensaxe: str, ao_confirmar: Callable[[], None],
     with ui.dialog() as dialog, ui.card():
         ui.label(mensaxe)
         with ui.row().classes("q-mt-sm justify-end w-full"):
-            ui.button("Cancelar", on_click=dialog.close).props("flat")
+            ui.button(_("Cancelar"), on_click=dialog.close).props("flat")
 
             def confirmado() -> None:
                 dialog.close()
                 ao_confirmar()
 
-            ui.button(boton, icon=icona, on_click=confirmado).props("color=negative")
+            ui.button(_(boton), icon=icona, on_click=confirmado).props("color=negative")
     dialog.open()

@@ -5,6 +5,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.services.legal import aceptar_politica, texto_legal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.tema import aplicar_tema
@@ -48,16 +49,18 @@ def paxina_aceptar_politica() -> None:
 
     with ui.column().classes("w-full q-pa-md").style("max-width: 44rem; margin: auto"):
         with ui.card().classes("w-full q-pa-lg gap-4"):
-            ui.label("Antes de continuar").classes("text-h5 text-weight-bold")
+            ui.label(_("Antes de continuar")).classes("text-h5 text-weight-bold")
             ui.label(
-                "Para usar AgroXest360 tes que ler e aceptar a política de privacidade e o "
-                "aviso legal."
+                _(
+                    "Para usar AgroXest360 tes que ler e aceptar a política de privacidade e o "
+                    "aviso legal."
+                )
             )
             with ui.row().classes("gap-4"):
-                ui.link("Aviso legal", "/legal/aviso", new_tab=True)
-                ui.link("Política de privacidade", "/legal/privacidade", new_tab=True)
-            caixa = ui.checkbox("Lin e acepto a política de privacidade e o aviso legal")
+                ui.link(_("Aviso legal"), "/legal/aviso", new_tab=True)
+                ui.link(_("Política de privacidade"), "/legal/privacidade", new_tab=True)
+            caixa = ui.checkbox(_("Lin e acepto a política de privacidade e o aviso legal"))
             with ui.row().classes("w-full items-center justify-between q-mt-md"):
-                ui.button("Saír", on_click=pechar_sesion).props("flat")
-                boton = ui.button("Aceptar e continuar", on_click=ao_aceptar)
+                ui.button(_("Saír"), on_click=pechar_sesion).props("flat")
+                boton = ui.button(_("Aceptar e continuar"), on_click=ao_aceptar)
                 boton.bind_enabled_from(caixa, "value")

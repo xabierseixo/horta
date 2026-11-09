@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from nicegui import ui
 
+from horta.idiomas import _
 from horta.ui.sesion import boton_pechar_sesion
 from horta.ui.tema import aplicar_tema
 
@@ -26,8 +27,8 @@ def cabeceira_paxina(*, titulo_horta: str | None = None, mostrar_admin: bool = F
             ui.label(titulo_horta).classes("text-lg")
         ui.space()
         if mostrar_admin:
-            ui.link("Administración", "/admin/usuarios")
-            ui.link("Catálogos oficiais", "/admin/catalogos")
-            ui.link("Copias de seguridade", "/admin/copias")
+            ui.link(_("Administración"), "/admin/usuarios")
+            ui.link(_("Catálogos oficiais"), "/admin/catalogos")
+            ui.link(_("Copias de seguridade"), "/admin/copias")
         boton_pechar_sesion()
     ui.separator()

@@ -10,6 +10,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.abonado import Fertilizante
 from horta.models.parcela import Parcela
 from horta.models.usuario import Usuario
@@ -42,27 +43,27 @@ from horta.services.tratamentos_instalacion import listar_tratamentos_instalacio
 
 # Tipos de traballo, na orde en que se ofrecen ao apuntar
 TIPOS: dict[str, str] = {
-    "tratamento": "Tratamento",
-    "abonado": "Abonado",
-    "rega": "Rega",
-    "labor": "Labor",
-    "colleita": "Colleita",
-    "sementeira": "Sementeira ou plantación",
-    "analise": "Toma de mostras",
-    "observacion": "Observación de pragas",
-    "tratamento_instalacion": "Tratamento en almacén ou instalación",
-    "coidado_animal": "Coidado de animais",
-    "movemento_animal": "Entrada ou saída de animais",
-    "producion_animal": "Produción dos animais",
-    "pastoreo": "Pastoreo",
-    "movemento_esterco": "Cesión ou recepción de esterco",
-    "lote_saida": "Saída de produto (venda, casa...)",
-    "clasificacion": "Clasificación dun lote (tamaños, calidades)",
-    "mestura": "Mestura de lotes",
-    "transformacion": "Transformación (conservas, queixo…)",
-    "entrada_produto": "Entrada de produto (compra)",
-    "outro_traballo": "Outro traballo (mantemento, limpeza…)",
-    "tarefa": "Tarefa",
+    "tratamento": N_("Tratamento"),
+    "abonado": N_("Abonado"),
+    "rega": N_("Rega"),
+    "labor": N_("Labor"),
+    "colleita": N_("Colleita"),
+    "sementeira": N_("Sementeira ou plantación"),
+    "analise": N_("Toma de mostras"),
+    "observacion": N_("Observación de pragas"),
+    "tratamento_instalacion": N_("Tratamento en almacén ou instalación"),
+    "coidado_animal": N_("Coidado de animais"),
+    "movemento_animal": N_("Entrada ou saída de animais"),
+    "producion_animal": N_("Produción dos animais"),
+    "pastoreo": N_("Pastoreo"),
+    "movemento_esterco": N_("Cesión ou recepción de esterco"),
+    "lote_saida": N_("Saída de produto (venda, casa...)"),
+    "clasificacion": N_("Clasificación dun lote (tamaños, calidades)"),
+    "mestura": N_("Mestura de lotes"),
+    "transformacion": N_("Transformación (conservas, queixo…)"),
+    "entrada_produto": N_("Entrada de produto (compra)"),
+    "outro_traballo": N_("Outro traballo (mantemento, limpeza…)"),
+    "tarefa": N_("Tarefa"),
 }
 
 

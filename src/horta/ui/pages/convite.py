@@ -6,6 +6,7 @@ from __future__ import annotations
 from nicegui import app, ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.horta import Horta
 from horta.models.persoa import Persoa
 from horta.services.equipo import aceptar_convite, convite_valido, crear_conta_con_convite
@@ -30,8 +31,8 @@ def convite_page(token: str) -> None:
         nome_persoa = persoa.nome if persoa else ""
 
     with ui.card().classes("q-ma-md").style("width: min(28rem, 94vw)"):
-        ui.label(f"Convite a «{nome_horta}»").classes("text-h6")
-        ui.label(f"Para {nome_persoa}").classes("texto-suave")
+        ui.label(_("Convite a «{nome_horta}»").format(nome_horta=nome_horta)).classes("text-h6")
+        ui.label(_("Para {nome_persoa}").format(nome_persoa=nome_persoa)).classes("texto-suave")
         if actor is not None:
             def entrar() -> None:
                 with get_session() as session:
@@ -42,14 +43,17 @@ def convite_page(token: str) -> None:
                 if ok:
                     ui.navigate.to(url_seccion(horta_id, "resumo"))
 
-            ui.label(f"Entrarás coa túa conta ({actor.email}).")
-            ui.button("Entrar na explotación", icon="login", on_click=entrar)
+            ui.label(_("Entrarás coa túa conta ({email}).").format(email=actor.email))
+            ui.button(_("Entrar na explotación"), icon="login", on_click=entrar)
             return
 
-        ui.label("Crea a túa conta: o contrasinal só o sabes ti.")
-        email = ui.input("Email").classes("w-full")
-        contrasinal = ui.input("Contrasinal (8 caracteres ou máis)", password=True,
-                               password_toggle_button=True).classes("w-full")
+        ui.label(_("Crea a túa conta: o contrasinal só o sabes ti."))
+        email = ui.input(_("Email")).classes("w-full")
+        contrasinal = ui.input(
+            _("Contrasinal (8 caracteres ou máis)"),
+            password=True,
+            password_toggle_button=True,
+        ).classes("w-full")
 
         def crear() -> None:
             creado: list[tuple[int, str, str]] = []
@@ -66,7 +70,8 @@ def convite_page(token: str) -> None:
                                         usuario_rol=rol)
                 ui.navigate.to(url_seccion(horta_id, "resumo"))
 
-        ui.button("Crear a conta e entrar", icon="person_add", on_click=crear)
-        ui.label("Xa tes conta? Entra con ela e volve abrir esta ligazón.").classes(
-            "text-caption q-mt-md")
-        ui.link("Entrar", "/login")
+        ui.button(_("Crear a conta e entrar"), icon="person_add", on_click=crear)
+        ui.label(_("Xa tes conta? Entra con ela e volve abrir esta ligazón.")).classes(
+            "text-caption q-mt-md"
+        )
+        ui.link(_("Entrar"), "/login")

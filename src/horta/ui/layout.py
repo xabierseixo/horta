@@ -8,6 +8,7 @@ from pathlib import Path
 
 from nicegui import ui
 
+from horta.idiomas import N_, _
 from horta.ui.accions import mostrar_aviso_pendente
 from horta.ui.sesion import pechar_sesion
 from horta.ui.tema import aplicar_tema
@@ -38,44 +39,62 @@ class Seccion:
 
 
 SECCIONS: tuple[Seccion, ...] = (
-    Seccion("resumo", "Inicio", "home", None),
-    Seccion("diario", "Diario", "event_note", None),
-    Seccion("calendario", "Calendario", "calendar_month", None),
-    Seccion("informes", "Informes", "description", None),
-    Seccion("estatisticas", "Estatísticas", "bar_chart", None),
+    Seccion("resumo", N_("Inicio"), "home", None),
+    Seccion("diario", N_("Diario"), "event_note", None),
+    Seccion("calendario", N_("Calendario"), "calendar_month", None),
+    Seccion("informes", N_("Informes"), "description", None),
+    Seccion("estatisticas", N_("Estatísticas"), "bar_chart", None),
     # Menú por áreas (deseño global §2bis e §2ter)
-    Seccion("parcelas", "Parcelas", "map", "Produción"),
-    Seccion("mapa", "Mapa das terras", "public", "Produción"),
-    Seccion("cultivos", "Cultivos", "spa", "Produción"),
-    Seccion("animais", "Animais", "pets", "Produción"),
-    Seccion("sensores", "Sensores", "sensors", "Produción"),
-    Seccion("equipo", "Equipo", "groups", "Xestión"),
-    Seccion("contactos", "Contactos", "contacts", "Xestión"),
-    Seccion("maquinaria", "Maquinaria", "agriculture", "Xestión"),
-    Seccion("instalacions", "Instalacións", "warehouse", "Xestión"),
-    Seccion("produtos", "Produtos", "shopping_basket", "Xestión"),
-    Seccion("lotes", "Lotes", "inventory", "Xestión"),
-    Seccion("cartos", "Contas", "euro", "Xestión"),
-    Seccion("documentos", "Documentos", "folder_shared", "Xestión"),
-    Seccion("plan", "Plan de empresa", "business_center", "Explotación"),
-    Seccion("certificacions", "Certificacións", "verified", "Explotación"),
-    Seccion("explotacion", "Datos da explotación", "store", "Explotación", so_admin_horta=True),
+    Seccion("parcelas", N_("Parcelas"), "map", N_("Produción")),
+    Seccion("mapa", N_("Mapa das terras"), "public", N_("Produción")),
+    Seccion("cultivos", N_("Cultivos"), "spa", N_("Produción")),
+    Seccion("animais", N_("Animais"), "pets", N_("Produción")),
+    Seccion("sensores", N_("Sensores"), "sensors", N_("Produción")),
+    Seccion("equipo", N_("Equipo"), "groups", N_("Xestión")),
+    Seccion("contactos", N_("Contactos"), "contacts", N_("Xestión")),
+    Seccion("maquinaria", N_("Maquinaria"), "agriculture", N_("Xestión")),
+    Seccion("instalacions", N_("Instalacións"), "warehouse", N_("Xestión")),
+    Seccion("produtos", N_("Produtos"), "shopping_basket", N_("Xestión")),
+    Seccion("lotes", N_("Lotes"), "inventory", N_("Xestión")),
+    Seccion("cartos", N_("Contas"), "euro", N_("Xestión")),
+    Seccion("documentos", N_("Documentos"), "folder_shared", N_("Xestión")),
+    Seccion("plan", N_("Plan de empresa"), "business_center", N_("Explotación")),
+    Seccion("certificacions", N_("Certificacións"), "verified", N_("Explotación")),
+    Seccion(
+        "explotacion",
+        N_("Datos da explotación"),
+        "store",
+        N_("Explotación"),
+        so_admin_horta=True,
+    ),
     # A táboa de cada tipo de traballo: fóra do menú, chégase desde o Diario
-    Seccion("tratamentos", "Tratamentos", "sanitizer", None, no_menu=True),
-    Seccion("recomendacions", "Recomendacións da persoa asesora", "assignment", None, no_menu=True),
-    Seccion("pragas", "Seguimento de pragas", "bug_report", None, no_menu=True),
-    Seccion("visitas", "Visitas técnicas", "person_pin_circle", None, no_menu=True),
-    Seccion("fertilizacion", "Abonados", "compost", None, no_menu=True),
-    Seccion("estercos", "Estercos e purín", "compost", None, no_menu=True),
-    Seccion("rega", "Regas", "water_drop", None, no_menu=True),
-    Seccion("labores", "Labores", "grass", None, no_menu=True),
-    Seccion("analises", "Tomas de mostras", "science", None, no_menu=True),
-    Seccion("colleitas", "Colleitas", "inventory_2", None, no_menu=True),
-    Seccion("coidados", "Coidados dos animais", "pets", None, no_menu=True),
-    Seccion("movementos", "Entradas e saídas de animais", "swap_horiz", None, no_menu=True),
-    Seccion("producion", "Produción dos animais", "egg", None, no_menu=True),
-    Seccion("pastoreo", "Pastoreo", "landscape", None, no_menu=True),
-    Seccion("tarefas", "Tarefas", "task_alt", None, no_menu=True),
+    Seccion("tratamentos", N_("Tratamentos"), "sanitizer", None, no_menu=True),
+    Seccion(
+        "recomendacions",
+        N_("Recomendacións da persoa asesora"),
+        "assignment",
+        None,
+        no_menu=True,
+    ),
+    Seccion("pragas", N_("Seguimento de pragas"), "bug_report", None, no_menu=True),
+    Seccion("visitas", N_("Visitas técnicas"), "person_pin_circle", None, no_menu=True),
+    Seccion("fertilizacion", N_("Abonados"), "compost", None, no_menu=True),
+    Seccion("estercos", N_("Estercos e purín"), "compost", None, no_menu=True),
+    Seccion("rega", N_("Regas"), "water_drop", None, no_menu=True),
+    Seccion("labores", N_("Labores"), "grass", None, no_menu=True),
+    Seccion("analises", N_("Tomas de mostras"), "science", None, no_menu=True),
+    Seccion("colleitas", N_("Colleitas"), "inventory_2", None, no_menu=True),
+    Seccion("coidados", N_("Coidados dos animais"), "pets", None, no_menu=True),
+    Seccion(
+        "movementos",
+        N_("Entradas e saídas de animais"),
+        "swap_horiz",
+        None,
+        no_menu=True,
+    ),
+    Seccion("producion", N_("Produción dos animais"), "egg", None, no_menu=True),
+    Seccion("pastoreo", N_("Pastoreo"), "landscape", None, no_menu=True),
+    Seccion("tarefas", N_("Tarefas"), "task_alt", None, no_menu=True),
 )
 _CLAVES = {s.clave for s in SECCIONS}
 NOVA_EXPLOTACION = -1  # valor especial do selector de explotación
@@ -112,7 +131,7 @@ def marco_horta(
 
     with ui.header().classes("cabeceira-mobil lt-md items-center q-py-xs"):
         ui.button(icon="menu", on_click=menu.toggle).props(
-            'flat round color=white aria-label="Abrir menú"'
+            f'flat round color=white aria-label="{_("Abrir menú")}"'
         )
         ui.label(hortas.get(horta_id, "AgroXest360")).classes("text-white text-subtitle1")
 
@@ -124,11 +143,11 @@ def marco_horta(
             if len(hortas) >= 2:
                 with ui.link(target="/panel").classes("menu-item w-full"):
                     ui.icon("dashboard").classes("text-h6")
-                    ui.label("Todas as explotacións")
+                    ui.label(_("Todas as explotacións"))
             ui.select(
-                {**hortas, NOVA_EXPLOTACION: "+ Nova explotación"},
+                {**hortas, NOVA_EXPLOTACION: _("+ Nova explotación")},
                 value=horta_id,
-                label="Explotación",
+                label=_("Explotación"),
                 on_change=lambda e: ui.navigate.to(
                     "/?nova=1" if e.value == NOVA_EXPLOTACION else url_seccion(e.value, seccion)
                 ),
@@ -137,12 +156,12 @@ def marco_horta(
             grupo_actual: str | None = None
             for s in seccions_visibles(e_horta_admin):
                 if s.grupo != grupo_actual and s.grupo is not None:
-                    ui.label(s.grupo).classes("menu-grupo")
+                    ui.label(_(s.grupo)).classes("menu-grupo")
                 grupo_actual = s.grupo
                 clases = "menu-item w-full activo" if s.clave == seccion else "menu-item w-full"
                 with ui.link(target=url_seccion(horta_id, s.clave)).classes(clases):
                     ui.icon(s.icona).classes("text-h6")
-                    ui.label(s.etiqueta)
+                    ui.label(_(s.etiqueta))
 
             ui.space()
             with ui.column().classes("menu-pe w-full gap-1"):
@@ -150,30 +169,31 @@ def marco_horta(
                 if e_admin_global:
                     with ui.link(target="/admin/usuarios").classes("menu-item w-full"):
                         ui.icon("admin_panel_settings").classes("text-h6")
-                        ui.label("Administración")
+                        ui.label(_("Administración"))
                     with ui.link(target="/admin/catalogos").classes("menu-item w-full"):
                         ui.icon("library_books").classes("text-h6")
-                        ui.label("Catálogos oficiais")
+                        ui.label(_("Catálogos oficiais"))
                     with ui.link(target="/admin/legal").classes("menu-item w-full"):
                         ui.icon("gavel").classes("text-h6")
-                        ui.label("Datos legais")
+                        ui.label(_("Datos legais"))
                 with ui.link(target="/conta").classes("menu-item w-full"):
                     ui.icon("person").classes("text-h6")
-                    ui.label("A miña conta")
+                    ui.label(_("A miña conta"))
                 with ui.element("button").props('type="button"').classes(
                     "menu-item w-full menu-boton"
                 ).on("click", pechar_sesion):
                     ui.icon("logout").classes("text-h6")
-                    ui.label("Pechar sesión")
-                ui.label(f"Versión {VERSION}").classes("text-caption q-px-sm").style(
-                    "color: rgba(255,255,255,.6)")
+                    ui.label(_("Pechar sesión"))
+                ui.label(_("Versión {version}").format(version=VERSION)).classes(
+                    "text-caption q-px-sm"
+                ).style("color: rgba(255,255,255,.6)")
 
 
 def cabeceira_seccion(titulo: str, migas: str) -> ui.row:
     """Título da sección; devolve a fila onde se poñen os botóns de acción."""
     with ui.row().classes("w-full items-end justify-between q-mb-md wrap"):
         with ui.column().classes("gap-0"):
-            ui.label(migas).classes("migas")
-            ui.label(titulo).classes("titulo-seccion")
+            ui.label(_(migas)).classes("migas")
+            ui.label(_(titulo)).classes("titulo-seccion")
         accions = ui.row().classes("gap-2 wrap")
     return accions

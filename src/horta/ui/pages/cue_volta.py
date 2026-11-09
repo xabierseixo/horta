@@ -6,6 +6,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.services.conexion_xeaga import desconectar, recibir_token
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.persoas import titular_da_horta
@@ -28,9 +29,12 @@ def cue_volta_page(peticion: str = "", token: str = "") -> None:
         titular = titular_da_horta(session, horta_id)
         if titular is None or not titular.nif or titular.nif != recibido.nif:
             desconectar(actor.id, horta_id)
-            ui.label("Quen se identificou na Xunta non é a persoa titular desta explotación "
-                     "(o NIF non coincide co da ficha da persoa titular).").classes(
-                "text-negative q-pa-md")
-            ui.link("Volver aos informes", url_seccion(horta_id, "informes"))
+            ui.label(
+                _(
+                    "Quen se identificou na Xunta non é a persoa titular desta explotación "
+                    "(o NIF non coincide co da ficha da persoa titular)."
+                )
+            ).classes("text-negative q-pa-md")
+            ui.link(_("Volver aos informes"), url_seccion(horta_id, "informes"))
             return
     ui.navigate.to(url_seccion(horta_id, "informes"))

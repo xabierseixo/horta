@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from nicegui import ui
 
+from horta.idiomas import _
+
 M2_POR_HA = 10_000
 UNIDADES_SUPERFICIE = ("m²", "ha")
 
@@ -41,9 +43,9 @@ class CampoSuperficie:
     def __init__(self, etiqueta: str, unidade: str = "m²") -> None:
         self._unidade_anterior = unidade
         with ui.row().classes("w-full no-wrap items-end gap-2") as self.fila:
-            self.numero = ui.number(etiqueta, min=0).classes("col-grow")
+            self.numero = ui.number(_(etiqueta), min=0).classes("col-grow")
             self.unidade = ui.select(
-                list(UNIDADES_SUPERFICIE), value=unidade, label="Unidade",
+                list(UNIDADES_SUPERFICIE), value=unidade, label=_("Unidade"),
                 on_change=self._cambiar_unidade,
             ).classes("w-24")
 
