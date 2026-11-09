@@ -20,6 +20,7 @@ from horta.models.dispositivo import Dispositivo
 from horta.models.documento import Documento
 from horta.models.envio_cue import EnvioCue, RexistroCue
 from horta.models.esterco import MovementoEsterco
+from horta.models.estimacion import EstimacionColleita
 from horta.models.fertilizante import FertilizanteSiex
 from horta.models.fito_rexistro import (
     FitoMateria,
@@ -103,6 +104,7 @@ __all__ = [
     "Dispositivo",
     "Tarefa",
     "Colleita",
+    "EstimacionColleita",
     "CatalogoVersion",
     "ComprobacionCatalogo",
     "CatalogoValor",

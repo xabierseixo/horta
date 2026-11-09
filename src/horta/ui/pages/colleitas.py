@@ -9,6 +9,7 @@ from nicegui import ui
 
 from horta.db import get_session
 from horta.models.colleita import Colleita
+from horta.models.cultivo import Cultivo
 from horta.models.tarefa import Tarefa
 from horta.services.catalogos import valores_vixentes
 from horta.services.colleitas import (
@@ -23,6 +24,13 @@ from horta.services.colleitas import (
     rendemento_kg_ha,
 )
 from horta.services.cultivos import listar_cultivos, nome_cultivo
+from horta.services.estimacions import (
+    borrar_estimacion,
+    crear_estimacion,
+    kg_ha_por_mostraxe,
+    listar_estimacions,
+    resumo_estimacion,
+)
 from horta.services.fito_consulta import aviso_prazo_colleita
 from horta.services.lotes import listar_lotes, resumo_lotes
 from horta.services.persoas import listar_quen
@@ -32,7 +40,7 @@ from horta.ui.campos import campo_data
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
-from horta.ui.numeros import formatar_enteiro, parsear_data, parsear_decimal
+from horta.ui.numeros import formatar_decimal, formatar_enteiro, parsear_data, parsear_decimal
 from horta.ui.pages.lotes import dialogo_saida
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -70,12 +78,19 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
         }
         for c in colleitas
     ]
-    with ui.row().classes("gap-4"):
+    abrir_estimacion = dialogo_estimacion(horta_id, pode_editar)
+
+    with ui.row().classes("gap-4 items-center"):
         for cultivo_id, kg_ha in rendementos.items():
             if kg_ha is not None:
-                ui.label(
-                    f"{nomes_cultivo[cultivo_id]}: {formatar_enteiro(kg_ha)} kg/ha"
-                ).classes("text-body2")
+                with ui.row().classes("items-center gap-1"):
+                    ui.label(
+                        f"{nomes_cultivo[cultivo_id]}: {formatar_enteiro(kg_ha)} kg/ha"
+                    ).classes("text-body2")
+                    ui.button(
+                        "Estimación",
+                        on_click=lambda cid=cultivo_id: abrir_estimacion(cid),
+                    ).props("flat dense")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
             ("data", "Data"), ("cultivo", "Cultivo"), ("cantidade", "Cantidade"),
@@ -306,6 +321,228 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         propor()
         if c:
             lote.value = c.lote
+        dialogo.open()
+
+    return abrir
+
+
+def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None]:
+    """Constrúe o diálogo de estimación da colleita para un cultivo."""
+    cultivo_actual: dict[str, int | None] = {"id": None}
+
+    with ui.dialog() as dialogo, ui.card().style("width: min(38rem, 94vw)"):
+        with ui.row().classes("w-full items-center justify-between"):
+            titulo = ui.label("Estimación da colleita").classes("text-h6")
+            ui.button(icon="close", on_click=dialogo.close).props("flat round dense")
+
+        @ui.refreshable
+        def contido_dialogo() -> None:
+            cid = cultivo_actual["id"]
+            if cid is None:
+                return
+            with get_session() as session:
+                actor = usuario_actual(session)
+                if actor is None:
+                    pechar_sesion()
+                    return
+                cultivo = session.get(Cultivo, cid)
+                if cultivo is None:
+                    return
+                nome = nome_cultivo(cultivo)
+                resumo = resumo_estimacion(session, actor, cid)
+                estimacions = listar_estimacions(session, actor, cid)
+
+            titulo.text = f"Estimación da colleita — {nome}"
+
+            with ui.card().classes("w-full p-3 bg-slate-50 border"):
+                ui.label("Resumo").classes("text-subtitle2 font-bold")
+                with ui.row().classes("w-full gap-4 text-body2"):
+                    obj_txt = (
+                        f"{formatar_enteiro(resumo.obxectivo_kg_ha)} kg/ha"
+                        if resumo.obxectivo_kg_ha is not None
+                        else "—"
+                    )
+                    est_txt = (
+                        f"{formatar_enteiro(resumo.estimado_kg_ha)} kg/ha"
+                        if resumo.estimado_kg_ha is not None
+                        else "—"
+                    )
+                    tot_txt = (
+                        f"{formatar_enteiro(resumo.estimado_total_kg)} kg"
+                        if resumo.estimado_total_kg is not None
+                        else "—"
+                    )
+                    col_txt = (
+                        f"{formatar_enteiro(resumo.colleitado_kg_ha)} kg/ha"
+                        if resumo.colleitado_kg_ha is not None
+                        else "—"
+                    )
+                    pct_txt = (
+                        f"{formatar_enteiro(resumo.porcentaxe_colleitada)} %"
+                        if resumo.porcentaxe_colleitada is not None
+                        else "—"
+                    )
+                    with ui.column().classes("gap-0"):
+                        ui.label("Obxectivo").classes("text-caption text-grey-7")
+                        ui.label(obj_txt).classes("font-semibold")
+                    with ui.column().classes("gap-0"):
+                        ui.label("Estimado").classes("text-caption text-grey-7")
+                        ui.label(est_txt).classes("font-semibold")
+                    with ui.column().classes("gap-0"):
+                        ui.label("Total estimado").classes("text-caption text-grey-7")
+                        ui.label(tot_txt).classes("font-semibold")
+                    with ui.column().classes("gap-0"):
+                        ui.label("Colleitado").classes("text-caption text-grey-7")
+                        ui.label(col_txt).classes("font-semibold")
+                    with ui.column().classes("gap-0"):
+                        ui.label("% colleitada").classes("text-caption text-grey-7")
+                        ui.label(pct_txt).classes("font-semibold")
+
+            ui.label("Estimacións").classes("text-subtitle2 font-bold")
+            if not estimacions:
+                ui.label("Aínda non hai estimacións.").classes("text-body2 text-grey-7")
+            else:
+                with ui.column().classes("w-full gap-2"):
+                    for e in estimacions:
+                        with ui.card().classes("w-full p-2 border"):
+                            with ui.row().classes("w-full items-center justify-between"):
+                                with ui.column().classes("gap-0"):
+                                    with ui.row().classes("items-center gap-2"):
+                                        ui.label(f"{e.data:%d/%m/%Y}").classes("font-bold")
+                                        met_nome = (
+                                            "Mostraxe" if e.metodo == "mostraxe" else "Directa"
+                                        )
+                                        ui.label(met_nome).classes("text-caption text-grey-7")
+                                        ui.label(
+                                            f"{formatar_enteiro(e.kg_ha)} kg/ha"
+                                        ).classes("font-semibold text-primary")
+                                    if e.metodo == "mostraxe" and e.plantas_ha:
+                                        p_txt = formatar_decimal(e.plantas_ha)
+                                        u_txt = formatar_decimal(e.unidades_planta)
+                                        w_txt = formatar_decimal(e.peso_unidade_g)
+                                        ui.label(
+                                            f"{p_txt} pl/ha × {u_txt} pezas/pl × {w_txt} g"
+                                        ).classes("text-caption text-grey-7")
+                                    if e.notas:
+                                        ui.label(e.notas).classes("text-caption text-grey-8")
+                                if pode_editar:
+                                    def facer_borrado(eid: int = e.id) -> None:
+                                        def confirmar() -> None:
+                                            with get_session() as sess:
+                                                act = usuario_actual(sess)
+                                                if act is None:
+                                                    return
+                                                ok = executar_accion(
+                                                    sess,
+                                                    lambda: borrar_estimacion(sess, act, eid),
+                                                )
+                                            if ok:
+                                                contido_dialogo.refresh()
+
+                                        confirmar_eliminacion(
+                                            "Borrar esta estimación?", confirmar
+                                        )
+
+                                    ui.button(
+                                        icon="delete", on_click=facer_borrado
+                                    ).props("flat dense color=negative")
+
+            if pode_editar:
+                ui.separator()
+                ui.label("Nova estimación").classes("text-subtitle2 font-bold")
+                data_in = campo_data("Data", date.today().isoformat())
+                metodo_in = ui.select(
+                    {"mostraxe": "Mostraxe no campo", "directa": "Directa"},
+                    value="mostraxe",
+                    label="Método",
+                ).classes("w-full")
+
+                mostraxe_col = ui.column().classes("w-full gap-2")
+                with mostraxe_col:
+                    ui.label(
+                        "Conta as plantas por hectárea, os froitos ou pezas por planta "
+                        "nunhas cantas plantas e o peso medio dunha peza"
+                    ).classes("text-caption text-grey-7")
+                    with ui.row().classes("w-full gap-2"):
+                        plantas_in = ui.input("Plantas/ha").classes("col-grow")
+                        unidades_in = ui.input("Pezas/planta").classes("col-grow")
+                        peso_in = ui.input("Peso medio peza (g)").classes("col-grow")
+                    calc_lbl = ui.label("").classes("text-sm font-semibold text-primary")
+
+                    def calcular_mostraxe() -> None:
+                        try:
+                            p = parsear_decimal(plantas_in.value)
+                            u = parsear_decimal(unidades_in.value)
+                            w = parsear_decimal(peso_in.value)
+                            if p and u and w and p > 0 and u > 0 and w > 0:
+                                kg = kg_ha_por_mostraxe(p, u, w)
+                                calc_lbl.text = f"Cálculo: {formatar_enteiro(kg)} kg/ha"
+                            else:
+                                calc_lbl.text = ""
+                        except Exception:
+                            calc_lbl.text = ""
+
+                    plantas_in.on_value_change(calcular_mostraxe)
+                    unidades_in.on_value_change(calcular_mostraxe)
+                    peso_in.on_value_change(calcular_mostraxe)
+
+                directa_col = ui.column().classes("w-full gap-2")
+                with directa_col:
+                    kg_ha_in = ui.input("Estimación (kg/ha)").classes("w-full")
+
+                directa_col.set_visibility(False)
+
+                def alternar_metodo() -> None:
+                    e_mostraxe = metodo_in.value == "mostraxe"
+                    mostraxe_col.set_visibility(e_mostraxe)
+                    directa_col.set_visibility(not e_mostraxe)
+
+                metodo_in.on_value_change(alternar_metodo)
+
+                notas_in = ui.textarea("Notas").classes("w-full")
+
+                def gardar_nova() -> None:
+                    cid = cultivo_actual["id"]
+                    if cid is None:
+                        return
+                    with get_session() as session:
+                        actor = usuario_actual(session)
+                        if actor is None:
+                            pechar_sesion()
+                            return
+
+                        def accion() -> None:
+                            dt = parsear_data(data_in.value) or date.today()
+                            met = metodo_in.value or "mostraxe"
+                            p = parsear_decimal(plantas_in.value)
+                            u = parsear_decimal(unidades_in.value)
+                            w = parsear_decimal(peso_in.value)
+                            k = parsear_decimal(kg_ha_in.value)
+                            crear_estimacion(
+                                session,
+                                actor,
+                                cultivo_id=cid,
+                                data=dt,
+                                metodo=met,
+                                kg_ha=k,
+                                plantas_ha=p,
+                                unidades_planta=u,
+                                peso_unidade_g=w,
+                                notas=notas_in.value or None,
+                            )
+
+                        ok = executar_accion(session, accion)
+                    if ok:
+                        contido_dialogo.refresh()
+
+                with ui.row():
+                    ui.button("Gardar estimación", icon="check", on_click=gardar_nova)
+
+        contido_dialogo()
+
+    def abrir(cid: int) -> None:
+        cultivo_actual["id"] = cid
+        contido_dialogo.refresh()
         dialogo.open()
 
     return abrir
