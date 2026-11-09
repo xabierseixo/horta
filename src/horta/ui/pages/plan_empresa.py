@@ -18,8 +18,10 @@ from horta.models.plan_empresa import (
     PlanInvestimento,
     PlanObxectivo,
     PlanOferta,
+    PlanVenda,
 )
 from horta.services.errors import OperacionNonPermitidaError
+from horta.services.lotes import CANLES
 from horta.services.persoas import con_papel, nome_completo
 from horta.services.plan_empresa import (
     ETIQUETAS_MEMORIA,
@@ -28,6 +30,8 @@ from horta.services.plan_empresa import (
     SECCIONS_MEMORIA,
     TIPOLOXIAS,
     Documento,
+    MarxeVenda,
+    MesTesouraria,
     actualizar_plan,
     ano_de_referencia,
     avisos_plan,
@@ -39,14 +43,20 @@ from horta.services.plan_empresa import (
     engadir_investimento,
     engadir_obxectivo,
     engadir_oferta,
+    engadir_venda,
     faltas_memoria,
     faltas_plan,
     gardar_anos,
     indicadores,
     listar_plans,
+    marxes_por_venda,
+    meses_de,
     metricas,
+    propor_vendas_do_real,
     quitar,
     seguimento,
+    tesouraria,
+    vendas_do_ano,
     xerar_anexos,
     xerar_memoria,
 )
@@ -55,9 +65,72 @@ from horta.ui.formato_descarga import descargar_informe, selector_formato
 from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
+MESES_TESOURARIA = [
+    "Xan", "Feb", "Mar", "Abr", "Mai", "Xuñ",
+    "Xul", "Ago", "Set", "Out", "Nov", "Dec",
+]
+
+
+class _ValorFixo:
+    """Simula un compoñente de entrada para valores que se amosan só como texto."""
+
+    def __init__(self, valor: Any) -> None:
+        self.value = str(valor)
+
 
 def _e(valor: float) -> str:
     return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
+
+
+def texto_venda(v: PlanVenda) -> str:
+    """Texto para a liña dunha venda prevista en detalle."""
+    canle = CANLES.get(v.canle, v.canle)
+    importe, _ = vendas_do_ano(v, 1)
+    partes = [
+        f"{v.produto} · {canle}: {v.cantidade:g} {v.unidade} a {v.prezo:g} € "
+        f"(ano 1: {_e(importe)})"
+    ]
+    if v.custo_unitario is not None:
+        partes.append(f"custo {v.custo_unitario:g} €/{v.unidade}")
+    cq = v.crece_cantidade_pct or 0
+    cp = v.crece_prezo_pct or 0
+    if cq != 0 or cp != 0:
+        if cq != 0 and cp != 0:
+            x = f"{cq:g}" if cq == cp else f"{cq:g} cantidade, {cp:g} prezo"
+        elif cq != 0:
+            x = f"{cq:g}"
+        else:
+            x = f"{cp:g}"
+        partes.append(f"crece {x} %/ano")
+    meses = meses_de(v.meses)
+    if meses != list(range(1, 13)):
+        partes.append(f"meses {', '.join(str(m) for m in meses)}")
+    return " · ".join(partes)
+
+
+def texto_marxe(m: MarxeVenda) -> str:
+    """Texto para a liña da marxe por venda no ano 1."""
+    pct = f"{m.marxe_pct:g} %" if m.marxe_pct is not None else "—"
+    return (
+        f"{m.produto} · {m.canle}: vende {_e(m.importe)}, custa {_e(m.custo)}, "
+        f"deixa {_e(m.marxe)} ({pct})"
+    )
+
+
+def opcions_tesouraria(meses: list[MesTesouraria]) -> dict[str, Any]:
+    """Opcións para o gráfico de tesouraría mes a mes do ano 1."""
+    return {
+        "tooltip": {"trigger": "axis"},
+        "legend": {"top": 0},
+        "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
+        "xAxis": {"type": "category", "data": MESES_TESOURARIA},
+        "yAxis": {"type": "value"},
+        "series": [
+            {"name": "Cobros", "type": "bar", "data": [m.cobros for m in meses]},
+            {"name": "Pagos", "type": "bar", "data": [m.pagos for m in meses]},
+            {"name": "Saldo acumulado", "type": "line", "data": [m.saldo for m in meses]},
+        ],
+    }
 
 
 def texto_actividade(a: PlanActividade) -> str:
@@ -221,19 +294,128 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             **{c: parsear_decimal(u.value) or 0 for c, u in utas.items()},
             taxa_desconto=parsear_decimal(taxa.value) or 0))).props("outline")
 
+    ui.label("Vendas en detalle").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(
+        "Se engades as vendas por produto e canle, a conta calcula con elas as vendas de cada "
+        "ano (e os custos variables, se pos o custo por unidade)."
+    ).classes("texto-suave text-caption")
+
+    for v in plan.vendas_detalle:
+        with ui.row().classes("items-center gap-2"):
+            ui.label(texto_venda(v))
+            ui.button(
+                icon="delete",
+                on_click=lambda v=v: _accion(
+                    lambda s, a: quitar(
+                        s, a, s.get(PlanEmpresa, plan.id), s.get(PlanVenda, v.id)
+                    )
+                ),
+            ).props("flat dense round size=sm color=negative")
+
+    with ui.row().classes("items-end gap-2"):
+        v_produto = ui.input("Produto").classes("w-40")
+        v_unidade = ui.input("Unidade", value="kg").classes("w-20")
+        v_canle = ui.select(CANLES, label="Canle", value="explotacion").classes("w-48")
+        v_cantidade = ui.input("Cantidade (ano 1)").classes("w-32")
+        v_prezo = ui.input("Prezo €/unidade").classes("w-28")
+        v_custo = ui.input("Custo €/unidade").classes("w-28")
+        v_crece_cant = ui.input("Crece cantidade %/ano").classes("w-36")
+        v_crece_prezo = ui.input("Crece prezo %/ano").classes("w-32")
+        v_meses = ui.select(
+            {m: str(m) for m in range(1, 13)},
+            label="Meses de venda",
+            multiple=True,
+        ).classes("w-40")
+        ui.button(
+            "Engadir",
+            icon="add",
+            on_click=lambda: _accion(
+                lambda s, a: engadir_venda(
+                    s,
+                    a,
+                    s.get(PlanEmpresa, plan.id),
+                    produto=v_produto.value or "",
+                    unidade=v_unidade.value or "",
+                    canle=v_canle.value or "explotacion",
+                    cantidade=parsear_decimal(v_cantidade.value) or 0,
+                    prezo=parsear_decimal(v_prezo.value) or 0,
+                    custo_unitario=parsear_decimal(v_custo.value),
+                    crece_cantidade_pct=parsear_decimal(v_crece_cant.value) or 0,
+                    crece_prezo_pct=parsear_decimal(v_crece_prezo.value) or 0,
+                    meses=v_meses.value or None,
+                )
+            ),
+        ).props("outline")
+
+    if not plan.vendas_detalle:
+        def propor_vendas() -> None:
+            resultado = {"n": 0}
+
+            def accion(s: Any, a: Any) -> None:
+                ano_ref = ano_de_referencia(s, a, plan.horta_id)
+                resultado["n"] = propor_vendas_do_real(
+                    s, a, s.get(PlanEmpresa, plan.id), ano_ref
+                )
+
+            with get_session() as session:
+                actor = usuario_actual(session)
+                if actor is None:
+                    pechar_sesion()
+                    return
+                ok = executar_accion(session, lambda: accion(session, actor))
+            if ok:
+                n = resultado["n"]
+                if n > 0:
+                    ui.notify(f"Engadíronse {n} vendas")
+                    ui.navigate.reload()
+                else:
+                    ui.notify("Non hai vendas con importe ese ano")
+
+        ui.button("Propoñer desde as vendas reais", on_click=propor_vendas).props("outline")
+    else:
+        ui.label("Marxe por produto e canle (ano 1)").classes("text-weight-bold q-mt-sm")
+        for m in marxes_por_venda(plan):
+            ui.label(texto_marxe(m))
+
     ui.label("Conta de explotación (6)").classes("text-subtitle1 text-weight-bold q-mt-md")
     filas = conta(plan)
-    entradas: dict[int, list[ui.input]] = {a.ano_n: [] for a in filas}
+    entradas: dict[int, list[Any]] = {a.ano_n: [] for a in filas}
+    hai_detalle = bool(plan.vendas_detalle)
+    hai_custo = hai_detalle and any(v.custo_unitario is not None for v in plan.vendas_detalle)
     with ui.grid(columns=6).classes("w-full gap-1 items-center"):
         for texto in ("", *(f"Ano {a.ano_n} ({a.ano})" for a in filas)):
             ui.label(texto).classes("text-weight-bold text-caption")
         financeiros = {a.ano_n: a.ingresos_financeiros for a in plan.anos}
-        for nome, campo in (("A) Vendas", "vendas"), ("B) Variables", "variables"),
-                            ("C) Fixos", "fixos"), ("Ingresos financeiros", "")):
-            ui.label(nome)
-            for a in filas:
-                valor = getattr(a, campo) if campo else financeiros.get(a.ano_n, 0)
-                entradas[a.ano_n].append(ui.input(value=f"{valor:g}").props("dense"))
+
+        # A) Vendas
+        ui.label("A) Vendas")
+        for a in filas:
+            if hai_detalle:
+                ui.label(_e(a.vendas))
+                entradas[a.ano_n].append(_ValorFixo(f"{a.vendas:g}"))
+            else:
+                entradas[a.ano_n].append(ui.input(value=f"{a.vendas:g}").props("dense"))
+
+        # B) Variables
+        ui.label("B) Variables")
+        for a in filas:
+            if hai_custo:
+                ui.label(_e(a.variables))
+                entradas[a.ano_n].append(_ValorFixo(f"{a.variables:g}"))
+            else:
+                entradas[a.ano_n].append(ui.input(value=f"{a.variables:g}").props("dense"))
+
+        # C) Fixos
+        ui.label("C) Fixos")
+        for a in filas:
+            entradas[a.ano_n].append(ui.input(value=f"{a.fixos:g}").props("dense"))
+
+        # Ingresos financeiros
+        ui.label("Ingresos financeiros")
+        for a in filas:
+            valor = financeiros.get(a.ano_n, 0)
+            entradas[a.ano_n].append(ui.input(value=f"{valor:g}").props("dense"))
+
         for nome, campo in (("D) Amortizacións", "amortizacions"), ("E) Marxe", "marxe"),
                             ("F) Financeiro", "financeiro"), ("G) Beneficio", "beneficio")):
             ui.label(nome)
@@ -248,6 +430,14 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
 
     ui.button("Gardar a conta", icon="check", on_click=lambda: _accion(gardar_conta)).props(
         "outline")
+
+    ui.label("Tesouraría do ano 1").classes("text-subtitle1 text-weight-bold q-mt-md")
+    meses_tes = tesouraria(plan)
+    ui.echart(opcions_tesouraria(meses_tes)).classes("w-full").style("height: 320px")
+    ui.label(
+        "Suponse que o financiamento entra no mes 1, as subvencións no mes 12 e o "
+        "investimento págase no mes 1 con IVE."
+    ).classes("texto-suave text-caption")
 
     ui.label("Investimento (Anexo V)").classes("text-subtitle1 text-weight-bold q-mt-md")
     for i in sorted(plan.investimentos, key=lambda i: i.partida):
