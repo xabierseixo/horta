@@ -4,9 +4,9 @@ esa persoa entra coa súa conta ou crea unha co seu propio contrasinal."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -24,6 +24,8 @@ class Convite(Base):
     creado_por: Mapped[int] = mapped_column(ForeignKey("usuario.id"))
     caduca: Mapped[datetime] = mapped_column(DateTime)
     usado: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    acceso_ata: Mapped[date | None] = mapped_column(Date, default=None)
+    motivo: Mapped[str | None] = mapped_column(String(30), default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
     )

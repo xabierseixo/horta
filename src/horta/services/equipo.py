@@ -7,7 +7,7 @@ por usuario_id. Deseño: o deseño
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.orm import Session
@@ -87,17 +87,44 @@ def uta_equipo(session: Session, actor: Usuario, horta_id: int) -> float:
 DIAS_CONVITE = 7
 
 
-def crear_convite(session: Session, actor: Usuario, persoa: Persoa, rol: RolHorta,
-                  agora: datetime | None = None) -> Convite:
+def crear_convite(
+    session: Session,
+    actor: Usuario,
+    persoa: Persoa,
+    rol: RolHorta,
+    agora: datetime | None = None,
+    acceso_ata: date | None = None,
+    motivo: str | None = None,
+) -> Convite:
     comprobar_rol_horta(session, persoa.horta_id, actor, {RolHorta.ADMIN})
     if persoa.usuario_id is not None:
         raise OperacionNonPermitidaError(f"{persoa.nome} xa ten acceso á app")
     agora = agora or datetime.now(timezone.utc).replace(tzinfo=None)
+    if acceso_ata is not None:
+        if isinstance(acceso_ata, datetime):
+            acceso_ata = acceso_ata.date()
+        if rol != RolHorta.LECTOR:
+            raise OperacionNonPermitidaError(
+                "O acceso con data de fin ten que ser de só lectura (Lector)"
+            )
+        if acceso_ata < agora.date():
+            raise OperacionNonPermitidaError(
+                "A data de fin de acceso non pode ser anterior a hoxe"
+            )
+    if motivo is not None and motivo not in ("inspeccion", "auditoria", "certificacion"):
+        raise OperacionNonPermitidaError(f"Motivo de acceso non válido: {motivo}")
     # Só vale o último convite de cada persoa
     session.query(Convite).filter_by(persoa_id=persoa.id, usado=None).delete()
-    convite = Convite(token=secrets.token_urlsafe(32), horta_id=persoa.horta_id,
-                      persoa_id=persoa.id, rol=rol, creado_por=actor.id,
-                      caduca=agora + timedelta(days=DIAS_CONVITE))
+    convite = Convite(
+        token=secrets.token_urlsafe(32),
+        horta_id=persoa.horta_id,
+        persoa_id=persoa.id,
+        rol=rol,
+        creado_por=actor.id,
+        caduca=agora + timedelta(days=DIAS_CONVITE),
+        acceso_ata=acceso_ata,
+        motivo=motivo,
+    )
     session.add(convite)
     session.commit()
     return convite
@@ -130,8 +157,14 @@ def aceptar_convite(session: Session, token: str, usuario: Usuario,
             f"A túa conta xa está nesta explotación como {outra.nome}")
     membro = session.get(HortaMembro, (convite.horta_id, usuario.id))
     if membro is None:
-        session.add(HortaMembro(horta_id=convite.horta_id, usuario_id=usuario.id,
-                                rol=convite.rol))
+        session.add(
+            HortaMembro(
+                horta_id=convite.horta_id,
+                usuario_id=usuario.id,
+                rol=convite.rol,
+                acceso_ata=convite.acceso_ata,
+            )
+        )
     elif _ORDE_ROL[convite.rol] > _ORDE_ROL[membro.rol]:
         # Un convite nunca baixa o permiso que xa tiña a conta (D8)
         membro.rol = convite.rol

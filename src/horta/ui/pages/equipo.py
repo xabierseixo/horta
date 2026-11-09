@@ -16,6 +16,7 @@ from horta.models.categoria import Categoria
 from horta.models.horta import RolHorta
 from horta.models.persoa import Persoa, TipoCarne
 from horta.models.usuario import Usuario
+from horta.services.accesos import listar_accesos
 from horta.services.categorias import (
     asignar_categorias,
     borrar_categoria,
@@ -126,6 +127,9 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         accesos = {p.id: acceso_da_persoa(session, p) for p in persoas}
         contas = {p.id: u.email for p in persoas if p.usuario_id
                   and (u := session.get(Usuario, p.usuario_id)) is not None}
+        accesos_rexistrados = (
+            listar_accesos(session, actor, horta_id) if (e_admin and equipo) else []
+        )
 
     hoxe = date.today()
     for p in persoas:
@@ -280,12 +284,23 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             estado_acceso = ui.label("").classes("text-caption texto-suave")
             acceso = ui.select({k: v for k, v in _ACCESOS.items() if k}, value="editor",
                                label="Permiso").classes("w-full")
+            with ui.column().classes("w-full gap-1") as bloque_inspeccion:
+                motivo_convite = ui.select(
+                    {"": "Ningún", "inspeccion": "Inspección",
+                     "auditoria": "Auditoría", "certificacion": "Certificación"},
+                    value="", label="Motivo").classes("w-full")
+                acceso_ata_convite = campo_data("Acceso ata")
             with ui.row():
                 boton_convite = ui.button("Crear convite", icon="link").props("outline")
                 boton_quitar = ui.button("Quitar acceso", icon="block").props(
                     "flat color=negative")
             ligazon = ui.input("Ligazón para mandarlle (vale 7 días)").props(
                 "readonly").classes("w-full")
+
+        def actualizar_inspeccion() -> None:
+            bloque_inspeccion.set_visibility(acceso.value == "lector")
+
+        acceso.on_value_change(actualizar_inspeccion)
 
         def mostrar_acceso() -> None:
             persoa_id = editando["id"]
@@ -298,6 +313,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 estado_acceso.text = ("Non ten acceso. Escolle o permiso e crea un convite: "
                                       "unha ligazón para mandarlle")
             acceso.set_visibility(persoa_id is not None)
+            actualizar_inspeccion()
             boton_convite.set_visibility(persoa_id is not None and not ligada)
             boton_quitar.set_visibility(ligada)
             ligazon.set_visibility(False)
@@ -309,8 +325,13 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 if actor is None or persoa is None:
                     return
                 creado: list[str] = []
+                data_ata = (parsear_data(acceso_ata_convite.value)
+                            if acceso.value == "lector" else None)
+                mot_val = (motivo_convite.value
+                           if (acceso.value == "lector" and motivo_convite.value) else None)
                 ok = executar_accion(session, lambda: creado.append(crear_convite(
-                    session, actor, persoa, _ROL[acceso.value]).token))
+                    session, actor, persoa, _ROL[acceso.value],
+                    acceso_ata=data_ata, motivo=mot_val).token))
             if ok and creado:
                 base = str(ui.context.client.request.base_url).rstrip("/")
                 ligazon.value = f"{base}/convite/{creado[0]}"
@@ -435,6 +456,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         tipo.value = vinculo.value = xenero.value = None
         activa.value = True
         acceso.value = "editor"
+        motivo_convite.value = ""
+        acceso_ata_convite.value = ""
         mostrar_bloques()
         mostrar_acceso()
         dialogo.open()
@@ -516,6 +539,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         activa.value = p.activa
         rol = accesos[p.id]
         acceso.value = rol.value if rol else "editor"
+        motivo_convite.value = ""
+        acceso_ata_convite.value = ""
         mostrar_bloques()
         mostrar_acceso()
         dialogo.open()
@@ -540,6 +565,32 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         if e_admin:
             ui.button("Xuntar con outra", icon="merge", on_click=xuntar).props("outline").classes(
                 "so-ordenador"
+            )
+
+    if equipo and e_admin and accesos_rexistrados:
+        with ui.column().classes("w-full q-mt-lg gap-2"):
+            ui.label("Accesos de inspección e auditoría").classes(
+                "text-subtitle1 text-weight-bold"
+            )
+            filas_accesos = [
+                {
+                    "id": a.id,
+                    "data_hora": a.data_hora.strftime("%d/%m/%Y %H:%M"),
+                    "conta": a.usuario.nome if a.usuario else str(a.usuario_id),
+                    "seccion": a.seccion,
+                }
+                for a in accesos_rexistrados
+            ]
+            ui.table(
+                columns=[
+                    {"name": "data_hora", "label": "Data e hora", "field": "data_hora"},
+                    {"name": "conta", "label": "Conta", "field": "conta"},
+                    {"name": "seccion", "label": "Sección", "field": "seccion"},
+                ],
+                rows=filas_accesos,
+                row_key="id",
+            ).classes("w-full taboa").props(
+                f"flat bordered {TEXTOS_TABOA}"
             )
 
 

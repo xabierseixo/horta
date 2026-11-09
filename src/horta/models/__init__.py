@@ -1,4 +1,5 @@
 from horta.models.abonado import Abonado, AbonadoBoaPractica, AbonadoCultivo, Fertilizante
+from horta.models.acceso import RexistroAcceso
 from horta.models.analise import Analise, AnaliseSubstancia, AnaliseTipo
 from horta.models.animal import Animal, AnimalIdentificado
 from horta.models.cartos import ApunteCartos
@@ -175,4 +176,5 @@ __all__ = [
     "LimiarPraga",
     "ObservacionPraga",
     "VisitaCampo",
+    "RexistroAcceso",
 ]

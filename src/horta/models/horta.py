@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
@@ -60,3 +60,4 @@ class HortaMembro(Base):
     horta_id: Mapped[int] = mapped_column(ForeignKey("horta.id"), primary_key=True)
     usuario_id: Mapped[int] = mapped_column(ForeignKey("usuario.id"), primary_key=True)
     rol: Mapped[RolHorta] = mapped_column(Enum(RolHorta), default=RolHorta.LECTOR)
+    acceso_ata: Mapped[date | None] = mapped_column(Date, default=None)

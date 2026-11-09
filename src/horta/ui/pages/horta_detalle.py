@@ -9,6 +9,7 @@ from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, RolHorta
 from horta.models.tempo import EstacionMeteo
 from horta.models.usuario import RolGlobal
+from horta.services.accesos import rexistrar_acceso
 from horta.services.animais import listar_animais
 from horta.services.catalogos import describir
 from horta.services.catalogos_estado import avisos_catalogos
@@ -139,6 +140,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         try:
             membro = comprobar_rol_horta(session, horta_id, actor, _ROLES_LECTURA)
             app.storage.user["ultima_horta"] = horta_id
+            rexistrar_acceso(session, actor, horta_id, seccion)
         except PermisoDenegadoError:
             cabeceira_paxina()
             ui.label("Non tes acceso a esta explotación").classes("text-negative")

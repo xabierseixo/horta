@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
 
 from sqlalchemy import delete, or_
 from sqlalchemy.orm import Session
 
 from horta.models.abonado import Fertilizante
+from horta.models.acceso import RexistroAcceso
 from horta.models.analise import Analise
 from horta.models.animal import Animal, AnimalIdentificado
 from horta.models.cartos import ApunteCartos
@@ -129,7 +131,12 @@ def comprobar_rol_horta(
     roles_permitidos: set[RolHorta],
 ) -> HortaMembro:
     membro = _obter_membro(session, horta_id, usuario.id)
-    if membro is None or membro.rol not in roles_permitidos:
+    if membro is None:
+        raise PermisoDenegadoError("Non tes permiso suficiente nesta explotación")
+    if membro.acceso_ata is not None and membro.acceso_ata < date.today():
+        data_fmt = membro.acceso_ata.strftime("%d/%m/%Y")
+        raise PermisoDenegadoError(f"O teu acceso a esta explotación rematou o {data_fmt}")
+    if membro.rol not in roles_permitidos:
         raise PermisoDenegadoError("Non tes permiso suficiente nesta explotación")
     return membro
 
@@ -360,6 +367,9 @@ def eliminar_horta(session: Session, actor: Usuario, horta: Horta) -> None:
     session.flush()
 
     # 11. Membros, convites, categorías e persoas
+    session.query(RexistroAcceso).filter_by(horta_id=horta.id).delete(synchronize_session=False)
+    session.flush()
+
     for membro in session.query(HortaMembro).filter_by(horta_id=horta.id).all():
         session.delete(membro)
     session.flush()
@@ -436,7 +446,10 @@ def quitar_membro(
 def listar_hortas_usuario(session: Session, usuario: Usuario) -> list[tuple[Horta, RolHorta]]:
     membros = session.query(HortaMembro).filter_by(usuario_id=usuario.id).all()
     resultado: list[tuple[Horta, RolHorta]] = []
+    hoxe = date.today()
     for membro in membros:
+        if membro.acceso_ata is not None and membro.acceso_ata < hoxe:
+            continue
         horta = session.get(Horta, membro.horta_id)
         assert horta is not None
         resultado.append((horta, membro.rol))
