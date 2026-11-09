@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from horta.db import get_session
+from horta.eventos import lecturas_novas
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.sensores import rexistrar_lecturas, sensor_da_clave
 
@@ -165,6 +166,8 @@ async def recibir_lecturas(
         )
 
     _rexistrar_envio(sensor.id)
+    if gardadas:
+        lecturas_novas.emit(sensor.id)
     return {"gardadas": gardadas}
 
 
@@ -267,4 +270,6 @@ async def recibir_ttn(
         )
 
     _rexistrar_envio(sensor.id)
+    if gardadas:
+        lecturas_novas.emit(sensor.id)
     return {"gardadas": gardadas}

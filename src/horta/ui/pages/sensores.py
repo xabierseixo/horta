@@ -7,10 +7,12 @@ from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from nicegui import ui
+from nicegui import app, ui
 
 from horta.db import get_session
+from horta.eventos import lecturas_novas
 from horta.models.sensor import Sensor
+from horta.services.auth import obter_usuario_activo
 from horta.services.cultivos import listar_cultivos, nome_cultivo
 from horta.services.instalacions import listar_instalacions
 from horta.services.parcelas import listar_parcelas
@@ -463,6 +465,8 @@ def dialogo_ficha_sensor(
 ) -> Callable[[Sensor], None]:
     """Ficha do sensor: gráfica echart, timer de actualización, consumo e importación."""
     sensor_actual: dict[str, Any] = {"sensor": None}
+    # Os avisos de lecturas novas chegan sen petición do navegador: lémbrase quen abriu a ficha
+    usuario_id = app.storage.user.get("usuario_id")
 
     with (
         ui.dialog().props("persistent") as dialog,
@@ -506,7 +510,7 @@ def dialogo_ficha_sensor(
                 desde = agora - timedelta(days=7)
 
             with get_session() as session:
-                act = usuario_actual(session)
+                act = obter_usuario_activo(session, usuario_id) if usuario_id else None
                 if act is None:
                     return
                 # Recargar sensor fresco da base de datos
@@ -550,6 +554,13 @@ def dialogo_ficha_sensor(
 
         periodo_selector.on_value_change(lambda: debuxar_grafica())
         timer_actualizacion = ui.timer(60.0, debuxar_grafica, active=False)
+
+        def ao_chegar_lecturas(sensor_id: int) -> None:
+            s_obj = sensor_actual["sensor"]
+            if dialog.value and s_obj is not None and s_obj.id == sensor_id:
+                debuxar_grafica()
+
+        lecturas_novas.subscribe(ao_chegar_lecturas)
 
         if pode_editar:
             with ui.expansion("Importar CSV ou JSON", icon="upload_file").classes("w-full q-mt-sm"):
@@ -766,6 +777,24 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
         </q-td>
         """,
     )
+
+    usuario_id = app.storage.user.get("usuario_id")
+
+    def ao_chegar_lecturas(sensor_id: int) -> None:
+        fila = next((f for f in taboa.rows if f["id"] == sensor_id), None)
+        if fila is None or not usuario_id:
+            return
+        with get_session() as session:
+            act = obter_usuario_activo(session, usuario_id)
+            sensor_db = session.get(Sensor, sensor_id)
+            if act is None or sensor_db is None:
+                return
+            ult = ultima_lectura(session, act, sensor_id)
+            fila["ultima"] = texto_ultima_lectura(sensor_db, ult)
+            fila["estado"] = estado_sensor(sensor_db, ult)
+        taboa.update()
+
+    lecturas_novas.subscribe(ao_chegar_lecturas)
 
     def abrir_ficha_seleccionada() -> None:
         if not taboa.selected:

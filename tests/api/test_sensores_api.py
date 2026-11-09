@@ -400,3 +400,20 @@ def test_importar_json(session) -> None:
     with pytest.raises(OperacionNonPermitidaError, match="lectura 2"):
         importar_ficheiro(session, ana, sensor.id, "l.json",
                           b'[{"momento": "2026-11-02T10:00", "valor": 1}, {"momento": "x"}]')
+
+
+def test_lectura_nova_avisa_as_pantallas(client: TestClient, session: Session):
+    from horta.eventos import lecturas_novas
+
+    ana, _, _, _, horta = _escenario(session)
+    sensor, clave = crear_sensor(session, ana, horta.id, "Sonda Humidade", "humidade_chan")
+    avisados: list[int] = []
+    lecturas_novas.subscribe(avisados.append, unsubscribe_on_delete=False)
+    try:
+        r = client.post(
+            "/api/sensores/lecturas", headers={"X-Clave-Sensor": clave}, json={"valor": 40}
+        )
+        assert r.status_code == 200
+        assert avisados == [sensor.id]
+    finally:
+        lecturas_novas.unsubscribe(avisados.append)
