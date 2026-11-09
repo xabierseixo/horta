@@ -42,6 +42,21 @@ class PlanEmpresa(Base):
     situacion_partida: Mapped[str | None] = mapped_column(Text, default=None)
     metodoloxia: Mapped[str | None] = mapped_column(Text, default=None)
     mercado: Mapped[str | None] = mapped_column(Text, default=None)
+    # Memoria complementaria (art. 18.1.p da convocatoria MR701L)
+    dafo_debilidades: Mapped[str | None] = mapped_column(Text, default=None)
+    dafo_ameazas: Mapped[str | None] = mapped_column(Text, default=None)
+    dafo_fortalezas: Mapped[str | None] = mapped_column(Text, default=None)
+    dafo_oportunidades: Mapped[str | None] = mapped_column(Text, default=None)
+    clientela: Mapped[str | None] = mapped_column(Text, default=None)
+    competencia: Mapped[str | None] = mapped_column(Text, default=None)
+    mk_produto: Mapped[str | None] = mapped_column(Text, default=None)
+    mk_prezo: Mapped[str | None] = mapped_column(Text, default=None)
+    mk_canles: Mapped[str | None] = mapped_column(Text, default=None)
+    mk_comunicacion: Mapped[str | None] = mapped_column(Text, default=None)
+    argumentos: Mapped[str | None] = mapped_column(Text, default=None)
+    organizacion: Mapped[str | None] = mapped_column(Text, default=None)
+    riscos: Mapped[str | None] = mapped_column(Text, default=None)
+    permisos: Mapped[str | None] = mapped_column(Text, default=None)
     # Anexo VI-B: declaracións sobre os provedores
     ofertas_autenticas: Mapped[bool] = mapped_column(Boolean, default=False)
     sen_vinculo_promotor: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -66,6 +81,14 @@ class PlanEmpresa(Base):
         cascade="all, delete-orphan", lazy="selectin")
     anos: Mapped[list[PlanAno]] = relationship(
         cascade="all, delete-orphan", lazy="selectin", order_by="PlanAno.ano_n")
+    actividades: Mapped[list[PlanActividade]] = relationship(
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="PlanActividade.mes_inicio, PlanActividade.id",
+    )
+    obxectivos: Mapped[list[PlanObxectivo]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", order_by="PlanObxectivo.id"
+    )
 
 
 class PlanInvestimento(Base):
@@ -126,3 +149,30 @@ class PlanAno(Base):
     custos_variables: Mapped[float] = mapped_column(Float, default=0)
     custos_fixos: Mapped[float] = mapped_column(Float, default=0)
     ingresos_financeiros: Mapped[float] = mapped_column(Float, default=0)
+
+
+class PlanActividade(Base):
+    """Unha actividade do calendario de 12 meses (art. 18.1.p)."""
+
+    __tablename__ = "plan_actividade"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("plan_empresa.id"), index=True)
+    mes_inicio: Mapped[int] = mapped_column(Integer)
+    mes_fin: Mapped[int] = mapped_column(Integer)
+    actividade: Mapped[str] = mapped_column(String(200))
+    responsable: Mapped[str | None] = mapped_column(String(100), default=None)
+
+
+class PlanObxectivo(Base):
+    """Un obxectivo con indicadores e metas (art. 18.1.p)."""
+
+    __tablename__ = "plan_obxectivo"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("plan_empresa.id"), index=True)
+    obxectivo: Mapped[str] = mapped_column(String(200))
+    indicador: Mapped[str] = mapped_column(String(200))
+    meta: Mapped[str | None] = mapped_column(String(100), default=None)
+    prazo: Mapped[str | None] = mapped_column(String(60), default=None)
+

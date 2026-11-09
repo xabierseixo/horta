@@ -56,10 +56,12 @@ from horta.models.parcela import Parcela, SecanoRegadio
 from horta.models.pastoreo import Pastoreo, PastoreoAnimal, PastoreoLeira
 from horta.models.persoa import Persoa, PersoaPapel, TipoCarne
 from horta.models.plan_empresa import (
+    PlanActividade,
     PlanAno,
     PlanEmpresa,
     PlanFinanciamento,
     PlanInvestimento,
+    PlanObxectivo,
     PlanOferta,
 )
 from horta.models.producion_animal import ProducionAnimal
@@ -155,8 +157,10 @@ __all__ = [
     "Certificacion",
     "PuntoAutoavaliacion",
     "ParcelaZona",
+    "PlanActividade",
     "PlanEmpresa",
     "PlanInvestimento",
+    "PlanObxectivo",
     "PlanOferta",
     "PlanFinanciamento",
     "PlanAno",

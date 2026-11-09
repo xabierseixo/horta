@@ -21,10 +21,12 @@ from horta.models.lote import Clasificacion, Lote, LoteSaida
 from horta.models.parcela import Parcela
 from horta.models.persoa import Persoa
 from horta.models.plan_empresa import (
+    PlanActividade,
     PlanAno,
     PlanEmpresa,
     PlanFinanciamento,
     PlanInvestimento,
+    PlanObxectivo,
     PlanOferta,
 )
 from horta.models.usuario import Usuario
@@ -86,7 +88,52 @@ CAMPOS_PLAN = frozenset({
     "uta_discapacidade", "uta_outros", "taxa_desconto", "tipoloxia", "expediente",
     "anualidade", "submedida", "gdr", "participada", "traballadores", "facturacion",
     "balance", "iva_recuperable", "situacion_partida", "metodoloxia", "mercado",
-    "ofertas_autenticas", "sen_vinculo_promotor", "sen_vinculo_entre_provedores"})
+    "ofertas_autenticas", "sen_vinculo_promotor", "sen_vinculo_entre_provedores",
+    "dafo_debilidades", "dafo_ameazas", "dafo_fortalezas", "dafo_oportunidades",
+    "clientela", "competencia", "mk_produto", "mk_prezo", "mk_canles", "mk_comunicacion",
+    "argumentos", "organizacion", "riscos", "permisos"})
+
+# Apartados e campos da memoria complementaria (art. 18.1.p)
+SECCIONS_MEMORIA: dict[str, tuple[str, ...]] = {
+    "Punto de partida e organización": ("situacion_partida", "metodoloxia", "organizacion"),
+    "DAFO": ("dafo_debilidades", "dafo_ameazas", "dafo_fortalezas", "dafo_oportunidades"),
+    "Mercado": ("mercado", "clientela", "competencia"),
+    "Márketing": ("mk_produto", "mk_prezo", "mk_canles", "mk_comunicacion", "argumentos"),
+    "Riscos e permisos": ("riscos", "permisos"),
+}
+
+ETIQUETAS_MEMORIA: dict[str, str] = {
+    "situacion_partida": "situación de partida",
+    "metodoloxia": "metodoloxía de traballo",
+    "organizacion": "organización e persoas",
+    "dafo_debilidades": "debilidades",
+    "dafo_ameazas": "ameazas",
+    "dafo_fortalezas": "fortalezas",
+    "dafo_oportunidades": "oportunidades",
+    "mercado": "mercado: tamaño e tendencia",
+    "clientela": "clientela",
+    "competencia": "competencia",
+    "mk_produto": "produto ou servizo",
+    "mk_prezo": "prezo",
+    "mk_canles": "canles de venda e distribución",
+    "mk_comunicacion": "comunicación e promoción",
+    "argumentos": "argumentos de venda",
+    "riscos": "riscos e como se reducen",
+    "permisos": "permisos e rexistros necesarios",
+}
+
+
+def puntos(texto: str | None) -> list[str]:
+    """As liñas non baleiras, sen espazos nin guións ou viñetas («-», «*», «•») ao principio."""
+    if not texto:
+        return []
+    resultado = []
+    for lin in texto.splitlines():
+        limpa = lin.lstrip("-*• ").strip()
+        if limpa:
+            resultado.append(limpa)
+    return resultado
+
 
 
 def _plan(session: Session, actor: Usuario, plan_id: int) -> PlanEmpresa:
@@ -229,9 +276,56 @@ def engadir_financiamento(session: Session, actor: Usuario, plan: PlanEmpresa, t
     return fonte
 
 
-def quitar(session: Session, actor: Usuario, plan: PlanEmpresa,
-           elemento: PlanInvestimento | PlanFinanciamento | PlanOferta) -> None:
+def engadir_actividade(session: Session, actor: Usuario, plan: PlanEmpresa,
+                       mes_inicio: int, mes_fin: int, actividade: str,
+                       responsable: str | None = None) -> PlanActividade:
     _plan(session, actor, plan.id)
+    if not (1 <= mes_inicio <= mes_fin <= 12):
+        raise OperacionNonPermitidaError(
+            "Os meses van do 1 ao 12 e o fin non pode ir antes do inicio"
+        )
+    if not (actividade or "").strip():
+        raise OperacionNonPermitidaError("Indica a actividade")
+    act = PlanActividade(
+        plan_id=plan.id,
+        mes_inicio=mes_inicio,
+        mes_fin=mes_fin,
+        actividade=actividade.strip(),
+        responsable=(responsable or "").strip() or None,
+    )
+    plan.actividades.append(act)
+    session.commit()
+    return act
+
+
+def engadir_obxectivo(session: Session, actor: Usuario, plan: PlanEmpresa,
+                      obxectivo: str, indicador: str, meta: str | None = None,
+                      prazo: str | None = None) -> PlanObxectivo:
+    _plan(session, actor, plan.id)
+    if not (obxectivo or "").strip() or not (indicador or "").strip():
+        raise OperacionNonPermitidaError("Indica o obxectivo e como se mide")
+    obx = PlanObxectivo(
+        plan_id=plan.id,
+        obxectivo=obxectivo.strip(),
+        indicador=indicador.strip(),
+        meta=(meta or "").strip() or None,
+        prazo=(prazo or "").strip() or None,
+    )
+    plan.obxectivos.append(obx)
+    session.commit()
+    return obx
+
+
+def quitar(session: Session, actor: Usuario, plan: PlanEmpresa,
+           elemento: (PlanInvestimento | PlanFinanciamento | PlanOferta
+                      | PlanActividade | PlanObxectivo)) -> None:
+    _plan(session, actor, plan.id)
+    if isinstance(elemento, PlanOferta):
+        inv = session.get(PlanInvestimento, elemento.investimento_id)
+        if inv is None or inv.plan_id != plan.id:
+            raise OperacionNonPermitidaError("Ese elemento non é deste plan")
+    elif getattr(elemento, "plan_id", None) != plan.id:
+        raise OperacionNonPermitidaError("Ese elemento non é deste plan")
     session.delete(elemento)
     session.commit()
 
@@ -434,6 +528,19 @@ def faltas_plan(session: Session, actor: Usuario, plan: PlanEmpresa) -> list[str
             if provedor is not None and not provedor.nif:
                 faltas.append(f"o NIF de {nome_completo(provedor)} (en Contactos)")
     return list(dict.fromkeys(faltas))
+
+
+def faltas_memoria(plan: PlanEmpresa) -> list[str]:
+    """Os títulos dos apartados da memoria sen encher. Só informa: non bloquea."""
+    faltas = []
+    for titulo, campos in SECCIONS_MEMORIA.items():
+        if all(not (getattr(plan, c, None) or "").strip() for c in campos):
+            faltas.append(titulo)
+    if not plan.actividades:
+        faltas.append("Calendario de 12 meses")
+    if not plan.obxectivos:
+        faltas.append("Obxectivos e indicadores")
+    return faltas
 
 
 @dataclass(frozen=True)
@@ -708,6 +815,129 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
           [(p.nome, _sixpac(p), p.superficie or "", p.lat or "", p.lon or "")
            for p in session.query(Parcela).filter_by(horta_id=plan.horta_id,
                                                      data_baixa=None).order_by(Parcela.nome)])
+    saida = BytesIO()
+    wb.save(saida)
+    return saida.getvalue()
+
+
+def xerar_memoria(session: Session, actor: Usuario, plan_id: int) -> bytes:
+    """Excel coa memoria complementaria (art. 18.1.p da convocatoria MR701L)."""
+    from io import BytesIO
+
+    from openpyxl import Workbook
+
+    from horta.services.caderno import folla
+
+    plan = _plan(session, actor, plan_id)
+    cab = f"{plan.titulo} · Ano 1: {plan.ano_inicio}"
+    tipoloxia = TIPOLOXIAS.get(plan.tipoloxia or "")
+    texto_tipo = f"{tipoloxia.texto} ({tipoloxia.axuda})" if tipoloxia else "—"
+
+    def _val(t: str | None) -> str:
+        return (t or "").strip() or "—"
+
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    # 1. Proxecto
+    filas_proxecto = [
+        ("Título", _val(plan.titulo)),
+        ("Tipoloxía", texto_tipo),
+        ("1. Descrición", _val(plan.descricion)),
+        ("2. Proceso", _val(plan.proceso)),
+        ("4. Formación", _val(plan.formacion)),
+        (ETIQUETAS_MEMORIA["situacion_partida"].capitalize(), _val(plan.situacion_partida)),
+        (ETIQUETAS_MEMORIA["metodoloxia"].capitalize(), _val(plan.metodoloxia)),
+        (ETIQUETAS_MEMORIA["organizacion"].capitalize(), _val(plan.organizacion)),
+    ]
+    folla(wb, "Proxecto", "Proxecto e organización", cab, ("Apartado", "Texto"), filas_proxecto)
+
+    # 2. DAFO
+    filas_dafo: list[tuple[str, str]] = []
+    for campo in ("dafo_debilidades", "dafo_ameazas", "dafo_fortalezas", "dafo_oportunidades"):
+        tipo = ETIQUETAS_MEMORIA[campo].capitalize()
+        pts = puntos(getattr(plan, campo, None))
+        if pts:
+            for p in pts:
+                filas_dafo.append((tipo, p))
+        else:
+            filas_dafo.append((tipo, "—"))
+    folla(wb, "DAFO", "Análise DAFO", cab, ("Tipo", "Punto"), filas_dafo)
+
+    # 3. Mercado
+    filas_mercado = [
+        (ETIQUETAS_MEMORIA[c].capitalize(), _val(getattr(plan, c, None)))
+        for c in SECCIONS_MEMORIA["Mercado"]
+    ]
+    folla(wb, "Mercado", "Mercado, clientela e competencia", cab, ("Apartado", "Texto"),
+          filas_mercado)
+
+    # 4. Márketing
+    filas_mk: list[tuple[str, str]] = [
+        (ETIQUETAS_MEMORIA["mk_produto"].capitalize(), _val(plan.mk_produto)),
+        (ETIQUETAS_MEMORIA["mk_prezo"].capitalize(), _val(plan.mk_prezo)),
+        (ETIQUETAS_MEMORIA["mk_canles"].capitalize(), _val(plan.mk_canles)),
+        (ETIQUETAS_MEMORIA["mk_comunicacion"].capitalize(), _val(plan.mk_comunicacion)),
+    ]
+    pts_args = puntos(plan.argumentos)
+    if pts_args:
+        for p in pts_args:
+            filas_mk.append((ETIQUETAS_MEMORIA["argumentos"].capitalize(), p))
+    else:
+        filas_mk.append((ETIQUETAS_MEMORIA["argumentos"].capitalize(), "—"))
+    folla(wb, "Márketing", "Plan de márketing", cab, ("Apartado", "Texto"), filas_mk)
+
+    # 5. Calendario
+    filas_cal: list[tuple[Any, ...]] = []
+    if plan.actividades:
+        for act in plan.actividades:
+            meses = ["■" if act.mes_inicio <= m <= act.mes_fin else "" for m in range(1, 13)]
+            filas_cal.append((act.actividade, act.responsable or "—", *meses))
+    else:
+        filas_cal.append(("—", "—", *( "" for _ in range(1, 13) )))
+    folla(wb, "Calendario", "Calendario de actividades (12 meses)", cab,
+          ("Actividade", "Responsable", *(f"Mes {m}" for m in range(1, 13))), filas_cal)
+
+    # 6. Obxectivos
+    filas_obx: list[tuple[str, ...]] = []
+    if plan.obxectivos:
+        for obx in plan.obxectivos:
+            filas_obx.append((obx.obxectivo, obx.indicador, obx.meta or "—", obx.prazo or "—"))
+    else:
+        filas_obx.append(("—", "—", "—", "—"))
+    folla(wb, "Obxectivos", "Obxectivos e indicadores", cab,
+          ("Obxectivo", "Indicador", "Meta", "Prazo"), filas_obx)
+
+    # 7. Riscos e permisos
+    filas_riscos: list[tuple[str, str]] = []
+    pts_riscos = puntos(plan.riscos)
+    if pts_riscos:
+        for p in pts_riscos:
+            filas_riscos.append(("Risco", p))
+    else:
+        filas_riscos.append(("Risco", "—"))
+    pts_permisos = puntos(plan.permisos)
+    if pts_permisos:
+        for p in pts_permisos:
+            filas_riscos.append(("Permiso", p))
+    else:
+        filas_riscos.append(("Permiso", "—"))
+    folla(wb, "Riscos e permisos", "Riscos e permisos", cab, ("Tipo", "Punto"), filas_riscos)
+
+    # 8. Cifras
+    ind = indicadores(plan)
+    filas_cifras: list[tuple[str, Any]] = [
+        ("Investimento sen IVE (€)", ind.investimento),
+        ("Investimento con IVE (€)", ind.investimento_con_iva),
+        ("VAN (€)", ind.van),
+        ("TIR", f"{ind.tir:.2%}" if ind.tir is not None else "—"),
+        ("Pay-back (anos)", ind.payback if ind.payback is not None else "—"),
+    ]
+    for a in conta(plan):
+        filas_cifras.append((f"Vendas ano {a.ano_n} ({a.ano})", a.vendas))
+        filas_cifras.append((f"Beneficio antes de imposto ano {a.ano_n} ({a.ano})", a.beneficio))
+    folla(wb, "Cifras", "Principais cifras e indicadores", cab, ("Concepto", "Valor"), filas_cifras)
+
     saida = BytesIO()
     wb.save(saida)
     return saida.getvalue()
