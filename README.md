@@ -17,7 +17,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Visualización das parcelas sobre cartografía.
 - Xestión de cultivos por parcela: especie, variedade, superficie, datas e sistema de cultivo.
 - Ficha de cada parcela e de cada cultivo co seu historial completo.
-- Estimación da colleita de cada cultivo.
+- Estimación da colleita de cada cultivo, por mostraxe no campo ou directa, comparada co obxectivo e co colleitado.
 
 ### Rexistro da actividade
 - Sementeiras e plantacións, labores, regas, fertilización, tratamentos fitosanitarios, colleitas e toma de mostras.
@@ -36,7 +36,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Recomendacións de asesoramento: a persoa asesora deixa a recomendación e a persoa responsable da explotación aplícaa sen volver a apuntar os datos; o tratamento queda validado pola persoa asesora.
 - Visitas de campo: cada visita reúne as observacións e as recomendacións da persoa técnica e xera un informe para asinar.
 - Panel con todas as explotacións que leva unha persoa técnica ou unha cooperativa, cos avisos de cada unha.
-- Acceso para o persoal de inspección e auditoría limitado á información que lle corresponde.
+- Acceso de só lectura para o persoal de inspección e auditoría, cunha data de fin e co rexistro do que consultou.
 
 ### Fertilización, estercos e purín
 - Rexistro dos abonados coa súa composición e a súa achega de nutrientes.
@@ -62,6 +62,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 - Directorio único de persoas e entidades: equipo de traballo, clientela, empresas provedoras, asesoramento e servizos veterinarios.
 - Xestión económica de gastos, ingresos e custos de man de obra, e seguimento do consumo de enerxía.
 - Arquivo de documentos e certificacións (certificado ecolóxico, GlobalG.A.P., seguros, inspeccións, carnés…), con aviso antes da súa caducidade.
+- Certificacións e selos de calidade: número, entidade certificadora, validez con aviso de caducidade, autoavaliación interna punto a punto e accións correctoras.
 - Acceso multiusuario con permisos de administración, edición ou consulta.
 - Cumprimento do RGPD: aviso legal, política de privacidade, aceptación expresa, descarga dos datos persoais e borrado da conta.
 
@@ -83,7 +84,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 
 - Caderno de explotación (modelo da Xunta de Galicia).
 - Caderno Dixital de Explotación Agrícola (CUE).
-- Caderno de rexistros para a certificación GlobalG.A.P.
+- Informe para a auditoría de cada selo de calidade (ecolóxico do CRAEGA, DOP e IGP, produción integrada, GlobalG.A.P. e outros), cos rexistros do ano e a autoavaliación.
 - Libro de rexistro gandeiro.
 - Rexistro de medicamentos veterinarios.
 - Documento de acompañamento do esterco (anexo VII do Real Decreto 1051/2022).

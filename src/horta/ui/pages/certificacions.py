@@ -384,7 +384,7 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                         ):
                             ui.label("Informe para a auditoría").classes("text-h6")
                             ui.label(
-                                f"Follas de rexistros e autoavaliación de {ano} para {nome_c}."
+                                f"Follas de rexistros e autoavaliación de {ano} para {nome_c.rstrip('.')}."
                             ).classes("text-caption")
                             fmt_selector = selector_formato()
 
