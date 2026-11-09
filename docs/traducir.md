@@ -24,6 +24,9 @@ Para xerar o modelo de tradución inicial (`horta.pot`) a partir de todos os tex
 uv run pybabel extract -F babel.cfg -k _ -k N_ -k ngettext:1,2 -o src/horta/locales/horta.pot .
 ```
 
+`babel.cfg` usa o extractor `horta.extraer_textos`, que tamén colle os `_()` que van dentro
+dunha f-string (o extractor normal de Babel non os ve en Python 3.11).
+
 ## Como crear un novo idioma
 
 1. Inicializar o catálogo para o código de lingua desexado (por exemplo `es` para castelán):
