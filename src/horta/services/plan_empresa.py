@@ -664,6 +664,18 @@ def _euros(valor: float) -> str:
     return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
 
 
+def anos_texto(anos: int | None) -> str:
+    """«1 ano», «3 anos» ou «—»."""
+    if anos is None:
+        return "—"
+    return f"{anos} ano" if anos == 1 else f"{anos} anos"
+
+
+def pct(valor: float, decimais: int = 1) -> str:
+    """Tanto por un como porcentaxe con coma decimal: 0,123 → «12,3 %»."""
+    return f"{valor * 100:.{decimais}f} %".replace(".", ",")
+
+
 @dataclass(frozen=True)
 class MesTesouraria:
     mes: int
@@ -908,14 +920,14 @@ def semaforo(plan: PlanEmpresa) -> list[Sinal]:
     taxa = plan.taxa_desconto or 0.0
     if ind.tir is not None and ind.tir >= taxa + 0.02:
         sinal_tir = Sinal("TIR", "verde",
-                          f"A TIR ({ind.tir:.1%}) supera con folgura a taxa pedida ({taxa:.1%})")
+                          f"A TIR ({pct(ind.tir)}) supera con folgura a taxa pedida ({pct(taxa)})")
     elif ind.tir is not None and ind.tir >= taxa:
         sinal_tir = Sinal("TIR", "amarelo",
-                          f"A TIR ({ind.tir:.1%}) cobre a taxa pedida ({taxa:.1%}), "
+                          f"A TIR ({pct(ind.tir)}) cobre a taxa pedida ({pct(taxa)}), "
                           "con pouca marxe")
     else:
         if ind.tir is not None:
-            msg_tir = f"A TIR ({ind.tir:.1%}) non acada a taxa pedida ({taxa:.1%})"
+            msg_tir = f"A TIR ({pct(ind.tir)}) non acada a taxa pedida ({pct(taxa)})"
         else:
             msg_tir = "A TIR non se pode calcular"
         sinal_tir = Sinal("TIR", "vermello", msg_tir)
@@ -967,6 +979,9 @@ def semaforo(plan: PlanEmpresa) -> list[Sinal]:
             f"Non aguanta unha baixada das vendas do {pct_str} % (VAN negativa)",
         )
 
+    if not ind.subvencionable:
+        # Sen investimento, a TIR e o pay-back non din nada
+        return [sinal_van, sinal_caixa, sinal_pesimista]
     return [sinal_van, sinal_tir, sinal_payback, sinal_caixa, sinal_pesimista]
 
 
@@ -1293,8 +1308,8 @@ def _financiamento(plan: PlanEmpresa, ind: Indicadores) -> list[tuple[str, Any]]
     filas: list[tuple[str, Any]] = []
     for tipo, texto in FONTES.items():
         importe = round(sum(f.importe for f in plan.financiamento if f.tipo == tipo), 2)
-        pct = f" ({importe / total:.1%})" if total else ""
-        filas.append((f"5. {texto} (€)", f"{importe:.2f}{pct}"))
+        porcentaxe = f" ({pct(importe / total)})" if total else ""
+        filas.append((f"5. {texto} (€)", f"{importe:.2f}{porcentaxe}"))
     filas.append(("5. Total investimentos con IVE (€)", ind.investimento_con_iva))
     return filas
 
@@ -1369,7 +1384,7 @@ def xerar_anexos(session: Session, actor: Usuario, plan_id: int) -> bytes:
            ("   creado: outros", plan.uta_outros),
            ("4. Formación do promotor", plan.formacion or ""),
            *_financiamento(plan, ind),
-           ("VAN (€)", ind.van), ("TIR", f"{ind.tir:.2%}" if ind.tir is not None else "—"),
+           ("VAN (€)", ind.van), ("TIR", f"{pct(ind.tir, 2)}" if ind.tir is not None else "—"),
            ("Pay-back (anos)", ind.payback or "—"),
            ("Memoria: situación de partida", plan.situacion_partida or ""),
            ("Memoria: metodoloxía de traballo", plan.metodoloxia or ""),
@@ -1530,13 +1545,49 @@ def xerar_memoria(session: Session, actor: Usuario, plan_id: int) -> bytes:
         ("Investimento sen IVE (€)", ind.investimento),
         ("Investimento con IVE (€)", ind.investimento_con_iva),
         ("VAN (€)", ind.van),
-        ("TIR", f"{ind.tir:.2%}" if ind.tir is not None else "—"),
+        ("TIR", f"{pct(ind.tir, 2)}" if ind.tir is not None else "—"),
         ("Pay-back (anos)", ind.payback if ind.payback is not None else "—"),
     ]
     for a in conta(plan):
         filas_cifras.append((f"Vendas ano {a.ano_n} ({a.ano})", a.vendas))
         filas_cifras.append((f"Beneficio antes de imposto ano {a.ano_n} ({a.ano})", a.beneficio))
     folla(wb, "Cifras", "Principais cifras e indicadores", cab, ("Concepto", "Valor"), filas_cifras)
+
+    # 9. Escenarios
+    esc_lista = escenarios(plan)
+    filas_esc: list[tuple[Any, ...]] = [
+        ("Vendas do ano 1", *(e.vendas_ano1 for e in esc_lista)),
+        ("Beneficio do ano 1", *(e.beneficio_ano1 for e in esc_lista)),
+        ("VAN", *(e.van for e in esc_lista)),
+        ("TIR", *(f"{pct(e.tir)}" if e.tir is not None else "—" for e in esc_lista)),
+        ("Pay-back", *(anos_texto(e.payback) for e in esc_lista)),
+    ]
+    folla(wb, "Escenarios", "Análise de escenarios", cab,
+          ("Concepto", "Pesimista", "Normal", "Optimista"), filas_esc)
+
+    # 10. Media galega
+    filas_media: list[tuple[Any, ...]] = []
+    if plan.ote_recan:
+        for c in comparar_recan(session, actor, plan):
+            nota = c.nota or ""
+            if c.plan is None and c.indicador in (
+                "Produción por hectárea",
+                "Produción por UTA",
+                "Resultado por UTA",
+            ):
+                nota = "Pon a superficie das parcelas ou as UTA para comparar"
+            filas_media.append((
+                c.indicador,
+                c.plan if c.plan is not None else "—",
+                c.media if c.media is not None else "—",
+                c.unidade,
+                nota,
+            ))
+        filas_media.append((f"Fonte: {fonte_recan()}", "", "", "", ""))
+    else:
+        filas_media.append(("Sen tipo de explotación escollido", "", "", "", ""))
+    folla(wb, "Media galega", "Comparación coa media galega (RECAN)", cab,
+          ("Indicador", "Plan", "Media RECAN", "Unidade", "Nota"), filas_media)
 
     saida = BytesIO()
     wb.save(saida)

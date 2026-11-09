@@ -29,12 +29,16 @@ from horta.services.plan_empresa import (
     PARTIDAS,
     SECCIONS_MEMORIA,
     TIPOLOXIAS,
+    Comparacion,
     Documento,
     MarxeVenda,
     MesTesouraria,
+    Revision,
     actualizar_plan,
     ano_de_referencia,
+    anos_texto,
     avisos_plan,
+    comparar_recan,
     conta,
     crear_plan,
     documentos_plan,
@@ -44,17 +48,23 @@ from horta.services.plan_empresa import (
     engadir_obxectivo,
     engadir_oferta,
     engadir_venda,
+    escenarios,
     faltas_memoria,
     faltas_plan,
+    fonte_recan,
     gardar_anos,
     indicadores,
     listar_plans,
     marxes_por_venda,
     meses_de,
     metricas,
+    orientacions_recan,
+    pct,
     propor_vendas_do_real,
     quitar,
+    revision,
     seguimento,
+    semaforo,
     tesouraria,
     vendas_do_ano,
     xerar_anexos,
@@ -85,6 +95,51 @@ def _e(valor: float) -> str:
 def _n(valor: float) -> str:
     """Número curto con coma decimal (1,5; 62,5)."""
     return f"{valor:g}".replace(".", ",")
+
+
+def cor_do_sinal(cor: str) -> str:
+    """Mapea a cor do semáforo («verde», «amarelo», «vermello») á cor de NiceGUI."""
+    cores = {
+        "verde": "positive",
+        "amarelo": "warning",
+        "vermello": "negative",
+    }
+    return cores.get(cor, "grey")
+
+
+def texto_tir(tir: float | None) -> str:
+    """TIR en % cun decimal ou «—»."""
+    return pct(tir) if tir is not None else "—"
+
+
+def texto_payback(payback: int | None) -> str:
+    """Pay-back en «N anos» ou «—»."""
+    return anos_texto(payback)
+
+
+def texto_valor_unidade(valor: float | None, unidade: str) -> str:
+    """Formata un valor coa súa unidade ou «—» se non ten valor."""
+    if valor is None:
+        return "—"
+    if unidade == "%":
+        return f"{valor:.1f} %".replace(".", ",")
+    return f"{valor:,.0f} {unidade}".replace(",", " ")
+
+
+def texto_comparacion(c: Comparacion) -> str:
+    """Liña de comparación coa media galega."""
+    plan_txt = texto_valor_unidade(c.plan, c.unidade)
+    media_txt = texto_valor_unidade(c.media, c.unidade)
+    return f"{c.indicador}: o teu plan {plan_txt} · media galega {media_txt}"
+
+
+def nota_comparacion(c: Comparacion) -> str | None:
+    """Nota explicativa da comparación ou aviso se falta superficie ou UTA."""
+    if c.plan is None and c.indicador == "Produción por hectárea":
+        return "Pon a superficie das parcelas para comparar"
+    if c.plan is None and c.indicador in ("Produción por UTA", "Resultado por UTA"):
+        return "Pon as UTA mantidas ou creadas (Datos) para comparar"
+    return c.nota
 
 
 def texto_venda(v: PlanVenda) -> str:
@@ -188,6 +243,8 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
         segue = {p.id: seguimento(session, actor, p) for p in plans}
         faltas = {p.id: faltas_plan(session, actor, p) for p in plans}
         docs = {p.id: documentos_plan(session, actor, p) for p in plans}
+        revs = {p.id: revision(session, actor, p) for p in plans}
+        comps = {p.id: comparar_recan(session, actor, p) for p in plans}
         provedores = con_papel(session, horta_id, "provedor")
         nomes = {p.id: nome_completo(p) for p in
                  session.query(Persoa).filter_by(horta_id=horta_id)}
@@ -207,7 +264,8 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
         with ui.expansion(f"{plan.titulo} · ano 1: {plan.ano_inicio}", icon="business_center"
                           ).classes("w-full tarxeta q-mt-md"):
             _plan(plan, segue[plan.id], faltas[plan.id], docs[plan.id],
-                  {p.id: nome_completo(p) for p in provedores}, nomes)
+                  {p.id: nome_completo(p) for p in provedores}, nomes,
+                  revs[plan.id], comps[plan.id])
 
     with ui.expansion(f"Métricas da explotación en {ano_real}", icon="insights").classes(
             "w-full tarxeta q-mt-md"):
@@ -225,7 +283,8 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
 
 
 def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Documento],
-          provedores: dict[int, str], nomes: dict[int, str]) -> None:
+          provedores: dict[int, str], nomes: dict[int, str],
+          rev: Revision | None = None, comps: list[Comparacion] | None = None) -> None:
     ind = indicadores(plan)
     if faltas:
         ui.label("Para presentalo falta: " + "; ".join(faltas) + ".").classes(
@@ -235,8 +294,28 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
     with ui.row().classes("gap-6"):
         ui.label(f"Investimento: {_e(ind.investimento)} (con IVE {_e(ind.investimento_con_iva)})")
         ui.label(f"VAN: {_e(ind.van)}")
-        ui.label(f"TIR: {ind.tir:.1%}" if ind.tir is not None else "TIR: —")
-        ui.label(f"Pay-back: {ind.payback} anos" if ind.payback else "Pay-back: —")
+        ui.label(f"TIR: {texto_tir(ind.tir)}")
+        ui.label(f"Pay-back: {texto_payback(ind.payback)}")
+
+    ui.label("Como vai o plan").classes("text-subtitle1 text-weight-bold q-mt-md")
+    for s in semaforo(plan):
+        with ui.row().classes("items-center gap-2"):
+            ui.icon("circle", color=cor_do_sinal(s.cor))
+            ui.label(f"{s.nome}: {s.texto}")
+
+    with ui.expansion("Que se pode afirmar e que falta probar").classes("w-full"):
+        if rev and rev.afirmable:
+            ui.label("Pódese afirmar").classes("text-weight-bold")
+            for texto in rev.afirmable:
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("check", color="positive")
+                    ui.label(texto)
+        if rev and rev.falta_probar:
+            ui.label("Falta probar").classes("text-weight-bold")
+            for texto in rev.falta_probar:
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("help_outline", color="warning")
+                    ui.label(texto)
 
     ui.label("Datos (Anexo III)").classes("text-subtitle1 text-weight-bold q-mt-md")
     tipoloxia = ui.select({k: t.texto for k, t in TIPOLOXIAS.items()}, label="Tipoloxía",
@@ -435,6 +514,79 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
 
     ui.button("Gardar a conta", icon="check", on_click=lambda: _accion(gardar_conta)).props(
         "outline")
+
+    ui.label("Escenarios").classes("text-subtitle1 text-weight-bold q-mt-md")
+    with ui.row().classes("items-end gap-2"):
+        esc_pct = ui.input(
+            "Variación das vendas nos escenarios (%)",
+            value=f"{plan.escenario_pct:g}" if plan.escenario_pct is not None else "20",
+        ).classes("w-64")
+        ui.button(
+            "Gardar",
+            icon="check",
+            on_click=lambda: _accion(
+                lambda s, a: actualizar_plan(
+                    s, a, s.get(PlanEmpresa, plan.id),
+                    escenario_pct=parsear_decimal(esc_pct.value),
+                )
+            ),
+        ).props("outline")
+
+    esc_lista = escenarios(plan)
+    with ui.grid(columns=4).classes("w-full gap-1 items-center"):
+        for texto in ("", "Pesimista", "Normal", "Optimista"):
+            ui.label(texto).classes("text-weight-bold text-caption")
+
+        ui.label("Vendas do ano 1")
+        for e in esc_lista:
+            ui.label(_e(e.vendas_ano1))
+
+        ui.label("Beneficio do ano 1")
+        for e in esc_lista:
+            ui.label(_e(e.beneficio_ano1))
+
+        ui.label("VAN")
+        for e in esc_lista:
+            ui.label(_e(e.van))
+
+        ui.label("TIR")
+        for e in esc_lista:
+            ui.label(texto_tir(e.tir))
+
+        ui.label("Pay-back")
+        for e in esc_lista:
+            ui.label(texto_payback(e.payback))
+
+    ui.label("Os custos quedan iguais en todos os escenarios.").classes(
+        "texto-suave text-caption"
+    )
+
+    ui.label("Comparación coa media galega").classes("text-subtitle1 text-weight-bold q-mt-md")
+    with ui.row().classes("items-end gap-2"):
+        ote = ui.select(
+            orientacions_recan(),
+            label="Tipo de explotación (RECAN)",
+            value=plan.ote_recan,
+            clearable=True,
+        ).classes("w-72")
+        ui.button(
+            "Gardar",
+            icon="check",
+            on_click=lambda: _accion(
+                lambda s, a: actualizar_plan(
+                    s, a, s.get(PlanEmpresa, plan.id), ote_recan=ote.value or None
+                )
+            ),
+        ).props("outline")
+
+    if comps:
+        for comp in comps:
+            ui.label(texto_comparacion(comp))
+            nota = nota_comparacion(comp)
+            if nota:
+                ui.label(nota).classes("texto-suave text-caption")
+
+    ui.label(f"Fonte: {fonte_recan()}").classes("texto-suave text-caption")
 
     ui.label("Tesouraría do ano 1").classes("text-subtitle1 text-weight-bold q-mt-md")
     meses_tes = tesouraria(plan)

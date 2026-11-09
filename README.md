@@ -46,7 +46,7 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 ### Sensores e internet das cousas
 - Conexión de sensores de campo e de instalacións: humidade do chan, temperatura e humidade do aire, choiva, mollado de folla, contadores de auga, nivel de depósitos e de fosas de purín, e temperatura de cámaras e almacéns.
 - Recepción das lecturas por internet desde dispositivos propios (ESP32, Arduino), redes LoRaWAN, MQTT ou estacións meteorolóxicas comerciais, sen depender dun fabricante concreto.
-- Gráficas en tempo real e avisos configurables: humidade do chan baixa, risco de xeada, nivel da fosa ou temperatura fóra de rango.
+- Gráficas que se actualizan ao momento de chegar cada lectura e avisos configurables: humidade do chan baixa, risco de xeada, nivel da fosa ou temperatura fóra de rango.
 - Uso dos datos noutras partes da aplicación: confirmar as necesidades de rega coa humidade real do chan, propor o rexistro dunha rega a partir do contador de auga e acompañar a trazabilidade dos lotes coa temperatura de conservación.
 
 ### Gandaría
@@ -73,7 +73,12 @@ Diríxese tanto a explotacións profesionais suxeitas a obrigas de rexistro como
 ### Plan de empresa
 - Elaboración do plan de empresa para as axudas ao desenvolvemento rural (programa Leader de AGADER, Anexos III e V) e para a incorporación de persoas agricultoras.
 - Proposta da conta de resultados a cinco anos a partir dos datos reais da explotación: produción, vendas, gastos e horas de traballo.
-- Investimentos, ofertas, amortizacións e financiamento.
+- Vendas en detalle por produto e canle de venda, con crecemento anual, custo por unidade e marxe de cada produto.
+- Investimentos, ofertas, amortizacións e financiamento, con VAN, TIR e período de recuperación.
+- Tesouraría mes a mes do primeiro ano, con aviso cando falta diñeiro.
+- Escenarios pesimista, normal e optimista, sinais de viabilidade e unha revisión do que se pode afirmar e do que falta probar.
+- Comparación coa media das explotacións galegas do mesmo tipo segundo a Rede Contable Agraria Nacional (RECAN) do Ministerio de Agricultura.
+- Memoria completa: DAFO, mercado, márketing, organización, riscos e permisos, calendario de doce meses e obxectivos con indicadores.
 - Seguimento do previsto fronte ao real durante os anos de compromiso da axuda.
 
 ### Uso no campo e idiomas

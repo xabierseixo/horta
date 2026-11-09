@@ -205,6 +205,8 @@ def test_xerar_memoria_excel(session):
         "Obxectivos",
         "Riscos e permisos",
         "Cifras",
+        "Escenarios",
+        "Media galega",
     ]
 
     # DAFO ten unha fila por punto
