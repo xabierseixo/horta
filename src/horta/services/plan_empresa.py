@@ -28,6 +28,7 @@ from horta.models.plan_empresa import (
     PlanInvestimento,
     PlanObxectivo,
     PlanOferta,
+    PlanVenda,
 )
 from horta.models.usuario import Usuario
 from horta.services.cartos import Resumo, horas_dos_traballos, resumo_ano
@@ -205,12 +206,18 @@ def gardar_anos(session: Session, actor: Usuario, plan: PlanEmpresa,
                 valores: dict[int, tuple[float, float, float, float]]) -> None:
     """ano_n → (vendas, custos variables, custos fixos, ingresos financeiros)."""
     _plan(session, actor, plan.id)
+    hai_detalle = bool(plan.vendas_detalle)
+    hai_custo = hai_detalle and any(v.custo_unitario is not None for v in plan.vendas_detalle)
     for ano in plan.anos:
         if ano.ano_n in valores:
             vendas, variables, fixos, financeiros = valores[ano.ano_n]
             if min(vendas, variables, fixos, financeiros) < 0:
                 raise OperacionNonPermitidaError("Os importes non poden ser negativos")
-            ano.vendas, ano.custos_variables, ano.custos_fixos = vendas, variables, fixos
+            if not hai_detalle:
+                ano.vendas = vendas
+            if not hai_custo:
+                ano.custos_variables = variables
+            ano.custos_fixos = fixos
             ano.ingresos_financeiros = financeiros
     session.commit()
 
@@ -316,9 +323,130 @@ def engadir_obxectivo(session: Session, actor: Usuario, plan: PlanEmpresa,
     return obx
 
 
+def meses_de(texto: str) -> list[int]:
+    """Os números 1–12 do texto separado por comas, sen repetir e ordenados; se non queda
+    ningún, os 12."""
+    numeros: set[int] = set()
+    for parte in (texto or "").split(","):
+        parte = parte.strip()
+        if parte.isdigit():
+            n = int(parte)
+            if 1 <= n <= 12:
+                numeros.add(n)
+    return sorted(numeros) if numeros else list(range(1, 13))
+
+
+def engadir_venda(
+    session: Session,
+    actor: Usuario,
+    plan: PlanEmpresa,
+    produto: str,
+    unidade: str,
+    canle: str,
+    cantidade: float,
+    prezo: float,
+    custo_unitario: float | None = None,
+    crece_cantidade_pct: float = 0,
+    crece_prezo_pct: float = 0,
+    meses: list[int] | str | None = None,
+) -> PlanVenda:
+    _plan(session, actor, plan.id)
+    if not (produto or "").strip() or not (unidade or "").strip():
+        raise OperacionNonPermitidaError("Indica o produto e a unidade")
+    if canle not in CANLES:
+        raise OperacionNonPermitidaError("Escolle a canle")
+    if cantidade <= 0 or prezo <= 0:
+        raise OperacionNonPermitidaError("A cantidade e o prezo teñen que ser maiores que 0")
+    if custo_unitario is not None and custo_unitario < 0:
+        raise OperacionNonPermitidaError("O custo unitario non pode ser negativo")
+    if crece_cantidade_pct < -100 or crece_prezo_pct < -100:
+        raise OperacionNonPermitidaError("O crecemento non pode ser menor que -100 %")
+    if meses is None:
+        meses_str = ",".join(str(m) for m in meses_de(""))
+    elif isinstance(meses, str):
+        meses_str = ",".join(str(m) for m in meses_de(meses))
+    else:
+        meses_str = ",".join(str(m) for m in meses_de(",".join(str(x) for x in meses)))
+    venda = PlanVenda(
+        plan_id=plan.id,
+        produto=produto.strip(),
+        unidade=unidade.strip(),
+        canle=canle,
+        cantidade=cantidade,
+        prezo=prezo,
+        custo_unitario=custo_unitario,
+        crece_cantidade_pct=crece_cantidade_pct,
+        crece_prezo_pct=crece_prezo_pct,
+        meses=meses_str,
+    )
+    plan.vendas_detalle.append(venda)
+    session.commit()
+    return venda
+
+
+def propor_vendas_do_real(
+    session: Session, actor: Usuario, plan: PlanEmpresa, ano: int
+) -> int:
+    """Crea vendas en detalle baseadas nas saídas de venda do ano real."""
+    _plan(session, actor, plan.id)
+    if plan.vendas_detalle:
+        raise OperacionNonPermitidaError("O plan xa ten vendas en detalle")
+    desde, ata = date(ano, 1, 1), date(ano, 12, 31)
+    agrupadas: dict[tuple[str, str, str], dict[str, Any]] = defaultdict(
+        lambda: {"cantidade": 0.0, "importe": 0.0, "meses": set()}
+    )
+    for sa, lote in (
+        session.query(LoteSaida, Lote)
+        .join(Lote, Lote.id == LoteSaida.lote_id)
+        .filter(
+            LoteSaida.horta_id == plan.horta_id,
+            LoteSaida.baixa.is_(False),
+            LoteSaida.tipo == "venda",
+            LoteSaida.importe.is_not(None),
+            LoteSaida.data_fin >= desde,
+            LoteSaida.data_fin <= ata,
+        )
+    ):
+        canle = sa.canle if sa.canle in CANLES else "explotacion"
+        c = converter(sa.cantidade, sa.unidade, lote.unidade)
+        cant = c if c is not None else sa.cantidade
+        clave = (lote.produto, lote.unidade, canle)
+        agrupadas[clave]["cantidade"] += cant
+        agrupadas[clave]["importe"] += sa.importe or 0.0
+        if sa.data_fin:
+            agrupadas[clave]["meses"].add(sa.data_fin.month)
+
+    creadas = 0
+    for (produto, unidade, canle), datos in sorted(agrupadas.items(), key=lambda x: x[0]):
+        cantidade = round(datos["cantidade"], 2)
+        if cantidade <= 0:
+            continue
+        prezo = round(datos["importe"] / cantidade, 2)
+        meses_lista = sorted(datos["meses"]) if datos["meses"] else list(range(1, 13))
+        meses_str = ",".join(str(m) for m in meses_lista)
+        venda = PlanVenda(
+            plan_id=plan.id,
+            produto=produto,
+            unidade=unidade,
+            canle=canle,
+            cantidade=cantidade,
+            prezo=prezo,
+            custo_unitario=None,
+            crece_cantidade_pct=0,
+            crece_prezo_pct=0,
+            meses=meses_str,
+        )
+        plan.vendas_detalle.append(venda)
+        creadas += 1
+
+    if creadas:
+        session.commit()
+    return creadas
+
+
 def quitar(session: Session, actor: Usuario, plan: PlanEmpresa,
            elemento: (PlanInvestimento | PlanFinanciamento | PlanOferta
-                      | PlanActividade | PlanObxectivo)) -> None:
+                      | PlanActividade | PlanObxectivo | PlanVenda)) -> None:
     _plan(session, actor, plan.id)
     if isinstance(elemento, PlanOferta):
         inv = session.get(PlanInvestimento, elemento.investimento_id)
@@ -390,6 +518,20 @@ def custo(plan: PlanEmpresa, investimento: PlanInvestimento) -> float:
     return investimento.importe_sen_iva * (1 + investimento.iva_pct / 100)
 
 
+def vendas_do_ano(venda: PlanVenda, ano_n: int) -> tuple[float, float]:
+    """(importe, custo) do ano ano_n (1–5) co crecemento acumulado."""
+    potencia = ano_n - 1
+    cantidade = venda.cantidade * ((1 + (venda.crece_cantidade_pct or 0) / 100) ** potencia)
+    prezo = venda.prezo * ((1 + (venda.crece_prezo_pct or 0) / 100) ** potencia)
+    importe = round(cantidade * prezo, 2)
+    custo = (
+        round(cantidade * venda.custo_unitario, 2)
+        if venda.custo_unitario is not None
+        else 0.0
+    )
+    return importe, custo
+
+
 def conta(plan: PlanEmpresa) -> list[AnoConta]:
     amortizacion = sum(custo(plan, i) / i.vida_util_anos
                        for i in plan.investimentos if i.vida_util_anos)
@@ -398,15 +540,54 @@ def conta(plan: PlanEmpresa) -> list[AnoConta]:
         for n, xuro in enumerate(xuros(fonte), start=1):
             xuros_ano[n] += xuro
     filas = []
+    hai_detalle = bool(plan.vendas_detalle)
+    hai_custo = hai_detalle and any(v.custo_unitario is not None for v in plan.vendas_detalle)
     for ano in sorted(plan.anos, key=lambda a: a.ano_n):
+        if hai_detalle:
+            cifras = [vendas_do_ano(v, ano.ano_n) for v in plan.vendas_detalle]
+            vendas = round(sum(c[0] for c in cifras), 2)
+            variables = round(sum(c[1] for c in cifras), 2) if hai_custo else ano.custos_variables
+        else:
+            vendas = ano.vendas
+            variables = ano.custos_variables
         d = round(amortizacion, 2)
-        e = round(ano.vendas - (ano.custos_variables + ano.custos_fixos + d), 2)
+        e = round(vendas - (variables + ano.custos_fixos + d), 2)
         f = round(ano.ingresos_financeiros - xuros_ano.get(ano.ano_n, 0), 2)
         g = round(e + f, 2)
-        filas.append(AnoConta(ano.ano_n, plan.ano_inicio + ano.ano_n - 1, ano.vendas,
-                              ano.custos_variables, ano.custos_fixos, d, e, f, g,
+        filas.append(AnoConta(ano.ano_n, plan.ano_inicio + ano.ano_n - 1, vendas,
+                              variables, ano.custos_fixos, d, e, f, g,
                               round(g + d, 2)))
     return filas
+
+
+@dataclass(frozen=True)
+class MarxeVenda:
+    produto: str
+    canle: str
+    importe: float
+    custo: float
+    marxe: float
+    marxe_pct: float | None
+
+
+def marxes_por_venda(plan: PlanEmpresa) -> list[MarxeVenda]:
+    """Marxes do ano 1 por venda en detalle, ordenadas de maior a menor marxe."""
+    resultado = []
+    for v in plan.vendas_detalle:
+        importe, custo = vendas_do_ano(v, 1)
+        marxe = round(importe - custo, 2)
+        marxe_pct = round(100 * marxe / importe, 2) if importe else None
+        resultado.append(
+            MarxeVenda(
+                produto=v.produto,
+                canle=CANLES.get(v.canle, v.canle),
+                importe=importe,
+                custo=custo,
+                marxe=marxe,
+                marxe_pct=marxe_pct,
+            )
+        )
+    return sorted(resultado, key=lambda m: m.marxe, reverse=True)
 
 
 def _van(taxa: float, fluxos: list[float]) -> float:
@@ -451,6 +632,87 @@ def _euros(valor: float) -> str:
     return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
 
 
+@dataclass(frozen=True)
+class MesTesouraria:
+    mes: int
+    cobros: float
+    pagos: float
+    saldo: float
+
+
+def tesouraria(plan: PlanEmpresa) -> list[MesTesouraria]:
+    """Tesouraría mes a mes do primeiro ano do plan."""
+    filas_conta = conta(plan)
+    if not filas_conta:
+        return []
+    ano1 = filas_conta[0]
+
+    vendas_mes: dict[int, float] = {m: 0.0 for m in range(1, 13)}
+    if plan.vendas_detalle:
+        for v in plan.vendas_detalle:
+            importe, _ = vendas_do_ano(v, 1)
+            meses = meses_de(v.meses)
+            if meses:
+                parte = importe / len(meses)
+                for m in meses:
+                    vendas_mes[m] += parte
+    else:
+        for m in range(1, 13):
+            vendas_mes[m] = ano1.vendas / 12
+
+    fin_mes1 = sum(f.importe for f in plan.financiamento if f.tipo != "subvencion")
+    subvencions_mes12 = sum(f.importe for f in plan.financiamento if f.tipo == "subvencion")
+
+    investimento_con_iva = sum(
+        i.importe_sen_iva * (1 + i.iva_pct / 100) for i in plan.investimentos
+    )
+
+    total_vendas_ano1 = sum(vendas_mes.values())
+    variables_mes: dict[int, float] = {}
+    for m in range(1, 13):
+        if total_vendas_ano1 > 0:
+            variables_mes[m] = ano1.variables * (vendas_mes[m] / total_vendas_ano1)
+        else:
+            variables_mes[m] = ano1.variables / 12
+
+    fixos_mes = ano1.fixos / 12
+
+    total_cota_anual = 0.0
+    for f in plan.financiamento:
+        if f.tipo == "prestamo" and f.anos:
+            i, n, pendente = (f.xuro_pct or 0) / 100, f.anos, f.importe
+            cota = pendente / n if i == 0 else pendente * i / (1 - (1 + i) ** -n)
+            total_cota_anual += cota
+    cota_mes = total_cota_anual / 12
+
+    saldo_acumulado = 0.0
+    meses_tesouraria: list[MesTesouraria] = []
+    for m in range(1, 13):
+        cobros_m = vendas_mes[m]
+        if m == 1:
+            cobros_m += fin_mes1
+        if m == 12:
+            cobros_m += subvencions_mes12
+
+        pagos_m = variables_mes[m] + fixos_mes + cota_mes
+        if m == 1:
+            pagos_m += investimento_con_iva
+
+        cobros_redondeado = round(cobros_m, 2)
+        pagos_redondeado = round(pagos_m, 2)
+        saldo_acumulado = round(saldo_acumulado + cobros_redondeado - pagos_redondeado, 2)
+
+        meses_tesouraria.append(
+            MesTesouraria(
+                mes=m,
+                cobros=cobros_redondeado,
+                pagos=pagos_redondeado,
+                saldo=saldo_acumulado,
+            )
+        )
+    return meses_tesouraria
+
+
 def avisos_ofertas(investimento: PlanInvestimento) -> list[str]:
     """Art. 20: tres ofertas de provedores distintos e escoller a máis económica."""
     nome, ofertas = f"«{investimento.concepto}»", investimento.ofertas
@@ -488,6 +750,14 @@ def avisos_plan(plan: PlanEmpresa) -> list[str]:
     if (plan.facturacion or 0) > 10_000_000 and (plan.balance or 0) > 10_000_000:
         avisos.append("Coa facturación e o balance por riba de 10 millóns non é pequena "
                       "empresa (art. 4.2.c)")
+    meses_tes = tesouraria(plan)
+    negativos = [t for t in meses_tes if t.saldo < 0]
+    if negativos:
+        mes_min = min(negativos, key=lambda t: t.saldo)
+        avisos.append(
+            f"No mes {mes_min.mes} a caixa queda en {_euros(mes_min.saldo)}: "
+            f"precisas polo menos {_euros(-mes_min.saldo)} máis para empezar"
+        )
     return avisos
 
 

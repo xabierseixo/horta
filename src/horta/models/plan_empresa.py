@@ -89,6 +89,9 @@ class PlanEmpresa(Base):
     obxectivos: Mapped[list[PlanObxectivo]] = relationship(
         cascade="all, delete-orphan", lazy="selectin", order_by="PlanObxectivo.id"
     )
+    vendas_detalle: Mapped[list[PlanVenda]] = relationship(
+        cascade="all, delete-orphan", lazy="selectin", order_by="PlanVenda.id"
+    )
 
 
 class PlanInvestimento(Base):
@@ -175,4 +178,23 @@ class PlanObxectivo(Base):
     indicador: Mapped[str] = mapped_column(String(200))
     meta: Mapped[str | None] = mapped_column(String(100), default=None)
     prazo: Mapped[str | None] = mapped_column(String(60), default=None)
+
+
+class PlanVenda(Base):
+    """Unha venda prevista en detalle por produto e canle."""
+
+    __tablename__ = "plan_venda"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("plan_empresa.id"), index=True)
+    produto: Mapped[str] = mapped_column(String(100))
+    unidade: Mapped[str] = mapped_column(String(20))
+    canle: Mapped[str] = mapped_column(String(20))
+    cantidade: Mapped[float] = mapped_column(Float)
+    prezo: Mapped[float] = mapped_column(Float)
+    custo_unitario: Mapped[float | None] = mapped_column(Float, default=None)
+    crece_cantidade_pct: Mapped[float] = mapped_column(Float, default=0)
+    crece_prezo_pct: Mapped[float] = mapped_column(Float, default=0)
+    meses: Mapped[str] = mapped_column(String(40), default="1,2,3,4,5,6,7,8,9,10,11,12")
+
 
