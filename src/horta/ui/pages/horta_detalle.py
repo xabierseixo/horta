@@ -13,6 +13,7 @@ from horta.services.accesos import rexistrar_acceso
 from horta.services.animais import listar_animais
 from horta.services.catalogos import describir
 from horta.services.catalogos_estado import avisos_catalogos
+from horta.services.certificacions import avisos_certificacions
 from horta.services.cultivos import (
     listar_cultivos,
     nome_cultivo,
@@ -71,6 +72,7 @@ from horta.ui.pages.analises import seccion_analises
 from horta.ui.pages.animais import seccion_animais
 from horta.ui.pages.calendario import seccion_calendario
 from horta.ui.pages.cartos import seccion_cartos
+from horta.ui.pages.certificacions import seccion_certificacions
 from horta.ui.pages.coidados_animais import seccion_coidados
 from horta.ui.pages.colleitas import seccion_colleitas
 from horta.ui.pages.cultivos import seccion_cultivos
@@ -171,6 +173,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             nome_c = nome_cultivo(cultivo_obs) if cultivo_obs else ""
             avisos_de_pragas.append(f"{nome_c} · {praga}: {a_praga.texto}")
         docs_aviso = documentos_con_aviso(session, actor, horta_id)
+        avisos_cert = avisos_certificacions(session, actor, horta_id)
         recs_pendentes = len(recomendacions_pendentes(session, actor, horta_id))
         visitas_proximas = proximas_visitas(session, actor, horta_id)
         horta_nome = horta.nome
@@ -340,6 +343,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(texto_aviso_documento(doc))
                 ui.link("Documentos", url_seccion(horta_id, "documentos"))
+        for aviso_cert in avisos_cert:
+            with ui.row().classes("items-center gap-2 q-mt-sm"):
+                ui.icon("warning").classes("text-warning")
+                ui.label(aviso_cert)
+                ui.link("Certificacións", url_seccion(horta_id, "certificacions"))
         if recs_pendentes:
             with ui.row().classes("items-center gap-2 q-mt-sm"):
                 ui.icon("warning").classes("text-warning")
@@ -472,6 +480,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         seccion_estatisticas(horta_id, pode_editar)
     elif seccion == "plan":
         seccion_plan_empresa(horta_id, pode_editar)
+    elif seccion == "certificacions":
+        seccion_certificacions(horta_id, pode_editar)
 
 
 def _seccion_dashboard(

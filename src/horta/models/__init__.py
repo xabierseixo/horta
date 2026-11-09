@@ -12,6 +12,7 @@ from horta.models.catalogo import (
     VariedadeSiex,
 )
 from horta.models.categoria import Categoria
+from horta.models.certificacion import Certificacion, PuntoAutoavaliacion
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.colleita import Colleita
 from horta.models.comprobacion_catalogo import ComprobacionCatalogo
@@ -150,6 +151,8 @@ __all__ = [
     "Convite",
     "ApunteCartos",
     "Categoria",
+    "Certificacion",
+    "PuntoAutoavaliacion",
     "ParcelaZona",
     "PlanEmpresa",
     "PlanInvestimento",

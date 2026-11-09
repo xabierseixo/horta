@@ -32,6 +32,11 @@ def seccion_informes(horta_id: int, uso_profesional: bool) -> None:
                  "Excel. Sae dos grupos, as entradas e saídas e os coidados.").classes(
             "texto-suave")
         boton_libros_gandeiros(horta_id)
+    with ui.column().classes("tarxeta w-full gap-2 q-pa-md q-mt-md"):
+        ui.label("Certificacións e auditoría").classes("text-subtitle1 text-weight-bold")
+        ui.label("Ficha dos selos de calidade, autoavaliación e informe para a auditoría."
+                 ).classes("texto-suave")
+        ui.link("Ir a Certificacións", url_seccion(horta_id, "certificacions"))
     _sen_quen(horta_id)
     if not uso_profesional:
         ui.label("Explotación non profesional: o caderno non é obrigatorio, pero podes "
