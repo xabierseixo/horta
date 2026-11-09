@@ -82,25 +82,30 @@ def _e(valor: float) -> str:
     return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
 
 
+def _n(valor: float) -> str:
+    """Número curto con coma decimal (1,5; 62,5)."""
+    return f"{valor:g}".replace(".", ",")
+
+
 def texto_venda(v: PlanVenda) -> str:
     """Texto para a liña dunha venda prevista en detalle."""
     canle = CANLES.get(v.canle, v.canle)
     importe, _ = vendas_do_ano(v, 1)
     partes = [
-        f"{v.produto} · {canle}: {v.cantidade:g} {v.unidade} a {v.prezo:g} € "
+        f"{v.produto} · {canle}: {_n(v.cantidade)} {v.unidade} a {_n(v.prezo)} € "
         f"(ano 1: {_e(importe)})"
     ]
     if v.custo_unitario is not None:
-        partes.append(f"custo {v.custo_unitario:g} €/{v.unidade}")
+        partes.append(f"custo {_n(v.custo_unitario)} €/{v.unidade}")
     cq = v.crece_cantidade_pct or 0
     cp = v.crece_prezo_pct or 0
     if cq != 0 or cp != 0:
         if cq != 0 and cp != 0:
-            x = f"{cq:g}" if cq == cp else f"{cq:g} cantidade, {cp:g} prezo"
+            x = f"{_n(cq)}" if cq == cp else f"{_n(cq)} cantidade, {_n(cp)} prezo"
         elif cq != 0:
-            x = f"{cq:g}"
+            x = f"{_n(cq)}"
         else:
-            x = f"{cp:g}"
+            x = f"{_n(cp)}"
         partes.append(f"crece {x} %/ano")
     meses = meses_de(v.meses)
     if meses != list(range(1, 13)):
@@ -110,7 +115,7 @@ def texto_venda(v: PlanVenda) -> str:
 
 def texto_marxe(m: MarxeVenda) -> str:
     """Texto para a liña da marxe por venda no ano 1."""
-    pct = f"{m.marxe_pct:g} %" if m.marxe_pct is not None else "—"
+    pct = f"{_n(m.marxe_pct)} %" if m.marxe_pct is not None else "—"
     return (
         f"{m.produto} · {m.canle}: vende {_e(m.importe)}, custa {_e(m.custo)}, "
         f"deixa {_e(m.marxe)} ({pct})"

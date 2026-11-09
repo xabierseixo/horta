@@ -55,7 +55,7 @@ def test_texto_venda_basica():
         crece_prezo_pct=0,
         meses="1,2,3,4,5,6,7,8,9,10,11,12",
     )
-    assert texto_venda(v) == "Tomate · Na explotación: 100 kg a 2.5 € (ano 1: 250,00 €)"
+    assert texto_venda(v) == "Tomate · Na explotación: 100 kg a 2,5 € (ano 1: 250,00 €)"
 
 
 def test_texto_venda_con_custo_e_meses():
@@ -71,7 +71,7 @@ def test_texto_venda_con_custo_e_meses():
         meses="6,7,8",
     )
     assert texto_venda(v) == (
-        "Fresa · Nun mercado: 200 kg a 4 € (ano 1: 800,00 €) · custo 1.5 €/kg · meses 6, 7, 8"
+        "Fresa · Nun mercado: 200 kg a 4 € (ano 1: 800,00 €) · custo 1,5 €/kg · meses 6, 7, 8"
     )
 
 
@@ -134,7 +134,7 @@ def test_texto_venda_con_crecemento():
         meses="7,8,9",
     )
     assert texto_venda(v4) == (
-        "Pemento · A domicilio: 300 kg a 3 € (ano 1: 900,00 €) · custo 0.8 €/kg · "
+        "Pemento · A domicilio: 300 kg a 3 € (ano 1: 900,00 €) · custo 0,8 €/kg · "
         "crece 10 cantidade, 5 prezo %/ano · meses 7, 8, 9"
     )
 
