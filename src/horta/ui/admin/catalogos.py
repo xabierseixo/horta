@@ -14,6 +14,7 @@ from typing import Any
 from nicegui import events, run, ui
 
 from horta.db import get_session
+from horta.idiomas import _, ngettext
 from horta.models.catalogo import CatalogoVersion
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.catalogos_estado import (
@@ -40,10 +41,12 @@ def _texto_revision(r: Revision) -> str:
         return r.erro
     assert r.informe is not None
     if r.informe.xa_importado:
-        return "Igual ca o que xa ten a app"
+        return _("Igual ca o que xa ten a app")
     if r.informe.sospeitoso:
-        return (f"Ollo: daría de baixa {r.informe.baixas} de {r.informe.existentes} códigos. "
-                "Comproba que é o ficheiro correcto.")
+        return _(
+            "Ollo: daría de baixa {baixas} de {existentes} códigos. "
+            "Comproba que é o ficheiro correcto."
+        ).format(baixas=r.informe.baixas, existentes=r.informe.existentes)
     return ""
 
 
@@ -56,7 +59,7 @@ def admin_catalogos_page() -> None:
             return
         if actor.rol != RolGlobal.ADMIN:
             cabeceira_paxina()
-            ui.label("Non tes acceso a esta páxina").classes("text-negative")
+            ui.label(_("Non tes acceso a esta páxina")).classes("text-negative")
             return
         actor_id = actor.id
         estados = estado_catalogos(session)
@@ -66,7 +69,7 @@ def admin_catalogos_page() -> None:
                       .order_by(CatalogoVersion.data_importacion.desc()).first())
 
     cabeceira_paxina(mostrar_admin=True)
-    ui.label("Catálogos oficiais").classes("text-h6")
+    ui.label(_("Catálogos oficiais")).classes("text-h6")
     for aviso in avisos:
         with ui.row().classes("items-center gap-2"):
             ui.icon("warning").classes("text-warning")
@@ -83,10 +86,14 @@ def admin_catalogos_page() -> None:
             return accion(session, actor_thread)
 
     with ui.card().classes("w-full"):
-        ui.label("Rexistro de fitosanitarios do MAPA").classes("text-subtitle1 text-bold")
-        ui.label("Actualízase só cada semana desde o MAPA.").classes("texto-suave")
-        ui.label(f"Copia do {_data(copia_fito.data_importacion if copia_fito else None)} · "
-                 f"última comprobación: {_data(fito.data if fito else None)}")
+        ui.label(_("Rexistro de fitosanitarios do MAPA")).classes("text-subtitle1 text-bold")
+        ui.label(_("Actualízase só cada semana desde o MAPA.")).classes("texto-suave")
+        ui.label(
+            _("Copia do {copia} · última comprobación: {comprobacion}").format(
+                copia=_data(copia_fito.data_importacion if copia_fito else None),
+                comprobacion=_data(fito.data if fito else None),
+            )
+        )
         if fito is not None and fito.erro:
             ui.label(fito.erro).classes("text-negative text-sm")
 
@@ -100,30 +107,51 @@ def admin_catalogos_page() -> None:
                 return
             if informe is None:  # a app estase a pechar
                 return
-            ui.notify("Sen cambios no rexistro" if informe.xa_importado else
-                      f"Rexistro actualizado: {informe.altas} altas, {informe.baixas} baixas, "
-                      f"{informe.cambios} cambios", type="positive")
+            ui.notify(
+                _("Sen cambios no rexistro")
+                if informe.xa_importado
+                else _(
+                    "Rexistro actualizado: {altas} altas, {baixas} baixas, {cambios} cambios"
+                ).format(
+                    altas=informe.altas,
+                    baixas=informe.baixas,
+                    cambios=informe.cambios,
+                ),
+                type="positive",
+            )
             ui.navigate.reload()
 
-        boton_mapa = ui.button("Comprobar agora", icon="sync", on_click=comprobar_mapa).props(
-            "outline")
+        boton_mapa = ui.button(
+            _("Comprobar agora"), icon="sync", on_click=comprobar_mapa
+        ).props("outline")
 
     with ui.card().classes("w-full"):
-        ui.label("Catálogos do FEGA").classes("text-subtitle1 text-bold")
-        ui.label("O portal do FEGA pide un captcha, así que os ficheiros descárgaos unha persoa "
-                 "no seu navegador e súbeos aquí. Vale tamén o ZIP anual da circular PAC."
-                 ).classes("texto-suave")
-        ui.link("Abrir o portal do FEGA", PORTAL_FEGA, new_tab=True)
-        with ui.expansion("Ficheiros que hai que baixar").classes("w-full"):
-            ui.label(", ".join(f"{codigo}.xlsx" for codigo, _, _ in CATALOGOS_APP.values())
+        ui.label(_("Catálogos do FEGA")).classes("text-subtitle1 text-bold")
+        ui.label(
+            _(
+                "O portal do FEGA pide un captcha, así que os ficheiros descárgaos unha persoa "
+                "no seu navegador e súbeos aquí. Vale tamén o ZIP anual da circular PAC."
+            )
+        ).classes("texto-suave")
+        ui.link(_("Abrir o portal do FEGA"), PORTAL_FEGA, new_tab=True)
+        with ui.expansion(_("Ficheiros que hai que baixar")).classes("w-full"):
+            ui.label(", ".join(f"{codigo}.xlsx" for codigo, _x, _e in CATALOGOS_APP.values())
                      ).classes("text-sm")
-        ui.upload(label="Subir os ficheiros (.xlsx ou .zip)", multiple=True, auto_upload=True,
-                  on_upload=lambda e: gardar(e)).props('accept=".xlsx,.zip"').classes("w-full")
+        ui.upload(
+            label=_("Subir os ficheiros (.xlsx ou .zip)"),
+            multiple=True,
+            auto_upload=True,
+            on_upload=lambda e: gardar(e),
+        ).props('accept=".xlsx,.zip"').classes("w-full")
 
         @ui.refreshable
         def lista_subidos() -> None:
             if subidos:
-                ui.label(f"{len(subidos)} ficheiros subidos").classes("text-sm")
+                ui.label(
+                    ngettext(
+                        "{n} ficheiro subido", "{n} ficheiros subidos", len(subidos)
+                    ).format(n=len(subidos))
+                ).classes("text-sm")
 
         lista_subidos()
 
@@ -137,7 +165,7 @@ def admin_catalogos_page() -> None:
 
         async def revisar_subidos() -> None:
             if not subidos:
-                ui.notify("Sube primeiro os ficheiros", type="warning")
+                ui.notify(_("Sube primeiro os ficheiros"), type="warning")
                 return
             rutas = expandir(subidos, directorio)
             try:
@@ -155,8 +183,12 @@ def admin_catalogos_page() -> None:
             if revisions is None:
                 return
             erros = [r for r in revisions if r.erro and r.catalogo]
-            ui.notify(f"Catálogos actualizados{f' ({len(erros)} con erros)' if erros else ''}",
-                      type="warning" if erros else "positive")
+            ui.notify(
+                _("Catálogos actualizados ({n} con erros)").format(n=len(erros))
+                if erros
+                else _("Catálogos actualizados"),
+                type="warning" if erros else "positive",
+            )
             shutil.rmtree(directorio, ignore_errors=True)
             ui.navigate.reload()
 
@@ -165,12 +197,15 @@ def admin_catalogos_page() -> None:
             revisions: list[Revision] | None = estado["revisions"]
             if revisions is None:
                 return
-            nomes = {clave: nome for clave, (_, _, nome) in CATALOGOS_APP.items()}
+            nomes = {clave: _(nome) for clave, (_x, _e, nome) in CATALOGOS_APP.items()}
             ui.table(
                 columns=[{"name": k, "label": etiqueta, "field": k, "align": "left"}
-                         for k, etiqueta in (("ficheiro", "Ficheiro"), ("catalogo", "Catálogo"),
-                                             ("altas", "Novos"), ("baixas", "De baixa"),
-                                             ("cambios", "Cambiados"), ("aviso", "Aviso"))],
+                         for k, etiqueta in (("ficheiro", _("Ficheiro")),
+                                             ("catalogo", _("Catálogo")),
+                                             ("altas", _("Novos")),
+                                             ("baixas", _("De baixa")),
+                                             ("cambios", _("Cambiados")),
+                                             ("aviso", _("Aviso")))],
                 rows=[{"ficheiro": r.ficheiro, "catalogo": nomes.get(r.catalogo or "", "—"),
                        "altas": r.informe.altas if r.informe else "",
                        "baixas": r.informe.baixas if r.informe else "",
@@ -179,23 +214,25 @@ def admin_catalogos_page() -> None:
                 row_key="ficheiro",
             ).classes("w-full").props(f"flat bordered dense {TEXTOS_TABOA}")
             sospeitosos = [r for r in revisions if r.informe and r.informe.sospeitoso]
-            confirmar = ui.checkbox("Comprobei os ficheiros: as baixas son correctas")
+            confirmar = ui.checkbox(_("Comprobei os ficheiros: as baixas son correctas"))
             confirmar.set_visibility(bool(sospeitosos))
-            boton = ui.button("Aplicar", icon="check", on_click=aplicar)
+            boton = ui.button(_("Aplicar"), icon="check", on_click=aplicar)
             if sospeitosos:
                 boton.bind_enabled_from(confirmar, "value")
 
         with ui.row():
-            ui.button("Revisar", icon="fact_check", on_click=revisar_subidos)
+            ui.button(_("Revisar"), icon="fact_check", on_click=revisar_subidos)
         resultado()
 
     with ui.card().classes("w-full"):
-        ui.label("Estado").classes("text-subtitle1 text-bold")
+        ui.label(_("Estado")).classes("text-subtitle1 text-bold")
         ui.table(
             columns=[{"name": k, "label": etiqueta, "field": k, "align": "left"}
-                     for k, etiqueta in (("nome", "Catálogo"), ("ficheiro", "Ficheiro do FEGA"),
-                                         ("codigos", "Códigos"), ("importado", "Importado"))],
-            rows=[{"nome": e.nome, "ficheiro": e.ficheiro, "codigos": e.codigos,
+                     for k, etiqueta in (("nome", _("Catálogo")),
+                                         ("ficheiro", _("Ficheiro do FEGA")),
+                                         ("codigos", _("Códigos")),
+                                         ("importado", _("Importado")))],
+            rows=[{"nome": _(e.nome), "ficheiro": e.ficheiro, "codigos": e.codigos,
                    "importado": _data(e.importado)} for e in estados],
             row_key="ficheiro",
         ).classes("w-full").props(f"flat bordered dense {TEXTOS_TABOA}")

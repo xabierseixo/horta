@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.tarefa import Tarefa
 from horta.models.tratamento_fito import TIPOS_PROBLEMA
 from horta.models.tratamento_instalacion import TIPOS_INSTALACION, TratamentoInstalacion
@@ -35,12 +36,22 @@ from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
-_ETIQUETA_PROBLEMA = {"enfermidade": "Enfermidade", "praga": "Praga",
-                      "mala_herba": "Mala herba", "regulador": "Regulador / outros"}
-_QUE = {"postcolleita": "Produto vexetal tratado", "local": "Local (tipo e enderezo)",
-        "transporte": "Vehículo (tipo, modelo e matrícula)"}
-_CANTIDADE = {"postcolleita": "Cantidade de produto tratado (t)",
-              "local": "Volume tratado (m³)", "transporte": "Volume tratado (m³)"}
+_ETIQUETA_PROBLEMA = {
+    "enfermidade": N_("Enfermidade"),
+    "praga": N_("Praga"),
+    "mala_herba": N_("Mala herba"),
+    "regulador": N_("Regulador / outros"),
+}
+_QUE = {
+    "postcolleita": N_("Produto vexetal tratado"),
+    "local": N_("Local (tipo e enderezo)"),
+    "transporte": N_("Vehículo (tipo, modelo e matrícula)"),
+}
+_CANTIDADE = {
+    "postcolleita": N_("Cantidade de produto tratado (t)"),
+    "local": N_("Volume tratado (m³)"),
+    "transporte": N_("Volume tratado (m³)"),
+}
 
 
 def seccion_tratamentos_instalacion(horta_id: int, pode_editar: bool) -> None:
@@ -51,21 +62,22 @@ def seccion_tratamentos_instalacion(horta_id: int, pode_editar: bool) -> None:
             return
         tratamentos = listar_tratamentos_instalacion(session, actor, horta_id)
         filas = [{
-            "id": t.id, "data": f"{t.data:%d/%m/%Y}", "tipo": TIPOS_INSTALACION[t.tipo],
+            "id": t.id, "data": f"{t.data:%d/%m/%Y}",
+            "tipo": _(TIPOS_INSTALACION[t.tipo]) if t.tipo in TIPOS_INSTALACION else t.tipo,
             "que": t.obxecto,
             "problema": describir(session, t.problema_tipo, t.problema_codigo)
             if t.problema_tipo and t.problema_codigo else "",
             "produto": t.nome_comercial or t.materia_activa or "",
         } for t in tratamentos]
 
-    ui.label("Postcolleita, almacéns e transporte").classes("text-h6 q-mt-lg")
+    ui.label(_("Postcolleita, almacéns e transporte")).classes("text-h6 q-mt-lg")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("tipo", "Tipo"), ("que", "Que se tratou"),
-            ("problema", "Problema"), ("produto", "Produto"))],
+            ("data", _("Data")), ("tipo", _("Tipo")), ("que", _("Que se tratou")),
+            ("problema", _("Problema")), ("produto", _("Produto")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Ningún tratamento destes" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Ningún tratamento destes")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "data", ["tipo", "que"], accions_tarxeta)
@@ -77,7 +89,7 @@ def seccion_tratamentos_instalacion(horta_id: int, pode_editar: bool) -> None:
 
     def escollido() -> TratamentoInstalacion | None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un tratamento na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un tratamento na táboa"), type="warning")
             return None
         return next(t for t in tratamentos if t.id == taboa.selected[0]["id"])
 
@@ -104,17 +116,17 @@ def seccion_tratamentos_instalacion(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este tratamento? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa este tratamento? Non se borra: consérvase no histórico."), confirmar)
 
-    accions_tarxeta += [("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar postcolleita, almacén ou transporte", icon="add",
+        ui.button(_("Apuntar postcolleita, almacén ou transporte"), icon="add",
                   on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_tratamento_instalacion(
@@ -125,7 +137,7 @@ def dialogo_tratamento_instalacion(
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda _: None
+            return lambda _x: None
         problemas = {t: {v.codigo: v.descricion for v in valores_vixentes(session, t)}
                      for t in TIPOS_PROBLEMA}
         xustificacions = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
@@ -151,45 +163,45 @@ def dialogo_tratamento_instalacion(
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar tratamento").classes("text-h6")
-        tipo = ui.select(TIPOS_INSTALACION, value="postcolleita", label="Que tipo").classes(
-            "w-full")
-        data = campo_data("Data", date.today().isoformat())
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        obxecto = ui.input(_QUE["postcolleita"]).classes("w-full")
-        catastro = ui.input("Referencia catastral do local").classes("w-full")
+        titulo = ui.label(_("Apuntar tratamento")).classes("text-h6")
+        tipo = ui.select({k: _(v) for k, v in TIPOS_INSTALACION.items()},
+                         value="postcolleita", label=_("Que tipo")).classes("w-full")
+        data = campo_data(_("Data"), date.today().isoformat())
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+        obxecto = ui.input(_(_QUE["postcolleita"])).classes("w-full")
+        catastro = ui.input(_("Referencia catastral do local")).classes("w-full")
         catastro.bind_visibility_from(tipo, "value", backward=lambda v: v == "local")
-        instalacion = ui.select(instalacions, label="Instalación", clearable=True).classes(
+        instalacion = ui.select(instalacions, label=_("Instalación"), clearable=True).classes(
             "w-full")
         instalacion.bind_visibility_from(tipo, "value", backward=lambda v: v == "local")
-        produto_vexetal = ui.select(produtos, label="Produto vexetal (lista oficial)",
+        produto_vexetal = ui.select(produtos, label=_("Produto vexetal (lista oficial)"),
                                     with_input=True, clearable=True).classes("w-full")
         produto_vexetal.bind_visibility_from(tipo, "value",
                                              backward=lambda v: v == "postcolleita")
-        cantidade_tratada = ui.input(_CANTIDADE["postcolleita"]).classes("w-full")
+        cantidade_tratada = ui.input(_(_CANTIDADE["postcolleita"])).classes("w-full")
 
         def cambiar_tipo() -> None:
-            obxecto.props(f'label="{_QUE[tipo.value]}"')
-            cantidade_tratada.props(f'label="{_CANTIDADE[tipo.value]}"')
+            obxecto.props(f'label="{_(_QUE[tipo.value])}"')
+            cantidade_tratada.props(f'label="{_(_CANTIDADE[tipo.value])}"')
 
         tipo.on_value_change(cambiar_tipo)
-        tipo_problema = ui.select(_ETIQUETA_PROBLEMA, value="praga",
-                                  label="Tipo de problema").classes("w-full")
-        problema = ui.select(problemas["praga"], label="Problema", with_input=True,
+        tipo_problema = ui.select({k: _(v) for k, v in _ETIQUETA_PROBLEMA.items()}, value="praga",
+                                  label=_("Tipo de problema")).classes("w-full")
+        problema = ui.select(problemas["praga"], label=_("Problema"), with_input=True,
                              clearable=True).classes("w-full")
         tipo_problema.on_value_change(
             lambda e: problema.set_options(problemas[e.value], value=None))
-        xustificacion = ui.select(xustificacions, label="Xustificación",
+        xustificacion = ui.select(xustificacions, label=_("Xustificación"),
                                   clearable=True).classes("w-full")
-        tipo_produto = ui.select(tipos_produto, label="Tipo de produto",
+        tipo_produto = ui.select(tipos_produto, label=_("Tipo de produto"),
                                  clearable=True).classes("w-full")
         produto = ui.select({p.id: p.nome for p in do_almacen},
-                            label="Produto do almacén (para descontalo)", with_input=True,
+                            label=_("Produto do almacén (para descontalo)"), with_input=True,
                             clearable=True).classes("w-full")
-        compra = ui.select({}, label="De que compra", clearable=True).classes("w-full")
+        compra = ui.select({}, label=_("De que compra"), clearable=True).classes("w-full")
         compra.bind_visibility_from(produto, "value", backward=lambda v: v is not None)
-        nome_comercial = ui.input("Nome comercial").classes("w-full")
-        num_rexistro = ui.input("Nº de rexistro").classes("w-full")
+        nome_comercial = ui.input(_("Nome comercial")).classes("w-full")
+        num_rexistro = ui.input(_("Nº de rexistro")).classes("w-full")
         por_id = {p.id: p for p in do_almacen}
 
         def cambiar_produto() -> None:
@@ -200,14 +212,14 @@ def dialogo_tratamento_instalacion(
                 num_rexistro.value = escollido.num_rexistro or num_rexistro.value
 
         produto.on_value_change(cambiar_produto)
-        materia_activa = ui.input("Materia activa").classes("w-full")
+        materia_activa = ui.input(_("Materia activa")).classes("w-full")
         with ui.row().classes("w-full no-wrap"):
-            cantidade = ui.input("Cantidade utilizada").classes("col")
-            unidade = ui.select(unidades, label="Unidade", with_input=True).classes("col")
-        eficacia = ui.select(eficacias, label="Eficacia", clearable=True).classes("w-full")
-        horas = ui.input("Horas de traballo").classes("w-full")
-        maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-        notas = ui.textarea("Notas").classes("w-full")
+            cantidade = ui.input(_("Cantidade utilizada")).classes("col")
+            unidade = ui.select(unidades, label=_("Unidade"), with_input=True).classes("col")
+        eficacia = ui.select(eficacias, label=_("Eficacia"), clearable=True).classes("w-full")
+        horas = ui.input(_("Horas de traballo")).classes("w-full")
+        maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+        notas = ui.textarea(_("Notas")).classes("w-full")
 
         def gardar() -> None:
             with get_session() as session:
@@ -219,7 +231,7 @@ def dialogo_tratamento_instalacion(
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if dia is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     datos = DatosTratamentoInstalacion(
                         tipo=tipo.value, data=dia, obxecto=obxecto.value or "",
                         referencia_catastral=catastro.value if tipo.value == "local" else None,
@@ -253,13 +265,13 @@ def dialogo_tratamento_instalacion(
                 recargar_apuntado("tratamento_instalacion", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(t: TratamentoInstalacion | None, tarefa: Tarefa | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = t.id if t else None
-        titulo.text = "Editar tratamento" if t else "Apuntar tratamento"
+        titulo.text = _("Editar tratamento") if t else _("Apuntar tratamento")
         tipo.value = t.tipo if t else "postcolleita"
         data.value = (t.data if t else date.today()).isoformat()
         persoa.value = (t.persoa_id if t.persoa_id in persoas else None) if t else (

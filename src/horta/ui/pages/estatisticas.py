@@ -7,6 +7,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.services.estatisticas import (
     auga_por_mes,
     cartos_por_mes,
@@ -18,15 +19,31 @@ from horta.ui.numeros import euros, formatar_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
-_MESES = ["xan", "feb", "mar", "abr", "mai", "xuñ", "xul", "ago", "set", "out", "nov", "dec"]
+_MESES = [
+    N_("xan"),
+    N_("feb"),
+    N_("mar"),
+    N_("abr"),
+    N_("mai"),
+    N_("xuñ"),
+    N_("xul"),
+    N_("ago"),
+    N_("set"),
+    N_("out"),
+    N_("nov"),
+    N_("dec"),
+]
 
 
 def _grafica(titulo: str, opcions: dict) -> None:
     with ui.column().classes("tarxeta w-full gap-1 q-pa-md"):
-        ui.label(titulo).classes("text-subtitle1 text-weight-bold")
-        ui.echart({"tooltip": {"trigger": "axis"}, "legend": {"top": 0},
-                   "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
-                   **opcions}).classes("w-full").style("height: 320px")
+        ui.label(_(titulo)).classes("text-subtitle1 text-weight-bold")
+        ui.echart({
+            "tooltip": {"trigger": "axis"},
+            "legend": {"top": 0},
+            "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
+            **opcions,
+        }).classes("w-full").style("height: 320px")
 
 
 def seccion_estatisticas(horta_id: int, pode_editar: bool) -> None:
@@ -46,66 +63,117 @@ def seccion_estatisticas(horta_id: int, pode_editar: bool) -> None:
             enerxia = enerxia_por_mes(session, actor, horta_id, ano)
             cartos = cartos_por_mes(session, actor, horta_id, ano) if pode_editar else None
         anos = [str(a) for a in range(ano - 4, ano + 1)]
+        meses_etiquetas = [_(m) for m in _MESES]
         if producion:
-            _grafica("Produción (kg, ou a súa unidade)", {
-                "xAxis": {"type": "category", "data": anos}, "yAxis": {"type": "value"},
-                "series": [{"name": nome, "type": "bar",
-                            "data": [valores.get(int(a), 0) for a in anos]}
-                           for nome, valores in sorted(producion.items())]})
+            _grafica(
+                _("Produción (kg, ou a súa unidade)"),
+                {
+                    "xAxis": {"type": "category", "data": anos},
+                    "yAxis": {"type": "value"},
+                    "series": [
+                        {
+                            "name": nome,
+                            "type": "bar",
+                            "data": [valores.get(int(a), 0) for a in anos],
+                        }
+                        for nome, valores in sorted(producion.items())
+                    ],
+                },
+            )
         else:
-            ui.label("Aínda non hai colleitas nin produción apuntadas.").classes("texto-suave")
+            ui.label(_("Aínda non hai colleitas nin produción apuntadas.")).classes("texto-suave")
         if clases:
             produtos = sorted(clases)
             todas = sorted({c for v in clases.values() for c in v})
-            _grafica(f"Clasificación e refugo en {ano}", {
-                "xAxis": {"type": "category", "data": produtos}, "yAxis": {"type": "value"},
-                "series": [{"name": c, "type": "bar", "stack": "total",
-                            "data": [clases[p].get(c, 0) for p in produtos]} for c in todas]})
-        _grafica(f"Choiva e rega en {ano}", {
-            "xAxis": {"type": "category", "data": _MESES},
-            "yAxis": [{"type": "value", "name": "l/m²"}, {"type": "value", "name": "m³"}],
-            "series": [{"name": "Choiva (l/m²)", "type": "bar", "data": auga.choiva},
-                       {"name": "Rega (m³)", "type": "line", "yAxisIndex": 1,
-                        "data": auga.rega}]})
+            _grafica(
+                _("Clasificación e refugo en {ano}").format(ano=ano),
+                {
+                    "xAxis": {"type": "category", "data": produtos},
+                    "yAxis": {"type": "value"},
+                    "series": [
+                        {
+                            "name": c,
+                            "type": "bar",
+                            "stack": "total",
+                            "data": [clases[p].get(c, 0) for p in produtos],
+                        }
+                        for c in todas
+                    ],
+                },
+            )
+        _grafica(
+            _("Choiva e rega en {ano}").format(ano=ano),
+            {
+                "xAxis": {"type": "category", "data": meses_etiquetas},
+                "yAxis": [{"type": "value", "name": "l/m²"}, {"type": "value", "name": "m³"}],
+                "series": [
+                    {"name": _("Choiva (l/m²)"), "type": "bar", "data": auga.choiva},
+                    {"name": _("Rega (m³)"), "type": "line", "yAxisIndex": 1, "data": auga.rega},
+                ],
+            },
+        )
         if enerxia.cantidades or any(enerxia.importe):
             with ui.column().classes("tarxeta w-full gap-1 q-pa-md"):
-                ui.label("Enerxía").classes("text-subtitle1 text-weight-bold")
-                ui.echart({"tooltip": {"trigger": "axis"}, "legend": {"top": 0},
-                           "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
-                           "xAxis": {"type": "category", "data": _MESES},
-                           "yAxis": {"type": "value", "name": "€"},
-                           "series": [{"name": "Importe (€)", "type": "bar",
-                                       "data": enerxia.importe}]}).classes(
-                                           "w-full").style("height: 320px")
+                ui.label(_("Enerxía")).classes("text-subtitle1 text-weight-bold")
+                ui.echart({
+                    "tooltip": {"trigger": "axis"},
+                    "legend": {"top": 0},
+                    "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
+                    "xAxis": {"type": "category", "data": meses_etiquetas},
+                    "yAxis": {"type": "value", "name": "€"},
+                    "series": [
+                        {"name": _("Importe (€)"), "type": "bar", "data": enerxia.importe}
+                    ],
+                }).classes("w-full").style("height: 320px")
                 filas = [
-                    {"tipo": tipo,
-                     "total": f"{formatar_decimal(round(sum(meses), 2))} {unidade}"}
+                    {
+                        "tipo": tipo,
+                        "total": f"{formatar_decimal(round(sum(meses), 2))} {unidade}",
+                    }
                     for (tipo, unidade), meses in enerxia.cantidades.items()
                 ]
-                filas.append({"tipo": "Gasto total",
-                              "total": euros(round(sum(enerxia.importe), 2))})
+                filas.append({
+                    "tipo": _("Gasto total"),
+                    "total": euros(round(sum(enerxia.importe), 2)),
+                })
                 ui.table(
                     columns=[
-                        {"name": "tipo", "label": "Tipo", "field": "tipo", "align": "left"},
-                        {"name": "total", "label": "Total do ano", "field": "total",
-                         "align": "right"},
+                        {"name": "tipo", "label": _("Tipo"), "field": "tipo", "align": "left"},
+                        {
+                            "name": "total",
+                            "label": _("Total do ano"),
+                            "field": "total",
+                            "align": "right",
+                        },
                     ],
                     rows=filas,
                 ).classes("w-full taboa").props(f"flat bordered dense {TEXTOS_TABOA}")
         else:
             with ui.column().classes("tarxeta w-full gap-1 q-pa-md"):
-                ui.label("Enerxía").classes("text-subtitle1 text-weight-bold")
+                ui.label(_("Enerxía")).classes("text-subtitle1 text-weight-bold")
                 ui.label(
-                    "Aínda non hai compras de enerxía. Apúntaas en Produtos como un produto de"
-                    " tipo Enerxía."
+                    _(
+                        "Aínda non hai compras de enerxía. "
+                        "Apúntaas en Produtos como un produto de tipo Enerxía."
+                    )
                 ).classes("texto-suave")
         if cartos is not None:
-            _grafica(f"Ingresos e gastos en {ano} (€)", {
-                "xAxis": {"type": "category", "data": _MESES}, "yAxis": {"type": "value"},
-                "series": [{"name": "Ingresos", "type": "bar", "data": cartos[0]},
-                           {"name": "Gastos", "type": "bar", "data": cartos[1]}]})
+            _grafica(
+                _("Ingresos e gastos en {ano} (€)").format(ano=ano),
+                {
+                    "xAxis": {"type": "category", "data": meses_etiquetas},
+                    "yAxis": {"type": "value"},
+                    "series": [
+                        {"name": _("Ingresos"), "type": "bar", "data": cartos[0]},
+                        {"name": _("Gastos"), "type": "bar", "data": cartos[1]},
+                    ],
+                },
+            )
 
-    ui.select(list(range(date.today().year, date.today().year - 10, -1)), label="Ano",
-              value=estado["ano"],
-              on_change=lambda e: (estado.update(ano=e.value), graficas.refresh()))
+    ui.select(
+        list(range(date.today().year, date.today().year - 10, -1)),
+        label=_("Ano"),
+        value=estado["ano"],
+        on_change=lambda e: (estado.update(ano=e.value), graficas.refresh()),
+    )
     graficas()

@@ -8,6 +8,7 @@ from datetime import date, datetime
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.parcela import Parcela
 from horta.models.rega import Rega
 from horta.models.tarefa import Tarefa
@@ -72,7 +73,7 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
                 humidades_cultivos[c_id] = h_info
 
     with ui.column().classes("tarxeta w-full gap-1 q-mb-md"):
-        ui.label("Necesidades de rega (últimos 7 días)").classes(
+        ui.label(_("Necesidades de rega (últimos 7 días)")).classes(
             "text-subtitle1 text-weight-bold"
         )
         precisan_auga = [n for n in necesidades if n.estado == "ok" and n.falta_mm > 0]
@@ -82,9 +83,13 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
                 falta = formatar_decimal(round(n.falta_mm, 1))
                 h_info = humidades_cultivos.get(n.cultivo_id)
                 txt_h = f" · {texto_humidade_chan(h_info[0], h_info[1])}" if h_info else ""
-                ui.label(f"{nome_leira}: faltan uns {falta} l/m²{txt_h}")
+                ui.label(
+                    _("{nome_leira}: faltan uns {falta} l/m²{txt_h}").format(
+                        nome_leira=nome_leira, falta=falta, txt_h=txt_h
+                    )
+                )
         else:
-            ui.label("Os cultivos de regadío teñen auga dabondo estes días")
+            ui.label(_("Os cultivos de regadío teñen auga dabondo estes días"))
 
         outros = [n for n in necesidades if n.estado not in ("ok", "secano")]
         if outros:
@@ -95,12 +100,12 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
                     if n.cultivo_id in cultivos_por_id
                 )
             )
-            ui.label(f"Sen cálculo: {nomes} (mira a ficha de cada cultivo)").classes(
-                "text-caption texto-suave"
-            )
+            ui.label(
+                _("Sen cálculo: {nomes} (mira a ficha de cada cultivo)").format(nomes=nomes)
+            ).classes("text-caption texto-suave")
 
         ui.label(
-            "ET0 de MeteoGalicia e coeficientes FAO-56, o método do SiAR (Ministerio)."
+            _("ET0 de MeteoGalicia e coeficientes FAO-56, o método do SiAR (Ministerio).")
         ).classes("text-caption texto-suave")
 
     filas = [{
@@ -112,11 +117,11 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
     } for r in regas]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("cultivo", "Cultivo"), ("sistema", "Sistema"),
-            ("auga", "Auga"))],
+            ("data", _("Data")), ("cultivo", _("Cultivo")), ("sistema", _("Sistema")),
+            ("auga", _("Auga")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai regas" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai regas")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "data", ["cultivo", "auga"], accions_tarxeta)
@@ -127,17 +132,17 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro unha rega na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha rega na táboa"), type="warning")
             return
         with get_session() as session:
             r = session.get(Rega, taboa.selected[0]["id"])
             if r is not None:
-                _ = r.boas_practicas
+                _x = r.boas_practicas
                 abrir(r)
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro unha rega na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha rega na táboa"), type="warning")
             return
         rega_id = taboa.selected[0]["id"]
 
@@ -153,19 +158,20 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa esta rega? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa esta rega? Non se borra: consérvase no histórico."), confirmar
+        )
 
-    accions_tarxeta += [("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar rega", icon="add", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline").classes(
-            "so-ordenador"
-        )
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline").classes(
-            "so-ordenador"
-        )
+        ui.button(_("Apuntar rega"), icon="add", on_click=lambda: abrir(None))
+        ui.button(
+            _("Editar"), icon="edit", on_click=editar
+        ).props("outline").classes("so-ordenador")
+        ui.button(
+            _("Dar de baixa"), icon="archive", on_click=dar_de_baixa
+        ).props("outline").classes("so-ordenador")
 
 
 def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
@@ -174,7 +180,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda _: None
+            return lambda _x: None
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
@@ -199,53 +205,65 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
 
     with (ui.dialog().props("persistent") as calculadora,
           ui.card().style("width: min(28rem, 94vw)")):
-        ui.label("Calcular os litros").classes("text-h6")
-        ui.label("Con mangueira ou goteo:").classes("text-caption")
+        ui.label(_("Calcular os litros")).classes("text-h6")
+        ui.label(_("Con mangueira ou goteo:")).classes("text-caption")
         with ui.row().classes("w-full no-wrap"):
-            minutos = ui.input("Minutos").classes("col")
-            litros_minuto = ui.input("Litros por minuto").classes("col")
-        ui.label("Ou con regadeira:").classes("text-caption")
+            minutos = ui.input(_("Minutos")).classes("col")
+            litros_minuto = ui.input(_("Litros por minuto")).classes("col")
+        ui.label(_("Ou con regadeira:")).classes("text-caption")
         with ui.row().classes("w-full no-wrap"):
-            regadeiras = ui.input("Regadeiras").classes("col")
-            litros_regadeira = ui.input("Litros de cada unha").classes("col")
+            regadeiras = ui.input(_("Regadeiras")).classes("col")
+            litros_regadeira = ui.input(_("Litros de cada unha")).classes("col")
 
         def usar() -> None:
             litros = litros_estimados(
                 parsear_decimal(minutos.value), parsear_decimal(litros_minuto.value),
                 parsear_decimal(regadeiras.value), parsear_decimal(litros_regadeira.value))
             if litros is None:
-                ui.notify("Enche minutos e litros por minuto, ou regadeiras e litros",
-                          type="warning")
+                ui.notify(
+                    _("Enche minutos e litros por minuto, ou regadeiras e litros"),
+                    type="warning",
+                )
                 return
             cantidade.value, unidade.value = f"{litros:g}", "4"
             calculadora.close()
 
         with ui.row():
-            ui.button("Usar estes litros", icon="check", on_click=usar)
-            ui.button("Cancelar", on_click=calculadora.close).props("flat")
+            ui.button(_("Usar estes litros"), icon="check", on_click=usar)
+            ui.button(_("Cancelar"), on_click=calculadora.close).props("flat")
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar rega").classes("text-h6")
+        titulo = ui.label(_("Apuntar rega")).classes("text-h6")
         if not sistemas:
-            ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
-        cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
-                            multiple=True, value=[]).classes("w-full").props("use-chips")
-        data_inicio = campo_data("Data", date.today().isoformat())
+            ui.label(_(AVISO_SEN_CATALOGOS)).classes("text-warning text-caption")
+        cultivo = ui.select(
+            cultivos,
+            label=_("Leiras (unha ou varias)"),
+            with_input=True,
+            multiple=True,
+            value=[],
+        ).classes("w-full").props("use-chips")
+        data_inicio = campo_data(_("Data"), date.today().isoformat())
         tempo = EtiquetaTempo(horta_id, "rega")
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        superficie = CampoSuperficie("Superficie regada (baleiro = a do cultivo; só cunha leira)")
-        sistema = ui.select(sistemas, label="Como se rega").classes("w-full")
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+        superficie = CampoSuperficie(
+            _("Superficie regada (baleiro = a do cultivo; só cunha leira)")
+        )
+        sistema = ui.select(sistemas, label=_("Como se rega")).classes("w-full")
         with ui.row().classes("w-full no-wrap items-center"):
-            cantidade = ui.input("Auga").classes("col")
-            unidade = ui.select(unidades, value="4", label="Unidade").classes("col")
+            cantidade = ui.input(_("Auga")).classes("col")
+            unidade = ui.select(unidades, value="4", label=_("Unidade")).classes("col")
         with ui.row().classes("gap-2 items-center"):
-            ui.button("Non sei os litros", icon="calculate", on_click=calculadora.open).props(
-                "flat dense")
+            ui.button(
+                _("Non sei os litros"),
+                icon="calculate",
+                on_click=calculadora.open,
+            ).props("flat dense")
             if contadores:
                 def coller_do_contador() -> None:
                     inicio = parsear_data(data_inicio.value)
                     if inicio is None:
-                        ui.notify("Indica a data de inicio", type="warning")
+                        ui.notify(_("Indica a data de inicio"), type="warning")
                         return
                     fin = parsear_data(data_fin.value) or inicio
                     dt_desde = datetime(inicio.year, inicio.month, inicio.day, 0, 0, 0)
@@ -260,7 +278,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                         )
                     if consumo is None:
                         ui.notify(
-                            "Non hai lecturas do contador nese período",
+                            _("Non hai lecturas do contador nese período"),
                             type="warning",
                         )
                         return
@@ -268,20 +286,26 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                     unidade.value = "3"
 
                 ui.button(
-                    "Coller do contador",
+                    _("Coller do contador"),
                     icon="sensors",
                     on_click=coller_do_contador,
                 ).props("flat dense")
-        with ui.expansion("Máis datos").classes("w-full"):
-            data_fin = campo_data("Data de fin (se durou máis dun día)")
-            horas = ui.input("Horas de traballo").classes("w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            orixe = ui.select(orixes, label="De onde vén a auga (baleiro = a da parcela)",
-                              clearable=True).classes("w-full")
-            contador = ui.input("Nº de contador").classes("w-full")
-            boas = ui.select(practicas, multiple=True, label="Boas prácticas").classes(
-                "w-full").props("use-chips")
-            notas = ui.textarea("Notas").classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            data_fin = campo_data(_("Data de fin (se durou máis dun día)"))
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            orixe = ui.select(
+                orixes,
+                label=_("De onde vén a auga (baleiro = a da parcela)"),
+                clearable=True,
+            ).classes("w-full")
+            contador = ui.input(_("Nº de contador")).classes("w-full")
+            boas = ui.select(
+                practicas,
+                multiple=True,
+                label=_("Boas prácticas"),
+            ).classes("w-full").props("use-chips")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def cambiar_leiras() -> None:
             superficie.set_visibility(len(cultivo.value or []) == 1)
@@ -295,7 +319,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
 
         def gardar() -> None:
             if not cultivo.value:
-                ui.notify("Escolle as leiras", type="warning")
+                ui.notify(_("Escolle as leiras"), type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -306,7 +330,7 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                 def accion() -> None:
                     inicio = parsear_data(data_inicio.value)
                     if inicio is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     datos = DatosRega(
                         leiras=leiras_escollidas(cultivo.value, superficie.ha),
                         data_inicio=inicio, data_fin=parsear_data(data_fin.value),
@@ -329,13 +353,13 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                 recargar_apuntado("rega", data_inicio.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(r: Rega | None, tarefa: Tarefa | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = r.id if r else None
-        titulo.text = "Editar rega" if r else "Apuntar rega"
+        titulo.text = _("Editar rega") if r else _("Apuntar rega")
         sistema.value = r.sistema_rega if r else None
         cultivo.value = ([le.cultivo_id for le in r.leiras] if r else
                          [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])

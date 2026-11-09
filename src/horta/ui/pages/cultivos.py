@@ -10,6 +10,7 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.cultivo import Cultivo
 from horta.services.catalogos import buscar_cultivos, listar_variedades, valores_vixentes
 from horta.services.colleitas import listar_colleitas
@@ -39,7 +40,11 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import CampoSuperficie, formatar_superficie
 from horta.ui.taboas import TEXTOS_TABOA
 
-_ESTADOS = {"planificado": "Planificado", "en_curso": "En curso", "rematado": "Rematado"}
+_ESTADOS = {
+    "planificado": N_("Planificado"),
+    "en_curso": N_("En curso"),
+    "rematado": N_("Rematado"),
+}
 _CATALOGOS = {
     "sistema_cultivo": "sistema_cultivo",
     "sistema_explotacion": "sistema_explotacion",
@@ -79,23 +84,23 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
             "parcela": nome_parcela.get(c.parcela_id, ""),
             "superficie": formatar_superficie(c.superficie_ha),
             "inicio": f"{c.data_inicio:%d/%m/%Y}" if c.data_inicio else "",
-            "estado": _ESTADOS[estados[c.id]],
+            "estado": _(_ESTADOS[estados[c.id]]),
             "colleitado": " + ".join(
                 f"{cantidade:g} {unidade}" for unidade, cantidade in colleitado[c.id].items()
             ),
-            "faltan": "" if c.cultivo_siex_codigo and c.superficie_ha else "Faltan datos",
+            "faltan": "" if c.cultivo_siex_codigo and c.superficie_ha else _("Faltan datos"),
         }
         for c in cultivos
     ]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("cultivo", "Cultivo"), ("parcela", "Parcela"), ("superficie", "Superficie"),
-            ("inicio", "Inicio"), ("estado", "Estado"), ("colleitado", "Colleitado"),
+            ("cultivo", _("Cultivo")), ("parcela", _("Parcela")), ("superficie", _("Superficie")),
+            ("inicio", _("Inicio")), ("estado", _("Estado")), ("colleitado", _("Colleitado")),
             ("faltan", ""))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai cultivos" {TEXTOS_TABOA}'
+        f'flat bordered no-data-label="{_("Aínda non hai cultivos")}" {TEXTOS_TABOA}'
     )
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
@@ -108,13 +113,13 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona un cultivo na táboa", type="warning")
+            ui.notify(_("Selecciona un cultivo na táboa"), type="warning")
             return
         abrir(next(x for x in cultivos if x.id == taboa.selected[0]["id"]))
 
     def eliminar() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona un cultivo na táboa", type="warning")
+            ui.notify(_("Selecciona un cultivo na táboa"), type="warning")
             return
         cultivo_id = taboa.selected[0]["id"]
 
@@ -128,16 +133,16 @@ def seccion_cultivos(horta_id: int, pode_editar: bool) -> None:
             if ok:
                 ui.navigate.reload()
 
-        confirmar_eliminacion("Eliminar este cultivo?", confirmar)
+        confirmar_eliminacion(_("Eliminar este cultivo?"), confirmar)
 
-    accions_tarxeta += [("Editar", "edit", editar),
-                        ("Eliminar", "delete", eliminar)]
+    accions_tarxeta += [(_("Editar"), "edit", editar),
+                        (_("Eliminar"), "delete", eliminar)]
 
     with ui.row():
-        ui.button("Novo cultivo", icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Novo cultivo"), icon="add", on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Eliminar", icon="delete", on_click=eliminar).props(
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Eliminar"), icon="delete", on_click=eliminar).props(
                 "outline color=negative")
 
 
@@ -148,7 +153,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda _: None
+            return lambda _x: None
         cultivos = listar_cultivos(session, actor, horta_id)
         parcelas = listar_parcelas(session, actor, horta_id)
         zonas = {p.id: {z.id: z.nome for z in listar_zonas(session, actor, p)}
@@ -167,92 +172,95 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Novo cultivo").classes("text-h6")
-        ui.label("Que e onde").classes("text-subtitle2")
-        parcela = ui.select(nome_parcela, label="Parcela").classes("w-full")
-        zona = ui.select({}, label="Zona da parcela (bancal, sector…)", clearable=True).classes(
+        titulo = ui.label(_("Novo cultivo")).classes("text-h6")
+        ui.label(_("Que e onde")).classes("text-subtitle2")
+        parcela = ui.select(nome_parcela, label=_("Parcela")).classes("w-full")
+        zona = ui.select({}, label=_("Zona da parcela (bancal, sector…)"), clearable=True).classes(
             "w-full")
         cultivo_oficial = ui.select(
-            opcions_cultivo, label="Cultivo (lista oficial)", with_input=True
+            opcions_cultivo, label=_("Cultivo (lista oficial)"), with_input=True
         ).classes("w-full")
-        variedade_oficial = ui.select({}, label="Variedade oficial", with_input=True,
+        variedade_oficial = ui.select({}, label=_("Variedade oficial"), with_input=True,
                                       clearable=True).classes("w-full")
-        variedade_texto = ui.input("Variedade (se non está na lista)").classes("w-full")
-        superficie = CampoSuperficie("Superficie")
-        tipo_inicio = ui.radio({"sementeira": "Sementeira", "plantacion": "Plantación"},
-                               value="sementeira").props("inline")
-        data_inicio = campo_data("Data de sementeira ou plantación")
-        quen = ui.select(persoas, label="Quen sementou ou plantou", clearable=True).classes(
+        variedade_texto = ui.input(_("Variedade (se non está na lista)")).classes("w-full")
+        superficie = CampoSuperficie(_("Superficie"))
+        tipo_inicio = ui.radio(
+            {"sementeira": _("Sementeira"), "plantacion": _("Plantación")},
+            value="sementeira",
+        ).props("inline")
+        data_inicio = campo_data(_("Data de sementeira ou plantación"))
+        quen = ui.select(persoas, label=_("Quen sementou ou plantou"), clearable=True).classes(
             "w-full")
-        data_prevista = campo_data("Colleita prevista")
-        data_fin = campo_data("Data de fin (cando remata)")
+        data_prevista = campo_data(_("Colleita prevista"))
+        data_fin = campo_data(_("Data de fin (cando remata)"))
 
-        ui.label("Como se cultiva").classes("text-subtitle2 q-mt-md")
-        sistema = ui.select(opcions["sistema_cultivo"], label="Sistema de cultivo",
+        ui.label(_("Como se cultiva")).classes("text-subtitle2 q-mt-md")
+        sistema = ui.select(opcions["sistema_cultivo"], label=_("Sistema de cultivo"),
                             with_input=True).classes("w-full")
-        secano = ui.select(opcions["sistema_explotacion"], label="Secano ou regadío",
+        secano = ui.select(opcions["sistema_explotacion"], label=_("Secano ou regadío"),
                            clearable=True).classes("w-full")
-        destino = ui.select(opcions["destino"], label="Destino", with_input=True).classes(
+        destino = ui.select(opcions["destino"], label=_("Destino"), with_input=True).classes(
             "w-full")
-        eco = ui.select(opcions["certificacion_ecoloxica"], label="Ecolóxico").classes("w-full")
-        data_conversion = campo_data("Inicio da conversión a ecolóxico")
-        integrada = ui.checkbox("Produción integrada")
+        eco = ui.select(opcions["certificacion_ecoloxica"], label=_("Ecolóxico")).classes("w-full")
+        data_conversion = campo_data(_("Inicio da conversión a ecolóxico"))
+        integrada = ui.checkbox(_("Produción integrada"))
         cobertura = ui.select(opcions["tipo_cobertura_solo"],
-                              label="Cobertura do chan (cultivos permanentes)",
+                              label=_("Cobertura do chan (cultivos permanentes)"),
                               clearable=True).classes("w-full")
 
-        with ui.expansion("Sementeira ou plantación (caderno)").classes("w-full"):
-            data_fin_sementeira = campo_data("Data de fin da sementeira/plantación")
-            horas_sementeira = ui.input("Horas de traballo").classes("w-full")
-            ui.label("Indica só un destes catro:").classes("text-caption")
-            cantidade_semente = ui.input("Semente usada (kg)").classes("w-full")
-            dose_sementeira = ui.input("Dose de sementeira (kg/ha)").classes("w-full")
-            densidade = ui.input("Plantas por hectárea").classes("w-full")
-            sementeira_directa = ui.checkbox("Sementeira directa")
-            material_tratado = ui.checkbox("A semente ou planta vén tratada")
+        with ui.expansion(_("Sementeira ou plantación (caderno)")).classes("w-full"):
+            data_fin_sementeira = campo_data(_("Data de fin da sementeira/plantación"))
+            horas_sementeira = ui.input(_("Horas de traballo")).classes("w-full")
+            ui.label(_("Indica só un destes catro:")).classes("text-caption")
+            cantidade_semente = ui.input(_("Semente usada (kg)")).classes("w-full")
+            dose_sementeira = ui.input(_("Dose de sementeira (kg/ha)")).classes("w-full")
+            densidade = ui.input(_("Plantas por hectárea")).classes("w-full")
+            sementeira_directa = ui.checkbox(_("Sementeira directa"))
+            material_tratado = ui.checkbox(_("A semente ou planta vén tratada"))
             with ui.column().classes("w-full gap-1").bind_visibility_from(
                     material_tratado, "value"):
-                semente_produto = ui.input("Produto do tratamento (nome comercial ou materia "
-                                           "activa)").classes("w-full")
-                semente_rexistro = ui.input("Nº de rexistro do produto").classes("w-full")
+                semente_produto = ui.input(
+                    _("Produto do tratamento (nome comercial ou materia activa)")
+                ).classes("w-full")
+                semente_rexistro = ui.input(_("Nº de rexistro do produto")).classes("w-full")
 
-        with ui.expansion("Orixe da semente ou planta").classes("w-full"):
-            procedencia = ui.select(opcions["procedencia_material"], label="Procedencia",
+        with ui.expansion(_("Orixe da semente ou planta")).classes("w-full"):
+            procedencia = ui.select(opcions["procedencia_material"], label=_("Procedencia"),
                                     clearable=True).classes("w-full")
             # A compra (provedor, lote, data e pasaporte): apúntase en Produtos → Nova entrada
             compra_semente = ui.select(opcions_entradas(horta_id, tipo="semente"),
-                                       label="De que compra (se se mercou)", clearable=True
+                                       label=_("De que compra (se se mercou)"), clearable=True
                                        ).classes("w-full")
-        with ui.expansion("Árbores e viña").classes("w-full"):
-            num_arbores = ui.input("Número de árbores").classes("w-full")
-            marco = ui.input("Marco de plantación (p.ex. 4x4)").classes("w-full")
-            ano_plantacion = ui.input("Ano de plantación").classes("w-full")
-            castineiros = ui.input("Castiñeiros").classes("w-full")
-            abeleiras = ui.input("Abeleiras").classes("w-full")
-            nogueiras = ui.input("Nogueiras").classes("w-full")
-            amendoeiras = ui.input("Amendoeiras").classes("w-full")
-            outros_casca = ui.input("Outras árbores de froitos de casca").classes("w-full")
-        with ui.expansion("Cogomelos").classes("w-full"):
-            unidades = ui.input("Unidades produtivas (sacos, bandexas...)").classes("w-full")
-            ciclos = ui.input("Ciclos ao ano").classes("w-full")
-            duracion = ui.input("Duración de cada ciclo (días)").classes("w-full")
-        with ui.expansion("Plan de abonado").classes("w-full"):
-            anterior = ui.select(opcions_cultivo, label="Cultivo anterior", with_input=True,
+        with ui.expansion(_("Árbores e viña")).classes("w-full"):
+            num_arbores = ui.input(_("Número de árbores")).classes("w-full")
+            marco = ui.input(_("Marco de plantación (p.ex. 4x4)")).classes("w-full")
+            ano_plantacion = ui.input(_("Ano de plantación")).classes("w-full")
+            castineiros = ui.input(_("Castiñeiros")).classes("w-full")
+            abeleiras = ui.input(_("Abeleiras")).classes("w-full")
+            nogueiras = ui.input(_("Nogueiras")).classes("w-full")
+            amendoeiras = ui.input(_("Amendoeiras")).classes("w-full")
+            outros_casca = ui.input(_("Outras árbores de froitos de casca")).classes("w-full")
+        with ui.expansion(_("Cogomelos")).classes("w-full"):
+            unidades = ui.input(_("Unidades produtivas (sacos, bandexas...)")).classes("w-full")
+            ciclos = ui.input(_("Ciclos ao ano")).classes("w-full")
+            duracion = ui.input(_("Duración de cada ciclo (días)")).classes("w-full")
+        with ui.expansion(_("Plan de abonado")).classes("w-full"):
+            anterior = ui.select(opcions_cultivo, label=_("Cultivo anterior"), with_input=True,
                                  clearable=True).classes("w-full")
-            obxectivo = ui.input("Colleita esperada (kg/ha)").classes("w-full")
-            ui.label("Necesidades do cultivo (kg/ha)").classes("text-caption")
+            obxectivo = ui.input(_("Colleita esperada (kg/ha)")).classes("w-full")
+            ui.label(_("Necesidades do cultivo (kg/ha)")).classes("text-caption")
             with ui.row().classes("w-full no-wrap"):
                 necesidade_n = ui.input("N").classes("col")
                 necesidade_p = ui.input("P₂O₅").classes("col")
                 necesidade_k = ui.input("K₂O").classes("col")
-            plan_data = campo_data("Data do plan")
-            ferramenta = ui.checkbox("Calculouse cunha ferramenta de nutrientes")
-            auga_n = ui.input("Nitróxeno nítrico da auga de rega (mg/l)").classes("w-full")
-            auga_p = ui.input("P₂O₅ da auga de rega (mg/l)").classes("w-full")
-        with ui.expansion("Baixa e notas").classes("w-full"):
-            causa_baixa = ui.select(opcions["causa_baixa"], label="Causa da baixa",
+            plan_data = campo_data(_("Data do plan"))
+            ferramenta = ui.checkbox(_("Calculouse cunha ferramenta de nutrientes"))
+            auga_n = ui.input(_("Nitróxeno nítrico da auga de rega (mg/l)")).classes("w-full")
+            auga_p = ui.input(_("P₂O₅ da auga de rega (mg/l)")).classes("w-full")
+        with ui.expansion(_("Baixa e notas")).classes("w-full"):
+            causa_baixa = ui.select(opcions["causa_baixa"], label=_("Causa da baixa"),
                                     clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def cargar_variedades() -> None:
             variedade_oficial.value = None
@@ -289,11 +297,11 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
 
         def gardar() -> None:
             if not parcela.value or cultivo_oficial.value is None:
-                ui.notify("Parcela e cultivo son obrigatorios", type="negative")
+                ui.notify(_("Parcela e cultivo son obrigatorios"), type="negative")
                 return
             inicio = parsear_data(data_inicio.value)
             if inicio is not None and inicio <= date.today() and quen.value is None:
-                ui.notify("Indica quen sementou ou plantou", type="negative")
+                ui.notify(_("Indica quen sementou ou plantou"), type="negative")
                 return
             datos: dict[str, Any] = dict(
                 especie=opcions_cultivo.get(cultivo_oficial.value, ""),
@@ -381,8 +389,8 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
                     recargar_apuntado("sementeira", data_inicio.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     campos_texto = (variedade_texto, data_inicio, data_prevista, data_fin, data_conversion,
                     num_arbores, marco,
@@ -401,7 +409,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
     def abrir(c: Cultivo | None) -> None:
         if c is None:
             editando["id"] = None
-            titulo.text = "Novo cultivo"
+            titulo.text = _("Novo cultivo")
             parcela.value = cultivo_oficial.value = zona.value = None
             cultivo_oficial.set_enabled(True)
             for campo in campos_texto:
@@ -421,7 +429,7 @@ def dialogo_cultivo(horta_id: int) -> Callable[[Cultivo | None], None]:
             dialogo.open()
             return
         editando["id"] = c.id
-        titulo.text = "Editar cultivo"
+        titulo.text = _("Editar cultivo")
         parcela.value = c.parcela_id
         zonas_da_parcela()
         zona.value = c.zona_id

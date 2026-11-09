@@ -12,6 +12,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from horta.db import Base
+from horta.idiomas import N_
 from horta.models.cartos import ApunteCartos
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
@@ -32,19 +33,19 @@ from horta.services.hortas import comprobar_rol_horta
 _ROLES = {RolHorta.ADMIN, RolHorta.EDITOR}
 
 CATEGORIAS: dict[str, str] = {
-    "seguro": "Seguro",
-    "aluguer": "Aluguer",
-    "auga": "Auga",
-    "luz": "Luz",
-    "combustible": "Combustible",
-    "cota": "Cota (cooperativa, asociación…)",
-    "axuda": "Axuda ou subvención",
-    "impostos": "Impostos e taxas",
-    "reparacion": "Reparación",
-    "servizos": "Servizos (xestoría, veterinario…)",
-    "outro": "Outro",
+    "seguro": N_("Seguro"),
+    "aluguer": N_("Aluguer"),
+    "auga": N_("Auga"),
+    "luz": N_("Luz"),
+    "combustible": N_("Combustible"),
+    "cota": N_("Cota (cooperativa, asociación…)"),
+    "axuda": N_("Axuda ou subvención"),
+    "impostos": N_("Impostos e taxas"),
+    "reparacion": N_("Reparación"),
+    "servizos": N_("Servizos (xestoría, veterinario…)"),
+    "outro": N_("Outro"),
 }
-TIPOS = {"gasto": "Gasto", "ingreso": "Ingreso"}
+TIPOS = {"gasto": N_("Gasto"), "ingreso": N_("Ingreso")}
 # A man de obra destes vínculos non é un pago: custo de oportunidade
 VINCULOS_PROPIOS = ("titular", "familiar", "socio")
 
@@ -283,7 +284,12 @@ def custos(session: Session, horta_id: int, desde: date, ata: date) -> Custos:
 
 # --- Períodos do resumo
 
-PERIODOS = {"semana": "Semana", "mes": "Mes", "trimestre": "Trimestre", "ano": "Ano"}
+PERIODOS = {
+    "semana": N_("Semana"),
+    "mes": N_("Mes"),
+    "trimestre": N_("Trimestre"),
+    "ano": N_("Ano"),
+}
 _MESES = ("xaneiro", "febreiro", "marzo", "abril", "maio", "xuño", "xullo", "agosto",
           "setembro", "outubro", "novembro", "decembro")
 

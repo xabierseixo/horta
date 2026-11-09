@@ -6,6 +6,7 @@ from collections.abc import Callable
 from datetime import date
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.cultivo import Cultivo
 from horta.services.catalogos import describir
 from horta.services.cultivos import listar_cultivos, nome_cultivo
@@ -30,54 +31,59 @@ def datos_cultivo(
 
     nome = nome_cultivo(cultivo)
     if nome and nome.strip():
-        resultado.append(("Cultivo", nome.strip()))
+        resultado.append((_("Cultivo"), nome.strip()))
 
     if cultivo.variedade is not None and str(cultivo.variedade).strip():
-        resultado.append(("Variedade", str(cultivo.variedade).strip()))
+        resultado.append((_("Variedade"), str(cultivo.variedade).strip()))
 
     if cultivo.superficie_ha is not None:
         sup_txt = formatar_superficie(cultivo.superficie_ha)
         if sup_txt:
-            resultado.append(("Superficie cultivada", sup_txt))
+            resultado.append((_("Superficie cultivada"), sup_txt))
 
     if cultivo.data_inicio is not None:
         data_ini_txt = texto_data(cultivo.data_inicio)
         if data_ini_txt:
-            etiqueta = "Plantación" if cultivo.tipo_inicio == "plantacion" else "Sementeira"
+            etiqueta = _("Plantación") if cultivo.tipo_inicio == "plantacion" else _("Sementeira")
             resultado.append((etiqueta, data_ini_txt))
 
     if cultivo.data_fin is not None:
         data_fin_txt = texto_data(cultivo.data_fin)
         if data_fin_txt:
-            resultado.append(("Remate", data_fin_txt))
+            resultado.append((_("Remate"), data_fin_txt))
 
     if cultivo.sistema_cultivo is not None and str(cultivo.sistema_cultivo).strip():
         sis_cul = describir_codigo("sistema_cultivo", str(cultivo.sistema_cultivo).strip())
         if sis_cul and sis_cul.strip():
-            resultado.append(("Sistema de cultivo", sis_cul.strip()))
+            resultado.append((_("Sistema de cultivo"), sis_cul.strip()))
 
     if cultivo.sistema_explotacion is not None and str(cultivo.sistema_explotacion).strip():
-        sis_exp = describir_codigo("sistema_explotacion", str(cultivo.sistema_explotacion).strip())
+        sis_exp = describir_codigo(
+            "sistema_explotacion", str(cultivo.sistema_explotacion).strip()
+        )
         if sis_exp and sis_exp.strip():
-            resultado.append(("Secano ou regadío", sis_exp.strip()))
+            resultado.append((_("Secano ou regadío"), sis_exp.strip()))
 
     if cultivo.destino is not None and str(cultivo.destino).strip():
         dest = describir_codigo("destino_cultivo", str(cultivo.destino).strip())
         if dest and dest.strip():
-            resultado.append(("Destino", dest.strip()))
+            resultado.append((_("Destino"), dest.strip()))
 
-    if cultivo.certificacion_ecoloxica is not None and str(cultivo.certificacion_ecoloxica).strip():
+    if (
+        cultivo.certificacion_ecoloxica is not None
+        and str(cultivo.certificacion_ecoloxica).strip()
+    ):
         eco = describir_codigo(
             "certificacion_ecoloxica", str(cultivo.certificacion_ecoloxica).strip()
         )
         if eco and eco.strip():
-            resultado.append(("Ecolóxico", eco.strip()))
+            resultado.append((_("Ecolóxico"), eco.strip()))
 
     if cultivo.num_arbores is not None:
-        resultado.append(("Árbores", str(cultivo.num_arbores)))
+        resultado.append((_("Árbores"), str(cultivo.num_arbores)))
 
     if cultivo.marco_plantacion is not None and str(cultivo.marco_plantacion).strip():
-        resultado.append(("Marco de plantación", str(cultivo.marco_plantacion).strip()))
+        resultado.append((_("Marco de plantación"), str(cultivo.marco_plantacion).strip()))
 
     return resultado
 
@@ -98,14 +104,14 @@ def abrir_ficha_cultivo(horta_id: int, cultivo_id: int, pode_editar: bool) -> No
         datos = datos_cultivo(cultivo, lambda cat, cod: describir(session, cat, cod))
         nec = necesidade_rega(session, actor, cultivo.id)
         if nec.estado != "secano":
-            datos.append(("Rega, últimos 7 días", texto_necesidade(nec)))
+            datos.append((_("Rega, últimos 7 días"), texto_necesidade(nec)))
         traballos = sorted(
             historial_cultivo(session, actor, cultivo),
             key=lambda t: t.data or date.min,
             reverse=True,
         )
         linas_historial = [
-            f"{texto_data(t.data)} · {TIPOS.get(t.tipo, t.tipo)} · {t.que}"
+            f"{texto_data(t.data)} · {_(TIPOS[t.tipo]) if t.tipo in TIPOS else t.tipo} · {t.que}"
             for t in traballos
         ]
 

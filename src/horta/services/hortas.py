@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import delete, or_
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.abonado import Fertilizante
 from horta.models.acceso import RexistroAcceso
 from horta.models.analise import Analise
@@ -74,9 +75,14 @@ CAMPOS_EDITABLES_HORTA = frozenset(
     }
 )
 # Tipo de explotación en xestión integrada de pragas (modelo do caderno, 1.4)
-TIPOS_XIP = {"AE": "Agricultura ecolóxica", "PI": "Produción integrada",
-             "CP": "Certificación privada", "ATRIA": "Agrupación de tratamento integrado (ATRIA)",
-             "AS": "Asistida por un asesor", "NO": "Sen obriga de asesor en XIP"}
+TIPOS_XIP = {
+    "AE": N_("Agricultura ecolóxica"),
+    "PI": N_("Produción integrada"),
+    "CP": N_("Certificación privada"),
+    "ATRIA": N_("Agrupación de tratamento integrado (ATRIA)"),
+    "AS": N_("Asistida por un asesor"),
+    "NO": N_("Sen obriga de asesor en XIP"),
+}
 
 # Patrón do descritor SIEX (Anexo VI): código de explotación ES + 12 díxitos (codigoREA).
 # O REGA segue o mesmo formato.

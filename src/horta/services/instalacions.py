@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.horta import RolHorta
 from horta.models.instalacion import Instalacion
 from horta.models.usuario import Usuario
@@ -16,14 +17,14 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 TIPOS_INSTALACION: dict[str, str] = {
-    "almacen": "Almacén",
-    "galineiro": "Galiñeiro",
-    "corte": "Corte, cortello ou cuadra",
-    "colmear": "Colmear",
-    "invernadoiro": "Invernadoiro",
-    "nave": "Nave ou alpendre",
-    "transformacion": "Obradoiro de transformación",
-    "outra": "Outra",
+    "almacen": N_("Almacén"),
+    "galineiro": N_("Galiñeiro"),
+    "corte": N_("Corte, cortello ou cuadra"),
+    "colmear": N_("Colmear"),
+    "invernadoiro": N_("Invernadoiro"),
+    "nave": N_("Nave ou alpendre"),
+    "transformacion": N_("Obradoiro de transformación"),
+    "outra": N_("Outra"),
 }
 CAMPOS_EDITABLES_INSTALACION = frozenset(
     {"tipo", "nome", "enderezo", "referencia_catastral", "notas", "activa"})

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.maquina import Maquina
 from horta.services.catalogos import describir
 from horta.services.fotos import MODELOS
@@ -24,28 +25,28 @@ def datos_maquina(
     resultado: list[tuple[str, str]] = []
 
     if getattr(maquina, "alias", None) is not None and str(maquina.alias).strip():
-        resultado.append(("Nome", str(maquina.alias).strip()))
+        resultado.append((_("Nome"), str(maquina.alias).strip()))
 
     if getattr(maquina, "tipo_une", None) is not None and str(maquina.tipo_une).strip():
         tipo_txt = describir_codigo("tipo_maquinaria_une", str(maquina.tipo_une).strip())
         if tipo_txt and tipo_txt.strip():
-            resultado.append(("Tipo de máquina", tipo_txt.strip()))
+            resultado.append((_("Tipo de máquina"), tipo_txt.strip()))
 
     if getattr(maquina, "marca_modelo", None) is not None and str(maquina.marca_modelo).strip():
-        resultado.append(("Marca e modelo", str(maquina.marca_modelo).strip()))
+        resultado.append((_("Marca e modelo"), str(maquina.marca_modelo).strip()))
 
     if getattr(maquina, "num_roma", None) is not None and str(maquina.num_roma).strip():
-        resultado.append(("Nº ROMA", str(maquina.num_roma).strip()))
+        resultado.append((_("Nº ROMA"), str(maquina.num_roma).strip()))
 
     if getattr(maquina, "num_reganip", None) is not None and str(maquina.num_reganip).strip():
-        resultado.append(("Nº REGANIP", str(maquina.num_reganip).strip()))
+        resultado.append((_("Nº REGANIP"), str(maquina.num_reganip).strip()))
 
     if (
         getattr(maquina, "id_equipo_non_inscribible", None) is not None
         and str(maquina.id_equipo_non_inscribible).strip()
     ):
         resultado.append(
-            ("Equipo non inscribible", str(maquina.id_equipo_non_inscribible).strip())
+            (_("Equipo non inscribible"), str(maquina.id_equipo_non_inscribible).strip())
         )
 
     if getattr(maquina, "potencia", None) is not None:
@@ -58,22 +59,22 @@ def datos_maquina(
             if uni and uni.strip():
                 pot_txt = f"{pot_txt} {uni.strip()}".strip()
         if pot_txt:
-            resultado.append(("Potencia", pot_txt))
+            resultado.append((_("Potencia"), pot_txt))
 
     if getattr(maquina, "tipo_enerxia", None) is not None and str(maquina.tipo_enerxia).strip():
         enerxia_txt = describir_codigo("tipo_enerxia", str(maquina.tipo_enerxia).strip())
         if enerxia_txt and enerxia_txt.strip():
-            resultado.append(("Tipo de enerxía", enerxia_txt.strip()))
+            resultado.append((_("Tipo de enerxía"), enerxia_txt.strip()))
 
     if getattr(maquina, "data_adquisicion", None) is not None:
         data_adq_txt = texto_data(maquina.data_adquisicion)
         if data_adq_txt:
-            resultado.append(("Data de adquisición", data_adq_txt))
+            resultado.append((_("Data de adquisición"), data_adq_txt))
 
     if getattr(maquina, "data_ultima_inspeccion", None) is not None:
         data_insp_txt = texto_data(maquina.data_ultima_inspeccion)
         if data_insp_txt:
-            resultado.append(("Última inspección", data_insp_txt))
+            resultado.append((_("Última inspección"), data_insp_txt))
 
     if (
         getattr(maquina, "propia", None) is not None
@@ -82,10 +83,10 @@ def datos_maquina(
         e_propia = bool(getattr(maquina, "propia", False)) and not bool(
             getattr(maquina, "alugada", False)
         )
-        resultado.append(("Propia ou alugada", "Propia" if e_propia else "Alugada"))
+        resultado.append((_("Propia ou alugada"), _("Propia") if e_propia else _("Alugada")))
 
     if getattr(maquina, "activa", None) is not None:
-        resultado.append(("Activa", "Si" if maquina.activa else "Non"))
+        resultado.append((_("Activa"), _("Si") if maquina.activa else _("Non")))
 
     return resultado
 
@@ -120,5 +121,5 @@ def abrir_ficha_maquina(
         if "maquina" in MODELOS
         else None
     )
-    accions = [("Editar", "edit", ao_editar)] if ao_editar is not None else None
+    accions = [(_("Editar"), "edit", ao_editar)] if ao_editar is not None else None
     abrir_ficha(titulo, datos, linas_historial, fotos=accion_fotos, accions=accions)

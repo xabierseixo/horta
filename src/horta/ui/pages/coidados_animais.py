@@ -9,6 +9,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
@@ -69,7 +70,10 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
             "id": co.id,
             "data": f"{co.data_inicio:%d/%m/%Y}",
             "grupo": grupos.get(co.animal_id, ""),
-            "que": TIPOS_COIDADO[co.tipo].split(" (")[0],
+            "que": (
+                _(TIPOS_COIDADO[co.tipo]).split(" (")[0]
+                if co.tipo in TIPOS_COIDADO else co.tipo
+            ),
             "detalle": medicamentos.get(co.produto_id or 0) or persoas.get(co.visitante_id or 0)
             or co.descricion
             or "",
@@ -78,11 +82,12 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
         })
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("grupo", "Animais"), ("que", "Que"), ("detalle", "Detalle"),
-            ("quen", "Quen"), ("espera", "Tempo de espera ata"))],
+            ("data", _("Data")), ("grupo", _("Animais")), ("que", _("Que")),
+            ("detalle", _("Detalle")), ("quen", _("Quen")),
+            ("espera", _("Tempo de espera ata")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai coidados apuntados" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai coidados apuntados")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "data", ["grupo", "que"], accions_tarxeta)
@@ -93,7 +98,7 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         with get_session() as session:
             co = session.get(CoidadoAnimal, taboa.selected[0]["id"])
@@ -102,7 +107,7 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         coidado_id = taboa.selected[0]["id"]
 
@@ -118,16 +123,16 @@ def seccion_coidados(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este rexistro? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa este rexistro? Non se borra: consérvase no histórico."), confirmar)
 
-    accions_tarxeta += [("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar coidado", icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Apuntar coidado"), icon="add", on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_coidado(horta_id: int) -> Callable[..., None]:
@@ -136,7 +141,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_: None
+            return lambda *_args: None
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: f"{nome_grupo(a.especie, a.raza)} · {a.cantidade}" for a in animais}
         de_alta = {a.id: todos[a.id] for a in animais if a.estado == "activo"}
@@ -146,44 +151,45 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar coidado de animais").classes("text-h6")
+        titulo = ui.label(_("Apuntar coidado de animais")).classes("text-h6")
         if not todos:
-            ui.label("Primeiro engade os animais en Explotación → Animais.").classes(
+            ui.label(_("Primeiro engade os animais en Explotación → Animais.")).classes(
                 "text-warning text-caption")
-        grupo = ui.select(de_alta, label="Animais", with_input=True).classes("w-full")
-        tipo = ui.select(TIPOS_COIDADO, label="Tipo", value="coidado").classes("w-full")
-        data_inicio = campo_data("Data", date.today().isoformat())
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        descricion = ui.input("Que se fixo").classes("w-full")
-        visitante = CampoPersoa(horta_id, None, "Quen veu (persoa ou empresa)")
-        medicamento = CampoProduto(horta_id, "medicamento", "Medicamento")
+        grupo = ui.select(de_alta, label=_("Animais"), with_input=True).classes("w-full")
+        tipo = ui.select({k: _(v) for k, v in TIPOS_COIDADO.items()},
+                         label=_("Tipo"), value="coidado").classes("w-full")
+        data_inicio = campo_data(_("Data"), date.today().isoformat())
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+        descricion = ui.input(_("Que se fixo")).classes("w-full")
+        visitante = CampoPersoa(horta_id, None, _("Quen veu (persoa ou empresa)"))
+        medicamento = CampoProduto(horta_id, "medicamento", _("Medicamento"))
         with ui.row().classes("w-full no-wrap") as fila_dose:
-            cantidade = ui.input("Cantidade").classes("col")
-            unidade = ui.select(list(UNIDADES_MEDICAMENTO), label="Unidade",
+            cantidade = ui.input(_("Cantidade")).classes("col")
+            unidade = ui.select(list(UNIDADES_MEDICAMENTO), label=_("Unidade"),
                                 clearable=True).classes("col")
         with ui.row().classes("w-full no-wrap") as fila_dias:
-            tempo_espera = ui.input("Tempo de espera (días, 0 se non ten)").classes("col")
-            duracion = ui.input("Duración (días)").classes("col")
+            tempo_espera = ui.input(_("Tempo de espera (días, 0 se non ten)")).classes("col")
+            duracion = ui.input(_("Duración (días)")).classes("col")
         with ui.row().classes("w-full no-wrap") as fila_animais:
-            num_animais = ui.input("Cantos animais").classes("col")
-            identificacion = ui.input("Identificación (se a teñen)").classes("col")
+            num_animais = ui.input(_("Cantos animais")).classes("col")
+            identificacion = ui.input(_("Identificación (se a teñen)")).classes("col")
         with ui.column().classes("w-full gap-0") as datos_medicamento:
             veterinario = CampoPersoa(horta_id, "veterinario",
-                                      "Persoa veterinaria que o receitou")
-            receita = ui.input("Nº de receita").classes("w-full")
+                                      _("Persoa veterinaria que o receitou"))
+            receita = ui.input(_("Nº de receita")).classes("w-full")
             # Onde se mercou e a proba de compra: na compra (entrada) do medicamento
-            compra = ui.select({}, label="De que compra (onde se mercou)", clearable=True
+            compra = ui.select({}, label=_("De que compra (onde se mercou)"), clearable=True
                                ).classes("w-full")
-        matricula = ui.input("Matrícula do vehículo").classes("w-full")
-        with ui.expansion("Máis datos").classes("w-full"):
-            data_fin = campo_data("Data de fin (se durou máis dun día)")
-            horas = ui.input("Horas de traballo").classes("w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+        matricula = ui.input(_("Matrícula do vehículo")).classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            data_fin = campo_data(_("Data de fin (se durou máis dun día)"))
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def cambiar_compras() -> None:
             compra.set_options(opcions_entradas(horta_id, medicamento.value)
-                               if medicamento.value else {}, value=None)
+                                if medicamento.value else {}, value=None)
             if medicamento.value is not None:
                 with get_session() as session:
                     unidade.value = unidade_do_medicamento(session, medicamento.value)
@@ -193,8 +199,11 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
         def mostrar_campos() -> None:
             e_medicamento = tipo.value == "medicamento"
             e_visita = tipo.value == "visita"
-            descricion.label = {"enfermidade": "Que se viu", "producion": "Que cambiou",
-                                "visita": "Para que veu"}.get(tipo.value, "Que se fixo")
+            descricion.label = {
+                "enfermidade": _("Que se viu"),
+                "producion": _("Que cambiou"),
+                "visita": _("Para que veu"),
+            }.get(tipo.value, _("Que se fixo"))
             descricion.set_visibility(not e_medicamento)
             visitante.set_visibility(e_visita)
             matricula.set_visibility(e_visita)
@@ -206,7 +215,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
 
         def gardar() -> None:
             if grupo.value is None or tipo.value is None:
-                ui.notify("Escolle os animais e que se fixo", type="warning")
+                ui.notify(_("Escolle os animais e que se fixo"), type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -217,7 +226,7 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     inicio = parsear_data(data_inicio.value)
                     if inicio is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     datos = DatosCoidado(
                         animal_id=grupo.value, data_inicio=inicio, tipo=tipo.value,
                         persoa_id=persoa.value, descricion=descricion.value or None,
@@ -245,13 +254,13 @@ def dialogo_coidado(horta_id: int) -> Callable[..., None]:
                 recargar_apuntado("coidado_animal", data_inicio.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(co: CoidadoAnimal | None, tarefa: Tarefa | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = co.id if co else None
-        titulo.text = "Editar coidado de animais" if co else "Apuntar coidado de animais"
+        titulo.text = _("Editar coidado de animais") if co else _("Apuntar coidado de animais")
         # Ao editar, o grupo pode estar xa de baixa: tamén se ofrece
         opcions = dict(de_alta)
         if co is not None and co.animal_id in todos:

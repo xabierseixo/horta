@@ -7,6 +7,7 @@ from collections.abc import Callable
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _, ngettext
 from horta.models.recomendacion import Recomendacion
 from horta.models.tratamento_fito import TratamentoFito
 from horta.services.catalogos import describir
@@ -29,21 +30,24 @@ from horta.ui.taboas import TEXTOS_TABOA
 
 def texto_aviso_recomendacions(n: int) -> str:
     """Texto do aviso en Inicio cando hai recomendacións pendentes."""
-    palabra = "recomendación" if n == 1 else "recomendacións"
-    return f"A persoa asesora deixou {n} {palabra} por aplicar"
+    return ngettext(
+        "A persoa asesora deixou {n} recomendación por aplicar",
+        "A persoa asesora deixou {n} recomendacións por aplicar",
+        n,
+    ).format(n=n)
 
 
 def texto_ligazon_recomendacions(n: int) -> str:
     """Texto da ligazón dende Tratamentos cara a Recomendacións."""
-    return f"Recomendacións da persoa asesora ({n} pendentes)"
+    return _("Recomendacións da persoa asesora ({n} pendentes)").format(n=n)
 
 
 def texto_estado_recomendacion(estado: str) -> str:
     """Etiqueta lexible para o estado dunha recomendación."""
     return {
-        "pendente": "Pendente",
-        "aplicada": "Aplicada",
-        "descartada": "Descartada",
+        "pendente": _("Pendente"),
+        "aplicada": _("Aplicada"),
+        "descartada": _("Descartada"),
     }.get(estado, estado)
 
 
@@ -93,55 +97,55 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
             })
 
     opcions_filtro = {
-        "pendente": "Pendentes",
-        "aplicada": "Aplicadas",
-        "descartada": "Descartadas",
-        "todas": "Todas",
+        "pendente": _("Pendentes"),
+        "aplicada": _("Aplicadas"),
+        "descartada": _("Descartadas"),
+        "todas": _("Todas"),
     }
     with ui.row().classes("w-full items-center justify-between q-mb-sm"):
         filtro_estado = ui.select(
             opcions_filtro,
             value="pendente",
-            label="Estado",
+            label=_("Estado"),
         ).classes("w-48")
-        ui.link("Visitas técnicas", url_seccion(horta_id, "visitas"))
+        ui.link(_("Visitas técnicas"), url_seccion(horta_id, "visitas"))
 
     taboa = ui.table(
         columns=[
-            {"name": "data", "label": "Data", "field": "data", "align": "left"},
+            {"name": "data", "label": _("Data"), "field": "data", "align": "left"},
             {
                 "name": "valida_ata",
-                "label": "Válida ata",
+                "label": _("Válida ata"),
                 "field": "valida_ata",
                 "align": "left",
             },
             {
                 "name": "cultivos",
-                "label": "Cultivos",
+                "label": _("Cultivos"),
                 "field": "cultivos",
                 "align": "left",
             },
             {
                 "name": "problema",
-                "label": "Problema",
+                "label": _("Problema"),
                 "field": "problema",
                 "align": "left",
             },
             {
                 "name": "produtos",
-                "label": "Produtos",
+                "label": _("Produtos"),
                 "field": "produtos",
                 "align": "left",
             },
-            {"name": "asesor", "label": "Persoa asesora", "field": "asesor", "align": "left"},
-            {"name": "estado", "label": "Estado", "field": "estado", "align": "left"},
-            {"name": "avisos", "label": "Avisos", "field": "avisos", "align": "left"},
+            {"name": "asesor", "label": _("Persoa asesora"), "field": "asesor", "align": "left"},
+            {"name": "estado", "label": _("Estado"), "field": "estado", "align": "left"},
+            {"name": "avisos", "label": _("Avisos"), "field": "avisos", "align": "left"},
         ],
         rows=[f for f in filas if f["estado_clave"] == "pendente"],
         row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Non hai recomendacións que amosar" {TEXTOS_TABOA}'
+        f'flat bordered no-data-label="{_("Non hai recomendacións que amosar")}" {TEXTOS_TABOA}'
     )
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
@@ -170,7 +174,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
 
     def seleccionado() -> int | None:
         if not taboa.selected:
-            ui.notify("Selecciona unha recomendación na táboa", type="warning")
+            ui.notify(_("Selecciona unha recomendación na táboa"), type="warning")
             return None
         return int(taboa.selected[0]["id"])
 
@@ -185,7 +189,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
                 return
             rec = session.get(Recomendacion, rec_id)
             if rec is None or rec.estado != "pendente":
-                ui.notify("Só se poden aplicar recomendacións pendentes", type="warning")
+                ui.notify(_("Só se poden aplicar recomendacións pendentes"), type="warning")
                 return
             abrir(recomendacion=rec, modo="tratamento")
 
@@ -200,18 +204,18 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
                 return
             rec = session.get(Recomendacion, rec_id)
             if rec is None or rec.estado != "pendente":
-                ui.notify("Só se poden editar recomendacións pendentes", type="warning")
+                ui.notify(_("Só se poden editar recomendacións pendentes"), type="warning")
                 return
             abrir(recomendacion=rec, modo="recomendacion")
 
     with ui.dialog() as dialogo_descarte, ui.card().style("width: min(28rem, 94vw)"):
-        ui.label("Descartar recomendación").classes("text-h6")
-        motivo_input = ui.input("Motivo do descarte").classes("w-full")
+        ui.label(_("Descartar recomendación")).classes("text-h6")
+        motivo_input = ui.input(_("Motivo do descarte")).classes("w-full")
 
         def confirmar_descarte() -> None:
             motivo = motivo_input.value.strip()
             if not motivo:
-                ui.notify("Indica o motivo do descarte", type="warning")
+                ui.notify(_("Indica o motivo do descarte"), type="warning")
                 return
             rec_id = seleccionado()
             if rec_id is None:
@@ -233,10 +237,10 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Descartar", icon="cancel", on_click=confirmar_descarte).props(
+            ui.button(_("Descartar"), icon="cancel", on_click=confirmar_descarte).props(
                 "color=negative"
             )
-            ui.button("Cancelar", on_click=dialogo_descarte.close).props("flat")
+            ui.button(_("Cancelar"), on_click=dialogo_descarte.close).props("flat")
 
     def pedir_descarte() -> None:
         rec_id = seleccionado()
@@ -245,7 +249,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
         with get_session() as session:
             rec = session.get(Recomendacion, rec_id)
             if rec is None or rec.estado != "pendente":
-                ui.notify("Só se poden descartar recomendacións pendentes", type="warning")
+                ui.notify(_("Só se poden descartar recomendacións pendentes"), type="warning")
                 return
         motivo_input.value = ""
         dialogo_descarte.open()
@@ -257,7 +261,7 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
         with get_session() as session:
             rec = session.get(Recomendacion, rec_id)
             if rec is None or rec.estado != "aplicada" or not rec.tratamento_id:
-                ui.notify("Esta recomendación non ten tratamento aplicado", type="warning")
+                ui.notify(_("Esta recomendación non ten tratamento aplicado"), type="warning")
                 return
             tratamento = session.get(TratamentoFito, rec.tratamento_id)
             if tratamento is not None:
@@ -285,35 +289,37 @@ def seccion_recomendacions(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa esta recomendación? Consérvase no histórico pero deixa de "
-            "aparecer na lista.",
+            _(
+                "Dar de baixa esta recomendación? Consérvase no histórico pero deixa de "
+                "aparecer na lista."
+            ),
             confirmar,
         )
 
     accions_tarxeta.extend([
-        ("Aplicar", "check_circle", aplicar),
-        ("Editar", "edit", editar),
-        ("Descartar", "cancel", pedir_descarte),
-        ("Ver o tratamento", "visibility", ver_tratamento),
-        ("Dar de baixa", "archive", dar_de_baixa),
+        (_("Aplicar"), "check_circle", aplicar),
+        (_("Editar"), "edit", editar),
+        (_("Descartar"), "cancel", pedir_descarte),
+        (_("Ver o tratamento"), "visibility", ver_tratamento),
+        (_("Dar de baixa"), "archive", dar_de_baixa),
     ])
 
     with ui.row().classes("gap-2 items-center"):
         ui.button(
-            "Nova recomendación",
+            _("Nova recomendación"),
             icon="add",
             on_click=lambda: abrir(modo="recomendacion"),
         )
         with ui.row().classes("so-ordenador gap-2"):
-            ui.button("Aplicar", icon="check_circle", on_click=aplicar).props("outline")
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Descartar", icon="cancel", on_click=pedir_descarte).props("outline")
+            ui.button(_("Aplicar"), icon="check_circle", on_click=aplicar).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Descartar"), icon="cancel", on_click=pedir_descarte).props("outline")
             ui.button(
-                "Ver o tratamento",
+                _("Ver o tratamento"),
                 icon="visibility",
                 on_click=ver_tratamento,
             ).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 __all__ = [

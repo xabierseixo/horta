@@ -8,6 +8,7 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.services.catalogos import valores_vixentes
 from horta.services.parcelas import (
@@ -39,10 +40,10 @@ _CATALOGOS = {
     "causa_baixa": "causa_baixa",
     "orixe_auga": "orixe_auga",
 }
-_SIGPAC = (("sigpac_provincia", "Provincia"), ("sigpac_concello", "Concello"),
-           ("sigpac_agregado", "Agregado"), ("sigpac_zona", "Zona"),
-           ("sigpac_poligono", "Polígono"), ("sigpac_parcela", "Parcela"),
-           ("sigpac_subparcela", "Recinto"))
+_SIGPAC = (("sigpac_provincia", N_("Provincia")), ("sigpac_concello", N_("Concello")),
+           ("sigpac_agregado", N_("Agregado")), ("sigpac_zona", N_("Zona")),
+           ("sigpac_poligono", N_("Polígono")), ("sigpac_parcela", N_("Parcela")),
+           ("sigpac_subparcela", N_("Recinto")))
 
 
 def _referencia(p: Parcela) -> str:
@@ -70,19 +71,19 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
     filas = [
         {"id": p.id, "nome": p.nome, "superficie": formatar_superficie(p.superficie),
          "sigpac": _referencia(p),
-         "rega": {SecanoRegadio.SECANO: "Secano", SecanoRegadio.REGADIO: "Regadío"}.get(
+         "rega": {SecanoRegadio.SECANO: _("Secano"), SecanoRegadio.REGADIO: _("Regadío")}.get(
              p.secano_regadio, "") if p.secano_regadio else "",
-         "estado": ESTADOS_PARCELA.get(p.estado, p.estado)}
+         "estado": _(ESTADOS_PARCELA[p.estado]) if p.estado in ESTADOS_PARCELA else p.estado}
         for p in parcelas
     ]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("nome", "Nome"), ("superficie", "Superficie"), ("sigpac", "SIGPAC"),
-            ("rega", "Secano/regadío"), ("estado", "Estado"))],
+            ("nome", _("Nome")), ("superficie", _("Superficie")), ("sigpac", "SIGPAC"),
+            ("rega", _("Secano/regadío")), ("estado", _("Estado")))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai parcelas" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai parcelas")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "nome", ["superficie", "rega"], accions_tarxeta)
@@ -93,47 +94,48 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
-        titulo = ui.label("Nova parcela").classes("text-h6")
-        nome = ui.input("Nome").classes("w-full")
-        superficie = CampoSuperficie("Superficie")
-        secano = ui.select({"secano": "Secano", "regadio": "Regadío"}, label="Secano ou regadío",
+        titulo = ui.label(_("Nova parcela")).classes("text-h6")
+        nome = ui.input(_("Nome")).classes("w-full")
+        superficie = CampoSuperficie(_("Superficie"))
+        secano = ui.select({"secano": _("Secano"), "regadio": _("Regadío")},
+                           label=_("Secano ou regadío"),
                            clearable=True).classes("w-full")
-        orixe_auga = ui.select(opcions["orixe_auga"], label="Orixe da auga de rega",
+        orixe_auga = ui.select(opcions["orixe_auga"], label=_("Orixe da auga de rega"),
                                clearable=True).classes("w-full")
-        uso = ui.input("Uso ou aproveitamento").classes("w-full")
-        ui.label("Referencia SIGPAC").classes("text-subtitle2 q-mt-sm")
+        uso = ui.input(_("Uso ou aproveitamento")).classes("w-full")
+        ui.label(_("Referencia SIGPAC")).classes("text-subtitle2 q-mt-sm")
         sigpac: dict[str, Any] = {}
         with ui.grid(columns=4).classes("w-full gap-2"):
             for campo, etiqueta in _SIGPAC:
-                sigpac[campo] = ui.input(etiqueta)
-        catastro = ui.input("Referencia catastral").classes("w-full")
-        with ui.expansion("Tenencia, alta e baixa").classes("w-full"):
-            tenencia = ui.select(opcions["rexime_tenencia"], label="Réxime de tenencia",
+                sigpac[campo] = ui.input(_(etiqueta))
+        catastro = ui.input(_("Referencia catastral")).classes("w-full")
+        with ui.expansion(_("Tenencia, alta e baixa")).classes("w-full"):
+            tenencia = ui.select(opcions["rexime_tenencia"], label=_("Réxime de tenencia"),
                                  clearable=True).classes("w-full")
-            arrendador = CampoPersoa(horta_id, None, "Quen a arrenda ou cede")
-            pequena = ui.checkbox("Pequena superficie")
-            data_alta = campo_data("Data de alta")
-            data_baixa = campo_data("Data de baixa")
-            causa_baixa = ui.select(opcions["causa_baixa"], label="Causa da baixa",
+            arrendador = CampoPersoa(horta_id, None, _("Quen a arrenda ou cede"))
+            pequena = ui.checkbox(_("Pequena superficie"))
+            data_alta = campo_data(_("Data de alta"))
+            data_baixa = campo_data(_("Data de baixa"))
+            causa_baixa = ui.select(opcions["causa_baixa"], label=_("Causa da baixa"),
                                     clearable=True).classes("w-full")
-        with ui.expansion("Auga para consumo humano e zonas protexidas").classes("w-full"):
-            auga = ui.checkbox("Hai un pozo ou toma de auga para consumo humano na parcela "
-                               "ou preto")
+        with ui.expansion(_("Auga para consumo humano e zonas protexidas")).classes("w-full"):
+            auga = ui.checkbox(_("Hai un pozo ou toma de auga para consumo humano na parcela "
+                                 "ou preto"))
             with ui.column().classes("w-full gap-1").bind_visibility_from(auga, "value"):
-                auga_dentro = ui.checkbox("Está dentro da parcela")
-                auga_distancia = ui.input("Distancia á parcela (m)").classes("w-full")
-                auga_utm = ui.input("Coordenadas UTM (opcional)").classes("w-full")
-                auga_nome = ui.input("Nome do pozo ou da masa de auga").classes("w-full")
-            zona = ui.select({"total": "Toda a parcela", "parcial": "Parte da parcela"},
-                             label="Está nunha zona protexida (captación, hábitats, especies)",
+                auga_dentro = ui.checkbox(_("Está dentro da parcela"))
+                auga_distancia = ui.input(_("Distancia á parcela (m)")).classes("w-full")
+                auga_utm = ui.input(_("Coordenadas UTM (opcional)")).classes("w-full")
+                auga_nome = ui.input(_("Nome do pozo ou da masa de auga")).classes("w-full")
+            zona = ui.select({"total": _("Toda a parcela"), "parcial": _("Parte da parcela")},
+                             label=_("Está nunha zona protexida (captación, hábitats, especies)"),
                              clearable=True).classes("w-full")
-            zona_ha = ui.input("Superficie afectada (ha), se se sabe").classes("w-full")
-        with ui.expansion("Localización e notas").classes("w-full"):
-            lat = ui.input("Latitude").classes("w-full")
-            lon = ui.input("Lonxitude").classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
-        with ui.expansion("O tempo").classes("w-full"):
-            lugar = CampoLugarTempo("O da explotación")
+            zona_ha = ui.input(_("Superficie afectada (ha), se se sabe")).classes("w-full")
+        with ui.expansion(_("Localización e notas")).classes("w-full"):
+            lat = ui.input(_("Latitude")).classes("w-full")
+            lon = ui.input(_("Lonxitude")).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
+        with ui.expansion(_("O tempo")).classes("w-full"):
+            lugar = CampoLugarTempo(_("O da explotación"))
 
         def situar() -> None:
             try:
@@ -146,7 +148,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
         def gardar() -> None:
             if not nome.value:
-                ui.notify("O nome é obrigatorio", type="negative")
+                ui.notify(_("O nome é obrigatorio"), type="negative")
                 return
             datos: dict[str, Any] = dict(
                 superficie=superficie.ha,
@@ -189,8 +191,8 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     textos = (nome, uso, catastro, data_alta, data_baixa, lat, lon, notas,
               auga_distancia, auga_utm, auga_nome, zona_ha, *sigpac.values())
@@ -198,7 +200,7 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
     def abrir_nova() -> None:
         editando["id"] = None
-        titulo.text = "Nova parcela"
+        titulo.text = _("Nova parcela")
         for campo in textos:
             campo.value = ""
         for selector in selectores:
@@ -214,11 +216,11 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
     def abrir_edicion() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona unha parcela na táboa", type="warning")
+            ui.notify(_("Selecciona unha parcela na táboa"), type="warning")
             return
         p = next(x for x in parcelas if x.id == taboa.selected[0]["id"])
         editando["id"] = p.id
-        titulo.text = "Editar parcela"
+        titulo.text = _("Editar parcela")
         nome.value = p.nome
         superficie.establecer(p.superficie)
         secano.value = p.secano_regadio.value if p.secano_regadio else None
@@ -247,19 +249,19 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
 
     def historial() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona unha parcela na táboa", type="warning")
+            ui.notify(_("Selecciona unha parcela na táboa"), type="warning")
             return
         abrir_historial("parcela", taboa.selected[0]["id"])
 
     def fotos() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona unha parcela na táboa", type="warning")
+            ui.notify(_("Selecciona unha parcela na táboa"), type="warning")
             return
         abrir_fotos(horta_id, "parcela", taboa.selected[0]["id"], "parcela", pode_editar)
 
     def eliminar() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona unha parcela na táboa", type="warning")
+            ui.notify(_("Selecciona unha parcela na táboa"), type="warning")
             return
         parcela_id = taboa.selected[0]["id"]
         with get_session() as session:
@@ -279,18 +281,18 @@ def seccion_parcelas(horta_id: int, pode_editar: bool) -> None:
             if ok:
                 ui.navigate.reload()
 
-        confirmar_eliminacion("Eliminar esta parcela e os seus cultivos?", confirmar)
+        confirmar_eliminacion(_("Eliminar esta parcela e os seus cultivos?"), confirmar)
 
-    accions_tarxeta += [("Editar", "edit", abrir_edicion),
-                        ("Historial", "history", historial),
-                        ("Fotos", "photo_camera", fotos),
-                        ("Eliminar", "delete", eliminar)]
+    accions_tarxeta += [(_("Editar"), "edit", abrir_edicion),
+                        (_("Historial"), "history", historial),
+                        (_("Fotos"), "photo_camera", fotos),
+                        (_("Eliminar"), "delete", eliminar)]
 
     with ui.row():
-        ui.button("Nova parcela", icon="add", on_click=abrir_nova)
+        ui.button(_("Nova parcela"), icon="add", on_click=abrir_nova)
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline")
-            ui.button("Historial", icon="history", on_click=historial).props("outline")
-            ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
-            ui.button("Eliminar", icon="delete", on_click=eliminar).props(
+            ui.button(_("Editar"), icon="edit", on_click=abrir_edicion).props("outline")
+            ui.button(_("Historial"), icon="history", on_click=historial).props("outline")
+            ui.button(_("Fotos"), icon="photo_camera", on_click=fotos).props("outline")
+            ui.button(_("Eliminar"), icon="delete", on_click=eliminar).props(
                 "outline color=negative")

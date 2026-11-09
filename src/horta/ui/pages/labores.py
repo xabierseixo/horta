@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.labor import Labor
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
@@ -64,11 +65,11 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
     } for lab in labores]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("cultivo", "Cultivo"), ("labor", "Labor"),
-            ("maquina", "Máquina"))],
+            ("data", _("Data")), ("cultivo", _("Cultivo")), ("labor", _("Labor")),
+            ("maquina", _("Máquina")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai labores" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai labores")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "data", ["labor", "cultivo"], accions_tarxeta)
@@ -79,7 +80,7 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un labor na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un labor na táboa"), type="warning")
             return
         with get_session() as session:
             lab = session.get(Labor, taboa.selected[0]["id"])
@@ -88,7 +89,7 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un labor na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un labor na táboa"), type="warning")
             return
         labor_id = taboa.selected[0]["id"]
 
@@ -104,16 +105,16 @@ def seccion_labores(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este labor? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa este labor? Non se borra: consérvase no histórico."), confirmar)
 
-    accions_tarxeta += [("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar labor", icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Apuntar labor"), icon="add", on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
@@ -122,7 +123,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda _: None
+            return lambda _x: None
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
@@ -136,27 +137,27 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar labor").classes("text-h6")
+        titulo = ui.label(_("Apuntar labor")).classes("text-h6")
         if not tipos:
-            ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
-        cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
+            ui.label(_(AVISO_SEN_CATALOGOS)).classes("text-warning text-caption")
+        cultivo = ui.select(cultivos, label=_("Leiras (unha ou varias)"), with_input=True,
                             multiple=True, value=[]).classes("w-full").props("use-chips")
-        data_inicio = campo_data("Data", date.today().isoformat())
-        tipo = ui.select(tipos, label="Labor").classes("w-full")
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        restos_desbroce = ui.checkbox("Os restos do desbroce quedaron no chan")
-        restos_poda = ui.checkbox("Os restos da poda quedaron no chan")
-        with ui.expansion("Máis datos").classes("w-full"):
-            data_fin = campo_data("Data de fin (se durou máis dun día)")
-            horas_traballo = ui.input("Horas de traballo").classes("w-full")
-            superficie = CampoSuperficie("Superficie (baleiro = a do cultivo; só cunha leira)")
-            cobertura = ui.select(coberturas, label="Cobertura do solo (baleiro = a do cultivo)",
+        data_inicio = campo_data(_("Data"), date.today().isoformat())
+        tipo = ui.select(tipos, label=_("Labor")).classes("w-full")
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+        restos_desbroce = ui.checkbox(_("Os restos do desbroce quedaron no chan"))
+        restos_poda = ui.checkbox(_("Os restos da poda quedaron no chan"))
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            data_fin = campo_data(_("Data de fin (se durou máis dun día)"))
+            horas_traballo = ui.input(_("Horas de traballo")).classes("w-full")
+            superficie = CampoSuperficie(_("Superficie (baleiro = a do cultivo; só cunha leira)"))
+            cobertura = ui.select(coberturas, label=_("Cobertura do solo (baleiro = a do cultivo)"),
                                   clearable=True).classes("w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
             with ui.row().classes("w-full no-wrap"):
-                repeticions = ui.input("Nº de pasadas").classes("col")
-                horas = ui.input("Horas de cada pasada").classes("col")
-            notas = ui.textarea("Notas").classes("w-full")
+                repeticions = ui.input(_("Nº de pasadas")).classes("col")
+                horas = ui.input(_("Horas de cada pasada")).classes("col")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def mostrar_restos() -> None:
             restos_desbroce.set_visibility(tipo.value == DESBROCE)
@@ -174,7 +175,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
 
         def gardar() -> None:
             if not cultivo.value or tipo.value is None:
-                ui.notify("Escolle as leiras e o labor", type="warning")
+                ui.notify(_("Escolle as leiras e o labor"), type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -185,7 +186,7 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
                 def accion() -> None:
                     inicio = parsear_data(data_inicio.value)
                     if inicio is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     pasadas = parsear_decimal(repeticions.value)
                     datos = DatosLabor(
                         leiras=leiras_escollidas(cultivo.value, superficie.ha),
@@ -209,13 +210,13 @@ def dialogo_labor(horta_id: int) -> Callable[[Labor | None], None]:
                 recargar_apuntado("labor", data_inicio.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(lab: Labor | None, tarefa: Tarefa | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = lab.id if lab else None
-        titulo.text = "Editar labor" if lab else "Apuntar labor"
+        titulo.text = _("Editar labor") if lab else _("Apuntar labor")
         tipo.value = lab.tipo_labor if lab else None
         cultivo.value = ([le.cultivo_id for le in lab.leiras] if lab else
                          [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])

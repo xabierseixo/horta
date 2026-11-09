@@ -7,6 +7,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.services.caderno import xerar_caderno
 from horta.services.errors import OperacionNonPermitidaError
 from horta.ui.campos import campo_data
@@ -18,17 +19,21 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 def boton_caderno(horta_id: int) -> None:
     hoxe = date.today()
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
-        ui.label("Descargar o caderno de explotación").classes("text-h6")
-        ui.label("Co modelo oficial da Xunta. Podes descargalo cando queiras, "
-                 "para o período que necesites.").classes("text-caption")
-        desde = campo_data("Desde", date(hoxe.year, 1, 1).isoformat())
-        ata = campo_data("Ata", hoxe.isoformat())
+        ui.label(_("Descargar o caderno de explotación")).classes("text-h6")
+        ui.label(
+            _(
+                "Co modelo oficial da Xunta. Podes descargalo cando queiras, "
+                "para o período que necesites."
+            )
+        ).classes("text-caption")
+        desde = campo_data(_("Desde"), date(hoxe.year, 1, 1).isoformat())
+        ata = campo_data(_("Ata"), hoxe.isoformat())
         formato = selector_formato()
 
         def descargar() -> None:
             inicio, fin = parsear_data(desde.value), parsear_data(ata.value)
             if inicio is None or fin is None:
-                ui.notify("Indica as dúas datas", type="warning")
+                ui.notify(_("Indica as dúas datas"), type="warning")
                 return
             with get_session() as session:
                 actor = usuario_actual(session)
@@ -44,15 +49,17 @@ def boton_caderno(horta_id: int) -> None:
                 datos,
                 formato.value or "xlsx",
                 f"caderno-{inicio:%Y%m%d}-{fin:%Y%m%d}",
-                "Caderno de explotación",
+                _("Caderno de explotación"),
                 "caderno",
             )
             dialogo.close()
 
         with ui.row():
-            ui.button("Descargar", icon="download", on_click=descargar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
-    ui.button("Descargar o caderno", icon="download", on_click=dialogo.open).props("outline")
+            ui.button(_("Descargar"), icon="download", on_click=descargar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
+    ui.button(
+        _("Descargar o caderno"), icon="download", on_click=dialogo.open
+    ).props("outline")
 
 
 def boton_libros_gandeiros(horta_id: int) -> None:
@@ -61,17 +68,21 @@ def boton_libros_gandeiros(horta_id: int) -> None:
 
     hoxe = date.today()
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
-        ui.label("Libros dos animais").classes("text-h6")
-        ui.label("Libro de rexistro gandeiro (censo, entradas e saídas, enfermidades, "
-                 "visitas) e rexistro de medicamentos veterinarios.").classes("text-caption")
-        desde = campo_data("Desde", date(hoxe.year, 1, 1).isoformat())
-        ata = campo_data("Ata", hoxe.isoformat())
+        ui.label(_("Libros dos animais")).classes("text-h6")
+        ui.label(
+            _(
+                "Libro de rexistro gandeiro (censo, entradas e saídas, enfermidades, "
+                "visitas) e rexistro de medicamentos veterinarios."
+            )
+        ).classes("text-caption")
+        desde = campo_data(_("Desde"), date(hoxe.year, 1, 1).isoformat())
+        ata = campo_data(_("Ata"), hoxe.isoformat())
         formato = selector_formato()
 
         def descargar() -> None:
             inicio, fin = parsear_data(desde.value), parsear_data(ata.value)
             if inicio is None or fin is None:
-                ui.notify("Indica as dúas datas", type="warning")
+                ui.notify(_("Indica as dúas datas"), type="warning")
                 return
             with get_session() as session:
                 actor = usuario_actual(session)
@@ -87,12 +98,14 @@ def boton_libros_gandeiros(horta_id: int) -> None:
                 datos,
                 formato.value or "xlsx",
                 f"libros-animais-{inicio:%Y%m%d}-{fin:%Y%m%d}",
-                "Libros dos animais",
+                _("Libros dos animais"),
                 "libros",
             )
             dialogo.close()
 
         with ui.row():
-            ui.button("Descargar", icon="download", on_click=descargar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
-    ui.button("Libros dos animais", icon="download", on_click=dialogo.open).props("outline")
+            ui.button(_("Descargar"), icon="download", on_click=descargar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
+    ui.button(
+        _("Libros dos animais"), icon="download", on_click=dialogo.open
+    ).props("outline")

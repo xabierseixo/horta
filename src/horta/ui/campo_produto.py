@@ -7,6 +7,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.services.produtos import (
     TIPOS_PRODUTO,
     UNIDADES_PRODUTO,
@@ -30,7 +31,8 @@ def opcions_entradas(horta_id: int, produto_id: int | None = None, tipo: str | N
         entradas = listar_entradas(session, actor, horta_id, produto_id=produto_id, tipo=tipo)
     return {e.id: " · ".join(x for x in (
         f"{e.data:%d/%m/%Y}", produtos.get(e.produto_id, ""),
-        f"lote {e.lote_provedor}" if e.lote_provedor else "") if x) for e in entradas}
+        _("lote {lote}").format(lote=e.lote_provedor) if e.lote_provedor else "") if x)
+        for e in entradas}
 
 
 class CampoProduto:
@@ -43,17 +45,19 @@ class CampoProduto:
             self.select = ui.select({}, label=etiqueta, with_input=True,
                                     clearable=True).classes("col")
             ui.button(icon="add", on_click=self._abrir_novo).props(
-                'flat round dense aria-label="Novo produto"').tooltip("Novo")
+                f'flat round dense aria-label="{_("Novo produto")}"'
+            ).tooltip(_("Novo"))
         self._cargar()
         with (ui.dialog().props("persistent") as self.dialogo,
               ui.card().style("width: min(26rem, 94vw)")):
-            ui.label(f"Novo: {TIPOS_PRODUTO[tipo].lower()}").classes("text-h6")
-            self.nome = ui.input("Nome").classes("w-full")
-            self.unidade = ui.select(list(UNIDADES_PRODUTO), label="Cóntase en",
+            tipo_nome = _(TIPOS_PRODUTO[tipo]).lower()
+            ui.label(_("Novo: {tipo}").format(tipo=tipo_nome)).classes("text-h6")
+            self.nome = ui.input(_("Nome")).classes("w-full")
+            self.unidade = ui.select(list(UNIDADES_PRODUTO), label=_("Cóntase en"),
                                      value="unidades").classes("w-full")
             with ui.row():
-                ui.button("Gardar", icon="check", on_click=self._gardar)
-                ui.button("Cancelar", on_click=self.dialogo.close).props("flat")
+                ui.button(_("Gardar"), icon="check", on_click=self._gardar)
+                ui.button(_("Cancelar"), on_click=self.dialogo.close).props("flat")
 
     def _cargar(self) -> None:
         with get_session() as session:

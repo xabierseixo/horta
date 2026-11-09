@@ -12,6 +12,7 @@ import segno
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.lote import Clasificacion, Lote, Mestura, ProdutoVenda
 from horta.models.tarefa import Tarefa
 from horta.services.clasificacions import (
@@ -45,13 +46,17 @@ from horta.ui.numeros import parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
-_CATEGORIAS = {clave: nome for clave, (nome, *_) in CATEGORIAS_VENDA_DIRECTA.items()}
+_CATEGORIAS = {clave: nome for clave, (nome, *_x) in CATEGORIAS_VENDA_DIRECTA.items()}
 
 
 def texto_queda(queda: dict[str | None, float], unidade: str) -> str:
     partes = [f"{c}: {v:g}" for c, v in queda.items() if c is not None and v > 1e-9]
     if queda.get(None, 0) > 1e-9:
-        partes.append(f"sen clasificar: {queda[None]:g}" if partes else f"{queda[None]:g}")
+        partes.append(
+            _("sen clasificar: {cantidade:g}").format(cantidade=queda[None])
+            if partes
+            else f"{queda[None]:g}"
+        )
     return f"{', '.join(partes) or '0'} {unidade}"
 
 
@@ -60,14 +65,23 @@ def dialogo_ficha() -> Callable[[ProdutoVenda, Lote | None], None]:
     invernadoiro (máximos da venda directa)."""
     ids: dict[str, int | None] = {"ficha": None, "lote": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(32rem, 94vw)"):
-        ui.label("Produto que vendes").classes("text-h6")
-        nome = ui.input("Nome").classes("w-full")
-        categoria = ui.select(_CATEGORIAS, label="Tipo para a venda directa (Decreto 125/2014)",
-                              clearable=True).classes("w-full")
-        agrupacion = ui.select(AGRUPACIONS, label="Como fas os lotes").classes("w-full")
-        clases = ui.input("Clases, separadas por comas (p.ex. grande, mediana, miúda)"
-                          ).classes("w-full")
-        protexido = ui.checkbox("Este lote é de invernadoiro ou túnel")
+        ui.label(_("Produto que vendes")).classes("text-h6")
+        nome = ui.input(_("Nome")).classes("w-full")
+        opcions_categoria = {c: _(n) for c, n in _CATEGORIAS.items()}
+        categoria = ui.select(
+            opcions_categoria,
+            label=_("Tipo para a venda directa (Decreto 125/2014)"),
+            clearable=True,
+        ).classes("w-full")
+        opcions_agrupacion = {c: _(t) for c, t in AGRUPACIONS.items()}
+        agrupacion = ui.select(
+            opcions_agrupacion,
+            label=_("Como fas os lotes"),
+        ).classes("w-full")
+        clases = ui.input(
+            _("Clases, separadas por comas (p.ex. grande, mediana, miúda)")
+        ).classes("w-full")
+        protexido = ui.checkbox(_("Este lote é de invernadoiro ou túnel"))
 
         def gardar() -> None:
             with get_session() as session:
@@ -88,8 +102,8 @@ def dialogo_ficha() -> Callable[[ProdutoVenda, Lote | None], None]:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(ficha: ProdutoVenda, lote: Lote | None = None) -> None:
         ids["ficha"], ids["lote"] = ficha.id, lote.id if lote else None
@@ -118,23 +132,24 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
     """abrir(clasificacion, tarefa=None, lote_id=None)."""
     listas = _quen_e_maquinas(horta_id)
     if listas is None:
-        return lambda *_, **__: None
+        return lambda *_x, **_kw: None
     persoas, maquinas = listas
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(34rem, 94vw)"):
-        titulo = ui.label("Clasificación").classes("text-h6")
-        ui.label("Repartir un lote por clases. O lote segue sendo o mesmo; o refugo conta como "
-                 "perda.").classes("texto-suave text-caption")
-        lote = ui.select({}, label="Lote", with_input=True).classes("w-full")
+        titulo = ui.label(_("Clasificación")).classes("text-h6")
+        ui.label(
+            _("Repartir un lote por clases. O lote segue sendo o mesmo; o refugo conta como perda.")
+        ).classes("texto-suave text-caption")
+        lote = ui.select({}, label=_("Lote"), with_input=True).classes("w-full")
         queda = ui.label("").classes("text-caption")
-        data = campo_data("Data", date.today().isoformat())
+        data = campo_data(_("Data"), date.today().isoformat())
         filas = ui.column().classes("w-full gap-0")
-        refugo = ui.input("Refugo (podre, cortado…)").classes("w-full")
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        with ui.expansion("Máis datos").classes("w-full"):
-            horas = ui.input("Horas de traballo").classes("w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+        refugo = ui.input(_("Refugo (podre, cortado…)")).classes("w-full")
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
         campos: list[tuple[ui.input, ui.input]] = []
 
         def poñer_filas(clases: list[str], valores: dict[str, float]) -> None:
@@ -144,9 +159,9 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
             with filas:
                 for clase in [*nomes, *([""] if not clases else [])]:
                     with ui.row().classes("w-full no-wrap"):
-                        nome = ui.input("Clase", value=clase).classes("col")
+                        nome = ui.input(_("Clase"), value=clase).classes("col")
                         nome.set_enabled(not clases)
-                        canto = ui.input("Canto", value=f"{valores[clase]:g}"
+                        canto = ui.input(_("Canto"), value=f"{valores[clase]:g}"
                                          if clase in valores else "").classes("col")
                         campos.append((nome, canto))
 
@@ -157,7 +172,7 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
                     return
                 ficha = ficha_do_lote(session, lt)
                 q = queda_por_clase(session, lt, excepto_clasificacion=editando["id"])
-                queda.text = f"Queda: {texto_queda(q, lt.unidade)}"
+                queda.text = _("Queda: {queda}").format(queda=texto_queda(q, lt.unidade))
                 if not editando["id"]:
                     poñer_filas(clases_da_ficha(ficha), {})
 
@@ -173,7 +188,7 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if lote.value is None or dia is None:
-                        raise OperacionNonPermitidaError("Escolle o lote e a data")
+                        raise OperacionNonPermitidaError(_("Escolle o lote e a data"))
                     clases = {n.value.strip(): parsear_decimal(c.value) or 0
                               for n, c in campos if (n.value or "").strip()}
                     datos = DatosClasificacion(
@@ -206,11 +221,15 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
 
         with ui.row().classes("w-full justify-between"):
             with ui.row():
-                ui.button("Gardar", icon="check", on_click=gardar)
-                ui.button("Cancelar", on_click=dialogo.close).props("flat")
-            boton_baixa = ui.button("Dar de baixa", icon="archive", on_click=lambda: (
-                confirmar_eliminacion("Dar de baixa esta clasificación?", baixa))).props(
-                "flat color=negative")
+                ui.button(_("Gardar"), icon="check", on_click=gardar)
+                ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
+            boton_baixa = ui.button(
+                _("Dar de baixa"),
+                icon="archive",
+                on_click=lambda: (
+                    confirmar_eliminacion(_("Dar de baixa esta clasificación?"), baixa)
+                ),
+            ).props("flat color=negative")
 
     def abrir(cl: Clasificacion | None, tarefa: Tarefa | None = None,
               lote_id: int | None = None) -> None:
@@ -226,11 +245,11 @@ def dialogo_clasificacion(horta_id: int) -> Callable[..., None]:
                 clases_ficha = clases_da_ficha(ficha_do_lote(session, lt)) if lt else []
         editando["id"] = cl.id if cl else None
         editando["tarefa"] = tarefa.id if tarefa else None
-        titulo.text = "Editar clasificación" if cl else "Clasificación"
+        titulo.text = _("Editar clasificación") if cl else _("Clasificación")
         lote.set_options({lt.id: f"{lt.codigo} · {lt.produto}" for lt in lotes})
         lote.set_enabled(cl is None)
         data.value = (cl.data if cl else (tarefa.data if tarefa and tarefa.data
-                                          else date.today())).isoformat()
+                                           else date.today())).isoformat()
         refugo.value = f"{cl.refugo:g}" if cl and cl.refugo else ""
         persoa.value = (cl.persoa_id if cl and cl.persoa_id in persoas else
                         None if cl else proposta_quen(horta_id, tarefa))
@@ -253,33 +272,37 @@ def dialogo_mestura(horta_id: int) -> Callable[..., None]:
     """abrir(mestura, tarefa=None). Unha mestura gardada só se ve ou se dá de baixa."""
     listas = _quen_e_maquinas(horta_id)
     if listas is None:
-        return lambda *_, **__: None
+        return lambda *_x, **_kw: None
     persoas, maquinas = listas
     estado: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
-        titulo = ui.label("Mestura de lotes").classes("text-h6")
-        ui.label("Xuntar lotes do mesmo produto nun lote novo, que garda de onde vén."
-                 ).classes("texto-suave text-caption")
+        titulo = ui.label(_("Mestura de lotes")).classes("text-h6")
+        ui.label(
+            _("Xuntar lotes do mesmo produto nun lote novo, que garda de onde vén.")
+        ).classes("texto-suave text-caption")
         vista = ui.column().classes("w-full gap-1")
         with ui.column().classes("w-full gap-0") as formulario:
-            data = campo_data("Data", date.today().isoformat())
+            data = campo_data(_("Data"), date.today().isoformat())
             filas = ui.column().classes("w-full gap-0")
-            ui.button("Outro lote", icon="add", on_click=lambda: engadir_fila()).props(
-                "flat dense")
-            codigo = ui.input("Código do lote novo (baleiro: o que toque)").classes("w-full")
-            persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-            with ui.expansion("Máis datos").classes("w-full"):
-                horas = ui.input("Horas de traballo").classes("w-full")
-                maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-                notas = ui.textarea("Notas").classes("w-full")
+            ui.button(
+                _("Outro lote"), icon="add", on_click=lambda: engadir_fila()
+            ).props("flat dense")
+            codigo = ui.input(
+                _("Código do lote novo (baleiro: o que toque)")
+            ).classes("w-full")
+            persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+            with ui.expansion(_("Máis datos")).classes("w-full"):
+                horas = ui.input(_("Horas de traballo")).classes("w-full")
+                maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+                notas = ui.textarea(_("Notas")).classes("w-full")
         opcions: dict[str, str] = {}
         linas: list[tuple[ui.select, ui.input]] = []
 
         def engadir_fila() -> None:
             with filas, ui.row().classes("w-full no-wrap"):
-                orixe = ui.select(opcions, label="Lote (e clase)", with_input=True).classes(
+                orixe = ui.select(opcions, label=_("Lote (e clase)"), with_input=True).classes(
                     "col")
-                canto = ui.input("Canto").classes("w-32")
+                canto = ui.input(_("Canto")).classes("w-32")
                 linas.append((orixe, canto))
 
         def gardar() -> None:
@@ -292,14 +315,14 @@ def dialogo_mestura(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if dia is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     orixes = []
                     for orixe, canto in linas:
                         if not orixe.value:
                             continue
-                        lote_id, _, clase = str(orixe.value).partition("|")
+                        lote_id, _sep, clase = str(orixe.value).partition("|")
                         orixes.append(OrixeMestura(lote_id=int(lote_id), clase=clase or None,
-                                                   cantidade=parsear_decimal(canto.value) or 0))
+                                                    cantidade=parsear_decimal(canto.value) or 0))
                     nova = crear_mestura(session, actor, horta_id, DatosMestura(
                         data=dia, orixes=orixes, codigo=codigo.value or None,
                         persoa_id=persoa.value, horas=parsear_decimal(horas.value),
@@ -323,11 +346,15 @@ def dialogo_mestura(horta_id: int) -> Callable[..., None]:
 
         with ui.row().classes("w-full justify-between"):
             with ui.row():
-                boton_gardar = ui.button("Gardar", icon="check", on_click=gardar)
-                ui.button("Pechar", on_click=dialogo.close).props("flat")
-            boton_baixa = ui.button("Dar de baixa", icon="archive", on_click=lambda: (
-                confirmar_eliminacion("Dar de baixa esta mestura?", baixa))).props(
-                "flat color=negative")
+                boton_gardar = ui.button(_("Gardar"), icon="check", on_click=gardar)
+                ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
+            boton_baixa = ui.button(
+                _("Dar de baixa"),
+                icon="archive",
+                on_click=lambda: (
+                    confirmar_eliminacion(_("Dar de baixa esta mestura?"), baixa)
+                ),
+            ).props("flat color=negative")
 
     def abrir(mestura: Mestura | None, tarefa: Tarefa | None = None) -> None:
         with get_session() as session:
@@ -339,21 +366,40 @@ def dialogo_mestura(horta_id: int) -> Callable[..., None]:
             for lt in listar_lotes(session, actor, horta_id):
                 for clase, canto in queda_por_clase(session, lt).items():
                     if canto > 1e-9:
+                        clase_str = f" · {clase}" if clase else ""
+                        quedan_str = _("(quedan {canto:g} {unidade})").format(
+                            canto=canto, unidade=lt.unidade
+                        )
                         opcions[f"{lt.id}|{clase or ''}"] = (
-                            f"{lt.codigo} · {lt.produto}{f' · {clase}' if clase else ''} "
-                            f"(quedan {canto:g} {lt.unidade})")
+                            f"{lt.codigo} · {lt.produto}{clase_str} {quedan_str}"
+                        )
             textos: list[str] = []
             if mestura is not None:
                 destino = session.get(Lote, mestura.lote_id)
-                textos.append(f"Lote novo: {destino.codigo if destino else '?'} · "
-                              f"{mestura.data:%d/%m/%Y}")
+                textos.append(
+                    _("Lote novo: {codigo} · {data}").format(
+                        codigo=destino.codigo if destino else "?",
+                        data=f"{mestura.data:%d/%m/%Y}",
+                    )
+                )
                 for o in mestura.orixes:
                     orixe = session.get(Lote, o.lote_id)
-                    textos.append(f"De {orixe.codigo if orixe else '?'}: {o.cantidade:g}"
-                                  f"{f' ({o.clase})' if o.clase else ''}")
+                    cod = orixe.codigo if orixe else "?"
+                    if o.clase:
+                        textos.append(
+                            _("De {codigo}: {cantidade:g} ({clase})").format(
+                                codigo=cod, cantidade=o.cantidade, clase=o.clase
+                            )
+                        )
+                    else:
+                        textos.append(
+                            _("De {codigo}: {cantidade:g}").format(
+                                codigo=cod, cantidade=o.cantidade
+                            )
+                        )
         estado["id"] = mestura.id if mestura else None
         estado["tarefa"] = tarefa.id if tarefa else None
-        titulo.text = "Mestura de lotes"
+        titulo.text = _("Mestura de lotes")
         vista.clear()
         with vista:
             for texto in textos:
@@ -385,21 +431,35 @@ def abrir_trazabilidade(lote_id: int) -> None:
             return
         traz = trazabilidade(session, actor, lote_id)
     with ui.dialog() as dialogo, ui.card().style("width: min(44rem, 96vw)"):
-        ui.label(f"Trazabilidade do lote {traz.lote.codigo}").classes("text-h6")
-        ui.label(f"{traz.lote.produto} · desde o {traz.lote.data:%d/%m/%Y}").classes(
-            "texto-suave")
-        for titulo, lineas in (("De onde veu", traz.orixe), ("Que se lle fixo", traz.fixose),
-                               ("Dentro do lote", traz.dentro), ("A onde foi", traz.saidas)):
+        ui.label(
+            _("Trazabilidade do lote {codigo}").format(codigo=traz.lote.codigo)
+        ).classes("text-h6")
+        ui.label(
+            _("{produto} · desde o {data}").format(
+                produto=traz.lote.produto,
+                data=f"{traz.lote.data:%d/%m/%Y}",
+            )
+        ).classes("texto-suave")
+        seccions_traz = (
+            (_("De onde veu"), traz.orixe),
+            (_("Que se lle fixo"), traz.fixose),
+            (_("Dentro do lote"), traz.dentro),
+            (_("A onde foi"), traz.saidas),
+        )
+        for titulo, lineas in seccions_traz:
             ui.label(titulo).classes("text-subtitle1 text-weight-bold q-mt-sm")
             if not lineas:
-                ui.label("Nada apuntado.").classes("texto-suave")
+                ui.label(_("Nada apuntado.")).classes("texto-suave")
             for linea in lineas:
                 data = f"{linea.data:%d/%m/%Y} · " if linea.data else ""
                 ui.label(f"{data}{linea.texto}")
         with ui.row():
-            ui.button("Imprimir", icon="print",
-                      on_click=lambda: ui.run_javascript("window.print()")).props("outline")
-            ui.button("Pechar", on_click=dialogo.close).props("flat")
+            ui.button(
+                _("Imprimir"),
+                icon="print",
+                on_click=lambda: ui.run_javascript("window.print()"),
+            ).props("outline")
+            ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
     dialogo.open()
 
 
@@ -419,37 +479,43 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
 
     listas = _quen_e_maquinas(horta_id)
     if listas is None:
-        return lambda *_, **__: None
+        return lambda *_x, **_kw: None
     persoas, maquinas = listas
     estado: dict[str, int | None] = {"id": None, "tarefa": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 96vw)"):
-        ui.label("Transformación").classes("text-h6")
-        ui.label("Elaborar un produto novo con lotes propios e ingredientes mercados. Sae un "
-                 "lote novo que garda de onde vén.").classes("texto-suave text-caption")
+        ui.label(_("Transformación")).classes("text-h6")
+        ui.label(
+            _("Elaborar un produto novo con lotes propios e ingredientes mercados. "
+              "Sae un lote novo que garda de onde vén.")
+        ).classes("texto-suave text-caption")
         vista = ui.column().classes("w-full gap-1")
         with ui.column().classes("w-full gap-0") as formulario:
-            data = campo_data("Data", date.today().isoformat())
+            data = campo_data(_("Data"), date.today().isoformat())
             with ui.row().classes("w-full no-wrap"):
-                produto = ui.select([], label="Que sae (p.ex. Conserva de pemento)",
+                produto = ui.select([], label=_("Que sae (p.ex. Conserva de pemento)"),
                                     with_input=True, new_value_mode="add-unique").classes("col")
-                canto = ui.input("Canto").classes("w-24")
+                canto = ui.input(_("Canto")).classes("w-24")
                 unidade = ui.select(["unidades", "kg", "litros"], value="unidades",
-                                    label="Unidade").classes("w-32")
-            ui.label("Lotes que entran").classes("text-subtitle2 q-mt-sm")
+                                    label=_("Unidade")).classes("w-32")
+            ui.label(_("Lotes que entran")).classes("text-subtitle2 q-mt-sm")
             filas_lotes = ui.column().classes("w-full gap-0")
-            ui.button("Outro lote", icon="add", on_click=lambda: fila_lote()).props("flat dense")
-            ui.label("Ingredientes e envases mercados").classes("text-subtitle2")
-            filas_insumos = ui.column().classes("w-full gap-0")
-            ui.button("Outro ingrediente", icon="add", on_click=lambda: fila_insumo()).props(
+            ui.button(_("Outro lote"), icon="add", on_click=lambda: fila_lote()).props(
                 "flat dense")
-            codigo = ui.input("Código do lote novo (baleiro: o que toque)").classes("w-full")
-            instalacion = ui.select({}, label="Onde (instalación)", clearable=True).classes(
+            ui.label(_("Ingredientes e envases mercados")).classes("text-subtitle2")
+            filas_insumos = ui.column().classes("w-full gap-0")
+            ui.button(
+                _("Outro ingrediente"), icon="add", on_click=lambda: fila_insumo()
+            ).props("flat dense")
+            codigo = ui.input(
+                _("Código do lote novo (baleiro: o que toque)")
+            ).classes("w-full")
+            instalacion = ui.select({}, label=_("Onde (instalación)"), clearable=True).classes(
                 "w-full")
-            persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-            with ui.expansion("Máis datos").classes("w-full"):
-                horas = ui.input("Horas de traballo").classes("w-full")
-                maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-                notas = ui.textarea("Notas").classes("w-full")
+            persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+            with ui.expansion(_("Máis datos")).classes("w-full"):
+                horas = ui.input(_("Horas de traballo")).classes("w-full")
+                maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+                notas = ui.textarea(_("Notas")).classes("w-full")
         opcions_lotes: dict[str, str] = {}
         opcions_produtos: dict[int, str] = {}
         lotes_linas: list[tuple[ui.select, ui.input]] = []
@@ -457,15 +523,15 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
 
         def fila_lote() -> None:
             with filas_lotes, ui.row().classes("w-full no-wrap"):
-                lotes_linas.append((ui.select(opcions_lotes, label="Lote (e clase)",
+                lotes_linas.append((ui.select(opcions_lotes, label=_("Lote (e clase)"),
                                               with_input=True).classes("col"),
-                                    ui.input("Canto").classes("w-28")))
+                                    ui.input(_("Canto")).classes("w-28")))
 
         def fila_insumo() -> None:
             with filas_insumos, ui.row().classes("w-full no-wrap"):
-                insumos_linas.append((ui.select(opcions_produtos, label="Produto",
+                insumos_linas.append((ui.select(opcions_produtos, label=_("Produto"),
                                                 with_input=True).classes("col"),
-                                      ui.input("Canto").classes("w-28")))
+                                      ui.input(_("Canto")).classes("w-28")))
 
         def gardar() -> None:
             with get_session() as session:
@@ -477,17 +543,17 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if dia is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     entradas = []
                     for orixe, cantidade in lotes_linas:
                         if orixe.value:
-                            lote_id, _, clase = str(orixe.value).partition("|")
+                            lote_id, _sep, clase = str(orixe.value).partition("|")
                             entradas.append(OrixeMestura(
                                 lote_id=int(lote_id), clase=clase or None,
                                 cantidade=parsear_decimal(cantidade.value) or 0))
                     insumos = [InsumoTransformacion(produto_id=p.value,
-                                                    cantidade=parsear_decimal(c.value) or 0)
-                               for p, c in insumos_linas if p.value]
+                                                     cantidade=parsear_decimal(c.value) or 0)
+                                for p, c in insumos_linas if p.value]
                     nova = crear_transformacion(session, actor, horta_id, DatosTransformacion(
                         data=dia, produto=produto.value or "", unidade=unidade.value,
                         cantidade=parsear_decimal(canto.value) or 0, entradas=entradas,
@@ -514,11 +580,15 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
 
         with ui.row().classes("w-full justify-between"):
             with ui.row():
-                boton_gardar = ui.button("Gardar", icon="check", on_click=gardar)
-                ui.button("Pechar", on_click=dialogo.close).props("flat")
-            boton_baixa = ui.button("Dar de baixa", icon="archive", on_click=lambda: (
-                confirmar_eliminacion("Dar de baixa esta transformación?", baixa))).props(
-                "flat color=negative")
+                boton_gardar = ui.button(_("Gardar"), icon="check", on_click=gardar)
+                ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
+            boton_baixa = ui.button(
+                _("Dar de baixa"),
+                icon="archive",
+                on_click=lambda: (
+                    confirmar_eliminacion(_("Dar de baixa esta transformación?"), baixa)
+                ),
+            ).props("flat color=negative")
 
     def abrir(tr: Transformacion | None, tarefa: Tarefa | None = None) -> None:
         with get_session() as session:
@@ -530,9 +600,13 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
             for lt in listar_lotes(session, actor, horta_id):
                 for clase, cantidade in queda_por_clase(session, lt).items():
                     if cantidade > 1e-9:
+                        clase_str = f" · {clase}" if clase else ""
+                        quedan_str = _("(quedan {canto:g} {unidade})").format(
+                            canto=cantidade, unidade=lt.unidade
+                        )
                         opcions_lotes[f"{lt.id}|{clase or ''}"] = (
-                            f"{lt.codigo} · {lt.produto}{f' · {clase}' if clase else ''} "
-                            f"(quedan {cantidade:g} {lt.unidade})")
+                            f"{lt.codigo} · {lt.produto}{clase_str} {quedan_str}"
+                        )
             opcions_produtos.clear()
             opcions_produtos.update({p.id: f"{p.nome} ({p.unidade})"
                                      for p in listar_produtos(session, actor, horta_id)})
@@ -543,16 +617,37 @@ def dialogo_transformacion(horta_id: int) -> Callable[..., None]:
             textos: list[str] = []
             if tr is not None:
                 destino = session.get(Lote, tr.lote_id)
-                textos.append(f"{tr.data:%d/%m/%Y} · saíron {tr.cantidade:g} "
-                              f"{destino.unidade if destino else ''} no lote "
-                              f"{destino.codigo if destino else '?'}")
+                textos.append(
+                    _("{data} · saíron {cantidade:g} {unidade} no lote {codigo}").format(
+                        data=f"{tr.data:%d/%m/%Y}",
+                        cantidade=tr.cantidade,
+                        unidade=destino.unidade if destino else "",
+                        codigo=destino.codigo if destino else "?",
+                    )
+                )
                 for e in tr.entradas:
                     orixe = session.get(Lote, e.lote_id)
-                    textos.append(f"De {orixe.codigo if orixe else '?'}: {e.cantidade:g}"
-                                  f"{f' ({e.clase})' if e.clase else ''}")
+                    cod = orixe.codigo if orixe else "?"
+                    if e.clase:
+                        textos.append(
+                            _("De {codigo}: {cantidade:g} ({clase})").format(
+                                codigo=cod, cantidade=e.cantidade, clase=e.clase
+                            )
+                        )
+                    else:
+                        textos.append(
+                            _("De {codigo}: {cantidade:g}").format(
+                                codigo=cod, cantidade=e.cantidade
+                            )
+                        )
                 for i in tr.insumos:
                     p = session.get(Produto, i.produto_id)
-                    textos.append(f"Ingrediente: {p.nome if p else '?'} {i.cantidade:g}")
+                    textos.append(
+                        _("Ingrediente: {nome} {cantidade:g}").format(
+                            nome=p.nome if p else "?",
+                            cantidade=i.cantidade,
+                        )
+                    )
         estado["id"] = tr.id if tr else None
         estado["tarefa"] = tarefa.id if tarefa else None
         vista.clear()
@@ -592,9 +687,13 @@ def abrir_paxina_publica(lote_id: int) -> None:
             ui.notify(str(erro), type="negative")
             return
     with ui.dialog() as dialogo, ui.card().style("width: min(34rem, 94vw)"):
-        ui.label(f"Páxina pública do lote {lote.codigo}").classes("text-h6")
-        ui.label("Quen teña este enderezo ve de onde vén o produto e que se lle fixo (nunca a "
-                 "quen se vendeu). Pódese poñer na etiqueta.").classes("text-caption")
+        ui.label(
+            _("Páxina pública do lote {codigo}").format(codigo=lote.codigo)
+        ).classes("text-h6")
+        ui.label(
+            _("Quen teña este enderezo ve de onde vén o produto e que se lle fixo "
+              "(nunca a quen se vendeu). Pódese poñer na etiqueta.")
+        ).classes("text-caption")
         enderezo = ui.label("").classes("text-weight-bold")
         qr = ui.image().style("width: 12rem")
         ligazon: dict[str, str] = {}
@@ -623,12 +722,14 @@ def abrir_paxina_publica(lote_id: int) -> None:
                 ok = executar_accion(session, lambda: retirar_publicacion(session, actor, lt))
             if ok:
                 dialogo.close()
-                ui.notify("Retirada: o enderezo xa non funciona")
+                ui.notify(_("Retirada: o enderezo xa non funciona"))
 
         with ui.row():
-            ui.button("Descargar o QR", icon="qr_code", on_click=descargar_qr)
-            ui.button("Abrir", icon="open_in_new",
+            ui.button(_("Descargar o QR"), icon="qr_code", on_click=descargar_qr)
+            ui.button(_("Abrir"), icon="open_in_new",
                       on_click=lambda: ui.navigate.to(f"/lote/{token}", new_tab=True))
-            ui.button("Retirar", icon="link_off", on_click=retirar).props("flat color=negative")
-            ui.button("Pechar", on_click=dialogo.close).props("flat")
+            ui.button(_("Retirar"), icon="link_off", on_click=retirar).props(
+                "flat color=negative"
+            )
+            ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
     dialogo.open()

@@ -539,18 +539,18 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
         for m in marxes_por_venda(plan):
             ui.label(texto_marxe(m))
 
-    ui.label("Conta de explotación (6)").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Conta de explotación (6)")).classes("text-subtitle1 text-weight-bold q-mt-md")
     filas = conta(plan)
     entradas: dict[int, list[Any]] = {a.ano_n: [] for a in filas}
     hai_detalle = bool(plan.vendas_detalle)
     hai_custo = hai_detalle and any(v.custo_unitario is not None for v in plan.vendas_detalle)
     with ui.grid(columns=6).classes("w-full gap-1 items-center"):
-        for texto in ("", *(f"Ano {a.ano_n} ({a.ano})" for a in filas)):
+        for texto in ("", *(_("Ano {n} ({ano})").format(n=a.ano_n, ano=a.ano) for a in filas)):
             ui.label(texto).classes("text-weight-bold text-caption")
         financeiros = {a.ano_n: a.ingresos_financeiros for a in plan.anos}
 
         # A) Vendas
-        ui.label("A) Vendas")
+        ui.label(_("A) Vendas"))
         for a in filas:
             if hai_detalle:
                 ui.label(_e(a.vendas))
@@ -559,7 +559,7 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                 entradas[a.ano_n].append(ui.input(value=f"{a.vendas:g}").props("dense"))
 
         # B) Variables
-        ui.label("B) Variables")
+        ui.label(_("B) Variables"))
         for a in filas:
             if hai_custo:
                 ui.label(_e(a.variables))
@@ -568,19 +568,20 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                 entradas[a.ano_n].append(ui.input(value=f"{a.variables:g}").props("dense"))
 
         # C) Fixos
-        ui.label("C) Fixos")
+        ui.label(_("C) Fixos"))
         for a in filas:
             entradas[a.ano_n].append(ui.input(value=f"{a.fixos:g}").props("dense"))
 
         # Ingresos financeiros
-        ui.label("Ingresos financeiros")
+        ui.label(_("Ingresos financeiros"))
         for a in filas:
             valor = financeiros.get(a.ano_n, 0)
             entradas[a.ano_n].append(ui.input(value=f"{valor:g}").props("dense"))
 
-        for nome, campo in (("D) Amortizacións", "amortizacions"), ("E) Marxe", "marxe"),
-                            ("F) Financeiro", "financeiro"), ("G) Beneficio", "beneficio")):
-            ui.label(nome)
+        for nome, campo in ((N_("D) Amortizacións"), "amortizacions"), (N_("E) Marxe"), "marxe"),
+                            (N_("F) Financeiro"), "financeiro"),
+                            (N_("G) Beneficio"), "beneficio")):
+            ui.label(_(nome))
             for a in filas:
                 ui.label(_e(getattr(a, campo)))
 
@@ -590,17 +591,17 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                    for n, (v, b, c, f) in entradas.items()}
         gardar_anos(session, actor, session.get(PlanEmpresa, plan.id), valores)
 
-    ui.button("Gardar a conta", icon="check", on_click=lambda: _accion(gardar_conta)).props(
+    ui.button(_("Gardar a conta"), icon="check", on_click=lambda: _accion(gardar_conta)).props(
         "outline")
 
-    ui.label("Escenarios").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Escenarios")).classes("text-subtitle1 text-weight-bold q-mt-md")
     with ui.row().classes("items-end gap-2"):
         esc_pct = ui.input(
-            "Variación das vendas nos escenarios (%)",
+            _("Variación das vendas nos escenarios (%)"),
             value=f"{plan.escenario_pct:g}" if plan.escenario_pct is not None else "20",
         ).classes("w-64")
         ui.button(
-            "Gardar",
+            _("Gardar"),
             icon="check",
             on_click=lambda: _accion(
                 lambda s, a: actualizar_plan(
@@ -612,43 +613,43 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
 
     esc_lista = escenarios(plan)
     with ui.grid(columns=4).classes("w-full gap-1 items-center"):
-        for texto in ("", "Pesimista", "Normal", "Optimista"):
+        for texto in ("", _("Pesimista"), _("Normal"), _("Optimista")):
             ui.label(texto).classes("text-weight-bold text-caption")
 
-        ui.label("Vendas do ano 1")
+        ui.label(_("Vendas do ano 1"))
         for e in esc_lista:
             ui.label(_e(e.vendas_ano1))
 
-        ui.label("Beneficio do ano 1")
+        ui.label(_("Beneficio do ano 1"))
         for e in esc_lista:
             ui.label(_e(e.beneficio_ano1))
 
-        ui.label("VAN")
+        ui.label(_("VAN"))
         for e in esc_lista:
             ui.label(_e(e.van))
 
-        ui.label("TIR")
+        ui.label(_("TIR"))
         for e in esc_lista:
             ui.label(texto_tir(e.tir))
 
-        ui.label("Pay-back")
+        ui.label(_("Pay-back"))
         for e in esc_lista:
             ui.label(texto_payback(e.payback))
 
-    ui.label("Os custos quedan iguais en todos os escenarios.").classes(
+    ui.label(_("Os custos quedan iguais en todos os escenarios.")).classes(
         "texto-suave text-caption"
     )
 
-    ui.label("Comparación coa media galega").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Comparación coa media galega")).classes("text-subtitle1 text-weight-bold q-mt-md")
     with ui.row().classes("items-end gap-2"):
         ote = ui.select(
             orientacions_recan(),
-            label="Tipo de explotación (RECAN)",
+            label=_("Tipo de explotación (RECAN)"),
             value=plan.ote_recan,
             clearable=True,
         ).classes("w-72")
         ui.button(
-            "Gardar",
+            _("Gardar"),
             icon="check",
             on_click=lambda: _accion(
                 lambda s, a: actualizar_plan(
@@ -664,77 +665,87 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             if nota:
                 ui.label(nota).classes("texto-suave text-caption")
 
-    ui.label(f"Fonte: {fonte_recan()}").classes("texto-suave text-caption")
+    ui.label(_("Fonte: {fonte}").format(fonte=fonte_recan())).classes("texto-suave text-caption")
 
-    ui.label("Tesouraría do ano 1").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Tesouraría do ano 1")).classes("text-subtitle1 text-weight-bold q-mt-md")
     meses_tes = tesouraria(plan)
     ui.echart(opcions_tesouraria(meses_tes)).classes("w-full").style("height: 320px")
-    ui.label(
+    ui.label(_(
         "Suponse que o financiamento entra no mes 1, as subvencións no mes 12 e o "
         "investimento págase no mes 1 con IVE."
-    ).classes("texto-suave text-caption")
+    )).classes("texto-suave text-caption")
 
-    ui.label("Investimento (Anexo V)").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Investimento (Anexo V)")).classes("text-subtitle1 text-weight-bold q-mt-md")
     for i in sorted(plan.investimentos, key=lambda i: i.partida):
         with ui.row().classes("items-center gap-2"):
-            ui.label(f"{PARTIDAS[i.partida]} · {i.concepto}: {_e(i.importe_sen_iva)} + "
-                     f"{i.iva_pct:g} % IVE")
+            ui.label(_("{partida} · {concepto}: {importe} + {iva} % IVE").format(
+                partida=_(PARTIDAS[i.partida]), concepto=i.concepto,
+                importe=_e(i.importe_sen_iva), iva=f"{i.iva_pct:g}"))
             ui.button(icon="delete", on_click=lambda i=i: _accion(
                 lambda s, a: quitar(s, a, s.get(PlanEmpresa, plan.id),
                                     s.get(PlanInvestimento, i.id)))).props(
                 "flat dense round size=sm color=negative")
         _ofertas(plan, i, provedores, nomes)
     with ui.row().classes("items-end gap-2"):
-        partida = ui.select(PARTIDAS, label="Partida", value="3").classes("w-56")
-        concepto = ui.input("Concepto").classes("w-48")
-        importe = ui.input("Sen IVE (€)").classes("w-28")
-        iva = ui.input("IVE %", value="21").classes("w-20")
-        vida = ui.input("Vida útil (anos)", value="10").classes("w-28")
-        motivo = ui.input("Se non hai tres ofertas, por que").classes("w-64")
-        ui.button("Engadir", icon="add", on_click=lambda: _accion(
+        partida = ui.select(
+            {k: _(v) for k, v in PARTIDAS.items()}, label=_("Partida"), value="3"
+        ).classes("w-56")
+        concepto = ui.input(_("Concepto")).classes("w-48")
+        importe = ui.input(_("Sen IVE (€)")).classes("w-28")
+        iva = ui.input(_("IVE %"), value="21").classes("w-20")
+        vida = ui.input(_("Vida útil (anos)"), value="10").classes("w-28")
+        motivo = ui.input(_("Se non hai tres ofertas, por que")).classes("w-64")
+        ui.button(_("Engadir"), icon="add", on_click=lambda: _accion(
             lambda s, a: engadir_investimento(
                 s, a, s.get(PlanEmpresa, plan.id), partida.value, concepto.value or "",
                 parsear_decimal(importe.value) or 0, parsear_decimal(iva.value) or 0,
                 int(parsear_decimal(vida.value) or 0), motivo.value or None
             ))).props("outline")
 
-    ui.label("Financiamento (5)").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Financiamento (5)")).classes("text-subtitle1 text-weight-bold q-mt-md")
     for f in plan.financiamento:
         with ui.row().classes("items-center gap-2"):
-            extra = f" · {f.xuro_pct:g} % a {f.anos} anos" if f.tipo == "prestamo" else ""
-            ui.label(f"{FONTES[f.tipo]}: {_e(f.importe)}{extra}")
+            extra = (
+                _(" · {xuro} % a {anos} anos").format(xuro=f"{f.xuro_pct:g}", anos=f.anos)
+                if f.tipo == "prestamo" else ""
+            )
+            ui.label(f"{_(FONTES[f.tipo])}: {_e(f.importe)}{extra}")
             ui.button(icon="delete", on_click=lambda f=f: _accion(
                 lambda s, a: quitar(s, a, s.get(PlanEmpresa, plan.id),
                                     s.get(PlanFinanciamento, f.id)))).props(
                 "flat dense round size=sm color=negative")
     with ui.row().classes("items-end gap-2"):
-        fonte = ui.select(FONTES, label="Fonte", value="propios").classes("w-48")
-        canto = ui.input("Importe (€)").classes("w-28")
-        xuro = ui.input("Xuro % (préstamo)").classes("w-32")
-        anos = ui.input("Anos (préstamo)").classes("w-28")
-        ui.button("Engadir", icon="add", on_click=lambda: _accion(
+        fonte = ui.select(
+            {k: _(v) for k, v in FONTES.items()}, label=_("Fonte"), value="propios"
+        ).classes("w-48")
+        canto = ui.input(_("Importe (€)")).classes("w-28")
+        xuro = ui.input(_("Xuro % (préstamo)")).classes("w-32")
+        anos = ui.input(_("Anos (préstamo)")).classes("w-28")
+        ui.button(_("Engadir"), icon="add", on_click=lambda: _accion(
             lambda s, a: engadir_financiamento(
                 s, a, s.get(PlanEmpresa, plan.id), fonte.value,
                 parsear_decimal(canto.value) or 0, parsear_decimal(xuro.value),
                 int(parsear_decimal(anos.value) or 0) or None))).props("outline")
 
-    ui.label("Documentación (art. 18)").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Documentación (art. 18)")).classes("text-subtitle1 text-weight-bold q-mt-md")
     for doc in docs:
         with ui.row().classes("items-center gap-2 no-wrap"):
             ui.icon("check_circle" if doc.da_app else "upload_file").classes(
                 "text-positive" if doc.da_app else "text-grey")
-            ui.label(f"{doc.letra}) {doc.texto}" + ("" if doc.da_app else " · achégao ti")
+            ui.label(f"{doc.letra}) {doc.texto}" + ("" if doc.da_app else _(" · achégao ti"))
                      ).classes("text-body2")
 
-    ui.label("Memoria complementaria").classes("text-subtitle1 text-weight-bold q-mt-md")
-    ui.label(
+    ui.label(_("Memoria complementaria")).classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_(
         "AGADER admítea como documentación complementaria (art. 18.1.p). "
         "Serve tamén para o banco ou para o GDR."
-    ).classes("texto-suave text-caption")
+    )).classes("texto-suave text-caption")
 
     faltas_m = faltas_memoria(plan)
     if faltas_m:
-        ui.label("Na memoria falta: " + "; ".join(faltas_m) + ".").classes("etiqueta-aviso")
+        ui.label(
+            _("Na memoria falta: {faltas}.").format(faltas="; ".join(_(f) for f in faltas_m))
+        ).classes("etiqueta-aviso")
 
     campos_lista = {
         "dafo_debilidades",
@@ -747,33 +758,33 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
     }
     entradas_memoria: dict[str, ui.textarea] = {}
     for seccion, campos in SECCIONS_MEMORIA.items():
-        with ui.expansion(seccion).classes("w-full"):
-            if seccion == "DAFO":
+        with ui.expansion(_(seccion)).classes("w-full"):
+            if seccion == N_("DAFO"):
                 with ui.grid(columns=2).classes("w-full"):
                     for c in campos:
                         ta = ui.textarea(
-                            ETIQUETAS_MEMORIA[c].capitalize(),
+                            _(ETIQUETAS_MEMORIA[c]).capitalize(),
                             value=getattr(plan, c) or "",
                         ).classes("w-full").props("autogrow")
                         if c in campos_lista:
-                            ta.props('hint="Un punto por liña"')
+                            ta.props(f'hint="{_("Un punto por liña")}"')
                         entradas_memoria[c] = ta
             else:
                 for c in campos:
                     ta = ui.textarea(
-                        ETIQUETAS_MEMORIA[c].capitalize(),
+                        _(ETIQUETAS_MEMORIA[c]).capitalize(),
                         value=getattr(plan, c) or "",
                     ).classes("w-full").props("autogrow")
                     if c in campos_lista:
-                        ta.props('hint="Un punto por liña"')
+                        ta.props(f'hint="{_("Un punto por liña")}"')
                     entradas_memoria[c] = ta
 
-    ui.button("Gardar a memoria", icon="check", on_click=lambda: _accion(
+    ui.button(_("Gardar a memoria"), icon="check", on_click=lambda: _accion(
         lambda s, a: actualizar_plan(
             s, a, s.get(PlanEmpresa, plan.id),
             **{c: t.value or None for c, t in entradas_memoria.items()}))).props("outline")
 
-    with ui.expansion("Calendario de 12 meses").classes("w-full"):
+    with ui.expansion(_("Calendario de 12 meses")).classes("w-full"):
         for act in plan.actividades:
             with ui.row().classes("items-center gap-2"):
                 ui.label(texto_actividade(act))
@@ -783,17 +794,17 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                     "flat dense round size=sm color=negative")
         with ui.row().classes("items-end gap-2"):
             meses = list(range(1, 13))
-            mes_inicio = ui.select(meses, label="Desde o mes", value=1).classes("w-28")
-            mes_fin = ui.select(meses, label="Ata o mes", value=12).classes("w-28")
-            act_txt = ui.input("Actividade").classes("w-48")
-            resp_txt = ui.input("Responsable").classes("w-36")
-            ui.button("Engadir", icon="add", on_click=lambda: _accion(
+            mes_inicio = ui.select(meses, label=_("Desde o mes"), value=1).classes("w-28")
+            mes_fin = ui.select(meses, label=_("Ata o mes"), value=12).classes("w-28")
+            act_txt = ui.input(_("Actividade")).classes("w-48")
+            resp_txt = ui.input(_("Responsable")).classes("w-36")
+            ui.button(_("Engadir"), icon="add", on_click=lambda: _accion(
                 lambda s, a: engadir_actividade(
                     s, a, s.get(PlanEmpresa, plan.id),
                     int(mes_inicio.value or 0), int(mes_fin.value or 0),
                     act_txt.value or "", resp_txt.value or None))).props("outline")
 
-    with ui.expansion("Obxectivos e indicadores").classes("w-full"):
+    with ui.expansion(_("Obxectivos e indicadores")).classes("w-full"):
         for obx in plan.obxectivos:
             with ui.row().classes("items-center gap-2"):
                 ui.label(texto_obxectivo(obx))
@@ -802,21 +813,25 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                                         s.get(PlanObxectivo, obx.id)))).props(
                     "flat dense round size=sm color=negative")
         with ui.row().classes("items-end gap-2"):
-            obx_txt = ui.input("Obxectivo").classes("w-48")
-            ind_txt = ui.input("Como se mide").classes("w-48")
-            meta_txt = ui.input("Meta").classes("w-32")
-            prazo_txt = ui.input("Prazo").classes("w-28")
-            ui.button("Engadir", icon="add", on_click=lambda: _accion(
+            obx_txt = ui.input(_("Obxectivo")).classes("w-48")
+            ind_txt = ui.input(_("Como se mide")).classes("w-48")
+            meta_txt = ui.input(_("Meta")).classes("w-32")
+            prazo_txt = ui.input(_("Prazo")).classes("w-28")
+            ui.button(_("Engadir"), icon="add", on_click=lambda: _accion(
                 lambda s, a: engadir_obxectivo(
                     s, a, s.get(PlanEmpresa, plan.id),
                     obx_txt.value or "", ind_txt.value or "",
                     meta_txt.value or None, prazo_txt.value or None))).props("outline")
 
     if segue:
-        ui.label("Seguimento: previsto e real").classes("text-subtitle1 text-weight-bold q-mt-md")
+        ui.label(_("Seguimento: previsto e real")).classes(
+            "text-subtitle1 text-weight-bold q-mt-md"
+        )
         for s in segue:
-            ui.label(f"{s.ano}: vendas {_e(s.previsto_vendas)} previstas, {_e(s.real_vendas)} "
-                     f"reais · marxe {_e(s.previsto_marxe)} prevista, {_e(s.real_marxe)} real")
+            ui.label(_(
+                "{ano}: vendas {pv} previstas, {rv} reais · marxe {pm} prevista, {rm} real"
+            ).format(ano=s.ano, pv=_e(s.previsto_vendas), rv=_e(s.real_vendas),
+                     pm=_e(s.previsto_marxe), rm=_e(s.real_marxe)))
 
     formato = selector_formato()
 
@@ -835,7 +850,7 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             datos,
             formato.value or "xlsx",
             f"plan-empresa-{plan.id}",
-            "Plan de empresa",
+            _("Plan de empresa"),
             "plan",
         )
 
@@ -854,13 +869,13 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             datos,
             formato.value or "xlsx",
             f"plan-memoria-{plan.id}",
-            "Memoria do plan de empresa",
+            _("Memoria do plan de empresa"),
             "memoria",
         )
 
     with ui.row().classes("items-center gap-2 q-mt-md"):
-        ui.button("Descargar Anexo III e V", icon="download", on_click=descargar)
-        ui.button("Descargar a memoria", icon="download", on_click=descargar_memoria).props(
+        ui.button(_("Descargar Anexo III e V"), icon="download", on_click=descargar)
+        ui.button(_("Descargar a memoria"), icon="download", on_click=descargar_memoria).props(
             "outline")
 
 
@@ -869,7 +884,9 @@ def _ofertas(plan: PlanEmpresa, investimento: PlanInvestimento, provedores: dict
     """As ofertas dun concepto (Anexo VI-A) e o formulario para engadir outra."""
     with ui.column().classes("q-ml-lg gap-1"):
         if investimento.motivo_sen_ofertas:
-            ui.label(f"Sen tres ofertas: {investimento.motivo_sen_ofertas}").classes(
+            ui.label(
+                _("Sen tres ofertas: {motivo}").format(motivo=investimento.motivo_sen_ofertas)
+            ).classes(
                 "texto-suave text-caption")
         for o in investimento.ofertas:
             with ui.row().classes("items-center gap-2"):
@@ -881,17 +898,17 @@ def _ofertas(plan: PlanEmpresa, investimento: PlanInvestimento, provedores: dict
                                         s.get(PlanOferta, o.id)))).props(
                     "flat dense round size=sm color=negative")
         if not provedores:
-            ui.label(
+            ui.label(_(
                 "Para engadir ofertas, crea as empresas provedoras en Persoas → Contactos."
-            ).classes("texto-suave text-caption")
+            )).classes("texto-suave text-caption")
             return
         with ui.row().classes("items-end gap-2"):
-            provedor = ui.select(provedores, label="Provedor").classes("w-48")
-            importe = ui.input("Sen IVE (€)").classes("w-28")
-            elixida = ui.checkbox("Elixida")
-            criterio = ui.input("Criterio").classes("w-36")
-            xustificacion = ui.input("Por que non a máis barata").classes("w-48")
-            ui.button("Oferta", icon="add", on_click=lambda: _accion(
+            provedor = ui.select(provedores, label=_("Provedor")).classes("w-48")
+            importe = ui.input(_("Sen IVE (€)")).classes("w-28")
+            elixida = ui.checkbox(_("Elixida"))
+            criterio = ui.input(_("Criterio")).classes("w-36")
+            xustificacion = ui.input(_("Por que non a máis barata")).classes("w-48")
+            ui.button(_("Oferta"), icon="add", on_click=lambda: _accion(
                 lambda s, a: engadir_oferta(
                     s, a, s.get(PlanEmpresa, plan.id), s.get(PlanInvestimento,
                                                              investimento.id),

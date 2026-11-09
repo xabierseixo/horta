@@ -9,6 +9,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.parcela import Parcela
 from horta.models.pastoreo import Pastoreo
 from horta.models.tarefa import Tarefa
@@ -58,23 +59,26 @@ def seccion_pastoreo(horta_id: int, pode_editar: bool) -> None:
         filas = [{
             "id": pa.id,
             "inicio": f"{pa.data_inicio:%d/%m/%Y}",
-            "fin": f"{pa.data_fin:%d/%m/%Y}" if pa.data_fin else "Aínda no pasto",
+            "fin": f"{pa.data_fin:%d/%m/%Y}" if pa.data_fin else _("Aínda no pasto"),
             "leiras": nomes_leiras(session, pa),
             "animais": ", ".join(
                 f"{li.numero} {grupos.get(li.animal_id, '')}" if li.animal_id
-                else f"{li.numero} {ESPECIES.get(li.especie_codigo or '', '')} "
-                     f"({persoas.get(li.propietario_id or 0, '')})"
+                else (
+                    f"{li.numero} "
+                    f"{_(ESPECIES[li.especie_codigo]) if li.especie_codigo in ESPECIES else ''} "
+                    f"({persoas.get(li.propietario_id or 0, '')})"
+                )
                 for li in pa.animais),
             "quen": persoas.get(pa.persoa_id, "") if pa.persoa_id else "",
         } for pa in listar_pastoreos(session, actor, horta_id)]
 
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("inicio", "Entrou"), ("fin", "Saíu"), ("leiras", "Leiras"),
-            ("animais", "Animais"), ("quen", "Quen"))],
+            ("inicio", _("Entrou")), ("fin", _("Saíu")), ("leiras", _("Leiras")),
+            ("animais", _("Animais")), ("quen", _("Quen")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai pastoreo apuntado" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai pastoreo apuntado")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "inicio", ["animais", "leiras"], accions_tarxeta)
@@ -86,7 +90,7 @@ def seccion_pastoreo(horta_id: int, pode_editar: bool) -> None:
 
     def escollido() -> int | None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return None
         return int(taboa.selected[0]["id"])
 
@@ -121,26 +125,26 @@ def seccion_pastoreo(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este rexistro? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa este rexistro? Non se borra: consérvase no histórico."), confirmar)
 
-    accions_tarxeta += [("Saíron do pasto", "logout", saida),
-                        ("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Saíron do pasto"), "logout", saida),
+                        (_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar pastoreo", icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Apuntar pastoreo"), icon="add", on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Saíron do pasto", icon="logout", on_click=saida).props("outline")
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Saíron do pasto"), icon="logout", on_click=saida).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_saida() -> Callable[[int], None]:
     """Diálogo que só pide o día en que o gando saíu do pasto. Devolve abrir(pastoreo_id)."""
     escollido: dict[str, int | None] = {"id": None}
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(24rem, 94vw)"):
-        ui.label("Saíron do pasto").classes("text-h6")
-        data_fin = campo_data("Día en que saíron", date.today().isoformat())
+        ui.label(_("Saíron do pasto")).classes("text-h6")
+        data_fin = campo_data(_("Día en que saíron"), date.today().isoformat())
 
         def gardar() -> None:
             with get_session() as session:
@@ -152,7 +156,7 @@ def dialogo_saida() -> Callable[[int], None]:
                 def accion() -> None:
                     fin = parsear_data(data_fin.value)
                     if fin is None:
-                        raise OperacionNonPermitidaError("Indica o día en que saíron")
+                        raise OperacionNonPermitidaError(_("Indica o día en que saíron"))
                     sairon_do_pasto(session, actor_actual, pa, fin)
 
                 ok = executar_accion(session, accion)
@@ -160,8 +164,8 @@ def dialogo_saida() -> Callable[[int], None]:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(pastoreo_id: int) -> None:
         escollido["id"] = pastoreo_id
@@ -179,7 +183,7 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_, **__: None
+            return lambda *_args, **_kwargs: None
         grupos = {a.id: nome_grupo(a.especie, a.raza)
                   for a in listar_animais(session, actor, horta_id)
                   if a.especie_codigo not in NON_PASTAN}
@@ -189,44 +193,45 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
         coberturas = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
                       for v in valores_vixentes(session, "tipo_cobertura_solo")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
-    especies = {k: v for k, v in ESPECIES.items() if k not in NON_PASTAN}
+    especies = {k: _(v) for k, v in ESPECIES.items() if k not in NON_PASTAN}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
     gardadas: dict[int, LeiraPastoreo] = {}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar pastoreo").classes("text-h6")
+        titulo = ui.label(_("Apuntar pastoreo")).classes("text-h6")
         if not leiras:
-            ui.label("Primeiro engade as leiras e os seus cultivos.").classes(
+            ui.label(_("Primeiro engade as leiras e os seus cultivos.")).classes(
                 "text-warning text-caption")
-        leira = ui.select(leiras, label="Leiras", multiple=True, with_input=True).props(
+        leira = ui.select(leiras, label=_("Leiras"), multiple=True, with_input=True).props(
             "use-chips").classes("w-full")
         aviso = ui.label("").classes("etiqueta-aviso")
         with ui.row().classes("w-full no-wrap"):
-            data = campo_data("Entraron o", date.today().isoformat()).classes(
+            data = campo_data(_("Entraron o"), date.today().isoformat()).classes(
                 remove="w-full", add="col")
-            data_fin = campo_data("Saíron o", "").classes(
+            data_fin = campo_data(_("Saíron o"), "").classes(
                 remove="w-full", add="col")
         with ui.row().classes("w-full no-wrap"):
-            grupo = ui.select(grupos, label="Os teus animais", with_input=True,
+            grupo = ui.select(grupos, label=_("Os teus animais"), with_input=True,
                               clearable=True).classes("col")
-            numero = ui.input("Cantos").classes("col")
-        terceiros = ui.checkbox("Tamén animais doutra persoa")
+            numero = ui.input(_("Cantos")).classes("col")
+        terceiros = ui.checkbox(_("Tamén animais doutra persoa"))
         with ui.column().classes("w-full") as caixa_terceiros:
             with ui.row().classes("w-full no-wrap"):
-                especie = ui.select(especies, label="Especie").classes("col")
-                numero_terceiros = ui.input("Cantos").classes("col")
+                especie = ui.select(especies, label=_("Especie")).classes("col")
+                numero_terceiros = ui.input(_("Cantos")).classes("col")
             # De quen son: a súa explotación, co REGA na ficha (Persoas)
-            propietario = CampoPersoa(horta_id, "explotacion", "De quen son (a súa explotación)")
+            propietario = CampoPersoa(horta_id, "explotacion",
+                                      _("De quen son (a súa explotación)"))
         caixa_terceiros.bind_visibility_from(terceiros, "value")
-        persoa = ui.select(persoas, label="Quen levou o gando").classes("w-full")
-        with ui.expansion("Máis datos").classes("w-full"):
-            superficie = ui.input("Superficie pastada (ha), se foi só unha parte").classes(
+        persoa = ui.select(persoas, label=_("Quen levou o gando")).classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            superficie = ui.input(_("Superficie pastada (ha), se foi só unha parte")).classes(
                 "w-full")
-            cobertura = ui.select(coberturas, label="Cobertura do chan", clearable=True).classes(
-                "w-full")
-            horas = ui.input("Horas de traballo").classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+            cobertura = ui.select(coberturas, label=_("Cobertura do chan"),
+                                  clearable=True).classes("w-full")
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def avisar() -> None:
             texto = None
@@ -268,7 +273,7 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     inicio = parsear_data(data.value)
                     if inicio is None:
-                        raise OperacionNonPermitidaError("Indica cando entraron")
+                        raise OperacionNonPermitidaError(_("Indica cando entraron"))
                     escollidas = list(leira.value or [])
                     sup = parsear_decimal(superficie.value) if len(escollidas) == 1 else None
                     lista_leiras = [LeiraPastoreo(
@@ -308,14 +313,14 @@ def dialogo_pastoreo(horta_id: int) -> Callable[..., None]:
                 recargar_apuntado("pastoreo", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(pa: Pastoreo | None, tarefa: Tarefa | None = None,
               animal_id: int | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = None
-        titulo.text = "Editar pastoreo" if pa else "Apuntar pastoreo"
+        titulo.text = _("Editar pastoreo") if pa else _("Apuntar pastoreo")
         gardadas.clear()
         propio = next((li for li in pa.animais if li.animal_id), None) if pa else None
         alleo = next((li for li in pa.animais if li.animal_id is None), None) if pa else None

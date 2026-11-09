@@ -9,6 +9,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.cultivo import Cultivo
 from horta.models.parcela import Parcela, SecanoRegadio
 from horta.services.catalogos import valores_vixentes
@@ -24,13 +25,13 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.superficie import formatar_superficie
 
 _CAMPOS_SIGPAC = (
-    ("sigpac_provincia", "Provincia"),
-    ("sigpac_concello", "Concello"),
-    ("sigpac_agregado", "Agregado"),
-    ("sigpac_zona", "Zona"),
-    ("sigpac_poligono", "Polígono"),
-    ("sigpac_parcela", "Parcela"),
-    ("sigpac_subparcela", "Recinto"),
+    ("sigpac_provincia", N_("Provincia")),
+    ("sigpac_concello", N_("Concello")),
+    ("sigpac_agregado", N_("Agregado")),
+    ("sigpac_zona", N_("Zona")),
+    ("sigpac_poligono", N_("Polígono")),
+    ("sigpac_parcela", N_("Parcela")),
+    ("sigpac_subparcela", N_("Recinto")),
 )
 
 
@@ -49,36 +50,36 @@ def datos_caderno(
 
     ref_cat = str(getattr(parcela, "referencia_catastral", "") or "").strip()
     if ref_cat:
-        resultado.append(("Referencia catastral", ref_cat))
+        resultado.append((_("Referencia catastral"), ref_cat))
 
     if parcela.uso_aproveitamento:
-        resultado.append(("Uso SIXPAC", str(parcela.uso_aproveitamento).strip()))
+        resultado.append((_("Uso SIXPAC"), str(parcela.uso_aproveitamento).strip()))
 
     if parcela.superficie is not None:
         sup_txt = formatar_superficie(parcela.superficie)
         if sup_txt:
-            resultado.append(("Superficie SIXPAC", sup_txt))
+            resultado.append((_("Superficie SIXPAC"), sup_txt))
 
     if parcela.secano_regadio is not None:
         rega = {
-            SecanoRegadio.SECANO: "Secano",
-            SecanoRegadio.REGADIO: "Regadío",
-            "secano": "Secano",
-            "regadio": "Regadío",
+            SecanoRegadio.SECANO: _("Secano"),
+            SecanoRegadio.REGADIO: _("Regadío"),
+            "secano": _("Secano"),
+            "regadio": _("Regadío"),
         }.get(parcela.secano_regadio)
         if rega:
-            resultado.append(("Secano/Regadío", rega))
+            resultado.append((_("Secano/Regadío"), rega))
 
     if parcela.rexime_tenencia:
         codigo_tenencia = str(parcela.rexime_tenencia).strip()
         nome_tenencia = nomes_tenencia.get(codigo_tenencia, codigo_tenencia)
         if nome_tenencia:
-            resultado.append(("Réxime de tenencia", str(nome_tenencia)))
+            resultado.append((_("Réxime de tenencia"), str(nome_tenencia)))
 
     if parcela.data_alta:
         data_alta_txt = texto_data(parcela.data_alta)
         if data_alta_txt:
-            resultado.append(("Data de alta", data_alta_txt))
+            resultado.append((_("Data de alta"), data_alta_txt))
 
     e_baixa = (
         getattr(parcela, "estado", None) == "baixa"
@@ -89,12 +90,12 @@ def datos_caderno(
         if getattr(parcela, "data_baixa", None):
             data_baixa_txt = texto_data(parcela.data_baixa)
             if data_baixa_txt:
-                resultado.append(("Data de baixa", data_baixa_txt))
+                resultado.append((_("Data de baixa"), data_baixa_txt))
         if getattr(parcela, "causa_baixa", None):
             codigo_causa = str(parcela.causa_baixa).strip()
             nome_causa = nomes_causa.get(codigo_causa, codigo_causa)
             if nome_causa:
-                resultado.append(("Causa da baixa", str(nome_causa)))
+                resultado.append((_("Causa da baixa"), str(nome_causa)))
 
     return resultado
 
@@ -102,7 +103,7 @@ def datos_caderno(
 def _texto_cultivo(c: Cultivo) -> str:
     nome = nome_cultivo(c)
     if c.data_inicio:
-        return f"{nome}, desde {texto_data(c.data_inicio)}"
+        return _("{nome}, desde {data}").format(nome=nome, data=texto_data(c.data_inicio))
     return nome
 
 
@@ -141,33 +142,33 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
 
     # 1. Datos do caderno
     if datos:
-        ui.label("Datos do caderno").classes("text-weight-medium q-mt-sm")
+        ui.label(_("Datos do caderno")).classes("text-weight-medium q-mt-sm")
         with ui.element("div").style(
             "display:grid; grid-template-columns:auto 1fr; gap:2px 12px"
         ):
             for etiqueta, valor in datos:
-                ui.label(etiqueta).classes("texto-suave")
+                ui.label(_(etiqueta)).classes("texto-suave")
                 ui.label(valor)
 
     # 2. Zonas e o que hai en cada unha
-    ui.label("Zonas e cultivos").classes("text-weight-medium q-mt-sm")
+    ui.label(_("Zonas e cultivos")).classes("text-weight-medium q-mt-sm")
     por_zona: dict[int | None, list[Cultivo]] = defaultdict(list)
     for c in cultivos_abertos:
         por_zona[c.zona_id].append(c)
 
     def abrir_cultivo(cid: int) -> Callable[..., None]:
-        return lambda *_: abrir_ficha_cultivo(horta_id, cid, pode_editar)
+        return lambda *_x: abrir_ficha_cultivo(horta_id, cid, pode_editar)
 
     with ui.column().classes("gap-0"):
         if not zonas and not cultivos_abertos:
-            ui.label("Sen cultivos agora").classes("texto-suave")
+            ui.label(_("Sen cultivos agora")).classes("texto-suave")
         else:
             for z in zonas:
                 cs = por_zona.get(z.id, [])
                 with ui.row().classes("items-baseline gap-1"):
                     ui.label(z.nome).classes("text-weight-bold")
                     if not cs:
-                        ui.label("· baleira").classes("texto-suave")
+                        ui.label(_("· baleira")).classes("texto-suave")
                     else:
                         ui.label("·").classes("texto-suave")
                         for idx, c in enumerate(cs):
@@ -178,7 +179,7 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
                             ).on("click", abrir_cultivo(c.id))
             if por_zona.get(None):
                 with ui.row().classes("items-baseline gap-1"):
-                    ui.label("Sen zona").classes("text-weight-bold")
+                    ui.label(_("Sen zona")).classes("text-weight-bold")
                     ui.label("·").classes("texto-suave")
                     for idx, c in enumerate(por_zona[None]):
                         if idx > 0:
@@ -188,19 +189,19 @@ def seccions_ficha_parcela(horta_id: int, parcela_id: int, pode_editar: bool) ->
                         ).on("click", abrir_cultivo(c.id))
 
     # 3. Historial deste ano
-    ui.label("Historial deste ano").classes("text-weight-medium q-mt-sm")
+    ui.label(_("Historial deste ano")).classes("text-weight-medium q-mt-sm")
     with ui.column().classes("gap-0"):
         if ultimos_traballos:
             for t in ultimos_traballos:
                 data_str = f"{t.data:%d/%m}" if t.data else ""
-                tipo_str = TIPOS.get(t.tipo, t.tipo)
+                tipo_str = _(TIPOS[t.tipo]) if t.tipo in TIPOS else t.tipo
                 ui.label(f"{data_str} · {tipo_str} · {t.que}").classes("texto-suave")
         else:
-            ui.label("Aínda non hai traballos este ano").classes("texto-suave")
+            ui.label(_("Aínda non hai traballos este ano")).classes("texto-suave")
 
     # 4. Fotos
     ui.button(
-        "Fotos",
+        _("Fotos"),
         icon="photo_camera",
         on_click=lambda i=p_id, n=p_nome: abrir_fotos(horta_id, "parcela", i, n, pode_editar),
     ).props("outline").classes("w-full q-mt-sm")

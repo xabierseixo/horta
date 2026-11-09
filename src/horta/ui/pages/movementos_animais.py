@@ -9,6 +9,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.movemento_animal import MovementoAnimal
 from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
@@ -55,18 +56,23 @@ def seccion_movementos(horta_id: int, pode_editar: bool) -> None:
         "id": mo.id,
         "data": f"{mo.data:%d/%m/%Y}",
         "grupo": grupos.get(mo.animal_id, ""),
-        "tipo": TIPOS_MOVEMENTO[mo.tipo].split(" (")[0],
+        "tipo": (
+            _(TIPOS_MOVEMENTO[mo.tipo]).split(" (")[0]
+            if mo.tipo in TIPOS_MOVEMENTO
+            else mo.tipo
+        ),
         "cantidade": mo.cantidade,
         "outra": persoas.get(mo.outra_parte_id or 0) or mo.causa or "",
         "quen": persoas.get(mo.persoa_id, "") if mo.persoa_id else "",
     } for mo in movementos]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("grupo", "Animais"), ("tipo", "Que"), ("cantidade", "Cantos"),
-            ("outra", "Orixe, destino ou causa"), ("quen", "Quen"))],
+            ("data", _("Data")), ("grupo", _("Animais")), ("tipo", _("Que")),
+            ("cantidade", _("Cantos")), ("outra", _("Orixe, destino ou causa")),
+            ("quen", _("Quen")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai entradas nin saídas" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai entradas nin saídas")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "data", ["tipo", "grupo", "cantidade"], accions_tarxeta)
@@ -77,7 +83,7 @@ def seccion_movementos(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         with get_session() as session:
             mo = session.get(MovementoAnimal, taboa.selected[0]["id"])
@@ -86,7 +92,7 @@ def seccion_movementos(horta_id: int, pode_editar: bool) -> None:
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         movemento_id = taboa.selected[0]["id"]
 
@@ -102,17 +108,23 @@ def seccion_movementos(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este rexistro? Non se borra: consérvase no histórico, e a "
-            "cantidade do grupo recalcúlase.", confirmar)
+            _(
+                "Dar de baixa este rexistro? Non se borra: consérvase no histórico, e a "
+                "cantidade do grupo recalcúlase."
+            ),
+            confirmar,
+        )
 
-    accions_tarxeta += [("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar entrada ou saída", icon="add", on_click=lambda: abrir(None))
+        ui.button(
+            _("Apuntar entrada ou saída"), icon="add", on_click=lambda: abrir(None)
+        )
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_movemento(horta_id: int) -> Callable[..., None]:
@@ -122,7 +134,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_, **__: None
+            return lambda *_x, **__: None
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: f"{nome_grupo(a.especie, a.raza)} · {a.cantidade}" for a in animais}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
@@ -131,37 +143,42 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar entrada ou saída de animais").classes("text-h6")
+        titulo = ui.label(_("Apuntar entrada ou saída de animais")).classes("text-h6")
         if not todos:
-            ui.label("Primeiro engade os animais en Explotación → Animais.").classes(
+            ui.label(_("Primeiro engade os animais en Explotación → Animais.")).classes(
                 "text-warning text-caption")
-        grupo = ui.select(todos, label="Animais", with_input=True).classes("w-full")
-        tipo = ui.select(TIPOS_MOVEMENTO, label="Que pasou", value="saida").classes("w-full")
+        grupo = ui.select(todos, label=_("Animais"), with_input=True).classes("w-full")
+        tipo = ui.select(
+            {k: _(v) for k, v in TIPOS_MOVEMENTO.items()}, label=_("Que pasou"), value="saida"
+        ).classes("w-full")
         with ui.row().classes("w-full no-wrap"):
-            data = campo_data("Data", date.today().isoformat()).classes(
+            data = campo_data(_("Data"), date.today().isoformat()).classes(
                 remove="w-full", add="col")
-            cantidade = ui.input("Cantos animais").classes("col")
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
+            cantidade = ui.input(_("Cantos animais")).classes("col")
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
         aviso = ui.label("").classes("etiqueta-aviso")
         with ui.column().classes("w-full gap-0") as outra_explotacion:
             # Titular e REGA da outra explotación: ficha en Persoas
-            outra_parte = CampoPersoa(horta_id, "explotacion", "Explotación de destino")
-            codigo = ui.input("Nº de guía ou do movemento").classes("w-full")
-            importe = ui.input("Prezo total (€)").classes("w-full")
-            pago = CampoPago("Pagado ou cobrado")
-        causa = ui.input("Causa").classes("w-full")
-        identificacion = ui.input("Identificación dos animais (crotais, anelas…)").classes(
-            "w-full")
-        with ui.expansion("Máis datos").classes("w-full"):
-            horas = ui.input("Horas de traballo").classes("w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+            outra_parte = CampoPersoa(horta_id, "explotacion", _("Explotación de destino"))
+            codigo = ui.input(_("Nº de guía ou do movemento")).classes("w-full")
+            importe = ui.input(_("Prezo total (€)")).classes("w-full")
+            pago = CampoPago(_("Pagado ou cobrado"))
+        causa = ui.input(_("Causa")).classes("w-full")
+        identificacion = ui.input(
+            _("Identificación dos animais (crotais, anelas…)")
+        ).classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def mostrar_campos() -> None:
             outra_explotacion.set_visibility(tipo.value in CON_OUTRA_EXPLOTACION)
-            outra_parte.set_label("Explotación de orixe (persoa titular anterior)"
-                                  if tipo.value == "entrada"
-                                  else "Explotación de destino (nova persoa titular)")
+            outra_parte.set_label(
+                _("Explotación de orixe (persoa titular anterior)")
+                if tipo.value == "entrada"
+                else _("Explotación de destino (nova persoa titular)")
+            )
             causa.set_visibility(tipo.value == "morte")
             avisar()
 
@@ -185,7 +202,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
 
         def gardar() -> None:
             if grupo.value is None or tipo.value is None:
-                ui.notify("Escolle os animais e que pasou", type="warning")
+                ui.notify(_("Escolle os animais e que pasou"), type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -196,7 +213,7 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if dia is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     cantos = parsear_decimal(cantidade.value)
                     datos = DatosMovemento(
                         animal_id=grupo.value, data=dia, tipo=tipo.value,
@@ -220,15 +237,18 @@ def dialogo_movemento(horta_id: int) -> Callable[..., None]:
                 recargar_apuntado("movemento_animal", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(mo: MovementoAnimal | None, tarefa: Tarefa | None = None,
               animal_id: int | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = mo.id if mo else None
-        titulo.text = ("Editar entrada ou saída de animais" if mo
-                       else "Apuntar entrada ou saída de animais")
+        titulo.text = (
+            _("Editar entrada ou saída de animais")
+            if mo
+            else _("Apuntar entrada ou saída de animais")
+        )
         animal_tarefa = tarefa.animal_id if tarefa and tarefa.animal_id in todos else None
         grupo.value = mo.animal_id if mo else (animal_id or animal_tarefa)
         tipo.value = mo.tipo if mo else "saida"

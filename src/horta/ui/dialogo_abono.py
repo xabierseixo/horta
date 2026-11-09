@@ -7,6 +7,7 @@ from collections.abc import Callable
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.abonado import Fertilizante
 from horta.services.catalogos import valores_vixentes
 from horta.services.fertilizantes import (
@@ -23,13 +24,25 @@ from horta.ui.accions import executar_accion
 from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
-_FORMAS = (("n_organico_pct", "N orgánico %"), ("n_ureico_pct", "N ureico %"),
-           ("n_nitrico_pct", "N nítrico %"), ("n_amoniacal_pct", "N amoniacal %"),
-           ("p2o5_soluble_pct", "P₂O₅ soluble %"), ("materia_organica_pct",
-                                                    "Materia orgánica % (estercos)"))
-_METAIS = (("cadmio", "Cadmio"), ("cobre", "Cobre"), ("niquel", "Níquel"),
-           ("chumbo", "Chumbo"), ("zinc", "Cinc"), ("mercurio", "Mercurio"),
-           ("cromo_vi", "Cromo VI"), ("arsenico", "Arsénico"), ("cromo", "Cromo total"))
+_FORMAS = (
+    ("n_organico_pct", N_("N orgánico %")),
+    ("n_ureico_pct", N_("N ureico %")),
+    ("n_nitrico_pct", N_("N nítrico %")),
+    ("n_amoniacal_pct", N_("N amoniacal %")),
+    ("p2o5_soluble_pct", N_("P₂O₅ soluble %")),
+    ("materia_organica_pct", N_("Materia orgánica % (estercos)")),
+)
+_METAIS = (
+    ("cadmio", N_("Cadmio")),
+    ("cobre", N_("Cobre")),
+    ("niquel", N_("Níquel")),
+    ("chumbo", N_("Chumbo")),
+    ("zinc", N_("Cinc")),
+    ("mercurio", N_("Mercurio")),
+    ("cromo_vi", N_("Cromo VI")),
+    ("arsenico", N_("Arsénico")),
+    ("cromo", N_("Cromo total")),
+)
 
 
 def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None],
@@ -45,32 +58,41 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None],
                        for v in valores_vixentes(session, "tratamento_estercos")}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
-        ui.label("Corrixir abono" if fertilizante else "Novo abono").classes("text-h6")
-        oficial = ui.select(oficiais, label="Buscar no catálogo oficial (abonos comerciais)",
-                            with_input=True, clearable=True).classes("w-full")
+        ui.label(_("Corrixir abono") if fertilizante else _("Novo abono")).classes("text-h6")
+        oficial = ui.select(
+            oficiais,
+            label=_("Buscar no catálogo oficial (abonos comerciais)"),
+            with_input=True,
+            clearable=True,
+        ).classes("w-full")
         oficial.set_visibility(fertilizante is None)
         if fertilizante is None:
-            ui.label("Ou, se non está (esterco, compost...), enche os datos:").classes(
-                "text-caption")
-        nome = ui.input("Nome (p.ex. Esterco de vaca)").classes("w-full")
-        material = ui.select(materiais, label="Tipo de material", with_input=True).classes(
-            "w-full")
+            ui.label(_("Ou, se non está (esterco, compost...), enche os datos:")).classes(
+                "text-caption"
+            )
+        nome = ui.input(_("Nome (p.ex. Esterco de vaca)")).classes("w-full")
+        material = ui.select(
+            materiais, label=_("Tipo de material"), with_input=True
+        ).classes("w-full")
         with ui.row().classes("w-full no-wrap"):
-            n = ui.input("N %").classes("col")
-            p = ui.input("P₂O₅ %").classes("col")
-            k = ui.input("K₂O %").classes("col")
+            n = ui.input(_("N %")).classes("col")
+            p = ui.input(_("P₂O₅ %")).classes("col")
+            k = ui.input(_("K₂O %")).classes("col")
         # Os líquidos (xurro, purín...) cóntanse en litros; a densidade pasa a kg (Z2)
-        liquido = ui.checkbox("É líquido (xurro, purín...)")
-        densidade = ui.input("Densidade (kg por litro, se a sabes)").classes("w-full")
+        liquido = ui.checkbox(_("É líquido (xurro, purín...)"))
+        densidade = ui.input(_("Densidade (kg por litro, se a sabes)")).classes("w-full")
         densidade.bind_visibility_from(liquido, "value")
         # De onde vén (empresa, granxa ou casa) apúntase en cada compra (Produtos)
-        tratamento = ui.select(tratamentos, label="Tratamento do esterco (opcional)",
-                               clearable=True).classes("w-full")
+        tratamento = ui.select(
+            tratamentos, label=_("Tratamento do esterco (opcional)"), clearable=True
+        ).classes("w-full")
         tratamento.bind_visibility_from(material, "value", backward=lambda v: v in ESTERCOS)
-        with ui.expansion("Valor agronómico (se o sabes)").classes("w-full"):
-            formas = {c: ui.input(e).classes("w-full") for c, e in _FORMAS}
-        with ui.expansion("Metais pesados do residuo (mg/kg)").classes("w-full") as metais_bloque:
-            metais = {c: ui.input(e).classes("w-full") for c, e in _METAIS}
+        with ui.expansion(_("Valor agronómico (se o sabes)")).classes("w-full"):
+            formas = {c: ui.input(_(e)).classes("w-full") for c, e in _FORMAS}
+        with ui.expansion(
+            _("Metais pesados do residuo (mg/kg)")
+        ).classes("w-full") as metais_bloque:
+            metais = {c: ui.input(_(e)).classes("w-full") for c, e in _METAIS}
         metais_bloque.bind_visibility_from(material, "value", backward=lambda v: v in RESIDUOS)
 
         def encher_dende_oficial() -> None:
@@ -141,6 +163,6 @@ def dialogo_novo_abono(horta_id: int, ao_crear: Callable[[int, str], None],
                 entrada.value = f"{valor:g}" if valor is not None else ""
 
         with ui.row():
-            ui.button("Gardar abono", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar abono"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
     return dialogo

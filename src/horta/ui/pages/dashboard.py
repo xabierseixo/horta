@@ -90,7 +90,7 @@ def dashboard_page(nova: bool = False) -> None:
             with (
                 ui.card()
                 .classes("cursor-pointer")
-                .on("click", lambda _, horta_id=horta.id: ui.navigate.to(f"/hortas/{horta_id}"))
+                .on("click", lambda _e, horta_id=horta.id: ui.navigate.to(f"/hortas/{horta_id}"))
             ):
                 with ui.row().classes("items-center justify-between w-full"):
                     ui.label(horta.nome).classes("text-md font-bold")

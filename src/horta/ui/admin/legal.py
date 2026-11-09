@@ -5,6 +5,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.legal import gardar_configuracion, ler_configuracion
 from horta.ui.accions import executar_accion
@@ -21,7 +22,7 @@ def admin_legal_page() -> None:
             return
         if actor.rol != RolGlobal.ADMIN:
             cabeceira_paxina()
-            ui.label("Non tes acceso a esta páxina").classes("text-negative")
+            ui.label(_("Non tes acceso a esta páxina")).classes("text-negative")
             return
         actor_id = actor.id
         config = ler_configuracion(session)
@@ -33,22 +34,22 @@ def admin_legal_page() -> None:
         localizacion_val = config.localizacion if config and config.localizacion else ""
 
     cabeceira_paxina(mostrar_admin=True)
-    ui.label("Datos legais").classes("text-h6")
+    ui.label(_("Datos legais")).classes("text-h6")
 
     with ui.card().classes("w-full max-w-2xl q-pa-md gap-4"):
         nome_input = ui.input(
-            "Titular do servizo (nome ou razón social)",
+            _("Titular do servizo (nome ou razón social)"),
             value=nome_val,
         ).classes("w-full")
-        nif_input = ui.input("NIF", value=nif_val).classes("w-full")
-        enderezo_input = ui.input("Enderezo", value=enderezo_val).classes("w-full")
-        correo_input = ui.input("Correo de contacto", value=correo_val).classes("w-full")
+        nif_input = ui.input(_("NIF"), value=nif_val).classes("w-full")
+        enderezo_input = ui.input(_("Enderezo"), value=enderezo_val).classes("w-full")
+        correo_input = ui.input(_("Correo de contacto"), value=correo_val).classes("w-full")
         dpd_input = ui.input(
-            "Delegado de protección de datos (opcional)",
+            _("Delegado de protección de datos (opcional)"),
             value=dpd_val,
         ).classes("w-full")
         localizacion_input = ui.textarea(
-            "Onde se gardan os datos (opcional)",
+            _("Onde se gardan os datos (opcional)"),
             value=localizacion_val,
         ).classes("w-full")
 
@@ -72,10 +73,10 @@ def admin_legal_page() -> None:
                     ),
                 )
             if feito:
-                ui.notify("Datos legais gardados", type="positive")
+                ui.notify(_("Datos legais gardados"), type="positive")
 
         with ui.row().classes("w-full items-center justify-between q-mt-md wrap gap-4"):
-            ui.button("Gardar", icon="save", on_click=gardar)
+            ui.button(_("Gardar"), icon="save", on_click=gardar)
             with ui.row().classes("gap-4"):
-                ui.link("Ver aviso legal", "/legal/aviso", new_tab=True)
-                ui.link("Ver política de privacidade", "/legal/privacidade", new_tab=True)
+                ui.link(_("Ver aviso legal"), "/legal/aviso", new_tab=True)
+                ui.link(_("Ver política de privacidade"), "/legal/privacidade", new_tab=True)

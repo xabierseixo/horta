@@ -10,6 +10,7 @@ from typing import Any, Callable
 from nicegui import events, run, ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _, ngettext
 from horta.models.horta import Horta
 from horta.models.parcela import Parcela
 from horta.models.zona import ParcelaZona
@@ -48,7 +49,12 @@ from horta.ui.superficie import formatar_superficie
 
 _GEOMAN = "https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman"
 _GALICIA = (42.75, -8.0)
-_PROVINCIAS = {"15": "A Coruña", "27": "Lugo", "32": "Ourense", "36": "Pontevedra"}
+_PROVINCIAS = {
+    "15": N_("A Coruña"),
+    "27": N_("Lugo"),
+    "32": N_("Ourense"),
+    "36": N_("Pontevedra"),
+}
 
 
 # O debuxo e a edición fanse no navegador (Leaflet-Geoman); o resto, en Python
@@ -115,15 +121,21 @@ window.terras = {
 
 # O que fai o próximo clic, e o aviso que se mostra
 _AXUDA = {
-    "nada": "Toca unha parcela túa para traballar con ela, ou toca calquera terra para "
-            "buscar o seu recinto SIGPAC e engadila.",
-    "marcar": "Toca no mapa o recinto onde está esta parcela.",
-    "debuxar": "Debuxa a zona: un clic en cada esquina e, para pechar, clic no primeiro "
-               "punto. O que saia fóra da parcela recórtase.",
-    "dividir": "Debuxa unha liña que cruce a zona de lado a lado; para rematar, clic outra "
-               "vez no último punto.",
-    "editar": "Arrastra os puntos dos lindes. Os puntos pequenos do medio crean un punto novo.",
-    "xuntar": "Toca a outra zona (da mesma parcela) que queres xuntar con esta.",
+    "nada": N_(
+        "Toca unha parcela túa para traballar con ela, ou toca calquera terra para "
+        "buscar o seu recinto SIGPAC e engadila."
+    ),
+    "marcar": N_("Toca no mapa o recinto onde está esta parcela."),
+    "debuxar": N_(
+        "Debuxa a zona: un clic en cada esquina e, para pechar, clic no primeiro "
+        "punto. O que saia fóra da parcela recórtase."
+    ),
+    "dividir": N_(
+        "Debuxa unha liña que cruce a zona de lado a lado; para rematar, clic outra "
+        "vez no último punto."
+    ),
+    "editar": N_("Arrastra os puntos dos lindes. Os puntos pequenos do medio crean un punto novo."),
+    "xuntar": N_("Toca a outra zona (da mesma parcela) que queres xuntar con esta."),
 }
 
 
@@ -184,7 +196,7 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
     ui.add_body_html(_JS)
     with ui.row().classes("w-full items-start gap-4"):
         with ui.column().classes("col-grow").style("min-width: min(100%, 22rem)"):
-            axuda = ui.label(_AXUDA["nada"]).classes("text-weight-medium")
+            axuda = ui.label(_(_AXUDA["nada"])).classes("text-weight-medium")
             situada = next((p for p in parcelas if p.lat is not None and p.lon is not None),
                            None)
             centro: tuple[float, float] = (
@@ -196,9 +208,14 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
                               additional_resources=[_GEOMAN + ".css", _GEOMAN + ".js"]
                               ).classes("w-full").style("height: 65vh")
             with ui.row().classes("items-center gap-4"):
-                ui.label("Ver:").classes("texto-suave")
-                caixas = {c: ui.checkbox(n, value=c == "sigpac").props("dense")
-                          for c, n in (("pnoa", "Foto aérea"), ("sigpac", "Recintos SIGPAC"))}
+                ui.label(_("Ver:")).classes("texto-suave")
+                caixas = {
+                    c: ui.checkbox(n, value=c == "sigpac").props("dense")
+                    for c, n in (
+                        ("pnoa", _("Foto aérea")),
+                        ("sigpac", _("Recintos SIGPAC")),
+                    )
+                }
         panel = ui.column().classes("gap-2").style("width: min(100%, 24rem)")
 
     capas: dict[str, Any] = {}
@@ -257,7 +274,7 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
         if sel["modo"] != "nada":
             ui.run_javascript(f"terras.parar({mapa.id})")
         sel["modo"] = novo
-        axuda.text = _AXUDA[novo]
+        axuda.text = _(_AXUDA[novo])
         if novo == "debuxar":
             ui.run_javascript(f"terras.debuxar({mapa.id}, 'Polygon')")
         elif novo == "dividir":
@@ -274,7 +291,7 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
         if sel["modo"] != "nada":
             modo("nada")
         sel.update(tipo=tipo, id=ident, modo="nada")
-        axuda.text = _AXUDA["nada"]
+        axuda.text = _(_AXUDA["nada"])
         if tipo != "vista":
             sel["vista"] = None
         refrescar()
@@ -312,12 +329,12 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
         r = sel["vista"]
         ident = await engadir(r, nome)
         if ident is not None:
-            ui.notify("Gardada nas túas parcelas", type="positive")
+            ui.notify(_("Gardada nas túas parcelas"), type="positive")
             escoller("parcela", ident)
 
     async def marcar_en(ident: int, r: Recinto) -> None:
         if any(_da_referencia(p, r) for p in datos["parcelas"] if p.id != ident):
-            ui.notify("Ese recinto xa é doutra parcela túa", type="warning")
+            ui.notify(_("Ese recinto xa é doutra parcela túa"), type="warning")
             return
         catastro = await catastro_de(r)
 
@@ -328,7 +345,7 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
                 actualizar_parcela(session, actor, p, referencia_catastral=catastro)
 
         if facer(accion):
-            ui.notify("Parcela marcada no mapa", type="positive")
+            ui.notify(_("Parcela marcada no mapa"), type="positive")
         escoller("parcela", ident, True)
 
     def nova_zona(ident: int, puntos: list[Any], nome: str, tipo: str = "cultivo") -> None:
@@ -367,10 +384,21 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
             dialogo_baixa_parcela(ident, tras_baixa)
             return
         with ui.dialog() as confirmar, ui.card():
-            ui.label(f"Quitar «{p.nome if p else ''}» e as súas zonas?")
+            ui.label(
+                _("Quitar «{nome}» e as súas zonas?").format(
+                    nome=p.nome if p else ""
+                )
+            )
             with ui.row():
-                ui.button("Quitar", color="negative", on_click=lambda: confirmar.submit(True))
-                ui.button("Non", on_click=lambda: confirmar.submit(False)).props("flat")
+                ui.button(
+                    _("Quitar"),
+                    color="negative",
+                    on_click=lambda: confirmar.submit(True),
+                )
+                ui.button(
+                    _("Non"),
+                    on_click=lambda: confirmar.submit(False),
+                ).props("flat")
         if await confirmar and facer(lambda s, a: eliminar_parcela(s, a, s.get(Parcela, ident))):
             escoller(None, None)
 
@@ -385,15 +413,18 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
         if sel["modo"] not in ("nada", "marcar"):
             return
         punto = e.args["latlng"]
-        ui.notify("Buscando o recinto SIGPAC…", timeout=1500)
+        ui.notify(_("Buscando o recinto SIGPAC…"), timeout=1500)
         try:
             r = await run.io_bound(recinto_no_punto, round(punto["lat"], 6),
                                    round(punto["lng"], 6))
         except (SenConexion, ValueError) as erro:
-            ui.notify(f"Non se puido consultar o SIGPAC: {erro}", type="negative")
+            ui.notify(
+                _("Non se puido consultar o SIGPAC: {erro}").format(erro=erro),
+                type="negative",
+            )
             return
         if r is None or len(r.puntos) < 3:
-            ui.notify("Aí non hai ningún recinto SIGPAC", type="warning")
+            ui.notify(_("Aí non hai ningún recinto SIGPAC"), type="warning")
             return
         if sel["modo"] == "marcar":
             await marcar_en(sel["id"], r)
@@ -412,7 +443,7 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
         if sel["modo"] == "xuntar" and tipo == "zona":
             a = sel["id"]
             if con_zona(a, lambda s, act, z: xuntar_zonas(s, act, z, s.get(ParcelaZona, ident))):
-                ui.notify("Zonas xuntadas", type="positive")
+                ui.notify(_("Zonas xuntadas"), type="positive")
             escoller("zona", a)
             return
         if sel["modo"] != "nada" or tipo == "vista":
@@ -425,10 +456,10 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
         ident = sel["id"]
         if args["forma"] == "Polygon" and sel["tipo"] == "parcela":
             n = sum(1 for z in datos["zonas"] if z.parcela_id == ident) + 1
-            nova_zona(ident, puntos, f"Zona {n}")
+            nova_zona(ident, puntos, _("Zona {n}").format(n=n))
         elif args["forma"] == "Line" and sel["tipo"] == "zona":
             if con_zona(ident, lambda s, a, z: dividir_zona(s, a, z, puntos)):
-                ui.notify("Zona dividida", type="positive")
+                ui.notify(_("Zona dividida"), type="positive")
             escoller("zona", ident)
 
     mapa.on("map-click", premer)
@@ -438,11 +469,16 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
     # --- Panel: cambia segundo o que estea escollido
 
     with (ui.dialog() as dialogo_bancais, ui.card().style("width: min(26rem, 94vw)")):
-        ui.label("Dividir a parcela en bancais iguais").classes("text-h6")
-        cantos = ui.number("Cantos bancais", value=4, min=1, step=1).classes("w-full")
-        direccion = ui.select({0: "Norte–sur", 90: "Leste–oeste"}, value=0,
-                              label="Dirección dos bancais").classes("w-full")
-        paso = ui.number("Paso entre bancais (m)", value=0.5, min=0, step=0.1).classes("w-full")
+        ui.label(_("Dividir a parcela en bancais iguais")).classes("text-h6")
+        cantos = ui.number(_("Cantos bancais"), value=4, min=1, step=1).classes("w-full")
+        direccion = ui.select(
+            {0: _("Norte–sur"), 90: _("Leste–oeste")},
+            value=0,
+            label=_("Dirección dos bancais"),
+        ).classes("w-full")
+        paso = ui.number(
+            _("Paso entre bancais (m)"), value=0.5, min=0, step=0.1
+        ).classes("w-full")
 
         def facer_bancais() -> None:
             ident = sel["id"]
@@ -453,8 +489,8 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
                 escoller("parcela", ident)
 
         with ui.row():
-            ui.button("Dividir", icon="view_week", on_click=facer_bancais)
-            ui.button("Cancelar", on_click=dialogo_bancais.close).props("flat")
+            ui.button(_("Dividir"), icon="view_week", on_click=facer_bancais)
+            ui.button(_("Cancelar"), on_click=dialogo_bancais.close).props("flat")
 
     def renomear_parcela(ident: int, valor: str) -> None:
         p = parcela(ident)
@@ -479,41 +515,55 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
         tipo, ident = sel["tipo"], sel["id"]
         if sel["modo"] != "nada":
             with ui.card().classes("w-full bg-amber-1"):
-                ui.label(_AXUDA[sel["modo"]]).classes("text-weight-medium")
+                ui.label(_(_AXUDA[sel["modo"]])).classes("text-weight-medium")
                 with ui.row():
                     if sel["modo"] == "editar":
-                        ui.button("Gardar os lindes", icon="save", on_click=gardar_lindes)
-                    ui.button("Cancelar", on_click=lambda: escoller(tipo, ident)).props("flat")
+                        ui.button(_("Gardar os lindes"), icon="save", on_click=gardar_lindes)
+                    ui.button(_("Cancelar"), on_click=lambda: escoller(tipo, ident)).props("flat")
             return
         p = parcela(ident) if tipo == "parcela" else None
         z = zona(ident) if tipo == "zona" else None
         if tipo == "vista" and sel["vista"] is not None:
             r: Recinto = sel["vista"]
             with ui.card().classes("w-full"):
-                ui.label("Recinto atopado").classes("text-h6")
-                ui.label(f"SIGPAC {r.poligono}-{r.parcela}-{r.recinto} · Uso {_uso(r.uso)}")
+                ui.label(_("Recinto atopado")).classes("text-h6")
+                ui.label(
+                    _("SIGPAC {poligono}-{parcela}-{recinto} · Uso {uso}").format(
+                        poligono=r.poligono,
+                        parcela=r.parcela,
+                        recinto=r.recinto,
+                        uso=_uso(r.uso),
+                    )
+                )
                 ui.label(formatar_superficie(xeometria_debuxada(r.puntos)[1])
                          ).classes("texto-suave")
                 if pode_editar:
-                    nome = ui.input("Nome para a parcela",
-                                    value=f"Leira {r.poligono}-{r.parcela}-{r.recinto}"
-                                    ).classes("w-full")
-                    boton("Engadir ás miñas parcelas", "add",
+                    nome_defecto = _("Leira {poligono}-{parcela}-{recinto}").format(
+                        poligono=r.poligono,
+                        parcela=r.parcela,
+                        recinto=r.recinto,
+                    )
+                    nome = ui.input(
+                        _("Nome para a parcela"),
+                        value=nome_defecto,
+                    ).classes("w-full")
+                    boton(_("Engadir ás miñas parcelas"), "add",
                           lambda: engadir_vista(nome.value or ""), principal=True)
                     sen_mapa = [x for x in datos["parcelas"]
                                 if not puntos_da_xeometria(x.geometria)]
                     if sen_mapa:
-                        ui.label("Ou é unha parcela que xa tes sen marcar:"
-                                 ).classes("texto-suave q-mt-sm")
+                        ui.label(
+                            _("Ou é unha parcela que xa tes sen marcar:")
+                        ).classes("texto-suave q-mt-sm")
                         for x in sen_mapa:
                             def esta(ident: int = x.id) -> Any:
                                 return marcar_en(ident, r)
-                            boton(f"É «{x.nome}»", "push_pin", esta)
-                ui.button("Pechar", on_click=lambda: escoller(None, None)).props("flat")
+                            boton(_("É «{nome}»").format(nome=x.nome), "push_pin", esta)
+                ui.button(_("Pechar"), on_click=lambda: escoller(None, None)).props("flat")
         elif p is not None:
             with ui.card().classes("w-full"):
                 if pode_editar:
-                    ui.input("Nome da parcela", value=p.nome).classes("w-full text-h6").on(
+                    ui.input(_("Nome da parcela"), value=p.nome).classes("w-full text-h6").on(
                         "blur", lambda e, i=p.id: renomear_parcela(i, e.sender.value or ""))
                 else:
                     ui.label(p.nome).classes("text-h6")
@@ -522,83 +572,108 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
                 if pode_editar:
                     with ui.column().classes("gap-1 w-full q-mt-sm"):
                         if contorno:
-                            boton("Debuxar unha zona de cultivo", "draw",
+                            boton(_("Debuxar unha zona de cultivo"), "draw",
                                   lambda: modo("debuxar"), principal=True)
-                            boton("Toda a parcela é unha zona de cultivo", "crop_square",
+                            boton(_("Toda a parcela é unha zona de cultivo"), "crop_square",
                                   lambda: nova_zona(p.id, contorno, p.nome))
-                            boton("Dividir en bancais", "view_week", dialogo_bancais.open)
-                            boton("Cambiar o recinto", "push_pin", lambda: modo("marcar"))
+                            boton(_("Dividir en bancais"), "view_week", dialogo_bancais.open)
+                            boton(_("Cambiar o recinto"), "push_pin", lambda: modo("marcar"))
                         else:
-                            boton("Marcar no mapa", "push_pin", lambda: modo("marcar"),
+                            boton(_("Marcar no mapa"), "push_pin", lambda: modo("marcar"),
                                   principal=True)
-                        ui.button("Quitar esta parcela", icon="delete",
-                                  on_click=lambda: quitar_parcela(p.id)).props(
-                            "flat color=negative")
+                        ui.button(
+                            _("Quitar esta parcela"),
+                            icon="delete",
+                            on_click=lambda: quitar_parcela(p.id),
+                        ).props("flat color=negative")
         elif z is not None:
             dona = parcela(z.parcela_id)
             with ui.card().classes("w-full"):
                 if pode_editar:
-                    ui.input("Nome da zona (que tes plantado)", value=z.nome).classes(
+                    ui.input(_("Nome da zona (que tes plantado)"), value=z.nome).classes(
                         "w-full text-h6").on(
                         "blur", lambda e, i=z.id: renomear_zona(i, e.sender.value or ""))
                 else:
                     ui.label(z.nome).classes("text-h6")
-                ui.label(f"{TIPOS_ZONA.get(z.tipo, z.tipo)} · "
-                         f"{formatar_superficie(z.superficie or 0)}").classes("texto-suave")
+                tipo_zona = _(TIPOS_ZONA.get(z.tipo, z.tipo))
+                sup_zona = formatar_superficie(z.superficie or 0)
+                ui.label(f"{tipo_zona} · {sup_zona}").classes("texto-suave")
                 if pode_editar:
                     with ui.column().classes("gap-1 w-full q-mt-sm"):
-                        boton("Mover os lindes", "edit_location_alt", lambda: modo("editar"),
+                        boton(_("Mover os lindes"), "edit_location_alt", lambda: modo("editar"),
                               principal=True)
-                        boton("Dividir cunha liña", "content_cut", lambda: modo("dividir"))
-                        boton("Xuntar con outra zona", "join_full", lambda: modo("xuntar"))
-                        ui.button("Quitar esta zona", icon="delete",
-                                  on_click=lambda: quitar_zona(z.id)).props(
-                            "flat color=negative")
+                        boton(_("Dividir cunha liña"), "content_cut", lambda: modo("dividir"))
+                        boton(_("Xuntar con outra zona"), "join_full", lambda: modo("xuntar"))
+                        ui.button(
+                            _("Quitar esta zona"),
+                            icon="delete",
+                            on_click=lambda: quitar_zona(z.id),
+                        ).props("flat color=negative")
                 if dona is not None:
-                    ui.button(f"Volver a «{dona.nome}»", icon="arrow_back",
-                              on_click=lambda: escoller("parcela", dona.id)).props("flat dense")
+                    ui.button(
+                        _("Volver a «{nome}»").format(nome=dona.nome),
+                        icon="arrow_back",
+                        on_click=lambda: escoller("parcela", dona.id),
+                    ).props("flat dense")
         else:
             if pode_editar:
                 buscar_por_referencia()
         lista()
 
     def buscar_por_referencia() -> None:
-        with ui.expansion("Buscar pola referencia da PAC", icon="search").classes("w-full"):
-            provincia = ui.select(_PROVINCIAS, value="15", label="Provincia").classes("w-full")
+        with ui.expansion(_("Buscar pola referencia da PAC"), icon="search").classes("w-full"):
+            opcions_provincias = {k: _(v) for k, v in _PROVINCIAS.items()}
+            provincia = ui.select(
+                opcions_provincias, value="15", label=_("Provincia")
+            ).classes("w-full")
             with ui.row().classes("no-wrap gap-2"):
-                concello = ui.input("Concello (nº)").classes("w-24")
-                poligono = ui.input("Polígono").classes("w-24")
-                num = ui.input("Parcela").classes("w-24")
+                concello = ui.input(_("Concello (nº)")).classes("w-24")
+                poligono = ui.input(_("Polígono")).classes("w-24")
+                num = ui.input(_("Parcela")).classes("w-24")
 
             async def buscar() -> None:
                 if not (concello.value and poligono.value and num.value):
-                    ui.notify("Enche concello, polígono e parcela", type="warning")
+                    ui.notify(_("Enche concello, polígono e parcela"), type="warning")
                     return
                 try:
                     atopados = await run.io_bound(recintos_da_parcela, provincia.value,
                                                   concello.value.strip(), poligono.value.strip(),
                                                   num.value.strip())
                 except (SenConexion, ValueError) as erro:
-                    ui.notify(f"Non se puido consultar o SIGPAC: {erro}", type="negative")
+                    ui.notify(
+                        _("Non se puido consultar o SIGPAC: {erro}").format(erro=erro),
+                        type="negative",
+                    )
                     return
                 atopados = [r for r in atopados or [] if len(r.puntos) >= 3]
                 if not atopados:
-                    ui.notify("Non se atopou esa parcela no SIGPAC", type="warning")
+                    ui.notify(_("Non se atopou esa parcela no SIGPAC"), type="warning")
                     return
                 for r in atopados:
                     await engadir(r)
-                ui.notify(f"Gardados {len(atopados)} recintos nas túas parcelas",
-                          type="positive")
+                total_atopados = len(atopados)
+                ui.notify(
+                    ngettext(
+                        "Gardado {n} recinto nas túas parcelas",
+                        "Gardados {n} recintos nas túas parcelas",
+                        total_atopados,
+                    ).format(n=total_atopados),
+                    type="positive",
+                )
                 escoller(None, None)
                 achegar([pt for r in atopados for pt in r.puntos])
 
-            ui.button("Buscar e engadir", icon="search", on_click=buscar)
+            ui.button(_("Buscar e engadir"), icon="search", on_click=buscar)
 
     def lista() -> None:
-        ui.label("As miñas parcelas").classes("text-weight-medium q-mt-sm")
+        ui.label(_("As miñas parcelas")).classes("text-weight-medium q-mt-sm")
         if not datos["parcelas"]:
-            ui.label("Aínda ningunha. Toca as túas terras no mapa ou búscaas pola "
-                     "referencia da PAC.").classes("texto-suave")
+            ui.label(
+                _(
+                    "Aínda ningunha. Toca as túas terras no mapa ou búscaas pola "
+                    "referencia da PAC."
+                )
+            ).classes("texto-suave")
             return
         for p in datos["parcelas"]:
             ref = _referencia(p)
@@ -611,9 +686,15 @@ def seccion_terras(horta_id: int, pode_editar: bool) -> None:
                             color="green-8" if p.geometria else "grey")
                 with ui.item_section():
                     ui.item_label(p.nome)
-                    ui.item_label(" · ".join(x for x in (
-                        ref or ("debuxada a man" if p.geometria else "sen marcar no mapa"),
-                        formatar_superficie(p.superficie) if p.superficie else "") if x)
+                    estado_mapa = (
+                        _("debuxada a man") if p.geometria else _("sen marcar no mapa")
+                    )
+                    detalles_p = [
+                        ref or estado_mapa,
+                        formatar_superficie(p.superficie) if p.superficie else "",
+                    ]
+                    ui.item_label(
+                        " · ".join(x for x in detalles_p if x)
                     ).props("caption")
             for z in (z for z in datos["zonas"] if z.parcela_id == p.id):
                 with ui.item(on_click=lambda z=z: escoller("zona", z.id, True)).props(

@@ -9,10 +9,14 @@ from sqlalchemy import Date, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from horta.db import Base
+from horta.idiomas import N_
 from horta.models.traballo import ConMaquina, FeitoPor, ParteComun
 
-TIPOS_INSTALACION = {"postcolleita": "Postcolleita (no produto vexetal)",
-                     "local": "Local de almacenamento", "transporte": "Medio de transporte"}
+TIPOS_INSTALACION = {
+    "postcolleita": N_("Postcolleita (no produto vexetal)"),
+    "local": N_("Local de almacenamento"),
+    "transporte": N_("Medio de transporte"),
+}
 
 
 class TratamentoInstalacion(ParteComun, FeitoPor, ConMaquina, Base):

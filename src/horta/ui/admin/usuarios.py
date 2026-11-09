@@ -3,6 +3,7 @@ from __future__ import annotations
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.errors import PermisoDenegadoError
 from horta.services.usuarios import (
@@ -18,8 +19,6 @@ from horta.ui.nav import cabeceira_paxina
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
-_PROPS_TABOA = f'dense no-data-label="Non hai persoas usuarias" {TEXTOS_TABOA}'
-
 _ROLES_USUARIO = ("admin", "usuario")
 
 
@@ -34,7 +33,7 @@ def admin_usuarios_page() -> None:
             usuarios = listar_usuarios(session, actor)
         except PermisoDenegadoError:
             cabeceira_paxina()
-            ui.label("Non tes acceso a esta páxina").classes("text-negative")
+            ui.label(_("Non tes acceso a esta páxina")).classes("text-negative")
             return
         rows = [
             {
@@ -50,15 +49,15 @@ def admin_usuarios_page() -> None:
     cabeceira_paxina(mostrar_admin=True)
 
     with ui.dialog().props("persistent") as dialog_crear, ui.card():
-        ui.label("Crear persoa usuaria").classes("text-md font-bold")
-        nome_input = ui.input("Nome")
-        email_input = ui.input("Email")
-        contrasinal_input = ui.input("Contrasinal", password=True)
-        rol_select = ui.select(list(_ROLES_USUARIO), value="usuario", label="Rol")
+        ui.label(_("Crear persoa usuaria")).classes("text-md font-bold")
+        nome_input = ui.input(_("Nome"))
+        email_input = ui.input(_("Email"))
+        contrasinal_input = ui.input(_("Contrasinal"), password=True)
+        rol_select = ui.select(list(_ROLES_USUARIO), value="usuario", label=_("Rol"))
 
         def crear() -> None:
             if not (nome_input.value and email_input.value and contrasinal_input.value):
-                ui.notify("Todos os campos son obrigatorios", type="negative")
+                ui.notify(_("Todos os campos son obrigatorios"), type="negative")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -81,31 +80,31 @@ def admin_usuarios_page() -> None:
             ui.navigate.reload()
 
         with ui.row():
-            ui.button("Crear", icon="check", on_click=crear)
-            ui.button("Cancelar", on_click=dialog_crear.close).props("flat")
+            ui.button(_("Crear"), icon="check", on_click=crear)
+            ui.button(_("Cancelar"), on_click=dialog_crear.close).props("flat")
 
     with ui.row().classes("w-full items-center justify-between"):
-        ui.label("Xestión de persoas usuarias").classes("text-xl font-bold")
-        ui.button("Crear persoa usuaria", icon="person_add", on_click=dialog_crear.open)
+        ui.label(_("Xestión de persoas usuarias")).classes("text-xl font-bold")
+        ui.button(_("Crear persoa usuaria"), icon="person_add", on_click=dialog_crear.open)
 
-    ui.label("Selecciona unha persoa usuaria na táboa para editala.").classes("text-caption")
+    ui.label(_("Selecciona unha persoa usuaria na táboa para editala.")).classes("text-caption")
 
     with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
-        busca_input = ui.input("Buscar").props("dense clearable")
+        busca_input = ui.input(_("Buscar")).props("dense clearable")
         rol_filtro_select = ui.select(
-            ["Todos", *_ROLES_USUARIO], label="Rol", value="Todos"
+            [_("Todos"), *_ROLES_USUARIO], label=_("Rol"), value=_("Todos")
         ).props("dense")
         activo_select = ui.select(
-            ["Todos", "si", "non"], label="Activo", value="Todos"
+            [_("Todos"), "si", "non"], label=_("Activo"), value=_("Todos")
         ).props("dense")
 
     taboa = (
         ui.table(
             columns=[
-                {"name": "nome", "label": "Nome", "field": "nome"},
-                {"name": "email", "label": "Email", "field": "email"},
-                {"name": "rol", "label": "Rol", "field": "rol"},
-                {"name": "activo", "label": "Activo", "field": "activo"},
+                {"name": "nome", "label": _("Nome"), "field": "nome"},
+                {"name": "email", "label": _("Email"), "field": "email"},
+                {"name": "rol", "label": _("Rol"), "field": "rol"},
+                {"name": "activo", "label": _("Activo"), "field": "activo"},
             ],
             rows=rows,
             row_key="id",
@@ -113,12 +112,12 @@ def admin_usuarios_page() -> None:
             pagination=10,
         )
         .classes("w-full")
-        .props(_PROPS_TABOA)
+        .props(f'dense no-data-label="{_("Non hai persoas usuarias")}" {TEXTOS_TABOA}')
     )
 
     def refrescar_taboa() -> None:
-        rol_filtro = None if rol_filtro_select.value == "Todos" else rol_filtro_select.value
-        activo_filtro = None if activo_select.value == "Todos" else activo_select.value
+        rol_filtro = None if rol_filtro_select.value == _("Todos") else rol_filtro_select.value
+        activo_filtro = None if activo_select.value == _("Todos") else activo_select.value
         taboa.rows = filtrar_filas(
             rows,
             busca_input.value or "",
@@ -136,8 +135,8 @@ def admin_usuarios_page() -> None:
 
     with ui.dialog().props("persistent") as dialog_editar, ui.card():
         titulo_edicion = ui.label("").classes("text-md font-bold")
-        nome_edit = ui.input("Nome")
-        rol_edit = ui.select(list(_ROLES_USUARIO), value="usuario", label="Rol")
+        nome_edit = ui.input(_("Nome"))
+        rol_edit = ui.select(list(_ROLES_USUARIO), value="usuario", label=_("Rol"))
 
         def _usuario_seleccionado_id() -> int | None:
             return taboa.selected[0]["id"] if taboa.selected else None
@@ -147,7 +146,7 @@ def admin_usuarios_page() -> None:
             if usuario_id is None:
                 return
             if not nome_edit.value:
-                ui.notify("O nome é obrigatorio", type="negative")
+                ui.notify(_("O nome é obrigatorio"), type="negative")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -156,7 +155,7 @@ def admin_usuarios_page() -> None:
                     return
                 obxectivo = session.get(Usuario, usuario_id)
                 if obxectivo is None:
-                    ui.notify("Esa persoa usuaria xa non existe", type="negative")
+                    ui.notify(_("Esa persoa usuaria xa non existe"), type="negative")
                     return
                 gardado = executar_accion(
                     session,
@@ -183,7 +182,7 @@ def admin_usuarios_page() -> None:
                     return
                 obxectivo = session.get(Usuario, usuario_id)
                 if obxectivo is None:
-                    ui.notify("Esa persoa usuaria xa non existe", type="negative")
+                    ui.notify(_("Esa persoa usuaria xa non existe"), type="negative")
                     return
                 accion = desactivar_usuario if obxectivo.activo else activar_usuario
                 feito = executar_accion(session, lambda: accion(session, actor_actual, obxectivo))
@@ -192,22 +191,22 @@ def admin_usuarios_page() -> None:
             ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar cambios", icon="check", on_click=gardar)
+            ui.button(_("Gardar cambios"), icon="check", on_click=gardar)
             boton_activo = ui.button("", on_click=alternar_activo).props("outline")
-            ui.button("Pechar", on_click=dialog_editar.close).props("flat")
+            ui.button(_("Pechar"), on_click=dialog_editar.close).props("flat")
 
     def abrir_edicion() -> None:
         if not taboa.selected:
             return
         fila = taboa.selected[0]
-        titulo_edicion.text = f"Editar persoa usuaria: {fila['email']}"
+        titulo_edicion.text = _("Editar persoa usuaria: {email}").format(email=fila["email"])
         nome_edit.value = fila["nome"]
         rol_edit.value = fila["rol"]
-        boton_activo.text = "Desactivar" if fila["activo"] == "si" else "Activar"
+        boton_activo.text = _("Desactivar") if fila["activo"] == "si" else _("Activar")
         boton_activo.props(f"icon={'block' if fila['activo'] == 'si' else 'check_circle'}")
         dialog_editar.open()
 
     with ui.row().classes("q-mt-sm") as fila_accions:
-        ui.button("Editar", icon="edit", on_click=abrir_edicion)
+        ui.button(_("Editar"), icon="edit", on_click=abrir_edicion)
     fila_accions.set_visibility(False)
     taboa.on_select(lambda: fila_accions.set_visibility(bool(taboa.selected)))

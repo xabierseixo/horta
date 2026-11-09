@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import _
 from horta.models.cultivo import Cultivo
 from horta.models.sensor import Sensor
 from horta.models.usuario import Usuario
@@ -14,7 +15,9 @@ from horta.ui.numeros import formatar_decimal
 
 def texto_humidade_chan(nome_sensor: str, valor: float) -> str:
     """Texto para a lectura actual de humidade do chan dun sensor."""
-    return f"Humidade do chan agora: {valor:g} % (sensor {nome_sensor})"
+    return _("Humidade do chan agora: {valor:g} % (sensor {sensor})").format(
+        valor=valor, sensor=nome_sensor
+    )
 
 
 def buscar_humidade_chan(
@@ -47,7 +50,7 @@ def buscar_humidade_chan(
     ult = ultima_lectura(session, actor, sensor.id)
     if ult is None:
         return None
-    _, valor = ult
+    _x, valor = ult
     return (sensor.nome, valor)
 
 
@@ -63,30 +66,30 @@ def texto_necesidade(
         choiva = formatar_decimal(round(n.choiva_efectiva_mm, 1))
         rega = formatar_decimal(round(n.rega_mm, 1))
         if n.falta_mm > 0:
-            texto = (
-                f"Faltan uns {falta} l/m² (gastou {etc}, choveu {choiva} útiles, regouse {rega})"
-            )
+            texto = _(
+                "Faltan uns {falta} l/m² (gastou {etc}, choveu {choiva} útiles, regouse {rega})"
+            ).format(falta=falta, etc=etc, choiva=choiva, rega=rega)
         else:
-            texto = (
-                f"Non fai falta regar (gastou {etc} l/m², choveu {choiva} útiles, regouse {rega})"
-            )
+            texto = _(
+                "Non fai falta regar (gastou {etc} l/m², choveu {choiva} útiles, regouse {rega})"
+            ).format(etc=etc, choiva=choiva, rega=rega)
         if n.et0_estimada:
-            texto += (
+            texto += _(
                 " · aproximado: a estación non mide a evapotranspiración "
                 "e calcúlase coa temperatura (FAO-56)"
             )
         elif n.aproximado:
-            texto += " · cálculo aproximado"
+            texto += _(" · cálculo aproximado")
     elif n.estado == "secano":
-        texto = "Cultivo de secano"
+        texto = _("Cultivo de secano")
     elif n.estado == "sen_coeficiente":
-        texto = "Non hai coeficiente oficial para este cultivo"
+        texto = _("Non hai coeficiente oficial para este cultivo")
     elif n.estado == "sen_estacion":
-        texto = "Nin a parcela nin a explotación teñen estación de MeteoGalicia"
+        texto = _("Nin a parcela nin a explotación teñen estación de MeteoGalicia")
     elif n.estado == "sen_data_inicio":
-        texto = "Falta a data de sementeira ou plantación"
+        texto = _("Falta a data de sementeira ou plantación")
     elif n.estado == "sen_datos":
-        texto = "A estación non ten datos de temperatura nin evapotranspiración destes días"
+        texto = _("A estación non ten datos de temperatura nin evapotranspiración destes días")
     else:
         texto = ""
 

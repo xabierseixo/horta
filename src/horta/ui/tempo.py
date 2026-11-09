@@ -9,6 +9,7 @@ from datetime import date
 from nicegui import background_tasks, run, ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.tarefa import Tarefa
@@ -67,9 +68,9 @@ class CampoLugarTempo:
         # baleiro: na parcela, o texto de «o da explotación»
         self.baleiro = baleiro
         opcions = {**({"": baleiro} if baleiro else {}), **concellos()}
-        self.concello = ui.select(opcions, label="Concello (para a predición)",
+        self.concello = ui.select(opcions, label=_("Concello (para a predición)"),
                                   with_input=True, clearable=True).classes("w-full")
-        self.estacion = ui.select({}, label="Estación de MeteoGalicia", with_input=True,
+        self.estacion = ui.select({}, label=_("Estación de MeteoGalicia"), with_input=True,
                                   clearable=True).classes("w-full")
         self.nota = ui.label("").classes("text-caption texto-suave")
         self._estacions: dict[int, Estacion] = {}
@@ -92,7 +93,7 @@ class CampoLugarTempo:
     async def _buscar(self, estacion_id: int | None) -> None:
         estacions = await run.io_bound(_estacions_meteogalicia)
         if not estacions:
-            self.nota.text = "Sen conexión con MeteoGalicia: só as estacións xa gardadas"
+            self.nota.text = _("Sen conexión con MeteoGalicia: só as estacións xa gardadas")
             return
         self._pintar(estacions, self.estacion.value or estacion_id, propor=True)
 
@@ -109,9 +110,11 @@ class CampoLugarTempo:
 
         def etiqueta(e: Estacion) -> str:
             km = self._km(e)
+            alt = (_("{alt:.0f} m de altitude").format(alt=e.altitude)
+                   if e.altitude is not None else "")
             partes = [f"{e.nome} ({_nome_concello(e.concello)})",
                       f"{km:.1f} km" if km is not None else "",
-                      f"{e.altitude:.0f} m de altitude" if e.altitude is not None else ""]
+                      alt]
             return " · ".join(p for p in partes if p)
 
         opcions: dict[int | str, str] = {**({"": self.baleiro} if self.baleiro else {}),
@@ -128,8 +131,10 @@ class CampoLugarTempo:
     def _avisar(self) -> None:
         estacion = self._estacions.get(self.estacion.value or 0)
         km = self._km(estacion) if estacion else None
-        self.nota.text = (f"A estación está a {km:.0f} km: o tempo pode ser distinto"
-                          if km is not None and km > LONXE_KM else "")
+        self.nota.text = (
+            _("A estación está a {km:.0f} km: o tempo pode ser distinto").format(km=km)
+            if km is not None and km > LONXE_KM else ""
+        )
 
     @property
     def concello_ine(self) -> str | None:
@@ -219,7 +224,10 @@ def encher_tempo_que_falta(horta_id: int) -> None:
         background_tasks.create(run.io_bound(_encher, usuario_id, horta_id))
 
 
-_DIAS_SEMANA = ("Luns", "Martes", "Mércores", "Xoves", "Venres", "Sábado", "Domingo")
+_DIAS_SEMANA = (
+    N_("Luns"), N_("Martes"), N_("Mércores"), N_("Xoves"),
+    N_("Venres"), N_("Sábado"), N_("Domingo"),
+)
 
 
 def _predicion(concello_ine: str) -> tuple[list[DiaPredicion], list[Aviso]]:
@@ -245,17 +253,17 @@ def _tarxeta_dia(d: DiaPredicion) -> None:
     icona = _ICONAS_CEO.get((d.ceo_codigo or 0) % 100, "grain" if d.ceo_codigo else "help")
     with ui.column().classes("items-center gap-0 q-pa-sm").style(
             "min-width: 8.5rem; border: 1px solid rgba(0,0,0,.12); border-radius: 8px"):
-        ui.label(f"{_DIAS_SEMANA[d.data.weekday()]} {d.data:%d/%m}").classes(
+        ui.label(f"{_(_DIAS_SEMANA[d.data.weekday()])} {d.data:%d/%m}").classes(
             "text-weight-bold")
         ui.icon(icona, size="2rem").classes("text-primary")
-        ui.label(d.ceo or "").classes("text-caption text-center")
+        ui.label(_(d.ceo) if d.ceo else "").classes("text-caption text-center")
         if d.t_min is not None and d.t_max is not None:
             ui.label(f"{d.t_min}° / {d.t_max}°").classes("text-h6")
         for icona_dato, texto in (("water_drop", f"{d.choiva_pct} %"
                                    if d.choiva_pct is not None else ""),
                                   ("air", (d.vento or "").replace("Vento ", "")),
                                   ("light_mode", f"UV {d.uv}" if d.uv is not None else ""),
-                                  ("dark_mode", fase_lua(d.data))):
+                                  ("dark_mode", _(fase_lua(d.data)))):
             if texto:
                 with ui.row().classes("items-center gap-1 no-wrap"):
                     ui.icon(icona_dato, size="1rem").classes("texto-suave")
@@ -267,16 +275,21 @@ def predicion_inicio(concello_ine: str | None, estacion_id: int | None,
     """Inicio: a predición do concello da explotación e os avisos das tarefas de tratamento.
     Non se garda: consúltase ao abrir, sen bloquear a pantalla."""
     if not concello_ine:
-        ui.label("Para ver a predición do tempo, escolle o concello en Datos da explotación "
-                 "→ O tempo.").classes("text-caption texto-suave q-my-sm")
+        ui.label(
+            _(
+                "Para ver a predición do tempo, escolle o concello en Datos da explotación "
+                "→ O tempo."
+            )
+        ).classes("text-caption texto-suave q-my-sm")
         return
     with ui.column().classes("tarxeta w-full gap-1 q-my-md"):
-        ui.label(f"O tempo en {concellos().get(concello_ine, concello_ine)}").classes(
-            "text-subtitle1 text-weight-bold")
+        ui.label(_("O tempo en {lugar}").format(
+            lugar=concellos().get(concello_ine, concello_ine)
+        )).classes("text-subtitle1 text-weight-bold")
         corpo = ui.column().classes("w-full gap-0")
         with corpo:
-            ui.label("Consultando MeteoGalicia…").classes("texto-suave")
-        ui.label("Fonte: MeteoGalicia").classes("text-caption texto-suave")
+            ui.label(_("Consultando MeteoGalicia…")).classes("texto-suave")
+        ui.label(_("Fonte: MeteoGalicia")).classes("text-caption texto-suave")
 
     async def cargar() -> None:
         resultado = await run.io_bound(_predicion, concello_ine)
@@ -285,26 +298,33 @@ def predicion_inicio(concello_ine: str | None, estacion_id: int | None,
         corpo.clear()
         with corpo:
             if not dias:
-                ui.label("Sen conexión con MeteoGalicia agora mesmo.").classes("texto-suave")
+                ui.label(_("Sen conexión con MeteoGalicia agora mesmo.")).classes("texto-suave")
                 return
             if avisos_oficiais:
-                ui.label("Avisos").classes("text-subtitle2 q-mt-sm")
+                ui.label(_("Avisos")).classes("text-subtitle2 q-mt-sm")
             for aviso in avisos_oficiais:
-                ui.label(f"Aviso {NIVEIS_AVISO[aviso.nivel]}: {aviso.tipo.lower()}, "
-                         f"{aviso.inicio:%d/%m %H:%M}–{aviso.fin:%H:%M}").classes(
-                    "etiqueta-aviso")
-            ui.label("Próximos días").classes("text-subtitle2 q-mt-sm")
+                ui.label(
+                    _("Aviso {nivel}: {tipo}, {inicio}–{fin}").format(
+                        nivel=_(NIVEIS_AVISO[aviso.nivel]),
+                        tipo=aviso.tipo.lower(),
+                        inicio=f"{aviso.inicio:%d/%m %H:%M}",
+                        fin=f"{aviso.fin:%H:%M}",
+                    )
+                ).classes("etiqueta-aviso")
+            ui.label(_("Próximos días")).classes("text-subtitle2 q-mt-sm")
             with ui.row().classes("w-full gap-2"):
                 for d in dias:
                     _tarxeta_dia(d)
             avisos_das_tarefas = avisos_tarefas(tarefas, dias)
             if avisos_das_tarefas:
-                ui.label("As túas tarefas").classes("text-subtitle2 q-mt-sm")
+                ui.label(_("As túas tarefas")).classes("text-subtitle2 q-mt-sm")
             for aviso_tarefa in avisos_das_tarefas:
                 ui.label(aviso_tarefa).classes("etiqueta-aviso")
             if frio is not None:
-                ui.label("Froiteiros").classes("text-subtitle2 q-mt-sm")
-                ui.label(f"Horas de frío desde o 1 de novembro: {frio:.0f} h (para os "
-                         "froiteiros)").classes("text-caption")
+                ui.label(_("Froiteiros")).classes("text-subtitle2 q-mt-sm")
+                ui.label(
+                    _("Horas de frío desde o 1 de novembro: {horas:.0f} h (para os "
+                      "froiteiros)").format(horas=frio)
+                ).classes("text-caption")
 
     background_tasks.create(cargar())

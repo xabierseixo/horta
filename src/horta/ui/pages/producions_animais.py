@@ -9,6 +9,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.producion_animal import ProducionAnimal
 from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
@@ -61,7 +62,7 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
         "data": (f"{pr.data:%d/%m/%Y}" if pr.data_fin == pr.data
                  else f"{pr.data:%d/%m} – {pr.data_fin:%d/%m/%Y}"),
         "grupo": grupos.get(pr.animal_id, ""),
-        "produto": PRODUTOS[pr.produto],
+        "produto": _(PRODUTOS[pr.produto]),
         "cantidade": f"{pr.cantidade:g} {pr.unidade}",
         "retirada": f"{pr.retirada:g}" if pr.retirada else "",
         "lote": pr.lote,
@@ -71,12 +72,12 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
     } for pr in producions]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("grupo", "Animais"), ("produto", "Produto"),
-            ("cantidade", "Canto"), ("retirada", "Retirado"), ("lote", "Lote"), ("queda", "Queda"),
-            ("quen", "Quen"))],
+            ("data", _("Data")), ("grupo", _("Animais")), ("produto", _("Produto")),
+            ("cantidade", _("Canto")), ("retirada", _("Retirado")), ("lote", _("Lote")),
+            ("queda", _("Queda")), ("quen", _("Quen")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai produción apuntada" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai produción apuntada")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "data", ["produto", "cantidade", "grupo"], accions_tarxeta)
@@ -89,14 +90,14 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
 
     def vender() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         pr_escollida = next(x for x in producions if x.id == taboa.selected[0]["id"])
         abrir_saida(None, None, pr_escollida.lote_id, "venda")
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         with get_session() as session:
             pr = session.get(ProducionAnimal, taboa.selected[0]["id"])
@@ -105,7 +106,7 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         producion_id = taboa.selected[0]["id"]
 
@@ -121,18 +122,18 @@ def seccion_producion(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este rexistro? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa este rexistro? Non se borra: consérvase no histórico."), confirmar)
 
-    accions_tarxeta += [("Vender", "sell", vender),
-                        ("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Vender"), "sell", vender),
+                        (_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar produción", icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Apuntar produción"), icon="add", on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Vender", icon="sell", on_click=vender).props("outline")
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Vender"), icon="sell", on_click=vender).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_producion(horta_id: int) -> Callable[..., None]:
@@ -142,7 +143,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_, **__: None
+            return lambda *_args, **_kwargs: None
         animais = listar_animais(session, actor, horta_id)
         todos = {a.id: nome_grupo(a.especie, a.raza) for a in animais}
         especies = {a.id: a.especie_codigo for a in animais}
@@ -152,32 +153,33 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar produción dos animais").classes("text-h6")
+        titulo = ui.label(_("Apuntar produción dos animais")).classes("text-h6")
         if not todos:
-            ui.label("Primeiro engade os animais en Explotación → Animais.").classes(
+            ui.label(_("Primeiro engade os animais en Explotación → Animais.")).classes(
                 "text-warning text-caption")
-        grupo = ui.select(todos, label="Animais", with_input=True).classes("w-full")
-        produto = ui.select(PRODUTOS, label="Produto").classes("w-full")
+        grupo = ui.select(todos, label=_("Animais"), with_input=True).classes("w-full")
+        produto = ui.select({k: _(v) for k, v in PRODUTOS.items()},
+                            label=_("Produto")).classes("w-full")
         with ui.row().classes("w-full no-wrap"):
-            data = campo_data("Data", date.today().isoformat()).classes(
+            data = campo_data(_("Data"), date.today().isoformat()).classes(
                 remove="w-full", add="col")
-            data_fin = campo_data("Ata (opcional)", "").classes(
+            data_fin = campo_data(_("Ata (opcional)"), "").classes(
                 remove="w-full", add="col")
         with ui.row().classes("w-full no-wrap"):
-            cantidade = ui.input("Canto").classes("col")
-            unidade = ui.select(list(UNIDADES_PRODUCION), label="Unidade",
+            cantidade = ui.input(_("Canto")).classes("col")
+            unidade = ui.select(list(UNIDADES_PRODUCION), label=_("Unidade"),
                                 value="unidades").classes("col")
-        retirada = ui.input("Retirado: rotos ou que non vale").classes("w-full")
+        retirada = ui.input(_("Retirado: rotos ou que non vale")).classes("w-full")
         aviso = ui.label("").classes("etiqueta-aviso")
-        todo_retirado = ui.button("Poñer todo como retirado", icon="block",
+        todo_retirado = ui.button(_("Poñer todo como retirado"), icon="block",
                                   on_click=lambda: retirada.set_value(cantidade.value)).props(
             "flat dense")
-        lote = ui.input("Lote").classes("w-full")
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        with ui.expansion("Máis datos").classes("w-full"):
-            horas = ui.input("Horas de traballo").classes("w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+        lote = ui.input(_("Lote")).classes("w-full")
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def dias() -> tuple[date | None, date | None]:
             try:
@@ -208,7 +210,8 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
 
         def produtos_do_grupo() -> None:
             opcions = produtos_da_especie(especies.get(grupo.value)) if grupo.value else PRODUTOS
-            produto.set_options(opcions, value=produto.value if produto.value in opcions
+            opcions_traducidas = {k: _(v) for k, v in opcions.items()}
+            produto.set_options(opcions_traducidas, value=produto.value if produto.value in opcions
                                 else next(iter(opcions)))
             avisar()
 
@@ -224,7 +227,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
 
         def gardar() -> None:
             if grupo.value is None or produto.value is None:
-                ui.notify("Escolle os animais e o produto", type="warning")
+                ui.notify(_("Escolle os animais e o produto"), type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -235,7 +238,7 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     inicio = parsear_data(data.value)
                     if inicio is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     canto = parsear_decimal(cantidade.value)
                     datos = DatosProducion(
                         animal_id=grupo.value, data=inicio, data_fin=parsear_data(data_fin.value),
@@ -257,15 +260,15 @@ def dialogo_producion(horta_id: int) -> Callable[..., None]:
                 recargar_apuntado("producion_animal", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(pr: ProducionAnimal | None, tarefa: Tarefa | None = None,
               animal_id: int | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = pr.id if pr else None
-        titulo.text = ("Editar produción dos animais" if pr
-                       else "Apuntar produción dos animais")
+        titulo.text = (_("Editar produción dos animais") if pr
+                       else _("Apuntar produción dos animais"))
         animal_tarefa = tarefa.animal_id if tarefa and tarefa.animal_id in todos else None
         grupo.value = pr.animal_id if pr else (animal_id or animal_tarefa)
         produtos_do_grupo()

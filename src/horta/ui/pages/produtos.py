@@ -10,6 +10,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.abonado import Fertilizante
 from horta.models.produto import EntradaProduto
 from horta.models.tarefa import Tarefa
@@ -54,8 +55,8 @@ def seccion_produtos(horta_id: int, pode_editar: bool) -> None:
     """Dúas pestanas, como Persoas: o que mercas (insumos) e o que vendes (fichas dos
     produtos que saen, a documentación)."""
     with ui.tabs().classes("w-full") as pestanas:
-        mercas = ui.tab("O que mercas")
-        vendes = ui.tab("O que vendes")
+        mercas = ui.tab(_("O que mercas"))
+        vendes = ui.tab(_("O que vendes"))
     with ui.tab_panels(pestanas, value=mercas).classes("w-full"):
         with ui.tab_panel(mercas):
             _seccion_mercas(horta_id, pode_editar)
@@ -70,17 +71,17 @@ def _seccion_vendes(horta_id: int, pode_editar: bool) -> None:
             pechar_sesion()
             return
         fichas = listar_fichas(session, actor, horta_id)
-    categorias = {c: nome for c, (nome, *_) in CATEGORIAS_VENDA_DIRECTA.items()}
+    categorias = {c: _(nome) for c, (nome, *_x) in CATEGORIAS_VENDA_DIRECTA.items()}
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k, "align": "left"}
-                 for k, etiqueta in (("nome", "Produto"), ("lotes", "Como fas os lotes"),
-                                     ("clases", "Clases"), ("venda", "Venda directa"))],
-        rows=[{"id": f.id, "nome": f.nome, "lotes": AGRUPACIONS[f.agrupacion],
+                 for k, etiqueta in (("nome", _("Produto")), ("lotes", _("Como fas os lotes")),
+                                     ("clases", _("Clases")), ("venda", _("Venda directa")))],
+        rows=[{"id": f.id, "nome": f.nome, "lotes": _(AGRUPACIONS[f.agrupacion]),
                "clases": ", ".join(clases_da_ficha(f)),
                "venda": categorias.get(f.categoria_venda_directa or "", "")} for f in fichas],
         row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        'flat bordered no-data-label="Aparecen soas coa primeira colleita ou produción" '
+        f'flat bordered no-data-label="{_("Aparecen soas coa primeira colleita ou produción")}" '
         f'{TEXTOS_TABOA}')
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "nome", ["lotes", "venda"], accions_tarxeta)
@@ -90,13 +91,13 @@ def _seccion_vendes(horta_id: int, pode_editar: bool) -> None:
 
         def editar() -> None:
             if not taboa.selected:
-                ui.notify("Escolle primeiro un produto na táboa", type="warning")
+                ui.notify(_("Escolle primeiro un produto na táboa"), type="warning")
                 return
             abrir_ficha(por_id[taboa.selected[0]["id"]], None)
 
-        accions_tarxeta.append(("Editar", "edit", editar))
+        accions_tarxeta.append((_("Editar"), "edit", editar))
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
 
 
 def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
@@ -120,20 +121,20 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
 
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("produto", "Produto"), ("queda", "Queda"), ("tipo", "Que é"),
-            ("entrou", "Entrou"), ("usado", "Usado"))],
+            ("produto", _("Produto")), ("queda", _("Queda")), ("tipo", _("Que é")),
+            ("entrou", _("Entrou")), ("usado", _("Usado")))],
         rows=[{"id": p.id, "produto": p.nome, "queda": queda(p.id, p.unidade),
-               "tipo": TIPOS_PRODUTO[p.tipo],
+               "tipo": _(TIPOS_PRODUTO[p.tipo]),
                "entrou": f"{formatar_decimal(contas[p.id].entrou)} {p.unidade}",
                "usado": f"{formatar_decimal(contas[p.id].usado)} {p.unidade}"} for p in produtos],
         row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        'flat bordered no-data-label="Aínda non hai produtos: apunta a primeira compra" '
+        f'flat bordered no-data-label="{_("Aínda non hai produtos: apunta a primeira compra")}" '
         f'{TEXTOS_TABOA}')
     accions_tarxeta_produtos: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "produto", ["queda", "tipo"], accions_tarxeta_produtos)
     if any(c.sen_contar or c.entradas_sen_cantidade for c in contas.values()):
-        ui.label("(?) hai compras ou usos sen cantidade: o que queda non é seguro.").classes(
+        ui.label(_("(?) hai compras ou usos sen cantidade: o que queda non é seguro.")).classes(
             "text-caption texto-suave")
     abrir = dialogo_entrada(horta_id) if pode_editar else None
     if pode_editar and abrir is not None:
@@ -146,7 +147,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
 
         def abono_escollido() -> int | None:
             if not taboa.selected or taboa.selected[0]["id"] not in abonos:
-                ui.notify("Escolle primeiro un abono na táboa", type="warning")
+                ui.notify(_("Escolle primeiro un abono na táboa"), type="warning")
                 return None
             return abonos[taboa.selected[0]["id"]]
 
@@ -156,7 +157,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
             with get_session() as session:
                 fertilizante = session.get(Fertilizante, fertilizante_id)
             if fertilizante is not None:
-                dialogo_novo_abono(horta_id, lambda *_: ui.navigate.reload(),
+                dialogo_novo_abono(horta_id, lambda *_x: ui.navigate.reload(),
                                    fertilizante).open()
 
         def retirar_abono() -> None:
@@ -175,26 +176,26 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
                     ui.navigate.reload()
 
             confirmar_eliminacion(
-                "Retirar este abono? Deixa de saír ao abonar; o que xa apuntaches consérvase.",
-                confirmar, "Retirar", "archive")
+                _("Retirar este abono? Deixa de saír ao abonar; o que xa apuntaches consérvase."),
+                confirmar, _("Retirar"), "archive")
 
         with ui.row():
-            ui.button("Nova entrada (compra)", icon="shopping_cart", on_click=nova_entrada)
-            ui.button("Novo produto", icon="add", on_click=abrir_produto).props("outline")
+            ui.button(_("Nova entrada (compra)"), icon="shopping_cart", on_click=nova_entrada)
+            ui.button(_("Novo produto"), icon="add", on_click=abrir_produto).props("outline")
             if abonos:
-                accions_tarxeta_produtos += [("Corrixir abono", "edit", corrixir_abono),
-                                             ("Retirar abono", "archive", retirar_abono)]
+                accions_tarxeta_produtos += [(_("Corrixir abono"), "edit", corrixir_abono),
+                                             (_("Retirar abono"), "archive", retirar_abono)]
                 with ui.row().classes("so-ordenador"):
-                    ui.button("Corrixir abono", icon="edit", on_click=corrixir_abono).props(
+                    ui.button(_("Corrixir abono"), icon="edit", on_click=corrixir_abono).props(
                         "outline")
-                    ui.button("Retirar abono", icon="archive", on_click=retirar_abono).props(
+                    ui.button(_("Retirar abono"), icon="archive", on_click=retirar_abono).props(
                         "outline")
 
-    ui.label("Entradas").classes("text-h6 q-mt-md")
+    ui.label(_("Entradas")).classes("text-h6 q-mt-md")
     taboa_entradas = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("produto", "Produto"), ("canto", "Canto"),
-            ("provedor", "Provedor"), ("albaran", "Albará"), ("prezo", "Prezo"))],
+            ("data", _("Data")), ("produto", _("Produto")), ("canto", _("Canto")),
+            ("provedor", _("Provedor")), ("albaran", _("Albará")), ("prezo", _("Prezo")))],
         rows=[{"id": e.id, "data": f"{e.data:%d/%m/%Y}",
                "produto": nome_produto.get(e.produto_id, ""),
                "canto": f"{formatar_decimal(e.cantidade)} {e.unidade}" if e.cantidade else "",
@@ -203,7 +204,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
               for e in entradas],
         row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai entradas" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai entradas")}" {TEXTOS_TABOA}')
     accions_tarxeta_entradas: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(
         taboa_entradas, "data", ["produto", "canto", "provedor"], accions_tarxeta_entradas
@@ -213,7 +214,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa_entradas.selected:
-            ui.notify("Escolle primeiro unha entrada na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha entrada na táboa"), type="warning")
             return
         with get_session() as session:
             entrada = session.get(EntradaProduto, taboa_entradas.selected[0]["id"])
@@ -222,7 +223,7 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
 
     def dar_de_baixa() -> None:
         if not taboa_entradas.selected:
-            ui.notify("Escolle primeiro unha entrada na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha entrada na táboa"), type="warning")
             return
         entrada_id = taboa_entradas.selected[0]["id"]
 
@@ -238,26 +239,27 @@ def _seccion_mercas(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa esta entrada? Non se borra: consérvase no histórico.", confirmar,
-            "Dar de baixa", "archive")
+            _("Dar de baixa esta entrada? Non se borra: consérvase no histórico."), confirmar,
+            _("Dar de baixa"), "archive")
 
-    accions_tarxeta_entradas += [("Editar", "edit", editar),
-                                 ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta_entradas += [(_("Editar"), "edit", editar),
+                                 (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row().classes("so-ordenador"):
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+        ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+        ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def _dialogo_produto(horta_id: int) -> Callable[[], None]:
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(28rem, 94vw)"):
-        ui.label("Novo produto").classes("text-h6")
-        tipo = ui.select(TIPOS_PRODUTO, label="Que é", value="outro").classes("w-full")
-        nome = ui.input("Nome").classes("w-full")
-        unidade = ui.select(list(UNIDADES_PRODUTO), label="Cóntase en", value="kg").classes(
+        ui.label(_("Novo produto")).classes("text-h6")
+        tipo = ui.select({k: _(v) for k, v in TIPOS_PRODUTO.items()}, label=_("Que é"),
+                         value="outro").classes("w-full")
+        nome = ui.input(_("Nome")).classes("w-full")
+        unidade = ui.select(list(UNIDADES_PRODUTO), label=_("Cóntase en"), value="kg").classes(
             "w-full")
-        rexistro = ui.input("Nº de rexistro (fitosanitario ou medicamento)").classes("w-full")
-        ui.label("Os abonos créanse dende o abonado («Novo abono»), coa súa composición."
+        rexistro = ui.input(_("Nº de rexistro (fitosanitario ou medicamento)")).classes("w-full")
+        ui.label(_("Os abonos créanse dende o abonado («Novo abono»), coa súa composición.")
                  ).classes("text-caption texto-suave")
 
         def gardar() -> None:
@@ -273,8 +275,8 @@ def _dialogo_produto(horta_id: int) -> Callable[[], None]:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir() -> None:
         dialogo.open()
@@ -289,38 +291,38 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_, **__: None
+            return lambda *_x, **_kwargs: None
         produtos = listar_produtos(session, actor, horta_id)
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
-    opcions = {p.id: f"{p.nome} ({TIPOS_PRODUTO[p.tipo].lower()})" for p in produtos}
+    opcions = {p.id: f"{p.nome} ({_(TIPOS_PRODUTO[p.tipo]).lower()})" for p in produtos}
     unidades = {p.id: p.unidade for p in produtos}
     tipos = {p.id: p.tipo for p in produtos}
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
-        titulo = ui.label("Entrada de produto").classes("text-h6")
+        titulo = ui.label(_("Entrada de produto")).classes("text-h6")
         if not produtos:
-            ui.label("Primeiro crea o produto en Explotación → Produtos.").classes(
+            ui.label(_("Primeiro crea o produto en Explotación → Produtos.")).classes(
                 "text-warning text-caption")
-        produto = ui.select(opcions, label="Produto", with_input=True).classes("w-full")
-        data = campo_data("Data", date.today().isoformat())
+        produto = ui.select(opcions, label=_("Produto"), with_input=True).classes("w-full")
+        data = campo_data(_("Data"), date.today().isoformat())
         with ui.row().classes("w-full no-wrap"):
-            cantidade = ui.input("Canto").classes("col")
-            unidade = ui.select(list(UNIDADES_ENTRADA), label="Unidade", value="kg").classes(
+            cantidade = ui.input(_("Canto")).classes("col")
+            unidade = ui.select(list(UNIDADES_ENTRADA), label=_("Unidade"), value="kg").classes(
                 "col")
-        provedor = CampoPersoa(horta_id, "provedor", "Provedor")
+        provedor = CampoPersoa(horta_id, "provedor", _("Provedor"))
         with ui.row().classes("w-full no-wrap"):
-            albaran = ui.input("Albará ou factura").classes("col")
-            importe = ui.input("Prezo total (€)").classes("col")
-        pago = CampoPago("Pagada")
-        persoa = ui.select(persoas, label="Quen o recibiu").classes("w-full")
-        with ui.expansion("Máis datos").classes("w-full"):
-            lote = ui.input("Lote da empresa provedora").classes("w-full")
-            caducidade = campo_data("Caducidade", "")
-            pasaporte = ui.input("Pasaporte fitosanitario (sementes e plantas)").classes(
+            albaran = ui.input(_("Albará ou factura")).classes("col")
+            importe = ui.input(_("Prezo total (€)")).classes("col")
+        pago = CampoPago(_("Pagada"))
+        persoa = ui.select(persoas, label=_("Quen o recibiu")).classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            lote = ui.input(_("Lote da empresa provedora")).classes("w-full")
+            caducidade = campo_data(_("Caducidade"), "")
+            pasaporte = ui.input(_("Pasaporte fitosanitario (sementes e plantas)")).classes(
                 "w-full")
-            horas = ui.input("Horas de traballo").classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def cambiar_produto() -> None:
             if produto.value in unidades and editando["id"] is None:
@@ -339,7 +341,7 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if produto.value is None or dia is None:
-                        raise OperacionNonPermitidaError("Escolle o produto e a data")
+                        raise OperacionNonPermitidaError(_("Escolle o produto e a data"))
                     datos = DatosEntrada(
                         produto_id=produto.value, data=dia, persoa_id=persoa.value,
                         provedor_id=provedor.value, cantidade=parsear_decimal(cantidade.value),
@@ -362,14 +364,14 @@ def dialogo_entrada(horta_id: int) -> Callable[..., None]:
                 recargar_apuntado("entrada_produto", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(entrada: EntradaProduto | None, tarefa: Tarefa | None = None,
               produto_id: int | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = entrada.id if entrada else None
-        titulo.text = "Editar entrada de produto" if entrada else "Entrada de produto"
+        titulo.text = _("Editar entrada de produto") if entrada else _("Entrada de produto")
         produto.value = entrada.produto_id if entrada else produto_id
         data.value = (entrada.data if entrada else date.today()).isoformat()
         cantidade.value = (formatar_decimal(entrada.cantidade)

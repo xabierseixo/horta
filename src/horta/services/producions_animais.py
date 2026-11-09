@@ -8,6 +8,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.animal import Animal
 from horta.models.horta import RolHorta
 from horta.models.producion_animal import ProducionAnimal
@@ -28,12 +29,12 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 PRODUTOS: dict[str, str] = {
-    "ovos": "Ovos",
-    "leite": "Leite",
-    "mel": "Mel",
-    "cera": "Cera",
-    "la": "La",
-    "outro": "Outro",
+    "ovos": N_("Ovos"),
+    "leite": N_("Leite"),
+    "mel": N_("Mel"),
+    "cera": N_("Cera"),
+    "la": N_("La"),
+    "outro": N_("Outro"),
 }
 # Unidade que se propón para cada produto
 UNIDADE_PRODUTO = {"ovos": "unidades", "leite": "litros", "mel": "kg", "cera": "kg",

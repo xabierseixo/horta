@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.animal import Animal, AnimalIdentificado
 from horta.models.horta import RolHorta
 from horta.models.movemento_animal import MovementoAnimal
@@ -41,12 +42,13 @@ CAMPOS_EDITABLES_ANIMAL = frozenset(
 
 # As especies de granxa do catálogo oficial ESPECIE_ANIMAL, en galego
 ESPECIES: dict[str, str] = {
-    "06": "Galiñas", "16": "Coellos", "18": "Abellas", "03": "Ovellas", "04": "Cabras",
-    "02": "Porcos", "01": "Vacas", "05": "Cabalos e burros", "07": "Pavos",
-    "08": "Pintadas", "09": "Patos", "10": "Gansos", "11": "Paspallás", "12": "Pombas",
-    "13": "Faisáns", "14": "Perdices", "15": "Avestruces e outras ratites", "17": "Lebres",
-    "23": "Cervos", "24": "Corzos", "25": "Gamos", "26": "Xabarís", "27": "Caracois",
-    "28": "Ras",
+    "06": N_("Galiñas"), "16": N_("Coellos"), "18": N_("Abellas"), "03": N_("Ovellas"),
+    "04": N_("Cabras"), "02": N_("Porcos"), "01": N_("Vacas"), "05": N_("Cabalos e burros"),
+    "07": N_("Pavos"), "08": N_("Pintadas"), "09": N_("Patos"), "10": N_("Gansos"),
+    "11": N_("Paspallás"), "12": N_("Pombas"), "13": N_("Faisáns"), "14": N_("Perdices"),
+    "15": N_("Avestruces e outras ratites"), "17": N_("Lebres"), "23": N_("Cervos"),
+    "24": N_("Corzos"), "25": N_("Gamos"), "26": N_("Xabarís"), "27": N_("Caracois"),
+    "28": N_("Ras"),
 }
 
 
@@ -183,11 +185,17 @@ def listar_animais(session: Session, actor: Usuario, horta_id: int) -> list[Anim
 
 # --- Animais identificados (opcional en todas as especies)
 
-SEXOS = {"femia": "Femia", "macho": "Macho"}
+SEXOS = {"femia": N_("Femia"), "macho": N_("Macho")}
 # Dispositivos de identificación (Reg. Delegado (UE) 2019/2035; RD 787/2023)
-DISPOSITIVOS = {"crotal": "Crotal", "crotal_electronico": "Crotal electrónico",
-                "bolo": "Bolo ruminal", "transpondedor": "Transpondedor inxectable",
-                "pulseira": "Marca na cuartilla", "tatuaxe": "Tatuaxe", "anela": "Anela"}
+DISPOSITIVOS = {
+    "crotal": N_("Crotal"),
+    "crotal_electronico": N_("Crotal electrónico"),
+    "bolo": N_("Bolo ruminal"),
+    "transpondedor": N_("Transpondedor inxectable"),
+    "pulseira": N_("Marca na cuartilla"),
+    "tatuaxe": N_("Tatuaxe"),
+    "anela": N_("Anela"),
+}
 CAMPOS_IDENTIFICADO = frozenset(
     {"identificador", "nome", "sexo", "dispositivo", "data_nacemento", "data_alta",
      "data_baixa", "notas"})

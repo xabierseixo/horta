@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.persoa import Persoa
 from horta.services.catalogos import describir
 from horta.services.equipo import historial
@@ -15,20 +16,20 @@ from horta.ui.numeros import texto_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 _REXISTROS = (
-    ("rega", "REGA (ES + 12 díxitos)"),
-    ("reaga", "REAGA"),
-    ("nima", "NIMA"),
-    ("ropveg", "Nº ROPVEG"),
-    ("rexistro_dixital", "Nº de rexistro dixital de alimentos"),
-    ("num_asesoramento", "Nº de identificación da entidade de asesoramento"),
+    ("rega", N_("REGA (ES + 12 díxitos)")),
+    ("reaga", N_("REAGA")),
+    ("nima", N_("NIMA")),
+    ("ropveg", N_("Nº ROPVEG")),
+    ("rexistro_dixital", N_("Nº de rexistro dixital de alimentos")),
+    ("num_asesoramento", N_("Nº de identificación da entidade de asesoramento")),
 )
 
 _CONTACTO = (
-    ("enderezo", "Enderezo"),
-    ("localidade", "Localidade"),
-    ("codigo_postal", "Código postal"),
-    ("provincia", "Provincia"),
-    ("pais", "País, se non é España"),
+    ("enderezo", N_("Enderezo")),
+    ("localidade", N_("Localidade")),
+    ("codigo_postal", N_("Código postal")),
+    ("provincia", N_("Provincia")),
+    ("pais", N_("País, se non é España")),
 )
 
 
@@ -40,38 +41,39 @@ def datos_persoa(
     resultado: list[tuple[str, str]] = []
 
     if getattr(persoa, "nome", None) is not None and str(persoa.nome).strip():
-        resultado.append(("Nome ou razón social", str(persoa.nome).strip()))
+        resultado.append((_("Nome ou razón social"), str(persoa.nome).strip()))
 
     if getattr(persoa, "apelidos", None) is not None and str(persoa.apelidos).strip():
-        resultado.append(("Apelidos", str(persoa.apelidos).strip()))
+        resultado.append((_("Apelidos"), str(persoa.apelidos).strip()))
 
     if getattr(persoa, "nif", None) is not None and str(persoa.nif).strip():
-        resultado.append(("NIF", str(persoa.nif).strip()))
+        resultado.append((_("NIF"), str(persoa.nif).strip()))
 
     if getattr(persoa, "ropo_numero", None) is not None and str(persoa.ropo_numero).strip():
-        resultado.append(("Nº ROPO", str(persoa.ropo_numero).strip()))
+        resultado.append((_("Nº ROPO"), str(persoa.ropo_numero).strip()))
 
     if persoa.ropo_tipo_carne is not None:
         codigo = persoa.ropo_tipo_carne.value
-        resultado.append(("Tipo de carné", TIPOS_CARNE.get(codigo, codigo)))
+        carne = TIPOS_CARNE.get(codigo, codigo)
+        resultado.append((_("Tipo de carné"), _(carne)))
 
     if getattr(persoa, "ropo_caducidade", None) is not None:
         data_cad_txt = texto_data(persoa.ropo_caducidade)
         if data_cad_txt:
-            resultado.append(("Caducidade do carné", data_cad_txt))
+            resultado.append((_("Caducidade do carné"), data_cad_txt))
 
     if getattr(persoa, "regfer_numero", None) is not None and str(persoa.regfer_numero).strip():
-        resultado.append(("Nº REGFER", str(persoa.regfer_numero).strip()))
+        resultado.append((_("Nº REGFER"), str(persoa.regfer_numero).strip()))
 
     for campo, etiqueta in _REXISTROS:
         valor = getattr(persoa, campo, None)
         if valor is not None and str(valor).strip():
-            resultado.append((etiqueta, str(valor).strip()))
+            resultado.append((_(etiqueta), str(valor).strip()))
 
     for campo, etiqueta in _CONTACTO:
         valor = getattr(persoa, campo, None)
         if valor is not None and str(valor).strip():
-            resultado.append((etiqueta, str(valor).strip()))
+            resultado.append((_(etiqueta), str(valor).strip()))
 
     return resultado
 
@@ -99,7 +101,7 @@ def abrir_ficha_persoa(
         for f in feitos:
             data = f"{texto_data(f.data)} · " if f.data else ""
             importe = f" · {f.importe:.2f} €" if f.importe is not None else ""
-            pendente = " · pendente" if f.pendente else ""
+            pendente = f" · {_('pendente')}" if f.pendente else ""
             linas_historial.append(f"{data}{f.que}{importe}{pendente}")
 
     abrir_ficha(titulo, datos, linas_historial, accions=accions)

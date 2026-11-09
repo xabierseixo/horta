@@ -8,6 +8,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.animal import Animal
 from horta.models.horta import RolHorta
 from horta.models.movemento_animal import MovementoAnimal
@@ -25,10 +26,10 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 # O inicial créase só, ao dar de alta o grupo (services.animais.crear_animal)
 TIPOS_MOVEMENTO: dict[str, str] = {
-    "nacemento": "Nacemento",
-    "entrada": "Entrada (compra, cesión)",
-    "saida": "Saída (venda, cesión, matadoiro)",
-    "morte": "Morte ou sacrificio na casa",
+    "nacemento": N_("Nacemento"),
+    "entrada": N_("Entrada (compra, cesión)"),
+    "saida": N_("Saída (venda, cesión, matadoiro)"),
+    "morte": N_("Morte ou sacrificio na casa"),
 }
 INICIAL = "inicial"
 SUMAN = (INICIAL, "nacemento", "entrada")

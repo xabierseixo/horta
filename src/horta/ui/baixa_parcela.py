@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.parcela import Parcela
 from horta.services.catalogos import valores_vixentes
 from horta.services.errors import OperacionNonPermitidaError
@@ -28,12 +29,15 @@ def dialogo_baixa_parcela(parcela_id: int, ao_rematar: Callable[[], None]) -> No
     if parcela is None:
         return
     with ui.dialog() as dialogo, ui.card().style("width: min(28rem, 94vw)"):
-        ui.label(f"Dar de baixa «{parcela.nome}»").classes("text-h6")
-        ui.label("Ten traballos apuntados que hai que conservar, así que non se borra: "
-                 "queda de baixa e segue saíndo nos informes dos anos pasados."
-                 ).classes("text-caption")
-        data = campo_data("Data de baixa", date.today().isoformat())
-        causa = ui.select(causas, label="Causa da baixa").classes("w-full")
+        ui.label(_("Dar de baixa «{nome}»").format(nome=parcela.nome)).classes("text-h6")
+        ui.label(
+            _(
+                "Ten traballos apuntados que hai que conservar, así que non se borra: "
+                "queda de baixa e segue saíndo nos informes dos anos pasados."
+            )
+        ).classes("text-caption")
+        data = campo_data(_("Data de baixa"), date.today().isoformat())
+        causa = ui.select(causas, label=_("Causa da baixa")).classes("w-full")
 
         def gardar() -> None:
             with get_session() as session:
@@ -46,7 +50,7 @@ def dialogo_baixa_parcela(parcela_id: int, ao_rematar: Callable[[], None]) -> No
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if dia is None:
-                        raise OperacionNonPermitidaError("Indica a data de baixa")
+                        raise OperacionNonPermitidaError(_("Indica a data de baixa"))
                     dar_de_baixa_parcela(session, actor, p, dia, causa.value)
 
                 ok = executar_accion(session, accion)
@@ -55,6 +59,6 @@ def dialogo_baixa_parcela(parcela_id: int, ao_rematar: Callable[[], None]) -> No
                 ao_rematar()
 
         with ui.row():
-            ui.button("Dar de baixa", icon="archive", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
     dialogo.open()

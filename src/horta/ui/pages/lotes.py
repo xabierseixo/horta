@@ -10,6 +10,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.lote import Lote, LoteSaida
 from horta.models.tarefa import Tarefa
 from horta.services.errors import OperacionNonPermitidaError
@@ -54,7 +55,7 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
 _UNIDADES = ("kg", "t", "unidades", "ducias", "litros", "mazos")
-_CATEGORIAS = {clave: nome for clave, (nome, *_) in CATEGORIAS_VENDA_DIRECTA.items()}
+_CATEGORIAS = {clave: nome for clave, (nome, *_x) in CATEGORIAS_VENDA_DIRECTA.items()}
 
 
 def _canto(cantidade: float, unidade: str) -> str:
@@ -83,17 +84,22 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
         "entrou": _canto(resumo[lote.id][0], lote.unidade),
         "saiu": _canto(resumo[lote.id][1], lote.unidade),
         "queda": texto_queda(por_clase[lote.id], lote.unidade),
-        "categoria": _CATEGORIAS.get(
-            fichas[lote.produto_venda_id].categoria_venda_directa or "", ""),
+        "categoria": (
+            _(_CATEGORIAS[cat])
+            if (cat := fichas[lote.produto_venda_id].categoria_venda_directa or "")
+            in _CATEGORIAS else ""
+        ),
     } for lote in lotes]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("codigo", "Lote"), ("produto", "Produto"), ("queda", "Queda"),
-            ("entrou", "Entrou"), ("saiu", "Saíu"), ("categoria", "Venda directa"))],
+            ("codigo", _("Lote")), ("produto", _("Produto")), ("queda", _("Queda")),
+            ("entrou", _("Entrou")), ("saiu", _("Saíu")),
+            ("categoria", _("Venda directa")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        'flat bordered no-data-label="Aínda non hai lotes: saen das colleitas e da '
-        f'produción dos animais" {TEXTOS_TABOA}')
+        'flat bordered no-data-label="'
+        f'{_("Aínda non hai lotes: saen das colleitas e da produción dos animais")}" '
+        f'{TEXTOS_TABOA}')
 
     accions_tarxeta_lotes: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "codigo", ["produto", "queda"], accions_tarxeta_lotes)
@@ -107,7 +113,7 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
 
         def lote_escollido() -> int | None:
             if not taboa.selected:
-                ui.notify("Escolle primeiro un lote na táboa", type="warning")
+                ui.notify(_("Escolle primeiro un lote na táboa"), type="warning")
                 return None
             return int(taboa.selected[0]["id"])
 
@@ -148,40 +154,40 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
                 abrir_trazabilidade(lid)
 
         accions_tarxeta_lotes += [
-            ("Vender", "sell", vender),
-            ("Fotos", "photo_camera", fotos),
-            ("Outra saída", "output", outra),
-            ("Clasificar", "filter_list", clasificar),
-            ("Ficha do produto", "tune", ficha),
-            ("Páxina pública", "qr_code", paxina_publica),
-            ("Trazabilidade", "account_tree", trazabilidade),
+            (_("Vender"), "sell", vender),
+            (_("Fotos"), "photo_camera", fotos),
+            (_("Outra saída"), "output", outra),
+            (_("Clasificar"), "filter_list", clasificar),
+            (_("Ficha do produto"), "tune", ficha),
+            (_("Páxina pública"), "qr_code", paxina_publica),
+            (_("Trazabilidade"), "account_tree", trazabilidade),
         ]
 
         with ui.row():
-            ui.button("Mesturar lotes", icon="merge", on_click=lambda: abrir_mestura(None)
+            ui.button(_("Mesturar lotes"), icon="merge", on_click=lambda: abrir_mestura(None)
                       ).props("outline")
-            ui.button("Transformar", icon="blender", on_click=lambda: abrir_transformacion(None)
+            ui.button(_("Transformar"), icon="blender", on_click=lambda: abrir_transformacion(None)
                       ).props("outline")
             with ui.row().classes("so-ordenador"):
-                ui.button("Vender", icon="sell", on_click=vender)
-                ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
-                ui.button("Outra saída", icon="output", on_click=outra).props("outline")
-                ui.button("Clasificar", icon="filter_list", on_click=clasificar).props("outline")
-                ui.button("Ficha do produto", icon="tune", on_click=ficha).props("outline")
-                ui.button("Páxina pública", icon="qr_code", on_click=paxina_publica
+                ui.button(_("Vender"), icon="sell", on_click=vender)
+                ui.button(_("Fotos"), icon="photo_camera", on_click=fotos).props("outline")
+                ui.button(_("Outra saída"), icon="output", on_click=outra).props("outline")
+                ui.button(_("Clasificar"), icon="filter_list", on_click=clasificar).props("outline")
+                ui.button(_("Ficha do produto"), icon="tune", on_click=ficha).props("outline")
+                ui.button(_("Páxina pública"), icon="qr_code", on_click=paxina_publica
                           ).props("outline")
-                ui.button("Trazabilidade", icon="account_tree", on_click=trazabilidade
+                ui.button(_("Trazabilidade"), icon="account_tree", on_click=trazabilidade
                           ).props("outline")
 
-    ui.label("Saídas").classes("text-h6 q-mt-md")
+    ui.label(_("Saídas")).classes("text-h6 q-mt-md")
     filas_saidas = [{
         "id": s.id,
         "data": (f"{s.data:%d/%m/%Y}" if s.data_fin == s.data
                  else f"{s.data:%d/%m} – {s.data_fin:%d/%m/%Y}"),
         "lote": por_id[s.lote_id].codigo if s.lote_id in por_id else "",
-        "que": TIPOS_SAIDA[s.tipo].split(" (")[0],
+        "que": _(TIPOS_SAIDA[s.tipo]).split(" (")[0] if s.tipo in TIPOS_SAIDA else s.tipo,
         "canto": _canto(s.cantidade, s.unidade),
-        "a_quen": " · ".join(x for x in (CANLES.get(s.canle or "", ""),
+        "a_quen": " · ".join(x for x in (_(CANLES[s.canle]) if s.canle in CANLES else "",
                                          nomes.get(s.comprador_id or 0, ""), s.lugar or "")
                              if x),
         "prezo": f"{s.importe:.2f} €" if s.importe is not None else "",
@@ -189,11 +195,12 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
     } for s in saidas]
     taboa_saidas = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("que", "Que"), ("canto", "Canto"), ("lote", "Lote"),
-            ("a_quen", "A quen"), ("prezo", "Prezo"), ("quen", "Quen"))],
+            ("data", _("Data")), ("que", _("Que")), ("canto", _("Canto")),
+            ("lote", _("Lote")), ("a_quen", _("A quen")), ("prezo", _("Prezo")),
+            ("quen", _("Quen")))],
         rows=filas_saidas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non saíu nada" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non saíu nada")}" {TEXTOS_TABOA}')
 
     accions_tarxeta_saidas: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(
@@ -205,7 +212,7 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa_saidas.selected:
-            ui.notify("Escolle primeiro unha saída na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha saída na táboa"), type="warning")
             return
         with get_session() as session:
             saida = session.get(LoteSaida, taboa_saidas.selected[0]["id"])
@@ -214,7 +221,7 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
 
     def dar_de_baixa() -> None:
         if not taboa_saidas.selected:
-            ui.notify("Escolle primeiro unha saída na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha saída na táboa"), type="warning")
             return
         saida_id = taboa_saidas.selected[0]["id"]
 
@@ -230,14 +237,14 @@ def seccion_lotes(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa esta saída? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa esta saída? Non se borra: consérvase no histórico."), confirmar)
 
-    accions_tarxeta_saidas += [("Editar", "edit", editar),
-                               ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta_saidas += [(_("Editar"), "edit", editar),
+                               (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row().classes("so-ordenador"):
-        ui.button("Editar", icon="edit", on_click=editar).props("outline")
-        ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+        ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+        ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_saida(horta_id: int) -> Callable[..., None]:
@@ -247,48 +254,56 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_, **__: None
+            return lambda *_x, **_k: None
         lotes = listar_lotes(session, actor, horta_id)
         resumo = resumo_lotes(session, actor, horta_id)
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
     unidades_lote = {lote.id: lote.unidade for lote in lotes}
-    opcions_lote = {lote.id: f"{lote.codigo} · {lote.produto} (quedan "
-                             f"{_canto(resumo[lote.id][2], lote.unidade)})" for lote in lotes}
+    opcions_lote = {
+        lote.id: _("{codigo} · {produto} (quedan {canto})").format(
+            codigo=lote.codigo,
+            produto=lote.produto,
+            canto=_canto(resumo[lote.id][2], lote.unidade),
+        )
+        for lote in lotes
+    }
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Saída de produto").classes("text-h6")
+        titulo = ui.label(_("Saída de produto")).classes("text-h6")
         if not lotes:
-            ui.label("Aínda non hai lotes: saen das colleitas e da produción dos animais."
+            ui.label(_("Aínda non hai lotes: saen das colleitas e da produción dos animais.")
                      ).classes("text-warning text-caption")
-        lote = ui.select(opcions_lote, label="Lote", with_input=True).classes("w-full")
-        tipo = ui.select(TIPOS_SAIDA, label="A onde vai", value="venda").classes("w-full")
-        clase = ui.select({}, label="Clase (tamaño, calidade…)", clearable=True).classes(
+        lote = ui.select(opcions_lote, label=_("Lote"), with_input=True).classes("w-full")
+        tipo = ui.select({k: _(v) for k, v in TIPOS_SAIDA.items()},
+                         label=_("A onde vai"), value="venda").classes("w-full")
+        clase = ui.select({}, label=_("Clase (tamaño, calidade…)"), clearable=True).classes(
             "w-full")
         with ui.row().classes("w-full no-wrap"):
-            data = campo_data("Data", date.today().isoformat()).classes(
+            data = campo_data(_("Data"), date.today().isoformat()).classes(
                 remove="w-full", add="col")
-            data_fin = campo_data("Ata (opcional)", "").classes(remove="w-full", add="col")
+            data_fin = campo_data(_("Ata (opcional)"), "").classes(remove="w-full", add="col")
         with ui.row().classes("w-full no-wrap"):
-            cantidade = ui.input("Canto").classes("col")
-            unidade = ui.select(list(_UNIDADES), label="Unidade", value="kg").classes("col")
+            cantidade = ui.input(_("Canto")).classes("col")
+            unidade = ui.select(list(_UNIDADES), label=_("Unidade"), value="kg").classes("col")
         with ui.column().classes("w-full gap-0") as bloque_venda:
-            canle = ui.select(CANLES, label="A quen ou onde", value="explotacion").classes(
+            canle = ui.select({k: _(v) for k, v in CANLES.items()},
+                              label=_("A quen ou onde"), value="explotacion").classes(
                 "w-full")
-            lugar = ui.input("Lugar (p.ex. mercado de Lalín)").classes("w-full")
-            comprador = CampoPersoa(horta_id, "cliente", "Quen merca")
+            lugar = ui.input(_("Lugar (p.ex. mercado de Lalín)")).classes("w-full")
+            comprador = CampoPersoa(horta_id, "cliente", _("Quen merca"))
             with ui.row().classes("w-full no-wrap"):
-                albaran = ui.input("Nº de albará ou factura").classes("col")
-                importe = ui.input("Prezo total (€)").classes("col")
-            cobro = CampoPago("Cobrada")
+                albaran = ui.input(_("Nº de albará ou factura")).classes("col")
+                importe = ui.input(_("Prezo total (€)")).classes("col")
+            cobro = CampoPago(_("Cobrada"))
         aviso = ui.label("").classes("etiqueta-aviso")
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
-        with ui.expansion("Máis datos").classes("w-full"):
-            horas = ui.input("Horas de traballo").classes("w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def datos() -> DatosSaida | None:
             inicio = parsear_data(data.value)
@@ -308,8 +323,8 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
 
         def avisar() -> None:
             bloque_venda.set_visibility(tipo.value == "venda")
-            comprador.set_label("Que tenda, almacén ou cooperativa"
-                                if canle.value in ("tenda", "almacen") else "Quen merca")
+            comprador.set_label(_("Que tenda, almacén ou cooperativa")
+                                if canle.value in ("tenda", "almacen") else _("Quen merca"))
             textos: list[str] = []
             try:
                 d = datos()
@@ -328,7 +343,10 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
             with get_session() as session:
                 escollido = session.get(Lote, lote.value or 0)
                 quedan = queda_por_clase(session, escollido, editando["id"]) if escollido else {}
-            clases = {c: f"{c} (quedan {v:g})" for c, v in quedan.items() if c is not None}
+            clases = {
+                c: _("{clase} (quedan {canto})").format(clase=c, canto=f"{v:g}")
+                for c, v in quedan.items() if c is not None
+            }
             clase.set_options(clases, value=clase.value if clase.value in clases else None)
             clase.set_visibility(bool(clases))
             # A unidade do lote, ou unha que se poida converter a ela
@@ -353,7 +371,7 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     d = datos()
                     if d is None:
-                        raise OperacionNonPermitidaError("Escolle o lote e a data")
+                        raise OperacionNonPermitidaError(_("Escolle o lote e a data"))
                     existente = (session.get(LoteSaida, editando["id"])
                                  if editando["id"] else None)
                     if existente is None:
@@ -367,14 +385,14 @@ def dialogo_saida(horta_id: int) -> Callable[..., None]:
                 recargar_apuntado("lote_saida", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(saida: LoteSaida | None, tarefa: Tarefa | None = None,
               lote_id: int | None = None, tipo_saida: str | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = saida.id if saida else None
-        titulo.text = "Editar saída de produto" if saida else "Saída de produto"
+        titulo.text = _("Editar saída de produto") if saida else _("Saída de produto")
         lote.value = saida.lote_id if saida else lote_id
         tipo.value = saida.tipo if saida else (tipo_saida or "venda")
         data.value = (saida.data if saida else date.today()).isoformat()

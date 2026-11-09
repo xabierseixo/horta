@@ -9,6 +9,7 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _, ngettext
 from horta.models.cartos import ApunteCartos
 from horta.services.cartos import (
     CATEGORIAS,
@@ -38,7 +39,7 @@ from horta.ui.taboas import TEXTOS_TABOA
 
 def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
     if not pode_editar:
-        ui.label("Só quen pode editar a explotación ve os cartos.").classes("texto-suave")
+        ui.label(_("Só quen pode editar a explotación ve os cartos.")).classes("texto-suave")
         return
     estado: dict[str, Any] = {"tipo": "ano", "periodo": periodo("ano", date.today())}
 
@@ -57,62 +58,91 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                      for p in listar_persoas(session, actor, horta_id, so_activas=False)}
 
         with ui.row().classes("w-full gap-4"):
-            for titulo, partidas, total in (("Ingresos", resumo.ingresos, resumo.total_ingresos),
-                                            ("Gastos", resumo.gastos, resumo.total_gastos)):
+            for titulo, partidas, total in ((_("Ingresos"), resumo.ingresos, resumo.total_ingresos),
+                                            (_("Gastos"), resumo.gastos, resumo.total_gastos)):
                 with ui.column().classes("tarxeta col gap-1"):
                     ui.label(titulo).classes("text-subtitle1 text-weight-bold")
                     if not partidas:
-                        ui.label("Nada apuntado neste período").classes("texto-suave")
+                        ui.label(_("Nada apuntado neste período")).classes("texto-suave")
                     for nome, valor in partidas.items():
                         with ui.row().classes("w-full justify-between"):
-                            ui.label(nome)
+                            ui.label(_(nome))
                             ui.label(euros(valor))
                     with ui.row().classes("w-full justify-between text-weight-bold"):
-                        ui.label("Total")
+                        ui.label(_("Total"))
                         ui.label(euros(total))
         with ui.column().classes("tarxeta w-full gap-1 q-mt-md"):
-            ui.label(f"Resultado ({resumo.periodo.nome}): {euros(resumo.resultado)}").classes(
-                "text-subtitle1 text-weight-bold")
+            ui.label(
+                _("Resultado ({periodo}): {resultado}").format(
+                    periodo=resumo.periodo.nome, resultado=euros(resumo.resultado)
+                )
+            ).classes("text-subtitle1 text-weight-bold")
             if resumo.custos.man_de_obra_propia:
-                ui.label(f"Sen contar as horas da persoa titular e a familia (non se pagan): "
-                         f"{euros(resumo.resultado_sen_man_propia)}").classes("texto-suave")
+                ui.label(
+                    _(
+                        "Sen contar as horas da persoa titular e a familia (non se pagan): "
+                        "{resultado}"
+                    ).format(resultado=euros(resumo.resultado_sen_man_propia))
+                ).classes("texto-suave")
             if resumo.custos.sen_custo:
-                ui.label(f"{resumo.custos.sen_custo} traballos con horas quedan sen contar: "
-                         "falta o custo da hora da persoa ou da máquina (Equipo, Maquinaria)"
-                         ).classes("etiqueta-aviso")
+                ui.label(
+                    _(
+                        "{n} traballos con horas quedan sen contar: "
+                        "falta o custo da hora da persoa ou da máquina (Equipo, Maquinaria)"
+                    ).format(n=resumo.custos.sen_custo)
+                ).classes("etiqueta-aviso")
             if resumo.vendas_sen_prezo:
                 n = resumo.vendas_sen_prezo
-                texto = "1 venda sen prezo queda" if n == 1 else f"{n} vendas sen prezo quedan"
-                ui.label(f"{texto} sen contar nos ingresos (Lotes)").classes("etiqueta-aviso")
+                ui.label(
+                    ngettext(
+                        "1 venda sen prezo queda sen contar nos ingresos (Lotes)",
+                        "{n} vendas sen prezo quedan sen contar nos ingresos (Lotes)",
+                        n,
+                    ).format(n=n)
+                ).classes("etiqueta-aviso")
 
-        ui.label("Pendente de cobrar e de pagar").classes(
+        ui.label(_("Pendente de cobrar e de pagar")).classes(
             "text-subtitle1 text-weight-bold q-mt-md")
         if not saldos:
-            ui.label("Non hai nada pendente.").classes("texto-suave")
+            ui.label(_("Non hai nada pendente.")).classes("texto-suave")
         for persoa_id, (cobrar, pagar) in sorted(saldos.items(), key=lambda par: -max(par[1])):
             quen = nomes.get(persoa_id or 0)
             if cobrar > 0:
-                ui.label(f"Sen persoa: pendente de cobrar {euros(cobrar)}" if quen is None
-                         else f"{quen} débeche {euros(cobrar)}")
+                ui.label(
+                    _("Sen persoa: pendente de cobrar {importe}").format(importe=euros(cobrar))
+                    if quen is None
+                    else _("{quen} débeche {importe}").format(quen=quen, importe=euros(cobrar))
+                )
             if pagar > 0:
-                ui.label(f"Sen persoa: pendente de pagar {euros(pagar)}" if quen is None
-                         else f"Débeslle a {quen} {euros(pagar)}")
+                ui.label(
+                    _("Sen persoa: pendente de pagar {importe}").format(importe=euros(pagar))
+                    if quen is None
+                    else _("Débeslle a {quen} {importe}").format(quen=quen, importe=euros(pagar))
+                )
 
         with ui.row().classes("w-full items-center justify-between q-mt-md"):
-            ui.label("Outros gastos e ingresos").classes("text-subtitle1 text-weight-bold")
-            ui.button("Novo", icon="add", on_click=lambda: abrir(None))
-        filas = [{"id": a.id, "data": f"{a.data:%d/%m/%Y}", "tipo": TIPOS[a.tipo],
-                  "categoria": CATEGORIAS[a.categoria], "concepto": a.concepto,
-                  "importe": euros(a.importe), "quen": nomes.get(a.persoa_id or 0, ""),
-                  "pago": "Si" if a.data_pago else "Pendente"} for a in apuntes]
+            ui.label(_("Outros gastos e ingresos")).classes("text-subtitle1 text-weight-bold")
+            ui.button(_("Novo"), icon="add", on_click=lambda: abrir(None))
+        filas: list[dict[str, Any]] = [{
+            "id": a.id,
+            "data": f"{a.data:%d/%m/%Y}",
+            "tipo": _(TIPOS[a.tipo]) if a.tipo in TIPOS else a.tipo,
+            "categoria": (
+                _(CATEGORIAS[a.categoria]) if a.categoria in CATEGORIAS else a.categoria
+            ),
+            "concepto": a.concepto,
+            "importe": euros(a.importe),
+            "quen": nomes.get(a.persoa_id or 0, ""),
+            "pago": _("Si") if a.data_pago else _("Pendente"),
+        } for a in apuntes]
         columnas = [{"name": c, "label": e, "field": c, "align": "left"} for c, e in (
-            ("data", "Data"), ("tipo", "Tipo"), ("categoria", "Categoría"),
-            ("concepto", "Concepto"), ("importe", "Importe"), ("quen", "Quen"),
-            ("pago", "Cobrado ou pagado"))]
+            ("data", _("Data")), ("tipo", _("Tipo")), ("categoria", _("Categoría")),
+            ("concepto", _("Concepto")), ("importe", _("Importe")), ("quen", _("Quen")),
+            ("pago", _("Cobrado ou pagado")))]
         ui.table(columns=columnas, rows=filas, row_key="id", selection="single",
                  on_select=lambda e: abrir(e.selection[0]["id"]) if e.selection else None
                  ).classes("w-full so-ordenador").props(
-                     f'no-data-label="Aínda non hai apuntes" {TEXTOS_TABOA}')
+                     f'no-data-label="{_("Aínda non hai apuntes")}" {TEXTOS_TABOA}')
         elementos = [
             (
                 int(f["id"]),
@@ -121,7 +151,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
             )
             for f in filas
         ]
-        lista_tarxetas(elementos, ao_tocar=abrir, baleiro="Aínda non hai apuntes")
+        lista_tarxetas(elementos, ao_tocar=abrir, baleiro=_("Aínda non hai apuntes"))
 
     with ui.row().classes("items-center gap-2"):
         def opcions() -> dict[str, str]:
@@ -139,24 +169,29 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                 estado["periodo"] = periodo(estado["tipo"], date.fromisoformat(desde))
                 contido.refresh()
 
-        ui.select(PERIODOS, label="Resumo por", value="ano",
+        ui.select({k: _(v) for k, v in PERIODOS.items()}, label=_("Resumo por"), value="ano",
                   on_change=lambda e: cambiar_tipo(e.value)).classes("min-w-32")
-        escoller = ui.select(opcions(), label="Período", value=estado["periodo"].desde.isoformat(),
+        escoller = ui.select(opcions(), label=_("Período"),
+                             value=estado["periodo"].desde.isoformat(),
                              on_change=lambda e: cambiar_periodo(e.value)).classes("min-w-64")
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(32rem, 94vw)"):
         titulo = ui.label("").classes("text-h6")
-        tipo = ui.select(TIPOS, label="Tipo", value="gasto").classes("w-full")
-        categoria = ui.select(CATEGORIAS, label="Categoría", value="outro").classes("w-full")
-        concepto = ui.input("Concepto").classes("w-full")
+        tipo = ui.select(
+            {k: _(v) for k, v in TIPOS.items()}, label=_("Tipo"), value="gasto"
+        ).classes("w-full")
+        categoria = ui.select(
+            {k: _(v) for k, v in CATEGORIAS.items()}, label=_("Categoría"), value="outro"
+        ).classes("w-full")
+        concepto = ui.input(_("Concepto")).classes("w-full")
         with ui.row().classes("w-full no-wrap"):
-            data = campo_data("Data").classes(remove="w-full", add="col")
-            importe = ui.input("Importe (€)").classes("col")
-        persoa = ui.select({}, label="A quen ou de quen (opcional)", clearable=True).classes(
+            data = campo_data(_("Data")).classes(remove="w-full", add="col")
+            importe = ui.input(_("Importe (€)")).classes("col")
+        persoa = ui.select({}, label=_("A quen ou de quen (opcional)"), clearable=True).classes(
             "w-full")
-        albaran = ui.input("Factura ou recibo").classes("w-full")
-        pago = CampoPago("Cobrado ou pagado")
-        notas = ui.textarea("Notas").classes("w-full")
+        albaran = ui.input(_("Factura ou recibo")).classes("w-full")
+        pago = CampoPago(_("Cobrado ou pagado"))
+        notas = ui.textarea(_("Notas")).classes("w-full")
         editando: dict[str, int | None] = {"id": None}
 
         def gardar() -> None:
@@ -169,7 +204,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                 def accion() -> None:
                     dia = parsear_data(data.value)
                     if dia is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     datos = DatosApunte(
                         tipo=tipo.value, categoria=categoria.value, concepto=concepto.value or "",
                         data=dia, importe=parsear_decimal(importe.value) or 0,
@@ -198,11 +233,17 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
 
         with ui.row().classes("w-full justify-between"):
             with ui.row():
-                ui.button("Gardar", icon="check", on_click=gardar)
-                ui.button("Cancelar", on_click=dialogo.close).props("flat")
-            baixa = ui.button("Dar de baixa", icon="delete", on_click=lambda: (
-                confirmar_eliminacion("Dar de baixa este apunte?", dar_de_baixa))).props(
-                "flat color=negative")
+                ui.button(_("Gardar"), icon="check", on_click=gardar)
+                ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
+            baixa = ui.button(
+                _("Dar de baixa"),
+                icon="delete",
+                on_click=lambda: (
+                    confirmar_eliminacion(
+                        _("Dar de baixa este apunte?"), dar_de_baixa
+                    )
+                ),
+            ).props("flat color=negative")
 
     def abrir(apunte_id: int | None) -> None:
         with get_session() as session:
@@ -215,7 +256,7 @@ def seccion_cartos(horta_id: int, pode_editar: bool) -> None:
                               for p in listar_persoas(session, actor, horta_id)}
         persoa.update()
         editando["id"] = apunte.id if apunte else None
-        titulo.text = "Editar apunte" if apunte else "Outro gasto ou ingreso"
+        titulo.text = _("Editar apunte") if apunte else _("Outro gasto ou ingreso")
         tipo.value = apunte.tipo if apunte else "gasto"
         categoria.value = apunte.categoria if apunte else "outro"
         concepto.value = apunte.concepto if apunte else ""

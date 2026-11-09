@@ -8,6 +8,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.observacion import LimiarPraga, ObservacionPraga
@@ -24,24 +25,24 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 TIPOS_PROBLEMA = {"praga", "enfermidade", "mala_herba"}
 
 METODOS: dict[str, str] = {
-    "trampa": "Trampa",
-    "mostraxe": "Mostraxe",
-    "sintomas": "Síntomas",
+    "trampa": N_("Trampa"),
+    "mostraxe": N_("Mostraxe"),
+    "sintomas": N_("Síntomas"),
 }
 
 UNIDADES_CONTO: dict[str, str] = {
-    "capturas por trampa": "Capturas por trampa",
-    "% de plantas": "% de plantas",
-    "% de follas": "% de follas",
-    "individuos por planta": "Individuos por planta",
-    "outro": "Outro",
+    "capturas por trampa": N_("Capturas por trampa"),
+    "% de plantas": N_("% de plantas"),
+    "% de follas": N_("% de follas"),
+    "individuos por planta": N_("Individuos por planta"),
+    "outro": N_("Outro"),
 }
 
 NIVEIS: dict[str, str] = {
-    "sen": "Sen",
-    "baixo": "Baixo",
-    "medio": "Medio",
-    "alto": "Alto",
+    "sen": N_("Sen"),
+    "baixo": N_("Baixo"),
+    "medio": N_("Medio"),
+    "alto": N_("Alto"),
 }
 
 

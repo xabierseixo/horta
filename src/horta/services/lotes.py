@@ -40,11 +40,11 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 TIPOS_SAIDA: dict[str, str] = {
-    "venda": "Venda",
-    "casa": "Para casa",
-    "transformacion": "Para transformar",
-    "perda": "Perda (podre, roto...)",
-    "animais": "Para os animais",
+    "venda": N_("Venda"),
+    "casa": N_("Para casa"),
+    "transformacion": N_("Para transformar"),
+    "perda": N_("Perda (podre, roto...)"),
+    "animais": N_("Para os animais"),
 }
 # Decreto 125/2014 art. 4 (venda directa) e venda a almacén ou cooperativa (CUE 3: colleita
 # comercializada)
@@ -58,19 +58,19 @@ CANLES: dict[str, str] = {
 CANLES_DIRECTAS = ("explotacion", "mercado", "domicilio", "tenda")
 # Decreto 125/2014 anexo II: nome, máximo ao ano ao aire libre e en invernadoiro, unidade
 CATEGORIAS_VENDA_DIRECTA: dict[str, tuple[str, float, float | None, str]] = {
-    "hortalizas": ("Hortalizas", 20000, 40000, "kg"),
-    "froitas": ("Froitas", 20000, None, "kg"),
-    "amoras": ("Amoras", 5000, 10000, "kg"),
-    "kiwi": ("Kiwi", 13000, None, "kg"),
-    "legumes": ("Legumes", 10000, 24000, "kg"),
-    "patacas": ("Patacas", 20000, None, "kg"),
-    "cogomelos": ("Cogomelos", 500, 2500, "kg"),
-    "cereais": ("Cereais", 5000, None, "kg"),
-    "ovos": ("Ovos", 1000, None, "ducias"),
-    "mel": ("Mel", 3000, None, "kg"),
-    "pole": ("Pole", 450, None, "kg"),
-    "propoleo": ("Propóleo", 30, None, "kg"),
-    "xelea": ("Xelea real", 10, None, "kg"),
+    "hortalizas": (N_("Hortalizas"), 20000, 40000, "kg"),
+    "froitas": (N_("Froitas"), 20000, None, "kg"),
+    "amoras": (N_("Amoras"), 5000, 10000, "kg"),
+    "kiwi": (N_("Kiwi"), 13000, None, "kg"),
+    "legumes": (N_("Legumes"), 10000, 24000, "kg"),
+    "patacas": (N_("Patacas"), 20000, None, "kg"),
+    "cogomelos": (N_("Cogomelos"), 500, 2500, "kg"),
+    "cereais": (N_("Cereais"), 5000, None, "kg"),
+    "ovos": (N_("Ovos"), 1000, None, "ducias"),
+    "mel": (N_("Mel"), 3000, None, "kg"),
+    "pole": (N_("Pole"), 450, None, "kg"),
+    "propoleo": (N_("Propóleo"), 30, None, "kg"),
+    "xelea": (N_("Xelea real"), 10, None, "kg"),
 }
 # Produtos dos animais que teñen categoría propia
 _CATEGORIA_ANIMAL = {"ovos": "ovos", "mel": "mel"}
@@ -83,11 +83,11 @@ _CON_COMPRADOR = ("tenda", "almacen")
 # Como se agrupa cada produto en lotes: a lei
 # (Directiva 2011/91/UE) deixa decidir ao produtor; o sector fai un por colleita
 AGRUPACIONS: dict[str, str] = {
-    "colleita": "Un lote por colleita",
-    "dia": "Un lote por día",
-    "semana": "Un lote por semana",
-    "mes": "Un lote por mes",
-    "man": "Escríboo eu",
+    "colleita": N_("Un lote por colleita"),
+    "dia": N_("Un lote por día"),
+    "semana": N_("Un lote por semana"),
+    "mes": N_("Un lote por mes"),
+    "man": N_("Escríboo eu"),
 }
 
 

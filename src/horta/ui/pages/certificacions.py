@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.certificacion import Certificacion, PuntoAutoavaliacion
 from horta.services.certificacions import (
     ESQUEMAS,
@@ -32,15 +33,21 @@ from horta.ui.numeros import parsear_data, texto_data
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
+_RESULTADOS: dict[str, str] = {
+    "cumpre": N_("Cumpre"),
+    "non_cumpre": N_("Non cumpre"),
+    "non_aplica": N_("Non aplica"),
+}
+
 
 def texto_estado(cert: Certificacion, hoxe: date | None = None) -> str:
     """Devolve a etiqueta do estado: Vixente, Caduca pronto ou Caducado."""
     est = estado_certificacion(cert, hoxe)
     if est == "caducado":
-        return "Caducado"
+        return _("Caducado")
     if est == "caduca_pronto":
-        return "Caduca pronto"
-    return "Vixente"
+        return _("Caduca pronto")
+    return _("Vixente")
 
 
 def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
@@ -53,21 +60,21 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
         docs = listar_documentos(session, actor, horta_id)
 
     por_id = {c.id: c for c in certificacions}
-    docs_opcions = {0: "Ningún", **{d.id: d.nome for d in docs}}
+    docs_opcions = {0: _("Ningún"), **{d.id: d.nome for d in docs}}
 
     ano_actual = date.today().year
     anos_disponibles = list(range(ano_actual - 2, ano_actual + 3))
 
     filas_cert = []
     for c in certificacions:
-        nome_display = c.nome or ESQUEMAS.get(c.esquema, c.esquema)
+        nome_display = c.nome or _(ESQUEMAS.get(c.esquema, c.esquema))
         validez_txt = ""
         if c.data_inicio and c.data_fin:
             validez_txt = f"{texto_data(c.data_inicio)} - {texto_data(c.data_fin)}"
         elif c.data_inicio:
-            validez_txt = f"Desde {texto_data(c.data_inicio)}"
+            validez_txt = _("Desde {data}").format(data=texto_data(c.data_inicio))
         elif c.data_fin:
-            validez_txt = f"Ata {texto_data(c.data_fin)}"
+            validez_txt = _("Ata {data}").format(data=texto_data(c.data_fin))
 
         filas_cert.append({
             "id": c.id,
@@ -79,28 +86,29 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
         })
 
     columnas_cert = [
-        {"name": "nome", "label": "Nome / Selo", "field": "nome", "align": "left"},
-        {"name": "numero", "label": "Número / GGN", "field": "numero", "align": "left"},
-        {"name": "entidade", "label": "Entidade", "field": "entidade", "align": "left"},
-        {"name": "validez", "label": "Validez", "field": "validez", "align": "left"},
-        {"name": "estado", "label": "Estado", "field": "estado", "align": "left"},
+        {"name": "nome", "label": _("Nome / Selo"), "field": "nome", "align": "left"},
+        {"name": "numero", "label": _("Número / GGN"), "field": "numero", "align": "left"},
+        {"name": "entidade", "label": _("Entidade"), "field": "entidade", "align": "left"},
+        {"name": "validez", "label": _("Validez"), "field": "validez", "align": "left"},
+        {"name": "estado", "label": _("Estado"), "field": "estado", "align": "left"},
     ]
 
-    ui.label("Selos e certificacións de calidade").classes("text-subtitle1 text-weight-bold")
+    ui.label(_("Selos e certificacións de calidade")).classes("text-subtitle1 text-weight-bold")
     taboa = ui.table(
         columns=columnas_cert,
         rows=filas_cert,
         row_key="id",
         selection="single",
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai certificacións rexistradas" {TEXTOS_TABOA}'
+        f'flat bordered no-data-label="{_("Aínda non hai certificacións rexistradas")}" '
+        f"{TEXTOS_TABOA}"
     )
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
 
     def escollida() -> Certificacion | None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro unha certificación na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha certificación na táboa"), type="warning")
             return None
         return por_id.get(int(taboa.selected[0]["id"]))
 
@@ -109,7 +117,7 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
         if c:
             actualizar_panel_autoavaliacion(c.id)
 
-    accions_tarxeta.append(("Autoavaliación", "fact_check", abrir_detalle_cert))
+    accions_tarxeta.append((_("Autoavaliación"), "fact_check", abrir_detalle_cert))
 
     editar_cert: Callable[[], None] | None = None
     dar_baixa_cert: Callable[[], None] | None = None
@@ -121,15 +129,27 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
             ui.card().style("width: min(34rem, 94vw)"),
         ):
             titulo_dlg = ui.label("").classes("text-h6")
-            esquema_input = ui.select(ESQUEMAS, label="Selo",
-                                      value="ecoloxica").classes("w-full")
-            nome_input = ui.input("Nome (obrigatorio en DOP/IGP e Outro)").classes("w-full")
-            numero_input = ui.input("Número (GGN de 13 díxitos en GlobalG.A.P.)").classes("w-full")
-            entidade_input = ui.input("Entidade certificadora ou reguladora").classes("w-full")
-            data_ini_input = campo_data("Data de inicio")
-            data_fin_input = campo_data("Data de fin")
-            doc_input = ui.select(docs_opcions, label="Documento adxunto",
-                value=0).classes("w-full")
+            esquema_input = ui.select(
+                {k: _(v) for k, v in ESQUEMAS.items()},
+                label=_("Selo"),
+                value="ecoloxica",
+            ).classes("w-full")
+            nome_input = ui.input(
+                _("Nome (obrigatorio en DOP/IGP e Outro)")
+            ).classes("w-full")
+            numero_input = ui.input(
+                _("Número (GGN de 13 díxitos en GlobalG.A.P.)")
+            ).classes("w-full")
+            entidade_input = ui.input(
+                _("Entidade certificadora ou reguladora")
+            ).classes("w-full")
+            data_ini_input = campo_data(_("Data de inicio"))
+            data_fin_input = campo_data(_("Data de fin"))
+            doc_input = ui.select(
+                docs_opcions,
+                label=_("Documento adxunto"),
+                value=0,
+            ).classes("w-full")
 
             def gardar_c() -> None:
                 with get_session() as sess:
@@ -179,12 +199,12 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                     ui.navigate.reload()
 
             with ui.row():
-                ui.button("Gardar", icon="check", on_click=gardar_c)
-                ui.button("Cancelar", on_click=dialogo_cert.close).props("flat")
+                ui.button(_("Gardar"), icon="check", on_click=gardar_c)
+                ui.button(_("Cancelar"), on_click=dialogo_cert.close).props("flat")
 
         def abrir_form_cert(c: Certificacion | None) -> None:
             editando_cert["id"] = c.id if c else None
-            titulo_dlg.text = "Editar certificación" if c else "Nova certificación"
+            titulo_dlg.text = _("Editar certificación") if c else _("Nova certificación")
             esquema_input.value = c.esquema if c else "ecoloxica"
             nome_input.value = c.nome or "" if c else ""
             numero_input.value = c.numero or "" if c else ""
@@ -211,33 +231,36 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                         return
                     obx = sess.get(Certificacion, c.id)
                     if obx is None:
-                        ui.notify("Esa certificación xa non existe", type="negative")
+                        ui.notify(_("Esa certificación xa non existe"), type="negative")
                         return
                     ok = executar_accion(sess, lambda: baixa_certificacion(sess, act, obx))
                 if ok:
                     ui.navigate.reload()
 
-            nome_c = c.nome or ESQUEMAS.get(c.esquema, c.esquema)
-            confirmar_eliminacion(f"Dar de baixa a certificación «{nome_c}»?", ao_confirmar)
+            nome_c = c.nome or _(ESQUEMAS.get(c.esquema, c.esquema))
+            confirmar_eliminacion(
+                _("Dar de baixa a certificación «{nome}»?").format(nome=nome_c),
+                ao_confirmar,
+            )
 
         editar_cert = editar_c
         dar_baixa_cert = dar_baixa_c
-        accions_tarxeta.append(("Editar", "edit", editar_c))
-        accions_tarxeta.append(("Dar de baixa", "delete", dar_baixa_c))
+        accions_tarxeta.append((_("Editar"), "edit", editar_c))
+        accions_tarxeta.append((_("Dar de baixa"), "delete", dar_baixa_c))
 
     tarxetas_da_taboa(taboa, "nome", ["estado", "entidade", "validez"], accions_tarxeta)
 
     with ui.row().classes("w-full items-center gap-2 q-mt-sm"):
         if pode_editar:
-            ui.button("Nova certificación", icon="add", on_click=lambda: abrir_form_cert(None))
+            ui.button(_("Nova certificación"), icon="add", on_click=lambda: abrir_form_cert(None))
         with ui.row().classes("so-ordenador items-center gap-2"):
-            ui.button("Abrir autoavaliación", icon="fact_check", on_click=abrir_detalle_cert).props(
-                "outline"
-            )
+            ui.button(
+                _("Abrir autoavaliación"), icon="fact_check", on_click=abrir_detalle_cert
+            ).props("outline")
             if pode_editar and editar_cert is not None and dar_baixa_cert is not None:
-                ui.button("Editar", icon="edit", on_click=editar_cert).props("outline")
+                ui.button(_("Editar"), icon="edit", on_click=editar_cert).props("outline")
                 ui.button(
-                    "Dar de baixa", icon="delete", on_click=dar_baixa_cert
+                    _("Dar de baixa"), icon="delete", on_click=dar_baixa_cert
                 ).props("outline color=negative")
 
     # Contedor para o detalle da autoavaliación e informe de auditoría
@@ -251,20 +274,25 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
             ui.card().style("width: min(34rem, 94vw)"),
         ):
             titulo_dlg_p = ui.label("").classes("text-h6")
-            p_data_input = campo_data("Data")
-            p_codigo_input = ui.input("Punto / Código (ex: FV 5.1.1)").classes("w-full")
+            p_data_input = campo_data(_("Data"))
+            p_codigo_input = ui.input(
+                _("Punto / Código (ex: FV 5.1.1)")
+            ).classes("w-full")
             p_resultado_input = ui.select(
-                {"cumpre": "Cumpre", "non_cumpre": "Non cumpre", "non_aplica": "Non aplica"},
-                label="Resultado",
+                {k: _(v) for k, v in _RESULTADOS.items()},
+                label=_("Resultado"),
                 value="cumpre",
             ).classes("w-full")
-            p_evidencia_input = ui.input("Evidencia").classes("w-full")
-            p_doc_input = ui.select(docs_opcions, label="Documento adxunto",
-                value=0).classes("w-full")
-            p_accion_input = ui.input("Acción correctora (obrigatoria se non cumpre)").classes(
-                "w-full"
-            )
-            p_data_corr_input = campo_data("Data de corrección")
+            p_evidencia_input = ui.input(_("Evidencia")).classes("w-full")
+            p_doc_input = ui.select(
+                docs_opcions,
+                label=_("Documento adxunto"),
+                value=0,
+            ).classes("w-full")
+            p_accion_input = ui.input(
+                _("Acción correctora (obrigatoria se non cumpre)")
+            ).classes("w-full")
+            p_data_corr_input = campo_data(_("Data de corrección"))
 
             def gardar_p() -> None:
                 with get_session() as sess:
@@ -316,13 +344,15 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                         actualizar_panel_autoavaliacion(editando_punto["cert_id"])
 
             with ui.row():
-                ui.button("Gardar", icon="check", on_click=gardar_p)
-                ui.button("Cancelar", on_click=dialogo_punto.close).props("flat")
+                ui.button(_("Gardar"), icon="check", on_click=gardar_p)
+                ui.button(_("Cancelar"), on_click=dialogo_punto.close).props("flat")
 
         def abrir_form_punto(cert_id: int, p: PuntoAutoavaliacion | None) -> None:
             editando_punto["id"] = p.id if p else None
             editando_punto["cert_id"] = cert_id
-            titulo_dlg_p.text = "Editar punto" if p else "Novo punto de autoavaliación"
+            titulo_dlg_p.text = (
+                _("Editar punto") if p else _("Novo punto de autoavaliación")
+            )
             p_data_input.value = texto_data(p.data) if p else texto_data(date.today())
             p_codigo_input.value = p.punto if p else ""
             p_resultado_input.value = p.resultado if p else "cumpre"
@@ -342,16 +372,18 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
             c = sess.get(Certificacion, cert_id)
             if c is None:
                 return
-            nome_c = c.nome or ESQUEMAS.get(c.esquema, c.esquema)
+            nome_c = c.nome or _(ESQUEMAS.get(c.esquema, c.esquema))
 
         with auto_container:
             with ui.card().classes("w-full q-pa-md"):
                 with ui.row().classes("w-full items-center justify-between"):
-                    ui.label(f"Autoavaliación: {nome_c}").classes("text-h6 font-bold")
+                    ui.label(
+                        _("Autoavaliación: {nome}").format(nome=nome_c)
+                    ).classes("text-h6 font-bold")
                     ano_select = ui.select(
                         anos_disponibles,
                         value=ano_actual,
-                        label="Ano",
+                        label=_("Ano"),
                     ).classes("w-32")
 
                 corpo_auto = ui.column().classes("w-full gap-3 q-mt-md")
@@ -374,17 +406,26 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
 
                     with corpo_auto:
                         ui.label(
-                            f"{n_cumpren} cumpren, {n_non_cumpren} non cumpren, "
-                            f"{n_non_aplican} non aplican, {n_pendentes} correccións pendentes"
+                            _(
+                                "{n_cumpren} cumpren, {n_non_cumpren} non cumpren, "
+                                "{n_non_aplican} non aplican, {n_pendentes} correccións pendentes"
+                            ).format(
+                                n_cumpren=n_cumpren,
+                                n_non_cumpren=n_non_cumpren,
+                                n_non_aplican=n_non_aplican,
+                                n_pendentes=n_pendentes,
+                            )
                         ).classes("text-subtitle2 font-bold texto-suave")
 
                         # Botón para descargar informe de auditoría
                         with ui.dialog().props("persistent") as dlg_informe, ui.card().style(
                             "width: min(28rem, 94vw)"
                         ):
-                            ui.label("Informe para a auditoría").classes("text-h6")
+                            ui.label(_("Informe para a auditoría")).classes("text-h6")
                             ui.label(
-                                f"Rexistros e autoavaliación de {ano}: {nome_c}"
+                                _("Rexistros e autoavaliación de {ano}: {nome}").format(
+                                    ano=ano, nome=nome_c
+                                )
                             ).classes("text-caption")
                             fmt_selector = selector_formato()
 
@@ -398,24 +439,26 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                                     xlsx_b,
                                     fmt_selector.value or "xlsx",
                                     f"auditoria-{c.esquema}-{ano}",
-                                    f"Auditoría {nome_c} ({ano})",
+                                    _("Auditoría {nome} ({ano})").format(
+                                        nome=nome_c, ano=ano
+                                    ),
                                     "auditoria",
                                 )
                                 dlg_informe.close()
 
                             with ui.row():
-                                ui.button("Descargar", icon="download", on_click=lanzar_descarga)
-                                ui.button("Cancelar", on_click=dlg_informe.close).props("flat")
+                                ui.button(_("Descargar"), icon="download", on_click=lanzar_descarga)
+                                ui.button(_("Cancelar"), on_click=dlg_informe.close).props("flat")
 
                         with ui.row().classes("gap-2 items-center"):
                             ui.button(
-                                "Informe para a auditoría",
+                                _("Informe para a auditoría"),
                                 icon="download",
                                 on_click=dlg_informe.open,
                             ).props("outline")
                             if pode_editar:
                                 ui.button(
-                                    "Novo punto",
+                                    _("Novo punto"),
                                     icon="add",
                                     on_click=lambda: abrir_form_punto(cert_id, None),
                                 )
@@ -425,11 +468,11 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                                 "id": p.id,
                                 "data": texto_data(p.data),
                                 "punto": p.punto,
-                                "resultado": {
-                                    "cumpre": "Cumpre",
-                                    "non_cumpre": "Non cumpre",
-                                    "non_aplica": "Non aplica",
-                                }.get(p.resultado, p.resultado),
+                                "resultado": (
+                                    _(_RESULTADOS[p.resultado])
+                                    if p.resultado in _RESULTADOS
+                                    else p.resultado
+                                ),
                                 "evidencia": p.evidencia or "",
                                 "documento": docs_opcions.get(p.documento_id or 0, ""),
                                 "accion_correctora": p.accion_correctora or "",
@@ -438,35 +481,38 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                             for p in pts
                         ]
                         col_p = [
-                            {"name": "data", "label": "Data", "field": "data", "align": "left"},
-                            {"name": "punto", "label": "Punto", "field": "punto", "align": "left"},
+                            {"name": "data", "label": _("Data"), "field": "data", "align": "left"},
+                            {
+                                "name": "punto", "label": _("Punto"), "field": "punto",
+                                "align": "left",
+                            },
                             {
                                 "name": "resultado",
-                                "label": "Resultado",
+                                "label": _("Resultado"),
                                 "field": "resultado",
                                 "align": "left",
                             },
                             {
                                 "name": "evidencia",
-                                "label": "Evidencia",
+                                "label": _("Evidencia"),
                                 "field": "evidencia",
                                 "align": "left",
                             },
                             {
                                 "name": "documento",
-                                "label": "Documento",
+                                "label": _("Documento"),
                                 "field": "documento",
                                 "align": "left",
                             },
                             {
                                 "name": "accion_correctora",
-                                "label": "Acción correctora",
+                                "label": _("Acción correctora"),
                                 "field": "accion_correctora",
                                 "align": "left",
                             },
                             {
                                 "name": "data_correccion",
-                                "label": "Corrección",
+                                "label": _("Corrección"),
                                 "field": "data_correccion",
                                 "align": "left",
                             },
@@ -477,13 +523,14 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                             row_key="id",
                             selection="single",
                         ).classes("w-full taboa").props(
-                            'flat bordered no-data-label="Sen puntos de autoavaliación este ano" '
-                            f'{TEXTOS_TABOA}'
+                            'flat bordered no-data-label='
+                            f'"{_("Sen puntos de autoavaliación este ano")}" '
+                            f"{TEXTOS_TABOA}"
                         )
 
                         def escollido_punto() -> PuntoAutoavaliacion | None:
                             if not taboa_p.selected:
-                                ui.notify("Escolle primeiro un punto na táboa", type="warning")
+                                ui.notify(_("Escolle primeiro un punto na táboa"), type="warning")
                                 return None
                             return por_id_p.get(int(taboa_p.selected[0]["id"]))
 
@@ -503,7 +550,7 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                                         return
                                     obx_p = s_del.get(PuntoAutoavaliacion, pt.id)
                                     if obx_p is None:
-                                        ui.notify("Ese punto xa non existe", type="negative")
+                                        ui.notify(_("Ese punto xa non existe"), type="negative")
                                         return
                                     ok = executar_accion(
                                         s_del, lambda: borrar_punto(s_del, act_del, obx_p)
@@ -512,16 +559,19 @@ def seccion_certificacions(horta_id: int, pode_editar: bool) -> None:
                                     recargar_tabela_ano(ano)
 
                             confirmar_eliminacion(
-                                f"Borrar o punto «{pt.punto}» da autoavaliación?", ao_conf_borrar
+                                _("Borrar o punto «{punto}» da autoavaliación?").format(
+                                    punto=pt.punto
+                                ),
+                                ao_conf_borrar,
                             )
 
                         if pode_editar:
                             with ui.row().classes("gap-2 q-mt-sm"):
-                                ui.button("Editar punto", icon="edit", on_click=editar_p).props(
+                                ui.button(_("Editar punto"), icon="edit", on_click=editar_p).props(
                                     "outline"
                                 )
                                 ui.button(
-                                    "Borrar punto", icon="delete", on_click=borrar_p
+                                    _("Borrar punto"), icon="delete", on_click=borrar_p
                                 ).props("outline color=negative")
 
                 ano_select.on_value_change(lambda e: recargar_tabela_ano(int(e.value)))

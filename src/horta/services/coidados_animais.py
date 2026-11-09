@@ -9,6 +9,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.animal import Animal
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.horta import RolHorta
@@ -24,11 +25,11 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 TIPOS_COIDADO: dict[str, str] = {
-    "coidado": "Coidado (comida, auga, limpeza…)",
-    "enfermidade": "Enfermidade",
-    "producion": "Cambio na produción",
-    "medicamento": "Medicamento",
-    "visita": "Visita ou vehículo",
+    "coidado": N_("Coidado (comida, auga, limpeza…)"),
+    "enfermidade": N_("Enfermidade"),
+    "producion": N_("Cambio na produción"),
+    "medicamento": N_("Medicamento"),
+    "visita": N_("Visita ou vehículo"),
 }
 # Os tipos onde se anotan os animais afectados ou tratados
 CON_ANIMAIS = ("enfermidade", "producion", "medicamento")

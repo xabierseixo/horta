@@ -11,6 +11,7 @@ from typing import Any
 from nicegui import app, ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.horta import Horta
 from horta.models.recomendacion import Recomendacion
 from horta.models.tarefa import Tarefa
@@ -63,9 +64,13 @@ from horta.ui.pasos_tratamento import (
 from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.tempo import EtiquetaTempo
 
-ETIQUETA_PROBLEMA = {"enfermidade": "Enfermidade", "praga": "Praga (artrópodos/gasterópodos)",
-                     "mala_herba": "Mala herba", "regulador": "Regulador / outros"}
-_PASO_RESULTADO = "5. Resultado"
+ETIQUETA_PROBLEMA = {
+    "enfermidade": N_("Enfermidade"),
+    "praga": N_("Praga (artrópodos/gasterópodos)"),
+    "mala_herba": N_("Mala herba"),
+    "regulador": N_("Regulador / outros"),
+}
+_PASO_RESULTADO = N_("5. Resultado")
 _REXISTRADO = "1"
 
 
@@ -102,7 +107,7 @@ def _papeleira(lista: list[dict[str, Any]], fila: dict[str, Any],
         lista.remove(fila)
         refrescar()
 
-    ui.button(icon="delete", on_click=quitar).props("flat dense round").tooltip("Quitar")
+    ui.button(icon="delete", on_click=quitar).props("flat dense round").tooltip(_("Quitar"))
 
 
 def texto_xustificacion_observacion(
@@ -134,19 +139,19 @@ def texto_xustificacion_observacion(
     partes_detalle: list[str] = []
     if conto is not None:
         if unidade:
-            u_str = (UNIDADES_CONTO.get(unidade) or unidade).lower()
+            u_str = _(UNIDADES_CONTO.get(unidade) or unidade).lower()
             partes_detalle.append(f"{conto:g} {u_str}".strip())
         else:
             partes_detalle.append(f"{conto:g}")
         if nivel:
-            nivel_str = NIVEIS.get(nivel, nivel)
+            nivel_str = _(NIVEIS.get(nivel) or str(nivel))
             partes_detalle.append(f"({nivel_str})")
     elif nivel:
-        nivel_txt = (NIVEIS.get(nivel) or nivel).lower()
+        nivel_txt = _(NIVEIS.get(nivel) or nivel).lower()
         if nivel == "sen":
-            partes_detalle.append("sen presenza")
+            partes_detalle.append(_("sen presenza"))
         else:
-            partes_detalle.append(f"nivel {nivel_txt}")
+            partes_detalle.append(_("nivel {nivel}").format(nivel=nivel_txt))
 
     detalle = " ".join(partes_detalle).strip()
 
@@ -159,10 +164,19 @@ def texto_xustificacion_observacion(
     else:
         valor_limiar = None
 
-    sufixo_limiar = f" (limiar {valor_limiar:g})" if valor_limiar is not None else ""
     if detalle:
-        return f"Observación do {data_str}: {detalle}{sufixo_limiar}"
-    return f"Observación do {data_str}{sufixo_limiar}"
+        if valor_limiar is not None:
+            return _("Observación do {data}: {detalle} (limiar {valor})").format(
+                data=data_str, detalle=detalle, valor=f"{valor_limiar:g}"
+            )
+        return _("Observación do {data}: {detalle}").format(
+            data=data_str, detalle=detalle
+        )
+    if valor_limiar is not None:
+        return _("Observación do {data} (limiar {valor})").format(
+            data=data_str, valor=f"{valor_limiar:g}"
+        )
+    return _("Observación do {data}").format(data=data_str)
 
 
 def crear_dialogo_tratamento(
@@ -264,7 +278,11 @@ def crear_dialogo_tratamento(
     def seguir(faltan: list[str]) -> None:
         """Pasa ao seguinte paso só se non falta nada; se falta, dío todo xunto (Y3)."""
         if faltan:
-            ui.notify("Falta: " + "; ".join(faltan), type="warning", multi_line=True)
+            ui.notify(
+                _("Falta: {erros}").format(erros="; ".join(faltan)),
+                type="warning",
+                multi_line=True,
+            )
             return
         pasos.next()
 
@@ -272,11 +290,11 @@ def crear_dialogo_tratamento(
         titulo = ui.label("").classes("text-h6 q-mb-sm")
         titulo.set_visibility(False)
         with ui.stepper().props("vertical").classes("w-full") as pasos:
-            with ui.step("1. Que e onde"):
+            with ui.step(_("1. Que e onde")):
                 with ui.row().classes("w-full"):
-                    data_inicio = campo_data("Data de inicio").classes("grow")
-                    data_fin = campo_data("Data de fin").classes("grow")
-                hora = ui.input("Hora de inicio (HH:MM, opcional)").classes("w-full")
+                    data_inicio = campo_data(_("Data de inicio")).classes("grow")
+                    data_fin = campo_data(_("Data de fin")).classes("grow")
+                hora = ui.input(_("Hora de inicio (HH:MM, opcional)")).classes("w-full")
                 tempo = EtiquetaTempo(horta_id, "tratamento")
 
                 def mirar_tempo() -> None:
@@ -298,7 +316,7 @@ def crear_dialogo_tratamento(
                     estado["inicio"] = inicio
 
                 data_inicio.on_value_change(seguir_inicio)
-                ui.label("Cultivos tratados (mesmo cultivo e variedade)").classes("text-bold")
+                ui.label(_("Cultivos tratados (mesmo cultivo e variedade)")).classes("text-bold")
 
                 @ui.refreshable
                 def filas_cultivos() -> None:
@@ -316,12 +334,12 @@ def crear_dialogo_tratamento(
                                 filas_cultivos.refresh()
                                 refrescar_xustificacion()
 
-                            ui.select(op.cultivos, label="Cultivo e parcela",
+                            ui.select(op.cultivos, label=_("Cultivo e parcela"),
                                       with_input=True, on_change=escoller_cultivo).bind_value(
                                 fila, "cultivo_id").classes("grow")
-                            ui.input("Superficie (ha)").bind_value(fila, "superficie").classes(
+                            ui.input(_("Superficie (ha)")).bind_value(fila, "superficie").classes(
                                 "w-28")
-                            ui.select(op.estados, label="Estado fenolóxico").bind_value(
+                            ui.select(op.estados, label=_("Estado fenolóxico")).bind_value(
                                 fila, "estado").classes("w-40")
                             _papeleira(estado["cultivos"], fila, refrescar_cultivos)
 
@@ -329,15 +347,20 @@ def crear_dialogo_tratamento(
                         estado["cultivos"].append(fila_cultivo())
                         filas_cultivos.refresh()
 
-                    ui.button("Engadir cultivo", icon="add", on_click=engadir).props("flat dense")
+                    ui.button(_("Engadir cultivo"), icon="add", on_click=engadir).props(
+                        "flat dense"
+                    )
 
                 filas_cultivos()
 
                 @ui.refreshable
                 def orixinais() -> None:
                     if estado["orixinais"]:
-                        ui.label(f"Datos orixinais (antes da migración): {estado['orixinais']}"
-                                 ).classes("text-sm text-grey-8")
+                        ui.label(
+                            _("Datos orixinais (antes da migración): {datos}").format(
+                                datos=estado["orixinais"]
+                            )
+                        ).classes("text-sm text-grey-8")
 
                 orixinais()
                 with ui.stepper_navigation():
@@ -353,8 +376,8 @@ def crear_dialogo_tratamento(
                         seguir(faltan_que_e_onde(data_inicio.value, fin_val,
                                                  estado["cultivos"]))
 
-                    ui.button("Seguinte", on_click=seguir_paso_1)
-            with ui.step("2. Por que"):
+                    ui.button(_("Seguinte"), on_click=seguir_paso_1)
+            with ui.step(_("2. Por que")):
 
                 @ui.refreshable
                 def filas_problemas() -> None:
@@ -373,7 +396,8 @@ def crear_dialogo_tratamento(
                                 f["codigo"] = e.value
                                 refrescar_xustificacion()
 
-                            ui.select(ETIQUETA_PROBLEMA, value=fila["tipo"], label="Tipo",
+                            ui.select({k: _(v) for k, v in ETIQUETA_PROBLEMA.items()},
+                                      value=fila["tipo"], label=_("Tipo"),
                                       on_change=cambiar_tipo).classes("w-48")
                             do_cultivo = set().union(*(
                                 op.problemas_cultivo.get(c["cultivo_id"], {}).get(fila["tipo"],
@@ -381,7 +405,7 @@ def crear_dialogo_tratamento(
                                 for c in estado["cultivos"]))
                             ui.select(ordenar_problemas(op.problemas[fila["tipo"]], do_cultivo,
                                                         fila["codigo"]),
-                                      label="Problema", with_input=True,
+                                      label=_("Problema"), with_input=True,
                                       on_change=escoller_problema).bind_value(
                                 fila, "codigo").classes("grow")
                             _papeleira(estado["problemas"], fila, refrescar_problemas)
@@ -390,18 +414,18 @@ def crear_dialogo_tratamento(
                         estado["problemas"].append(fila_problema())
                         refrescar_problemas()
 
-                    ui.button("Engadir problema", icon="add", on_click=engadir).props(
+                    ui.button(_("Engadir problema"), icon="add", on_click=engadir).props(
                         "flat dense")
 
                 filas_problemas()
                 xustificacion_observacions()
-                xustificacions = ui.select(op.xustificacions, label="Xustificacións",
+                xustificacions = ui.select(op.xustificacions, label=_("Xustificacións"),
                                            multiple=True).classes("w-full").props("use-chips")
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=lambda: seguir(faltan_por_que(
+                    ui.button(_("Seguinte"), on_click=lambda: seguir(faltan_por_que(
                         estado["problemas"], xustificacions.value)))
-                    ui.button("Atrás", on_click=pasos.previous).props("flat")
-            with ui.step("3. Con que"):
+                    ui.button(_("Atrás"), on_click=pasos.previous).props("flat")
+            with ui.step(_("3. Con que")):
 
                 @ui.refreshable
                 def filas_produtos() -> None:
@@ -421,38 +445,40 @@ def crear_dialogo_tratamento(
                                     f["num"], f["tipo_produto"] = e.value, _REXISTRADO
                                     f["nome"] = op.rexistro[e.value].rsplit(" (", 1)[0]
 
-                                ui.select(op.rexistro, label="Buscar no rexistro do MAPA "
-                                          "(nome ou nº)", with_input=True, clearable=True,
+                                ui.select(op.rexistro, label=_("Buscar no rexistro do MAPA "
+                                          "(nome ou nº)"), with_input=True, clearable=True,
                                           on_change=escoller).bind_value(
                                     fila, "rexistro").classes("grow")
                                 _papeleira(estado["produtos"], fila, filas_produtos.refresh)
                             with ui.row().classes("w-full items-end gap-2"):
-                                ui.select(op.tipos_produto, label="Tipo de produto").bind_value(
+                                ui.select(op.tipos_produto, label=_("Tipo de produto")).bind_value(
                                     fila, "tipo_produto").classes("w-56")
-                                ui.input("Nome comercial").bind_value(fila, "nome").classes(
+                                ui.input(_("Nome comercial")).bind_value(fila, "nome").classes(
                                     "grow")
-                                ui.input("Nº de rexistro").bind_value(fila, "num").classes(
+                                ui.input(_("Nº de rexistro")).bind_value(fila, "num").classes(
                                     "w-32")
-                            ui.input("Materia activa").bind_value(fila, "materia").classes(
+                            ui.input(_("Materia activa")).bind_value(fila, "materia").classes(
                                 "w-full")
                             with ui.row().classes("w-full items-end gap-2"):
-                                ui.input("Dose").bind_value(fila, "dose").classes("w-28")
+                                ui.input(_("Dose")).bind_value(fila, "dose").classes("w-28")
                                 ui.select({k: v for k, v in op.unidades.items()
                                            if k in UNIDADES_DOSE + UNIDADES_TOTAL},
-                                          label="Unidade").bind_value(fila, "unidade").classes(
+                                          label=_("Unidade")).bind_value(fila, "unidade").classes(
                                     "grow")
                             ui.label().classes("text-caption texto-suave").bind_text_from(
                                 fila, "etiqueta").bind_visibility_from(
                                 fila, "etiqueta", backward=bool)
-                            ui.checkbox("É a cantidade total, non a dose por hectárea"
+                            ui.checkbox(_("É a cantidade total, non a dose por hectárea")
                                         ).bind_value(fila, "total")
-                            with ui.expansion("A etiqueta dá a dose en % (mochila)").classes(
+                            with ui.expansion(_("A etiqueta dá a dose en % (mochila)")).classes(
                                     "w-full"):
                                 with ui.row().classes("w-full items-end gap-2"):
-                                    pct = ui.input("% da etiqueta").classes("w-28")
-                                    caldo = ui.input("Litros de caldo").classes("w-32")
-                                    en = ui.select({"4": "L de produto", "5": "kg de produto"},
-                                                   value="4").classes("w-36")
+                                    pct = ui.input(_("% da etiqueta")).classes("w-28")
+                                    caldo = ui.input(_("Litros de caldo")).classes("w-32")
+                                    en = ui.select(
+                                        {"4": _("L de produto"), "5": _("kg de produto")},
+                                        value="4",
+                                    ).classes("w-36")
 
                                     def calcular(f: dict[str, Any] = fila, p: Any = pct,
                                                  c: Any = caldo, u: Any = en) -> None:
@@ -460,77 +486,77 @@ def crear_dialogo_tratamento(
                                         porcentaxe = parsear_decimal(p.value)
                                         litros = parsear_decimal(c.value)
                                         if not porcentaxe or not litros:
-                                            ui.notify("Pon a % e os litros de caldo",
+                                            ui.notify(_("Pon a % e os litros de caldo"),
                                                       type="warning")
                                             return
                                         f["dose"] = _txt(cantidade_dende_porcentaxe(
                                             porcentaxe, litros)).replace(".", ",")
                                         f["total"], f["unidade"] = True, u.value
 
-                                    ui.button("Calcular", on_click=calcular).props("flat")
+                                    ui.button(_("Calcular"), on_click=calcular).props("flat")
 
                     def engadir() -> None:
                         estado["produtos"].append(fila_produto())
                         filas_produtos.refresh()
 
-                    ui.button("Engadir produto", icon="add", on_click=engadir).props(
+                    ui.button(_("Engadir produto"), icon="add", on_click=engadir).props(
                         "flat dense")
 
                 filas_produtos()
-                ui.label("Medidas non químicas (trampas, confusión sexual, fauna útil…)"
+                ui.label(_("Medidas non químicas (trampas, confusión sexual, fauna útil…)")
                          ).classes("text-bold")
 
                 @ui.refreshable
                 def filas_medidas() -> None:
                     for fila in estado["medidas"]:
                         with ui.row().classes("w-full items-end gap-2"):
-                            ui.select(op.tipos_medida, label="Medida").bind_value(
+                            ui.select(op.tipos_medida, label=_("Medida")).bind_value(
                                 fila, "tipo").classes("grow")
-                            ui.input("Cantidade").bind_value(fila, "cantidade").classes("w-24")
-                            ui.select(op.unidades, label="Unidade",
+                            ui.input(_("Cantidade")).bind_value(fila, "cantidade").classes("w-24")
+                            ui.select(op.unidades, label=_("Unidade"),
                                       with_input=True).bind_value(fila, "unidade").classes(
                                 "w-36")
-                            ui.input("Nº rexistro MDF").bind_value(fila, "mdf").classes("w-32")
+                            ui.input(_("Nº rexistro MDF")).bind_value(fila, "mdf").classes("w-32")
                             _papeleira(estado["medidas"], fila, filas_medidas.refresh)
 
                     def engadir() -> None:
                         estado["medidas"].append(fila_medida())
                         filas_medidas.refresh()
 
-                    ui.button("Engadir medida", icon="add", on_click=engadir).props("flat dense")
+                    ui.button(_("Engadir medida"), icon="add", on_click=engadir).props("flat dense")
 
                 filas_medidas()
                 with ui.stepper_navigation():
-                    ui.button("Seguinte", on_click=lambda: seguir(faltan_con_que(
+                    ui.button(_("Seguinte"), on_click=lambda: seguir(faltan_con_que(
                         estado["produtos"], estado["medidas"])))
-                    ui.button("Atrás", on_click=pasos.previous).props("flat")
-            with ui.step("4. Quen"):
-                aplicador = ui.select(op.aplicadores, label="Aplicador").classes("w-full")
-                maquina = ui.select(op.maquinas, label="Máquina (baleiro se é manual)"
+                    ui.button(_("Atrás"), on_click=pasos.previous).props("flat")
+            with ui.step(_("4. Quen")):
+                aplicador = ui.select(op.aplicadores, label=_("Aplicador")).classes("w-full")
+                maquina = ui.select(op.maquinas, label=_("Máquina (baleiro se é manual)")
                                     ).classes("w-full")
-                horas = ui.input("Horas de traballo").classes("w-full")
-                asesor = ui.select(op.asesores, label="Asesor (opcional)",
+                horas = ui.input(_("Horas de traballo")).classes("w-full")
+                asesor = ui.select(op.asesores, label=_("Asesor (opcional)"),
                                    clearable=True).classes("w-full")
-                data_asesor = campo_data("Data do asesoramento")
-                validacion = ui.checkbox("A persoa asesora validou o tratamento")
+                data_asesor = campo_data(_("Data do asesoramento"))
+                validacion = ui.checkbox(_("A persoa asesora validou o tratamento"))
                 for campo in (asesor, data_asesor, validacion):
                     campo.set_visibility(bool(op.asesores))
                 with ui.stepper_navigation():
                     def seguir_paso_4() -> None:
                         if estado.get("modo") == "recomendacion":
                             if not asesor.value:
-                                ui.notify("Escolle unha persoa asesora", type="warning")
+                                ui.notify(_("Escolle unha persoa asesora"), type="warning")
                                 return
                             pasos.next()
                         else:
                             seguir(faltan_quen(aplicador.value))
 
-                    ui.button("Seguinte", on_click=seguir_paso_4)
-                    ui.button("Atrás", on_click=pasos.previous).props("flat")
-            with ui.step(_PASO_RESULTADO):
-                eficacia = ui.select(op.eficacias, label="Eficacia").classes("w-full")
-                notas = ui.textarea("Notas").classes("w-full")
-                ui.label("Comprobación co rexistro do MAPA (a etiqueta é a referencia legal)"
+                    ui.button(_("Seguinte"), on_click=seguir_paso_4)
+                    ui.button(_("Atrás"), on_click=pasos.previous).props("flat")
+            with ui.step(_(_PASO_RESULTADO)):
+                eficacia = ui.select(op.eficacias, label=_("Eficacia")).classes("w-full")
+                notas = ui.textarea(_("Notas")).classes("w-full")
+                ui.label(_("Comprobación co rexistro do MAPA (a etiqueta é a referencia legal)")
                          ).classes("text-bold")
 
                 def datos() -> DatosTratamento:
@@ -539,7 +565,7 @@ def crear_dialogo_tratamento(
                     if estado.get("modo") == "recomendacion" and fin is None:
                         fin = inicio
                     if inicio is None or fin is None:
-                        raise OperacionNonPermitidaError("Indica as datas de inicio e fin")
+                        raise OperacionNonPermitidaError(_("Indica as datas de inicio e fin"))
                     e_rec = estado.get("modo") == "recomendacion"
                     data_as = parsear_data(data_asesor.value) if not e_rec else inicio
                     val_as = bool(validacion.value) if not e_rec else True
@@ -588,7 +614,7 @@ def crear_dialogo_tratamento(
                         avisos = (comprobar_tratamento(session, horta, d, estado["id"])
                                   if horta else [])
                     if not avisos:
-                        ui.label("Sen produtos do rexistro que comprobar.").classes(
+                        ui.label(_("Sen produtos do rexistro que comprobar.")).classes(
                             "text-sm text-grey-8")
                     for a in avisos:
                         cor, icona = {FORTE: ("negative", "error"),
@@ -600,8 +626,8 @@ def crear_dialogo_tratamento(
 
                 lista_avisos()
                 pasos.on_value_change(
-                    lambda e: lista_avisos.refresh() if e.value == _PASO_RESULTADO else (
-                        refrescar_xustificacion() if e.value == "2. Por que" else None
+                    lambda e: lista_avisos.refresh() if e.value == _(_PASO_RESULTADO) else (
+                        refrescar_xustificacion() if e.value == _("2. Por que") else None
                     )
                 )
 
@@ -617,7 +643,7 @@ def crear_dialogo_tratamento(
                             if estado.get("modo") == "recomendacion":
                                 if d.asesor is None or not d.asesor.persoa_id:
                                     raise OperacionNonPermitidaError(
-                                        "Escolle unha persoa asesora da explotación"
+                                        _("Escolle unha persoa asesora da explotación")
                                     )
                                 valida_ata = (
                                     d.data_fin if d.data_fin != d.data_inicio else None
@@ -643,7 +669,7 @@ def crear_dialogo_tratamento(
                                     rec = session.get(Recomendacion, rec_id)
                                     if rec is None:
                                         raise OperacionNonPermitidaError(
-                                            "A recomendación xa non existe"
+                                            _("A recomendación xa non existe")
                                         )
                                     visita_kw = {}
                                     if estado.get("visita_id") is not None:
@@ -681,15 +707,15 @@ def crear_dialogo_tratamento(
                     if ok:
                         if estado.get("modo") == "recomendacion":
                             dialogo.close()
-                            app.storage.user["aviso"] = "Recomendación gardada"
+                            app.storage.user["aviso"] = _("Recomendación gardada")
                             ui.navigate.reload()
                         else:
                             recargar_apuntado("tratamento", data_inicio.value)
 
                 with ui.stepper_navigation():
-                    ui.button("Gardar", icon="check", on_click=gardar)
-                    ui.button("Atrás", on_click=pasos.previous).props("flat")
-        ui.button("Pechar", on_click=dialogo.close).props("flat")
+                    ui.button(_("Gardar"), icon="check", on_click=gardar)
+                    ui.button(_("Atrás"), on_click=pasos.previous).props("flat")
+        ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
 
     def abrir(
         t: TratamentoFito | None = None,
@@ -711,15 +737,15 @@ def crear_dialogo_tratamento(
 
         e_rec = modo == "recomendacion"
         if e_rec:
-            titulo.text = "Recomendación da persoa asesora"
+            titulo.text = _("Recomendación da persoa asesora")
             titulo.set_visibility(True)
-            data_inicio._props["label"] = "Data da recomendación"
-            data_fin._props["label"] = "Válida ata"
+            data_inicio._props["label"] = _("Data da recomendación")
+            data_fin._props["label"] = _("Válida ata")
         else:
             titulo.text = ""
             titulo.set_visibility(False)
-            data_inicio._props["label"] = "Data de inicio"
-            data_fin._props["label"] = "Data de fin"
+            data_inicio._props["label"] = _("Data de inicio")
+            data_fin._props["label"] = _("Data de fin")
         data_inicio.update()
         data_fin.update()
 
@@ -731,7 +757,7 @@ def crear_dialogo_tratamento(
         data_asesor.set_visibility(not e_rec and bool(op.asesores))
         validacion.set_visibility(not e_rec and bool(op.asesores))
         asesor.set_visibility(True if e_rec else bool(op.asesores))
-        asesor._props["label"] = "Asesor" if e_rec else "Asesor (opcional)"
+        asesor._props["label"] = _("Asesor") if e_rec else _("Asesor (opcional)")
         asesor.update()
 
         if recomendacion is not None:
@@ -810,11 +836,11 @@ def crear_dialogo_tratamento(
             orixinais_t = [
                 (etiqueta, valor)
                 for etiqueta, valor in (
-                    ("produto", t.orixinal_produto),
-                    ("dose", t.orixinal_dose),
-                    ("aplicador", t.orixinal_aplicador),
-                    ("equipo", t.orixinal_equipo),
-                    ("asesoramento", t.orixinal_asesoramento),
+                    (_("produto"), t.orixinal_produto),
+                    (_("dose"), t.orixinal_dose),
+                    (_("aplicador"), t.orixinal_aplicador),
+                    (_("equipo"), t.orixinal_equipo),
+                    (_("asesoramento"), t.orixinal_asesoramento),
                 )
                 if valor
             ]
@@ -872,7 +898,7 @@ def crear_dialogo_tratamento(
         ):
             refrescar.refresh()
         refrescar_xustificacion()
-        pasos.set_value("1. Que e onde")
+        pasos.set_value(_("1. Que e onde"))
         mirar_tempo()
         dialogo.open()
 

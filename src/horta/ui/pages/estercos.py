@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.esterco import MovementoEsterco
 from horta.models.persoa import Persoa
 from horta.models.tarefa import Tarefa
@@ -40,21 +41,21 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
 COLUMNAS_TABOA = [
-    {"name": "data", "label": "Data", "field": "data", "align": "left"},
-    {"name": "tipo", "label": "Tipo", "field": "tipo", "align": "left"},
-    {"name": "outra_parte", "label": "Outra parte", "field": "outra_parte", "align": "left"},
-    {"name": "material", "label": "Material", "field": "material", "align": "left"},
-    {"name": "cantidade", "label": "Cantidade", "field": "cantidade", "align": "left"},
-    {"name": "n_total", "label": "N (%)", "field": "n_total", "align": "left"},
+    {"name": "data", "label": N_("Data"), "field": "data", "align": "left"},
+    {"name": "tipo", "label": N_("Tipo"), "field": "tipo", "align": "left"},
+    {"name": "outra_parte", "label": N_("Outra parte"), "field": "outra_parte", "align": "left"},
+    {"name": "material", "label": N_("Material"), "field": "material", "align": "left"},
+    {"name": "cantidade", "label": N_("Cantidade"), "field": "cantidade", "align": "left"},
+    {"name": "n_total", "label": N_("N (%)"), "field": "n_total", "align": "left"},
     {
         "name": "orixe_composicion",
-        "label": "Orixe da composición",
+        "label": N_("Orixe da composición"),
         "field": "orixe_composicion",
         "align": "left",
     },
     {
         "name": "faltas",
-        "label": "Faltan datos",
+        "label": N_("Faltan datos"),
         "field": "faltas",
         "align": "left",
         "classes": "text-warning",
@@ -64,12 +65,12 @@ COLUMNAS_TABOA = [
 
 def texto_tipo_movemento(tipo: str) -> str:
     """Devolve a etiqueta en galego do tipo de movemento."""
-    return "Cesión" if tipo == "cesion" else "Recepción"
+    return _("Cesión") if tipo == "cesion" else _("Recepción")
 
 
 def texto_faltas_documento(faltas: list[str]) -> str:
     """Xunta as faltas de datos nunha soa cadea de texto."""
-    return ", ".join(faltas)
+    return ", ".join(_(f) for f in faltas)
 
 
 def texto_resumo_material(descricion: str, cantidade: float, unidade: str) -> str:
@@ -79,7 +80,7 @@ def texto_resumo_material(descricion: str, cantidade: float, unidade: str) -> st
 
 def texto_resumo_n(kg_n: float) -> str:
     """Texto descritivo do total de nitróxeno."""
-    return f"{kg_n:g} kg de N"
+    return _("{kg} kg de N").format(kg=f"{kg_n:g}")
 
 
 def dialogo_esterco(
@@ -90,14 +91,16 @@ def dialogo_esterco(
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_: None
+            return lambda *_x: None
         materiais_cat = {
             v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
             for v in valores_vixentes(session, "material_fertilizante")
             if v.codigo in ESTERCOS
         }
         if not materiais_cat:
-            materiais_cat = {c: f"Esterco ou purín ({c})" for c in sorted(ESTERCOS)}
+            materiais_cat = {
+                c: _("Esterco ou purín ({c})").format(c=c) for c in sorted(ESTERCOS)
+            }
         persoas_quen = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
@@ -107,21 +110,21 @@ def dialogo_esterco(
         ui.dialog().props("persistent") as dialogo,
         ui.card().style("width: min(42rem, 94vw)"),
     ):
-        titulo = ui.label("Nova cesión ou recepción").classes("text-h6")
+        titulo = ui.label(_("Nova cesión ou recepción")).classes("text-h6")
         ui.label(
-            "O RD 1051/2022 pide entregar este documento a quen recibe o esterco."
+            _("O RD 1051/2022 pide entregar este documento a quen recibe o esterco.")
         ).classes("text-caption texto-suave")
 
         with ui.row().classes("w-full no-wrap gap-2"):
             tipo = ui.select(
-                {"cesion": "Cesión", "recepcion": "Recepción"},
-                label="Tipo de movemento",
+                {"cesion": _("Cesión"), "recepcion": _("Recepción")},
+                label=_("Tipo de movemento"),
                 value="cesion",
             ).classes("col")
-            data = campo_data("Data", date.today().isoformat())
+            data = campo_data(_("Data"), date.today().isoformat())
 
-        outra_parte = CampoPersoa(horta_id, "explotacion", "Outra parte (persoa ou entidade)")
-        outra_parte_rega = ui.input("Código REGA ou NIMA da outra parte").classes("w-full")
+        outra_parte = CampoPersoa(horta_id, "explotacion", _("Outra parte (persoa ou entidade)"))
+        outra_parte_rega = ui.input(_("Código REGA ou NIMA da outra parte")).classes("w-full")
 
         def ao_cambiar_outra_parte() -> None:
             if cargando or not outra_parte.value:
@@ -137,57 +140,61 @@ def dialogo_esterco(
 
         with ui.row().classes("w-full no-wrap gap-2"):
             tipo_explotacion = ui.input(
-                "Tipo de explotación",
-                placeholder="Ex. Bovino de leite, Porcina...",
+                _("Tipo de explotación"),
+                placeholder=_("Ex. Bovino de leite, Porcina..."),
             ).classes("col")
+            especies_opcions = {k: _(v) for k, v in ESPECIES.items()}
             tipo_animais = ui.select(
-                ESPECIES,
-                label="Tipo de animais (especie)",
+                especies_opcions,
+                label=_("Tipo de animais (especie)"),
                 value="01",
                 with_input=True,
             ).classes("col")
 
         material = ui.select(
             materiais_cat,
-            label="Material",
+            label=_("Material"),
             value=next(iter(materiais_cat), "5"),
             with_input=True,
         ).classes("w-full")
 
         with ui.row().classes("w-full no-wrap gap-2"):
-            cantidade = ui.input("Cantidade").classes("col")
+            cantidade = ui.input(_("Cantidade")).classes("col")
             unidade = ui.select(
-                {"t": "t (toneladas)", "m3": "m³ (metros cúbicos)"},
-                label="Unidade",
+                {"t": _("t (toneladas)"), "m3": _("m³ (metros cúbicos)")},
+                label=_("Unidade"),
                 value="t",
             ).classes("col")
 
-        ui.label("Composición agronómica (% sobre materia fresca):").classes(
+        ui.label(_("Composición agronómica (% sobre materia fresca):")).classes(
             "text-caption text-weight-bold q-mt-sm"
         )
         with ui.row().classes("w-full no-wrap gap-2"):
-            n_total = ui.input("N total (%)").classes("col")
-            p2o5 = ui.input("P₂O₅ (%)").classes("col")
-            k2o = ui.input("K₂O (%)").classes("col")
-            materia_organica = ui.input("Materia orgánica (%)").classes("col")
+            n_total = ui.input(_("N total (%)")).classes("col")
+            p2o5 = ui.input(_("P₂O₅ (%)")).classes("col")
+            k2o = ui.input(_("K₂O (%)")).classes("col")
+            materia_organica = ui.input(_("Materia orgánica (%)")).classes("col")
 
-        orixes_opcions = {"": "Non indicada", **ORIXES_COMPOSICION}
+        orixes_opcions = {
+            "": _("Non indicada"),
+            **{k: _(v) for k, v in ORIXES_COMPOSICION.items()},
+        }
         orixe_composicion = ui.select(
             orixes_opcions,
-            label="Orixe da composición",
+            label=_("Orixe da composición"),
             value="",
         ).classes("w-full")
 
         parcelas_destino = ui.input(
-            "Parcelas de destino",
-            placeholder="Opcional: onde se vai aplicar",
+            _("Parcelas de destino"),
+            placeholder=_("Opcional: onde se vai aplicar"),
         ).classes("w-full")
 
         with ui.row().classes("w-full no-wrap gap-2"):
-            quen = ui.select(persoas_quen, label="Quen o fixo", clearable=True).classes("col")
-            horas = ui.input("Horas").classes("col")
+            quen = ui.select(persoas_quen, label=_("Quen o fixo"), clearable=True).classes("col")
+            horas = ui.input(_("Horas")).classes("col")
 
-        notas = ui.input("Notas").classes("w-full")
+        notas = ui.input(_("Notas")).classes("w-full")
 
         def gardar() -> None:
             with get_session() as session_g:
@@ -199,14 +206,14 @@ def dialogo_esterco(
                 def accion() -> None:
                     data_val = parsear_data(data.value)
                     if data_val is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     if not outra_parte.value:
                         raise OperacionNonPermitidaError(
-                            "Escolle a outra parte (persoa ou entidade)"
+                            _("Escolle a outra parte (persoa ou entidade)")
                         )
                     cant_val = parsear_decimal(cantidade.value)
                     if cant_val is None or cant_val <= 0:
-                        raise OperacionNonPermitidaError("A cantidade ten que ser maior que 0")
+                        raise OperacionNonPermitidaError(_("A cantidade ten que ser maior que 0"))
 
                     n_val = parsear_decimal(n_total.value)
                     p_val = parsear_decimal(p2o5.value)
@@ -280,8 +287,8 @@ def dialogo_esterco(
                 recargar_apuntado("movemento_esterco", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(mov: MovementoEsterco | None = None, tarefa: Tarefa | None = None) -> None:
         nonlocal cargando
@@ -289,7 +296,9 @@ def dialogo_esterco(
         try:
             editando["id"] = mov.id if mov else None
             editando["tarefa"] = tarefa.id if tarefa else None
-            titulo.text = "Editar cesión ou recepción" if mov else "Nova cesión ou recepción"
+            titulo.text = (
+                _("Editar cesión ou recepción") if mov else _("Nova cesión ou recepción")
+            )
             outra_parte._cargar()
             tipo.value = mov.tipo if mov else "cesion"
             data.value = (mov.data if mov else date.today()).isoformat()
@@ -355,37 +364,41 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
         }
 
     with ui.column().classes("tarxeta w-full gap-2 q-mb-md"):
-        ui.label(f"Resumo de esterco e purín ({resumo.ano})").classes(
+        ui.label(_("Resumo de esterco e purín ({ano})").format(ano=resumo.ano)).classes(
             "text-subtitle1 text-weight-bold"
         )
         if not resumo.cedidos and not resumo.recibidos:
-            ui.label("Sen movementos de esterco nin purín neste ano.").classes("texto-suave")
+            ui.label(_("Sen movementos de esterco nin purín neste ano.")).classes("texto-suave")
         else:
             with ui.row().classes("w-full gap-4"):
                 with ui.column().classes("col gap-1"):
-                    ui.label("Cedido").classes("text-weight-bold")
+                    ui.label(_("Cedido")).classes("text-weight-bold")
                     if resumo.cedidos:
                         for (mat, uni), cant in resumo.cedidos.items():
                             mat_desc = materiais_todos.get(mat, mat)
                             ui.label(f"• {texto_resumo_material(mat_desc, cant, uni)}")
                         ui.label(
-                            f"Total N cedido: {texto_resumo_n(resumo.kg_n_cedido)}"
+                            _("Total N cedido: {total}").format(
+                                total=texto_resumo_n(resumo.kg_n_cedido)
+                            )
                         ).classes("text-caption text-weight-bold")
                     else:
-                        ui.label("Ningún").classes("texto-suave")
+                        ui.label(_("Ningún")).classes("texto-suave")
                 with ui.column().classes("col gap-1"):
-                    ui.label("Recibido").classes("text-weight-bold")
+                    ui.label(_("Recibido")).classes("text-weight-bold")
                     if resumo.recibidos:
                         for (mat, uni), cant in resumo.recibidos.items():
                             mat_desc = materiais_todos.get(mat, mat)
                             ui.label(f"• {texto_resumo_material(mat_desc, cant, uni)}")
                         ui.label(
-                            f"Total N recibido: {texto_resumo_n(resumo.kg_n_recibido)}"
+                            _("Total N recibido: {total}").format(
+                                total=texto_resumo_n(resumo.kg_n_recibido)
+                            )
                         ).classes("text-caption text-weight-bold")
                     else:
-                        ui.label("Ningún").classes("texto-suave")
+                        ui.label(_("Ningún")).classes("texto-suave")
             if resumo.aviso_m3:
-                ui.label(resumo.nota_m3).classes("text-caption texto-suave")
+                ui.label(_(resumo.nota_m3)).classes("text-caption texto-suave")
 
     filas = []
     for m in movementos:
@@ -401,15 +414,18 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
             "material": mat_desc,
             "cantidade": f"{m.cantidade:g} {m.unidade}",
             "n_total": f"{m.n_total:g} %" if m.n_total is not None else "",
-            "orixe_composicion": ORIXES_COMPOSICION.get(
-                m.orixe_composicion or "", m.orixe_composicion or ""
+            "orixe_composicion": (
+                _(ORIXES_COMPOSICION[m.orixe_composicion])
+                if m.orixe_composicion in ORIXES_COMPOSICION
+                else (m.orixe_composicion or "")
             ),
             "faltas": texto_faltas_documento(faltas),
         })
 
+    columnas = [{**c, "label": _(str(c["label"]))} for c in COLUMNAS_TABOA]
     taboa = (
         ui.table(
-            columns=COLUMNAS_TABOA,
+            columns=columnas,
             rows=filas,
             row_key="id",
             selection="single",
@@ -417,7 +433,7 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
         .classes("w-full taboa so-ordenador")
         .props(
             'flat bordered '
-            'no-data-label="Aínda non hai movementos de esterco nin purín" '
+            f'no-data-label="{_("Aínda non hai movementos de esterco nin purín")}" '
             f"{TEXTOS_TABOA}"
         )
     )
@@ -436,9 +452,9 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
         ui.dialog().props("persistent") as dialogo_doc,
         ui.card().style("width: min(28rem, 94vw)"),
     ):
-        ui.label("Documento do anexo VII").classes("text-h6")
+        ui.label(_("Documento do anexo VII")).classes("text-h6")
         ui.label(
-            "Documento de acompañamento do esterco (RD 1051/2022, anexo VII punto 1)."
+            _("Documento de acompañamento do esterco (RD 1051/2022, anexo VII punto 1).")
         ).classes("text-caption")
         formato = selector_formato()
 
@@ -454,7 +470,7 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
                     mov = session_doc.get(MovementoEsterco, doc_mov_id["id"])
                     if mov is None or mov.tipo != "cesion":
                         ui.notify(
-                            "O documento só se pode xerar para cesións",
+                            _("O documento só se pode xerar para cesións"),
                             type="negative",
                         )
                         return
@@ -468,23 +484,23 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
                 datos,
                 formato.value or "xlsx",
                 f"anexo-vii-esterco-{mov_id}-{data_str}",
-                "Documento de acompañamento do esterco",
+                _("Documento de acompañamento do esterco"),
                 "anexo_vii",
             )
             dialogo_doc.close()
 
         with ui.row():
-            ui.button("Descargar", icon="download", on_click=facer_descarga)
-            ui.button("Cancelar", on_click=dialogo_doc.close).props("flat")
+            ui.button(_("Descargar"), icon="download", on_click=facer_descarga)
+            ui.button(_("Cancelar"), on_click=dialogo_doc.close).props("flat")
 
     def abrir_anexo_vii() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un movemento na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un movemento na táboa"), type="warning")
             return
         fila = taboa.selected[0]
         if fila.get("tipo_clave") != "cesion":
             ui.notify(
-                "O documento do anexo VII só se pode xerar para cesións",
+                _("O documento do anexo VII só se pode xerar para cesións"),
                 type="warning",
             )
             return
@@ -495,7 +511,7 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un movemento na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un movemento na táboa"), type="warning")
             return
         if not pode_editar or abrir is None:
             return
@@ -507,7 +523,7 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un movemento na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un movemento na táboa"), type="warning")
             return
         mov_id = taboa.selected[0]["id"]
 
@@ -525,42 +541,42 @@ def seccion_estercos(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este movemento de esterco? Non se borra: consérvase no histórico.",
+            _("Dar de baixa este movemento de esterco? Non se borra: consérvase no histórico."),
             confirmar,
         )
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     if pode_editar and abrir is not None:
-        accions_tarxeta.append(("Editar", "edit", editar))
-    accions_tarxeta.append(("Documento do anexo VII", "description", abrir_anexo_vii))
+        accions_tarxeta.append((_("Editar"), "edit", editar))
+    accions_tarxeta.append((_("Documento do anexo VII"), "description", abrir_anexo_vii))
     if pode_editar:
-        accions_tarxeta.append(("Dar de baixa", "archive", dar_de_baixa))
+        accions_tarxeta.append((_("Dar de baixa"), "archive", dar_de_baixa))
 
     tarxetas_da_taboa(taboa, "data", ["tipo", "material", "cantidade"], accions_tarxeta)
 
     with ui.row():
         if pode_editar and abrir is not None:
             ui.button(
-                "Nova cesión ou recepción",
+                _("Nova cesión ou recepción"),
                 icon="add",
                 on_click=lambda: abrir(None),
             )
             with ui.row().classes("so-ordenador"):
-                ui.button("Editar", icon="edit", on_click=editar).props("outline")
+                ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
                 ui.button(
-                    "Documento do anexo VII",
+                    _("Documento do anexo VII"),
                     icon="description",
                     on_click=abrir_anexo_vii,
                 ).props("outline")
                 ui.button(
-                    "Dar de baixa",
+                    _("Dar de baixa"),
                     icon="archive",
                     on_click=dar_de_baixa,
                 ).props("outline")
         else:
             with ui.row().classes("so-ordenador"):
                 ui.button(
-                    "Documento do anexo VII",
+                    _("Documento do anexo VII"),
                     icon="description",
                     on_click=abrir_anexo_vii,
                 ).props("outline")

@@ -9,6 +9,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.outro_traballo import OutroTraballo
 from horta.models.tarefa import Tarefa
 from horta.services.animais import listar_animais
@@ -40,7 +41,7 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_, **__: None
+            return lambda *_x, **_e: None
         parcelas = {p.id: p.nome for p in listar_parcelas(session, actor, horta_id)}
         animais = {a.id: nome_grupo(a.especie, a.raza)
                    for a in listar_animais(session, actor, horta_id)}
@@ -52,25 +53,25 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
-        titulo = ui.label("Apuntar outro traballo").classes("text-h6")
-        descricion = ui.input("Que se fixo (p.ex. arranxar o peche)").classes("w-full")
-        data_inicio = campo_data("Data", date.today().isoformat())
-        data_fin = campo_data("Data de fin (se durou máis dun día)")
-        parcela = ui.select(parcelas, label="Parcela (se foi nunha)", clearable=True).classes(
+        titulo = ui.label(_("Apuntar outro traballo")).classes("text-h6")
+        descricion = ui.input(_("Que se fixo (p.ex. arranxar o peche)")).classes("w-full")
+        data_inicio = campo_data(_("Data"), date.today().isoformat())
+        data_fin = campo_data(_("Data de fin (se durou máis dun día)"))
+        parcela = ui.select(parcelas, label=_("Parcela (se foi nunha)"), clearable=True).classes(
             "w-full")
-        animal = ui.select(animais, label="Animais (se foi con eles)", clearable=True).classes(
+        animal = ui.select(animais, label=_("Animais (se foi con eles)"), clearable=True).classes(
             "w-full")
-        instalacion = ui.select(instalacions, label="Instalación (se foi nunha)",
+        instalacion = ui.select(instalacions, label=_("Instalación (se foi nunha)"),
                                 clearable=True).classes("w-full")
-        ui.label("Sen parcela, animais nin instalación, é un traballo da explotación enteira."
-                 ).classes(
-            "text-caption texto-suave")
+        ui.label(
+            _("Sen parcela, animais nin instalación, é un traballo da explotación enteira.")
+        ).classes("text-caption texto-suave")
         with ui.row().classes("w-full no-wrap"):
-            persoa = ui.select(persoas, label="Quen o fixo").classes("col")
-            horas = ui.input("Horas").classes("col")
-        with ui.expansion("Máis datos").classes("w-full"):
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+            persoa = ui.select(persoas, label=_("Quen o fixo")).classes("col")
+            horas = ui.input(_("Horas")).classes("col")
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def gardar() -> None:
             with get_session() as session:
@@ -82,7 +83,7 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
                 def accion() -> None:
                     dia = parsear_data(data_inicio.value)
                     if dia is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     datos = DatosOutroTraballo(
                         horta_id=horta_id, data_inicio=dia,
                         data_fin=parsear_data(data_fin.value),
@@ -119,18 +120,20 @@ def dialogo_outro_traballo(horta_id: int) -> Callable[..., None]:
                     ui.navigate.reload()
 
             confirmar_eliminacion(
-                "Dar de baixa este traballo? Non se borra: consérvase no histórico.", confirmar)
+                _("Dar de baixa este traballo? Non se borra: consérvase no histórico."),
+                confirmar,
+            )
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            baixa = ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props(
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            baixa = ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props(
                 "flat")
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(traballo: OutroTraballo | None, tarefa: Tarefa | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = traballo.id if traballo else None
-        titulo.text = "Editar outro traballo" if traballo else "Apuntar outro traballo"
+        titulo.text = _("Editar outro traballo") if traballo else _("Apuntar outro traballo")
         descricion.value = (traballo.descricion if traballo
                             else tarefa.descricion if tarefa else "")
         data_inicio.value = (traballo.data_inicio if traballo else date.today()).isoformat()

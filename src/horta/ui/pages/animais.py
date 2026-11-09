@@ -10,6 +10,7 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _, ngettext
 from horta.models.animal import Animal
 from horta.services.animais import (
     ESPECIES,
@@ -58,7 +59,9 @@ def detalle_tarxeta_animal(fila: dict[str, Any]) -> str:
         partes.append(str(especie))
     cantidade = fila.get("cantidade")
     if cantidade is not None:
-        partes.append(f"{cantidade} animal" if cantidade == 1 else f"{cantidade} animais")
+        partes.append(
+            ngettext("{n} animal", "{n} animais", int(cantidade)).format(n=cantidade)
+        )
     espera = fila.get("espera")
     if espera:
         partes.append(str(espera))
@@ -76,41 +79,69 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             return
         animais = listar_animais(session, actor, horta_id)
         espera = en_tempo_espera(session, actor, horta_id)
-        pastos = {animal_id: (pa.id, f"No pasto: {nomes_leiras(session, pa)} desde o "
-                                     f"{pa.data_inicio:%d/%m}")
-                  for animal_id, pa in no_pasto(session, actor, horta_id).items()}
+        pastos = {
+            animal_id: (
+                pa.id,
+                _("No pasto: {leiras} desde o {data}").format(
+                    leiras=nomes_leiras(session, pa),
+                    data=f"{pa.data_inicio:%d/%m}",
+                ),
+            )
+            for animal_id, pa in no_pasto(session, actor, horta_id).items()
+        }
         razas = [(v.codigo, v.descricion) for v in valores_vixentes(session, "raza")]
 
     with ui.row().classes("w-full items-center gap-4"):
-        ui.link("Ver as entradas e saídas", url_seccion(horta_id, "movementos"))
-        ui.link("Ver os coidados", url_seccion(horta_id, "coidados"))
-        ui.link("Ver a produción", url_seccion(horta_id, "producion"))
-        ui.link("Ver o pastoreo", url_seccion(horta_id, "pastoreo"))
+        ui.link(_("Ver as entradas e saídas"), url_seccion(horta_id, "movementos"))
+        ui.link(_("Ver os coidados"), url_seccion(horta_id, "coidados"))
+        ui.link(_("Ver a produción"), url_seccion(horta_id, "producion"))
+        ui.link(_("Ver o pastoreo"), url_seccion(horta_id, "pastoreo"))
 
-    todas_as_filas = [{
-        "id": a.id,
-        "nome": a.especie,
-        "especie": ESPECIES.get(a.especie_codigo or "", ""),
-        "raza": a.raza or "",
-        "cantidade": a.cantidade,
-        "estado": a.estado,
-        "espera": f"En tempo de espera ata {espera[a.id]:%d/%m/%Y}" if a.id in espera else "",
-        "pasto": pastos[a.id][1] if a.id in pastos else "",
-    } for a in animais]
+    todas_as_filas = [
+        {
+            "id": a.id,
+            "nome": a.especie,
+            "especie": _(ESPECIES[a.especie_codigo]) if a.especie_codigo in ESPECIES else "",
+            "raza": a.raza or "",
+            "cantidade": a.cantidade,
+            "estado": a.estado,
+            "espera": (
+                _("En tempo de espera ata {data}").format(data=f"{espera[a.id]:%d/%m/%Y}")
+                if a.id in espera
+                else ""
+            ),
+            "pasto": pastos[a.id][1] if a.id in pastos else "",
+        }
+        for a in animais
+    ]
 
     with ui.row().classes("w-full items-center q-gutter-sm q-mb-sm"):
-        busca = ui.input("Buscar").props("dense clearable")
-        estado = ui.select({"": "Todos", "activo": "De alta", "baixa": "De baixa"},
-                           label="Estado", value="activo").props("dense")
+        busca = ui.input(_("Buscar")).props("dense clearable")
+        estado = ui.select(
+            {"": _("Todos"), "activo": _("De alta"), "baixa": _("De baixa")},
+            label=_("Estado"),
+            value="activo",
+        ).props("dense")
 
     taboa = ui.table(
-        columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("nome", "Grupo"), ("especie", "Especie"), ("raza", "Raza"),
-            ("cantidade", "Cantos"), ("espera", "Medicamentos"), ("pasto", "Pasto"))],
-        rows=todas_as_filas, row_key="id", selection="single" if pode_editar else None,
+        columns=[
+            {"name": k, "label": etiqueta, "field": k}
+            for k, etiqueta in (
+                ("nome", _("Grupo")),
+                ("especie", _("Especie")),
+                ("raza", _("Raza")),
+                ("cantidade", _("Cantos")),
+                ("espera", _("Medicamentos")),
+                ("pasto", _("Pasto")),
+            )
+        ],
+        rows=todas_as_filas,
+        row_key="id",
+        selection="single" if pode_editar else None,
         pagination=10,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai animais" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai animais")}" {TEXTOS_TABOA}'
+    )
 
     abrir_fn: list[Callable[[Animal | None], None]] = []
 
@@ -123,18 +154,27 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                 return
             grupo: Animal = animal
             accions = [
-                ("Editar", "edit", lambda: abrir_fn[0](grupo)),
-                ("Entrada ou saída", "swap_horiz",
-                 lambda: abrir_movemento(None, None, animal_id)),
-                ("Produción", "egg", lambda: abrir_producion(None, None, animal_id)),
-                ("Ao pasto", "landscape", lambda: abrir_pastoreo(None, None, animal_id)),
+                (_("Editar"), "edit", lambda: abrir_fn[0](grupo)),
+                (
+                    _("Entrada ou saída"),
+                    "swap_horiz",
+                    lambda: abrir_movemento(None, None, animal_id),
+                ),
+                (_("Produción"), "egg", lambda: abrir_producion(None, None, animal_id)),
+                (_("Ao pasto"), "landscape", lambda: abrir_pastoreo(None, None, animal_id)),
             ]
             if animal_id in pastos:
-                accions.append(("Saíron do pasto", "logout",
-                                lambda: abrir_saida(pastos[animal_id][0])))
-            accions.append(("Identificados", "badge",
-                            lambda: abrir_identificados(horta_id, animal_id)))
-            accions.append(("Eliminar", "delete", lambda: eliminar_grupo(grupo)))
+                accions.append((
+                    _("Saíron do pasto"),
+                    "logout",
+                    lambda: abrir_saida(pastos[animal_id][0]),
+                ))
+            accions.append((
+                _("Identificados"),
+                "badge",
+                lambda: abrir_identificados(horta_id, animal_id),
+            ))
+            accions.append((_("Eliminar"), "delete", lambda: eliminar_grupo(grupo)))
         abrir_ficha_animal(horta_id, animal_id, pode_editar, accions=accions)
 
     @ui.refreshable
@@ -165,25 +205,40 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
     abrir_saida = dialogo_saida()
     editando: dict[str, int | None] = {"id": None}
 
-    with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(34rem, 94vw)"):
-        titulo = ui.label("Novo grupo de animais").classes("text-h6")
-        nome = ui.input("Nome do grupo (p.ex. Galiñas do galiñeiro de abaixo)").classes(
-            "w-full")
-        especie = ui.select(ESPECIES, label="Especie", with_input=True).classes("w-full")
-        raza = ui.select([], label="Raza (opcional; pódese escribir outra)", with_input=True,
-                         new_value_mode="add-unique", clearable=True).classes("w-full")
-        with ui.row().classes("w-full no-wrap") as fila_inicio:
-            cantidade = ui.input("Cantos animais hai").classes("col")
-        data_alta = campo_data("Data de alta", date.today().isoformat())
-        instalacion = ui.select({}, label="Onde están (instalación)", clearable=True).classes(
-            "w-full")
-        titular_animais = ui.select(
-            {}, label="Persoa titular dos animais, se non é a da explotación",
-            with_input=True, clearable=True).classes("w-full")
-        cantos_actuais = ui.label("").classes("texto-suave")
-        notas = ui.textarea("Notas").classes("w-full")
+    opcions_especie = {k: _(v) for k, v in ESPECIES.items()}
 
-        nomes_razas = {nome for _, nome in razas}
+    with (
+        ui.dialog().props("persistent") as dialogo,
+        ui.card().style("width: min(34rem, 94vw)"),
+    ):
+        titulo = ui.label(_("Novo grupo de animais")).classes("text-h6")
+        nome = ui.input(
+            _("Nome do grupo (p.ex. Galiñas do galiñeiro de abaixo)")
+        ).classes("w-full")
+        especie = ui.select(opcions_especie, label=_("Especie"), with_input=True).classes("w-full")
+        raza = ui.select(
+            [],
+            label=_("Raza (opcional; pódese escribir outra)"),
+            with_input=True,
+            new_value_mode="add-unique",
+            clearable=True,
+        ).classes("w-full")
+        with ui.row().classes("w-full no-wrap") as fila_inicio:
+            cantidade = ui.input(_("Cantos animais hai")).classes("col")
+        data_alta = campo_data(_("Data de alta"), date.today().isoformat())
+        instalacion = ui.select(
+            {}, label=_("Onde están (instalación)"), clearable=True
+        ).classes("w-full")
+        titular_animais = ui.select(
+            {},
+            label=_("Persoa titular dos animais, se non é a da explotación"),
+            with_input=True,
+            clearable=True,
+        ).classes("w-full")
+        cantos_actuais = ui.label("").classes("texto-suave")
+        notas = ui.textarea(_("Notas")).classes("w-full")
+
+        nomes_razas = {nome for _x, nome in razas}
 
         def razas_da_especie() -> None:
             opcions = _razas(razas, especie.value)
@@ -199,7 +254,10 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
 
         def gardar() -> None:
             if not nome.value or especie.value is None:
-                ui.notify("Escribe o nome do grupo e escolle a especie", type="warning")
+                ui.notify(
+                    _("Escribe o nome do grupo e escolle a especie"),
+                    type="warning",
+                )
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -210,7 +268,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                 def accion() -> None:
                     alta = parsear_data(data_alta.value)
                     if alta is None:
-                        raise OperacionNonPermitidaError("Indica a data de alta")
+                        raise OperacionNonPermitidaError(_("Indica a data de alta"))
                     existente = session.get(Animal, editando["id"]) if editando["id"] else None
                     if existente is None:
                         cantos = parsear_decimal(cantidade.value)
@@ -233,20 +291,25 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(animal: Animal | None) -> None:
         editando["id"] = animal.id if animal else None
-        titulo.text = "Editar grupo de animais" if animal else "Novo grupo de animais"
+        titulo.text = _("Editar grupo de animais") if animal else _("Novo grupo de animais")
         nome.value = animal.especie if animal else ""
         especie.value = animal.especie_codigo if animal else None
         raza.value = animal.raza if animal else None
         razas_da_especie()
         cantidade.value = ""
         fila_inicio.set_visibility(animal is None)
-        cantos_actuais.text = (f"Agora hai {animal.cantidade}. Para cambialo, apunta unha "
-                               "entrada ou saída." if animal else "")
+        cantos_actuais.text = (
+            _(
+                "Agora hai {cantidade}. Para cambialo, apunta unha entrada ou saída."
+            ).format(cantidade=animal.cantidade)
+            if animal
+            else ""
+        )
         cantos_actuais.set_visibility(animal is not None)
         data_alta.value = (animal.data_alta if animal else date.today()).isoformat()
         with get_session() as session:
@@ -269,7 +332,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
 
     def seleccionado() -> Animal | None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un grupo na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un grupo na táboa"), type="warning")
             return None
         with get_session() as session:
             return session.get(Animal, taboa.selected[0]["id"])
@@ -293,7 +356,7 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
         if animal is None:
             return
         if animal.id not in pastos:
-            ui.notify("Este grupo non está no pasto", type="warning")
+            ui.notify(_("Este grupo non está no pasto"), type="warning")
             return
         abrir_saida(pastos[animal.id][0])
 
@@ -310,7 +373,9 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            f"Eliminar o grupo «{animal.especie}»? Só se pode se non ten nada apuntado.",
+            _(
+                "Eliminar o grupo «{especie}»? Só se pode se non ten nada apuntado."
+            ).format(especie=animal.especie),
             confirmar)
 
     def eliminar() -> None:
@@ -319,51 +384,55 @@ def seccion_animais(horta_id: int, pode_editar: bool) -> None:
             eliminar_grupo(animal)
 
     with ui.row():
-        ui.button("Novo grupo", icon="add", on_click=lambda: abrir(None))
-        ui.button("Entrada ou saída", icon="swap_horiz", on_click=movemento).props(
+        ui.button(_("Novo grupo"), icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Entrada ou saída"), icon="swap_horiz", on_click=movemento).props(
             "outline"
         ).classes("so-ordenador")
-        ui.button("Produción", icon="egg", on_click=producion).props("outline").classes(
+        ui.button(_("Produción"), icon="egg", on_click=producion).props("outline").classes(
             "so-ordenador"
         )
-        ui.button("Ao pasto", icon="landscape", on_click=ao_pasto).props("outline").classes(
+        ui.button(_("Ao pasto"), icon="landscape", on_click=ao_pasto).props("outline").classes(
             "so-ordenador"
         )
-        ui.button("Saíron do pasto", icon="logout", on_click=saida_do_pasto).props(
+        ui.button(_("Saíron do pasto"), icon="logout", on_click=saida_do_pasto).props(
             "outline"
         ).classes("so-ordenador")
-        ui.button("Editar", icon="edit", on_click=editar).props("outline").classes(
+        ui.button(_("Editar"), icon="edit", on_click=editar).props("outline").classes(
             "so-ordenador"
         )
         ui.button(
-            "Identificados",
+            _("Identificados"),
             icon="badge",
             on_click=lambda: (
                 abrir_identificados(horta_id, taboa.selected[0]["id"])
                 if taboa.selected
-                else ui.notify("Escolle primeiro un grupo na táboa", type="warning")
+                else ui.notify(_("Escolle primeiro un grupo na táboa"), type="warning")
             ),
         ).props("outline").classes("so-ordenador")
         ui.button(
-            "Ficha",
+            _("Ficha"),
             icon="description",
             on_click=lambda: (
                 abrir_ficha_animal(horta_id, taboa.selected[0]["id"], pode_editar)
                 if taboa.selected
-                else ui.notify("Escolle primeiro un grupo na táboa", type="warning")
+                else ui.notify(_("Escolle primeiro un grupo na táboa"), type="warning")
             ),
         ).props("outline").classes("so-ordenador")
         ui.button(
-            "Fotos",
+            _("Fotos"),
             icon="photo_camera",
             on_click=lambda: (
                 abrir_fotos(
-                    horta_id, "animal", taboa.selected[0]["id"], "grupo de animais", pode_editar
+                    horta_id,
+                    "animal",
+                    taboa.selected[0]["id"],
+                    _("grupo de animais"),
+                    pode_editar,
                 )
                 if taboa.selected
-                else ui.notify("Escolle primeiro un grupo na táboa", type="warning")
+                else ui.notify(_("Escolle primeiro un grupo na táboa"), type="warning")
             ),
         ).props("outline").classes("so-ordenador")
-        ui.button("Eliminar", icon="delete", on_click=eliminar).props(
+        ui.button(_("Eliminar"), icon="delete", on_click=eliminar).props(
             "outline color=negative"
         ).classes("so-ordenador")

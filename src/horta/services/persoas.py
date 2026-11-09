@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.horta import RolHorta
 from horta.models.persoa import Persoa, PersoaPapel
 from horta.models.usuario import Usuario
@@ -21,23 +22,23 @@ _PATRON_NIF = re.compile(r"^[KLMXYZ0-9]\d{7}[TRWAGMYFPDXBNJZSQVHLCKE]$")
 _PATRON_CIF = re.compile(r"^[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]$")
 _PATRON_REXISTRO = re.compile(r"^ES\d{12}$")
 
-TIPOS_PERSOA = {"persoa": "Persoa", "entidade": "Empresa ou entidade"}
+TIPOS_PERSOA = {"persoa": N_("Persoa"), "entidade": N_("Empresa ou entidade")}
 # Papeis. Os do equipo saen
 # na pestana Equipo; o resto, en Contactos. Unha persoa pode ter varios.
 PAPEIS_EQUIPO: dict[str, str] = {
-    "titular": "Titular",
-    "representante": "Representante",
-    "traballador": "Traballa na explotación",
-    "aplicador": "Aplica fitosanitarios",
-    "asesor": "Asesor",
+    "titular": N_("Titular"),
+    "representante": N_("Representante"),
+    "traballador": N_("Traballa na explotación"),
+    "aplicador": N_("Aplica fitosanitarios"),
+    "asesor": N_("Asesor"),
 }
 PAPEIS_CONTACTO: dict[str, str] = {
-    "cliente": "Cliente",
-    "provedor": "Provedor",
-    "veterinario": "Veterinario",
-    "laboratorio": "Laboratorio",
-    "servizos": "Empresa de servizos",
-    "explotacion": "Outra explotación",
+    "cliente": N_("Cliente"),
+    "provedor": N_("Provedor"),
+    "veterinario": N_("Veterinario"),
+    "laboratorio": N_("Laboratorio"),
+    "servizos": N_("Empresa de servizos"),
+    "explotacion": N_("Outra explotación"),
 }
 PAPEIS: dict[str, str] = PAPEIS_EQUIPO | PAPEIS_CONTACTO
 # Quen pode facer un traballo: o equipo ou unha empresa de servizos

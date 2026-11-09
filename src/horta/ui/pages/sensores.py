@@ -11,6 +11,7 @@ from nicegui import app, ui
 
 from horta.db import get_session
 from horta.eventos import lecturas_novas
+from horta.idiomas import _, ngettext
 from horta.models.sensor import Sensor
 from horta.services.auth import obter_usuario_activo
 from horta.services.cultivos import listar_cultivos, nome_cultivo
@@ -46,10 +47,10 @@ def estado_sensor(
 ) -> str:
     """Devolve o estado do sensor: «Ben», «Fóra de límite» ou «Sen datos»."""
     if ult is None:
-        return "Sen datos"
+        return _("Sen datos")
     momento, valor = ult
     if momento is None or valor is None:
-        return "Sen datos"
+        return _("Sen datos")
 
     ref_agora = agora or datetime.now(timezone.utc)
     if ref_agora.tzinfo is not None and momento.tzinfo is None:
@@ -63,12 +64,12 @@ def estado_sensor(
         agora_cmp = ref_agora
 
     if agora_cmp - momento_cmp > timedelta(hours=24):
-        return "Sen datos"
+        return _("Sen datos")
     if sensor.limiar_min is not None and valor < sensor.limiar_min:
-        return "Fóra de límite"
+        return _("Fóra de límite")
     if sensor.limiar_max is not None and valor > sensor.limiar_max:
-        return "Fóra de límite"
-    return "Ben"
+        return _("Fóra de límite")
+    return _("Ben")
 
 
 def texto_ultima_lectura(
@@ -103,15 +104,21 @@ def texto_localizacion(
     c_map = cultivos or {}
     i_map = instalacions or {}
     if sensor.cultivo_id:
-        c_nome = c_map.get(sensor.cultivo_id) or f"Cultivo {sensor.cultivo_id}"
-        return f"Cultivo: {c_nome}"
+        c_nome = c_map.get(sensor.cultivo_id) or _("Cultivo {id}").format(
+            id=sensor.cultivo_id
+        )
+        return _("Cultivo: {nome}").format(nome=c_nome)
     if sensor.parcela_id:
-        p_nome = p_map.get(sensor.parcela_id) or f"Parcela {sensor.parcela_id}"
-        return f"Parcela: {p_nome}"
+        p_nome = p_map.get(sensor.parcela_id) or _("Parcela {id}").format(
+            id=sensor.parcela_id
+        )
+        return _("Parcela: {nome}").format(nome=p_nome)
     if sensor.instalacion_id:
-        i_nome = i_map.get(sensor.instalacion_id) or f"Instalación {sensor.instalacion_id}"
-        return f"Instalación: {i_nome}"
-    return "Xeral"
+        i_nome = i_map.get(sensor.instalacion_id) or _("Instalación {id}").format(
+            id=sensor.instalacion_id
+        )
+        return _("Instalación: {nome}").format(nome=i_nome)
+    return _("Xeral")
 
 
 def opcions_grafica_sensor(
@@ -122,8 +129,8 @@ def opcions_grafica_sensor(
     if not lecturas:
         return None
 
-    datas_str = [hora_local(m).strftime("%d/%m %H:%M") for m, _ in lecturas]
-    valores = [float(v) for _, v in lecturas]
+    datas_str = [hora_local(m).strftime("%d/%m %H:%M") for m, _x in lecturas]
+    valores = [float(v) for _m, v in lecturas]
 
     serie: dict[str, Any] = {
         "name": sensor.nome,
@@ -135,9 +142,9 @@ def opcions_grafica_sensor(
 
     mark_data: list[dict[str, Any]] = []
     if sensor.limiar_min is not None:
-        mark_data.append({"yAxis": float(sensor.limiar_min), "name": "Mínimo"})
+        mark_data.append({"yAxis": float(sensor.limiar_min), "name": _("Mínimo")})
     if sensor.limiar_max is not None:
-        mark_data.append({"yAxis": float(sensor.limiar_max), "name": "Máximo"})
+        mark_data.append({"yAxis": float(sensor.limiar_max), "name": _("Máximo")})
 
     if mark_data:
         serie["markLine"] = {
@@ -173,12 +180,12 @@ def dialogo_clave_sensor(
         ui.dialog().props("persistent") as dialog,
         ui.card().style("width: min(38rem, 94vw)"),
     ):
-        titulo = ui.label("Clave do sensor").classes("text-h6 text-weight-bold")
+        titulo = ui.label(_("Clave do sensor")).classes("text-h6 text-weight-bold")
         ui.label(
-            "Garda a clave: non se volve amosar",
+            _("Garda a clave: non se volve amosar"),
         ).classes("text-negative text-weight-bold q-my-xs")
 
-        ui.label("Clave de autenticación (cabeceira X-Clave-Sensor):").classes(
+        ui.label(_("Clave de autenticación (cabeceira X-Clave-Sensor):")).classes(
             "text-caption texto-suave q-mt-sm"
         )
         clave_input = (
@@ -188,21 +195,21 @@ def dialogo_clave_sensor(
         def copiar_clave() -> None:
             js = f"navigator.clipboard.writeText({json.dumps(clave_input.value)})"
             ui.run_javascript(js)
-            ui.notify("Clave copiada ao portapapeis", type="positive")
+            ui.notify(_("Clave copiada ao portapapeis"), type="positive")
 
         with ui.row().classes("w-full justify-end q-mb-sm"):
             ui.button(
-                "Copiar clave",
+                _("Copiar clave"),
                 icon="content_copy",
                 on_click=copiar_clave,
             ).props("outline dense")
 
-        ui.label("URL para enviar lecturas (POST):").classes("text-caption texto-suave")
+        ui.label(_("URL para enviar lecturas (POST):")).classes("text-caption texto-suave")
         url_input = (
             ui.input(value="").props("readonly outlined dense").classes("w-full font-mono")
         )
 
-        ui.label("Exemplo con curl:").classes("text-caption texto-suave q-mt-sm")
+        ui.label(_("Exemplo con curl:")).classes("text-caption texto-suave q-mt-sm")
         curl_area = (
             ui.textarea(value="")
             .props("readonly outlined rows=4")
@@ -212,23 +219,24 @@ def dialogo_clave_sensor(
         def copiar_curl() -> None:
             js = f"navigator.clipboard.writeText({json.dumps(curl_area.value)})"
             ui.run_javascript(js)
-            ui.notify("Comando curl copiado ao portapapeis", type="positive")
+            ui.notify(_("Comando curl copiado ao portapapeis"), type="positive")
 
         with ui.row().classes("w-full items-center justify-between q-mt-md"):
             ui.button(
-                "Copiar curl",
+                _("Copiar curl"),
                 icon="terminal",
                 on_click=copiar_curl,
             ).props("flat dense")
+
             def pechar() -> None:
                 dialog.close()
                 if ao_pechar:
                     ao_pechar()
 
-            ui.button("Entendido / Pechar", on_click=pechar).props("flat")
+            ui.button(_("Entendido / Pechar"), on_click=pechar).props("flat")
 
     def abrir(nome_sensor: str, clave: str) -> None:
-        titulo.text = f"Clave para «{nome_sensor}»"
+        titulo.text = _("Clave para «{nome}»").format(nome=nome_sensor)
         clave_input.value = clave
         url_defecto = f"https://o-teu-dominio{URL_API_LECTURAS}"
         url_input.value = url_defecto
@@ -256,10 +264,11 @@ def dialogo_axuda_sensores() -> Callable[[], None]:
         ui.dialog() as dialog,
         ui.card().style("width: min(44rem, 94vw)"),
     ):
-        ui.label("Como conectar sensores á aplicación").classes("text-h6 text-weight-bold")
+        ui.label(_("Como conectar sensores á aplicación")).classes("text-h6 text-weight-bold")
         with ui.column().classes("w-full gap-2 text-body2"):
             ui.markdown(
-                """
+                _(
+                    """
 Podes conectar calquera dispositivo ou script para enviar lecturas automáticas:
 
 1. **HTTP directo (ESP32, Raspberry Pi, Arduino)**:
@@ -273,9 +282,10 @@ Podes conectar calquera dispositivo ou script para enviar lecturas automáticas:
 3. **Ficheiros CSV ou JSON**:
    - Podes importar datos históricos premendo en «Importar CSV ou JSON» na ficha do sensor.
                 """
+                )
             )
         with ui.row().classes("w-full justify-end q-mt-md"):
-            ui.button("Pechar", on_click=dialog.close).props("flat")
+            ui.button(_("Pechar"), on_click=dialog.close).props("flat")
 
     def abrir() -> None:
         dialog.open()
@@ -293,7 +303,7 @@ def dialogo_sensor(
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda _: None
+            return lambda _s: None
         parcelas = {p.id: p.nome for p in listar_parcelas(session, actor, horta_id)}
         cultivos = {
             c.id: f"{nome_cultivo(c)} — {parcelas.get(c.parcela_id, '')}"
@@ -302,7 +312,7 @@ def dialogo_sensor(
         instalacions = {i.id: i.nome for i in listar_instalacions(session, actor, horta_id)}
 
     opcions_tipo = {
-        k: f"{v.nome} ({v.unidade})" if v.unidade else v.nome
+        k: f"{_(v.nome)} ({v.unidade})" if v.unidade else _(v.nome)
         for k, v in TIPOS_SENSOR.items()
     }
 
@@ -312,10 +322,10 @@ def dialogo_sensor(
         ui.dialog().props("persistent") as dialog,
         ui.card().style("width: min(38rem, 94vw)"),
     ):
-        titulo = ui.label("Novo sensor").classes("text-h6 text-weight-bold")
-        nome_input = ui.input("Nome do sensor").classes("w-full")
-        tipo_input = ui.select(opcions_tipo, label="Tipo de sensor").classes("w-full")
-        unidade_input = ui.input("Unidade de medida").classes("w-full")
+        titulo = ui.label(_("Novo sensor")).classes("text-h6 text-weight-bold")
+        nome_input = ui.input(_("Nome do sensor")).classes("w-full")
+        tipo_input = ui.select(opcions_tipo, label=_("Tipo de sensor")).classes("w-full")
+        unidade_input = ui.input(_("Unidade de medida")).classes("w-full")
 
         def ao_cambiar_tipo() -> None:
             t = tipo_input.value
@@ -326,37 +336,37 @@ def dialogo_sensor(
 
         tipo_input.on_value_change(ao_cambiar_tipo)
 
-        ui.label("Onde está instalado (escolle como máximo un):").classes(
+        ui.label(_("Onde está instalado (escolle como máximo un):")).classes(
             "text-caption texto-suave q-mt-sm"
         )
-        parcela_input = ui.select(parcelas, label="Parcela", clearable=True).classes("w-full")
-        cultivo_input = ui.select(cultivos, label="Cultivo", clearable=True).classes("w-full")
+        parcela_input = ui.select(parcelas, label=_("Parcela"), clearable=True).classes("w-full")
+        cultivo_input = ui.select(cultivos, label=_("Cultivo"), clearable=True).classes("w-full")
         instalacion_input = ui.select(
-            instalacions, label="Instalación", clearable=True
+            instalacions, label=_("Instalación"), clearable=True
         ).classes("w-full")
 
         with ui.row().classes("w-full no-wrap gap-2"):
-            limiar_min_input = ui.input("Límite mínimo (opcional)").classes("col")
-            limiar_max_input = ui.input("Límite máximo (opcional)").classes("col")
+            limiar_min_input = ui.input(_("Límite mínimo (opcional)")).classes("col")
+            limiar_max_input = ui.input(_("Límite máximo (opcional)")).classes("col")
 
         campo_payload_input = (
-            ui.input("Campo no payload LoRaWAN")
+            ui.input(_("Campo no payload LoRaWAN"))
             .classes("w-full")
-            .props('hint="Só se usas The Things Network" persistent-hint')
+            .props(f'hint="{_("Só se usas The Things Network")}" persistent-hint')
         )
 
         def gardar() -> None:
             if not nome_input.value or not nome_input.value.strip():
-                ui.notify("O nome do sensor é obrigatorio", type="warning")
+                ui.notify(_("O nome do sensor é obrigatorio"), type="warning")
                 return
             if not tipo_input.value:
-                ui.notify("Escolle o tipo de sensor", type="warning")
+                ui.notify(_("Escolle o tipo de sensor"), type="warning")
                 return
 
             v_min = parsear_decimal(limiar_min_input.value)
             v_max = parsear_decimal(limiar_max_input.value)
             if v_min is not None and v_max is not None and v_min > v_max:
-                ui.notify("O límite mínimo non pode ser maior ca o máximo", type="warning")
+                ui.notify(_("O límite mínimo non pode ser maior ca o máximo"), type="warning")
                 return
 
             with get_session() as s:
@@ -419,13 +429,13 @@ def dialogo_sensor(
 
         with ui.row().classes("w-full items-center justify-between q-mt-md"):
             with ui.row():
-                ui.button("Gardar", icon="check", on_click=gardar)
-                ui.button("Cancelar", on_click=dialog.close).props("flat")
+                ui.button(_("Gardar"), icon="check", on_click=gardar)
+                ui.button(_("Cancelar"), on_click=dialog.close).props("flat")
 
     def abrir(s: Sensor | None) -> None:
         if s is None:
             editando["id"] = None
-            titulo.text = "Novo sensor"
+            titulo.text = _("Novo sensor")
             nome_input.value = ""
             tipo_input.value = "humidade_chan"
             unidade_input.value = TIPOS_SENSOR["humidade_chan"].unidade
@@ -438,7 +448,7 @@ def dialogo_sensor(
             tipo_input.set_enabled(True)
         else:
             editando["id"] = s.id
-            titulo.text = f"Editar «{s.nome}»"
+            titulo.text = _("Editar «{nome}»").format(nome=s.nome)
             nome_input.value = s.nome
             tipo_input.value = s.tipo
             tipo_input.set_enabled(False)
@@ -480,14 +490,14 @@ def dialogo_ficha_sensor(
 
         with ui.row().classes("w-full items-center justify-between q-mt-sm wrap gap-2"):
             periodo_selector = ui.select(
-                {"24h": "24 h", "7d": "7 días", "30d": "30 días", "1a": "1 ano"},
+                {"24h": _("24 h"), "7d": _("7 días"), "30d": _("30 días"), "1a": _("1 ano")},
                 value="7d",
-                label="Período",
+                label=_("Período"),
             ).classes("w-36")
             consumo_label = ui.label("").classes("text-subtitle1 text-weight-bold text-primary")
 
         grafica_container = ui.column().classes("w-full q-my-sm")
-        sen_datos_aviso = ui.label("Non hai lecturas rexistradas neste período").classes(
+        sen_datos_aviso = ui.label(_("Non hai lecturas rexistradas neste período")).classes(
             "texto-suave q-my-md"
         )
 
@@ -526,7 +536,9 @@ def dialogo_ficha_sensor(
                 if tipo_info and tipo_info.acumulado:
                     consumo = consumo_periodo(session, act, s.id, desde, agora)
                     if consumo is not None:
-                        consumo_label.text = f"Consumo no período: {consumo:g} {s.unidade}"
+                        consumo_label.text = _(
+                            "Consumo no período: {consumo} {unidade}"
+                        ).format(consumo=f"{consumo:g}", unidade=s.unidade)
                         consumo_label.set_visibility(True)
                     else:
                         consumo_label.set_visibility(False)
@@ -538,8 +550,8 @@ def dialogo_ficha_sensor(
                 estado_badge.text = st
                 clase = (
                     "etiqueta-ok"
-                    if st == "Ben"
-                    else ("etiqueta-aviso" if st == "Fóra de límite" else "texto-suave")
+                    if st == _("Ben")
+                    else ("etiqueta-aviso" if st == _("Fóra de límite") else "texto-suave")
                 )
                 estado_badge.classes(replace=clase)
 
@@ -563,9 +575,11 @@ def dialogo_ficha_sensor(
         lecturas_novas.subscribe(ao_chegar_lecturas)
 
         if pode_editar:
-            with ui.expansion("Importar CSV ou JSON", icon="upload_file").classes("w-full q-mt-sm"):
+            with ui.expansion(_("Importar CSV ou JSON"), icon="upload_file").classes(
+                "w-full q-mt-sm"
+            ):
                 ui.label(
-                    "Formatos: CSV (momento;valor) ou JSON ([{momento: ..., valor: ...}])."
+                    _("Formatos: CSV (momento;valor) ou JSON ([{momento: ..., valor: ...}]).")
                 ).classes("text-caption texto-suave q-mb-xs")
 
                 def manexar_subida(e: Any) -> None:
@@ -581,15 +595,21 @@ def dialogo_ficha_sensor(
                                 pechar_sesion()
                                 return
                             gardadas = importar_ficheiro(session, act, s_obj.id, nome, contido)
-                        ui.notify(f"Importáronse {gardadas} lecturas con éxito", type="positive")
+                        ui.notify(
+                            _("Importáronse {n} lecturas con éxito").format(n=gardadas),
+                            type="positive",
+                        )
                         debuxar_grafica()
                         if on_cambio:
                             on_cambio()
                     except Exception as err:
-                        ui.notify(f"Erro na importación: {err}", type="negative")
+                        ui.notify(
+                            _("Erro na importación: {erro}").format(erro=err),
+                            type="negative",
+                        )
 
                 ui.upload(
-                    label="Escoller ficheiro .csv ou .json",
+                    label=_("Escoller ficheiro .csv ou .json"),
                     auto_upload=True,
                     on_upload=manexar_subida,
                 ).props('accept=".csv,.json" flat bordered').classes("w-full")
@@ -621,12 +641,14 @@ def dialogo_ficha_sensor(
                                 on_clave_xerada(s_obj.nome, res[0])
 
                         confirmar_eliminacion(
-                            f"Xerar unha nova clave para «{s_obj.nome}»? "
-                            "A clave anterior deixará de funcionar inmediatamente.",
+                            _(
+                                "Xerar unha nova clave para «{nome}»? "
+                                "A clave anterior deixará de funcionar inmediatamente."
+                            ).format(nome=s_obj.nome),
                             confirmar,
                         )
 
-                    ui.button("Nova clave", icon="key", on_click=pedir_nova_clave).props(
+                    ui.button(_("Nova clave"), icon="key", on_click=pedir_nova_clave).props(
                         "outline dense"
                     )
 
@@ -636,15 +658,15 @@ def dialogo_ficha_sensor(
                             pechar_ficha()
                             on_editar_sensor(s_obj)
 
-                    ui.button("Editar", icon="edit", on_click=abrir_edicion).props(
+                    ui.button(_("Editar"), icon="edit", on_click=abrir_edicion).props(
                         "outline dense"
                     )
 
-            ui.button("Pechar", on_click=pechar_ficha).props("flat")
+            ui.button(_("Pechar"), on_click=pechar_ficha).props("flat")
 
     def abrir(s: Sensor) -> None:
         sensor_actual["sensor"] = s
-        tipo_str = TIPOS_SENSOR[s.tipo].nome if s.tipo in TIPOS_SENSOR else s.tipo
+        tipo_str = _(TIPOS_SENSOR[s.tipo].nome) if s.tipo in TIPOS_SENSOR else s.tipo
         titulo.text = f"{s.nome} ({s.unidade})" if s.unidade else s.nome
         subtitulo.text = f"{tipo_str} · {texto_localizacion(s)}"
         consumo_label.set_visibility(False)
@@ -676,7 +698,7 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
         for s in sensores:
             sensores_por_id[s.id] = s
             ult = ultima_lectura(session, actor, s.id)
-            tipo_nome = TIPOS_SENSOR[s.tipo].nome if s.tipo in TIPOS_SENSOR else s.tipo
+            tipo_nome = _(TIPOS_SENSOR[s.tipo].nome) if s.tipo in TIPOS_SENSOR else s.tipo
             filas.append(
                 {
                     "id": s.id,
@@ -704,7 +726,7 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
             on_clave_xerada=abrir_clave,
         )
         if e_horta_admin
-        else (lambda _: None)
+        else (lambda _s: None)
     )
 
     abrir_ficha = dialogo_ficha_sensor(
@@ -718,41 +740,49 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
 
     if not sensores:
         with ui.column().classes("tarxeta w-full gap-2 q-pa-md q-my-md"):
-            ui.label("Aínda non tes sensores conectados nesta explotación").classes(
+            ui.label(_("Aínda non tes sensores conectados nesta explotación")).classes(
                 "text-subtitle1 text-weight-bold"
             )
             ui.label(
-                "Podes conectar sondas de humidade ou temperatura do solo, estacións de aire "
-                "e choiva, contadores de auga para o control de regas ou niveis de depósitos."
+                _(
+                    "Podes conectar sondas de humidade ou temperatura do solo, estacións de aire "
+                    "e choiva, contadores de auga para o control de regas ou niveis de depósitos."
+                )
             )
             with ui.row().classes("items-center gap-2 q-mt-sm wrap"):
                 ui.button(
-                    "Como conectar sensores",
+                    _("Como conectar sensores"),
                     icon="help_outline",
                     on_click=abrir_axuda,
                 ).props("outline")
                 if e_horta_admin:
                     ui.button(
-                        "Novo sensor",
+                        _("Novo sensor"),
                         icon="add",
                         on_click=lambda: abrir_formulario(None),
                     )
         return
 
     with ui.row().classes("w-full items-center justify-between q-mb-sm wrap gap-2"):
-        ui.label(f"{len(sensores)} sensores activos").classes("texto-suave")
+        ui.label(
+            ngettext(
+                "{n} sensor activo",
+                "{n} sensores activos",
+                len(sensores),
+            ).format(n=len(sensores))
+        ).classes("texto-suave")
         ui.button(
-            "Como conectar sensores",
+            _("Como conectar sensores"),
             icon="help_outline",
             on_click=abrir_axuda,
         ).props("flat dense")
 
     columnas = [
-        {"name": "nome", "label": "Nome", "field": "nome"},
-        {"name": "tipo", "label": "Tipo", "field": "tipo"},
-        {"name": "onde", "label": "Localización", "field": "onde"},
-        {"name": "ultima", "label": "Última lectura", "field": "ultima"},
-        {"name": "estado", "label": "Estado", "field": "estado"},
+        {"name": "nome", "label": _("Nome"), "field": "nome"},
+        {"name": "tipo", "label": _("Tipo"), "field": "tipo"},
+        {"name": "onde", "label": _("Localización"), "field": "onde"},
+        {"name": "ultima", "label": _("Última lectura"), "field": "ultima"},
+        {"name": "estado", "label": _("Estado"), "field": "estado"},
     ]
 
     taboa = (
@@ -763,16 +793,17 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
             selection="single",
         )
         .classes("w-full taboa so-ordenador")
-        .props(f'flat bordered no-data-label="Non hai sensores" {TEXTOS_TABOA}')
+        .props(f'flat bordered no-data-label="{_("Non hai sensores")}" {TEXTOS_TABOA}')
     )
 
     taboa.add_slot(
         "body-cell-estado",
-        """
+        f"""
         <q-td :props="props">
-            <span :class="props.value === 'Ben' ? 'etiqueta-ok' :
-                          (props.value === 'Fóra de límite' ? 'etiqueta-aviso' : 'texto-suave')">
-                {{ props.value }}
+            <span :class="props.value === '{_("Ben")}' ? 'etiqueta-ok' :
+                          (props.value === '{_("Fóra de límite")}' ?
+                           'etiqueta-aviso' : 'texto-suave')">
+                {{{{ props.value }}}}
             </span>
         </q-td>
         """,
@@ -798,7 +829,7 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
 
     def abrir_ficha_seleccionada() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un sensor na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un sensor na táboa"), type="warning")
             return
         s_id = taboa.selected[0]["id"]
         s_obx = sensores_por_id.get(s_id)
@@ -806,14 +837,14 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
             abrir_ficha(s_obx)
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = [
-        ("Ver ficha", "query_stats", abrir_ficha_seleccionada),
+        (_("Ver ficha"), "query_stats", abrir_ficha_seleccionada),
     ]
 
     if e_horta_admin:
 
         def editar_seleccionado() -> None:
             if not taboa.selected:
-                ui.notify("Escolle primeiro un sensor na táboa", type="warning")
+                ui.notify(_("Escolle primeiro un sensor na táboa"), type="warning")
                 return
             s_id = taboa.selected[0]["id"]
             s_obx = sensores_por_id.get(s_id)
@@ -822,7 +853,7 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
 
         def nova_clave_seleccionado() -> None:
             if not taboa.selected:
-                ui.notify("Escolle primeiro un sensor na táboa", type="warning")
+                ui.notify(_("Escolle primeiro un sensor na táboa"), type="warning")
                 return
             s_id = taboa.selected[0]["id"]
             s_obx = sensores_por_id.get(s_id)
@@ -843,14 +874,16 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
                     abrir_clave(s_obx.nome, res[0])
 
             confirmar_eliminacion(
-                f"Xerar unha nova clave para «{s_obx.nome}»? "
-                "A clave anterior deixará de funcionar inmediatamente.",
+                _(
+                    "Xerar unha nova clave para «{nome}»? "
+                    "A clave anterior deixará de funcionar inmediatamente."
+                ).format(nome=s_obx.nome),
                 confirmar,
             )
 
         def dar_de_baixa_seleccionado() -> None:
             if not taboa.selected:
-                ui.notify("Escolle primeiro un sensor na táboa", type="warning")
+                ui.notify(_("Escolle primeiro un sensor na táboa"), type="warning")
                 return
             s_id = taboa.selected[0]["id"]
             s_obx = sensores_por_id.get(s_id)
@@ -867,20 +900,25 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
                         return
                     ok = executar_accion(session, lambda: baixa_sensor(session, act, sensor_db))
                 if ok:
-                    ui.notify(f"Sensor «{s_obx.nome}» dado de baixa", type="positive")
+                    ui.notify(
+                        _("Sensor «{nome}» dado de baixa").format(nome=s_obx.nome),
+                        type="positive",
+                    )
                     refrescar_todo()
 
             confirmar_eliminacion(
-                f"Dar de baixa o sensor «{s_obx.nome}»? "
-                "Non se borra: consérvase o histórico de lecturas.",
+                _(
+                    "Dar de baixa o sensor «{nome}»? "
+                    "Non se borra: consérvase o histórico de lecturas."
+                ).format(nome=s_obx.nome),
                 confirmar,
             )
 
         accions_tarxeta.extend(
             [
-                ("Editar", "edit", editar_seleccionado),
-                ("Nova clave", "key", nova_clave_seleccionado),
-                ("Dar de baixa", "archive", dar_de_baixa_seleccionado),
+                (_("Editar"), "edit", editar_seleccionado),
+                (_("Nova clave"), "key", nova_clave_seleccionado),
+                (_("Dar de baixa"), "archive", dar_de_baixa_seleccionado),
             ]
         )
 
@@ -888,25 +926,25 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
 
     with ui.row().classes("w-full items-center gap-2 q-mt-md"):
         if e_horta_admin:
-            ui.button("Novo sensor", icon="add", on_click=lambda: abrir_formulario(None))
+            ui.button(_("Novo sensor"), icon="add", on_click=lambda: abrir_formulario(None))
         ui.button(
-            "Ver ficha e gráfica",
+            _("Ver ficha e gráfica"),
             icon="query_stats",
             on_click=abrir_ficha_seleccionada,
         ).props("outline")
         if e_horta_admin:
             ui.button(
-                "Editar",
+                _("Editar"),
                 icon="edit",
                 on_click=editar_seleccionado,
             ).props("outline").classes("so-ordenador")
             ui.button(
-                "Nova clave",
+                _("Nova clave"),
                 icon="key",
                 on_click=nova_clave_seleccionado,
             ).props("outline").classes("so-ordenador")
             ui.button(
-                "Dar de baixa",
+                _("Dar de baixa"),
                 icon="archive",
                 on_click=dar_de_baixa_seleccionado,
             ).props("outline color=negative").classes("so-ordenador")

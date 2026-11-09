@@ -16,6 +16,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.animal import Animal
 from horta.models.cultivo import Cultivo
 from horta.models.documento import Documento
@@ -34,14 +35,14 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 TIPOS_DOCUMENTO: dict[str, str] = {
-    "certificado_calidade": "Certificado de calidade (ecolóxico, GlobalG.A.P., IFS…)",
-    "autorizacion": "Autorización ou inscrición",
-    "carne_formacion": "Carné ou formación",
-    "inspeccion": "Inspección (ITEAF, sanitaria…)",
-    "seguro": "Seguro",
-    "contrato": "Contrato",
-    "analise_externa": "Análise externa",
-    "outro": "Outro",
+    "certificado_calidade": N_("Certificado de calidade (ecolóxico, GlobalG.A.P., IFS…)"),
+    "autorizacion": N_("Autorización ou inscrición"),
+    "carne_formacion": N_("Carné ou formación"),
+    "inspeccion": N_("Inspección (ITEAF, sanitaria…)"),
+    "seguro": N_("Seguro"),
+    "contrato": N_("Contrato"),
+    "analise_externa": N_("Análise externa"),
+    "outro": N_("Outro"),
 }
 
 REFERENCIAS: dict[str, Any] = {

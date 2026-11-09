@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Protocol
 
+from horta.idiomas import N_
+
 URL = "https://servizos.meteogalicia.gal/mgrss"
 FONTE = "MeteoGalicia"
 _ESPERA_S = 10
@@ -30,18 +32,18 @@ MEDIDAS = {
 }
 _SEN_DATO = -9999
 # Estado do ceo (JSON_Pred_Concello, anexo II): 1xx de día e 2xx de noite, co mesmo texto
-CEO = {1: "Despexado", 2: "Nubes altas", 3: "Nubes e claros", 4: "Nubrado", 5: "Moi nubrado",
-       6: "Néboas", 7: "Chuvascos", 8: "Nubrado e chuvascos", 9: "Chuvascos e neve",
-       10: "Orballo", 11: "Choiva", 12: "Neve", 13: "Treboada", 14: "Brétema",
-       15: "Bancos de néboa", 16: "Nubes medias", 17: "Choiva débil",
-       18: "Chuvascos débiles", 19: "Treboada con poucas nubes", 20: "Auga neve",
-       21: "Sarabia", 22: "Anubrado con chuvascos débiles", 23: "Anubrado con neve",
-       24: "Calima", 25: "Cuberto"}
+CEO = {1: N_("Despexado"), 2: N_("Nubes altas"), 3: N_("Nubes e claros"), 4: N_("Nubrado"),
+       5: N_("Moi nubrado"), 6: N_("Néboas"), 7: N_("Chuvascos"), 8: N_("Nubrado e chuvascos"),
+       9: N_("Chuvascos e neve"), 10: N_("Orballo"), 11: N_("Choiva"), 12: N_("Neve"),
+       13: N_("Treboada"), 14: N_("Brétema"), 15: N_("Bancos de néboa"), 16: N_("Nubes medias"),
+       17: N_("Choiva débil"), 18: N_("Chuvascos débiles"), 19: N_("Treboada con poucas nubes"),
+       20: N_("Auga neve"), 21: N_("Sarabia"), 22: N_("Anubrado con chuvascos débiles"),
+       23: N_("Anubrado con neve"), 24: N_("Calima"), 25: N_("Cuberto")}
 # Vento (anexo III): 299 calma, 300 variable; 301–332 forza × dirección
 _FORZAS = ("frouxo", "moderado", "forte", "moi forte")
 _DIRECCIONS = ("Norte", "Nordés", "Leste", "Sueste", "Sur", "Sudoeste", "Oeste", "Noroeste")
 # Avisos (JSON_Pred_AvisoConcello, anexo II e niveis)
-NIVEIS_AVISO = {1: "amarelo", 2: "laranxa", 3: "vermello"}
+NIVEIS_AVISO = {1: N_("amarelo"), 2: N_("laranxa"), 3: N_("vermello")}
 
 
 def ceo_texto(codigo: int | None) -> str | None:

@@ -12,6 +12,7 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _, ngettext
 from horta.models.categoria import Categoria
 from horta.models.horta import RolHorta
 from horta.models.persoa import Persoa, TipoCarne
@@ -56,23 +57,45 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
 _AVISO_DIAS = 30
-_ACCESOS = {"": "Sen acceso", "lector": "Só mirar", "editor": "Editar", "admin": "Administrador"}
+_ACCESOS = {
+    "": N_("Sen acceso"),
+    "lector": N_("Só mirar"),
+    "editor": N_("Editar"),
+    "admin": N_("Administrador"),
+}
 _ROL = {"lector": RolHorta.LECTOR, "editor": RolHorta.EDITOR, "admin": RolHorta.ADMIN}
 
 
 # Os rexistros que pode ter unha persoa ou entidade, segundo o seu papel
-_REXISTROS = (("rega", "REGA (ES + 12 díxitos)"), ("reaga", "REAGA"), ("nima", "NIMA"),
-              ("ropveg", "Nº ROPVEG"), ("rexistro_dixital", "Nº de rexistro dixital de alimentos"),
-              ("num_asesoramento", "Nº de identificación da entidade de asesoramento"))
-_CONTACTO = (("telefono", "Teléfono"), ("email", "Email de contacto"),
-             ("enderezo", "Enderezo"), ("localidade", "Localidade"),
-             ("codigo_postal", "Código postal"), ("provincia", "Provincia"),
-             ("concello_codigo", "Concello"), ("pais", "País, se non é España"))
+_REXISTROS = (
+    ("rega", N_("REGA (ES + 12 díxitos)")),
+    ("reaga", N_("REAGA")),
+    ("nima", N_("NIMA")),
+    ("ropveg", N_("Nº ROPVEG")),
+    ("rexistro_dixital", N_("Nº de rexistro dixital de alimentos")),
+    ("num_asesoramento", N_("Nº de identificación da entidade de asesoramento")),
+)
+_CONTACTO = (
+    ("telefono", N_("Teléfono")),
+    ("email", N_("Email de contacto")),
+    ("enderezo", N_("Enderezo")),
+    ("localidade", N_("Localidade")),
+    ("codigo_postal", N_("Código postal")),
+    ("provincia", N_("Provincia")),
+    ("concello_codigo", N_("Concello")),
+    ("pais", N_("País, se non é España")),
+)
 _CON_ROPO = ("aplicador", "asesor", "servizos")
+_MOTIVOS_CONVITE = {
+    "": N_("Ningún"),
+    "inspeccion": N_("Inspección"),
+    "auditoria": N_("Auditoría"),
+    "certificacion": N_("Certificación"),
+}
 
 
 def _papeis(p: Persoa, cales: dict[str, str]) -> str:
-    return ", ".join(nome for clave, nome in cales.items() if p.ten_papel(clave))
+    return ", ".join(_(nome) for clave, nome in cales.items() if p.ten_papel(clave))
 
 
 def _e_equipo(p: Persoa) -> bool:
@@ -95,7 +118,7 @@ def detalle_tarxeta_equipo(fila: dict[str, Any]) -> str:
         partes.append(funcions)
     ropo = str(fila.get("ropo") or "").strip()
     if ropo:
-        partes.append(f"ROPO ata {ropo}")
+        partes.append(_("ROPO ata {data}").format(data=ropo))
     return " · ".join(partes)
 
 
@@ -136,12 +159,19 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         if p.activa and p.ten_papel("aplicador") and p.ropo_caducidade:
             dias = (p.ropo_caducidade - hoxe).days
             if dias < 0:
-                ui.label(f"⚠ O carné ROPO de {p.nome} caducou o {p.ropo_caducidade:%d/%m/%Y}") \
-                    .classes("aviso w-full")
+                ui.label(
+                    _("⚠ O carné ROPO de {nome} caducou o {data}").format(
+                        nome=p.nome, data=f"{p.ropo_caducidade:%d/%m/%Y}"
+                    )
+                ).classes("aviso w-full")
             elif dias <= _AVISO_DIAS:
-                ui.label(f"⚠ O carné ROPO de {p.nome} caduca en {dias} días").classes(
-                    "aviso w-full"
-                )
+                ui.label(
+                    ngettext(
+                        "⚠ O carné ROPO de {nome} caduca en {dias} día",
+                        "⚠ O carné ROPO de {nome} caduca en {dias} días",
+                        dias,
+                    ).format(nome=p.nome, dias=dias)
+                ).classes("aviso w-full")
 
     horas = sum(p.horas_ano or 0 for p in persoas if p.activa and _e_equipo(p))
 
@@ -149,15 +179,15 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         {"id": p.id, "nome": f"{p.nome} {p.apelidos or ''}".strip(),
          "funcions": _papeis(p, PAPEIS_EQUIPO),
          "ropo": f"{p.ropo_caducidade:%d/%m/%Y}" if p.ropo_caducidade else "",
-         "acceso": _ACCESOS[_clave_acceso(accesos[p.id])],
-         "activa": "si" if p.activa else "non"}
+         "acceso": _(_ACCESOS[_clave_acceso(accesos[p.id])]),
+         "activa": _("si") if p.activa else _("non")}
         for p in persoas if _e_equipo(p)
     ]
     filas_contactos: list[dict[str, Any]] = [
         {"id": p.id, "nome": f"{p.nome} {p.apelidos or ''}".strip(),
          "papeis": ", ".join(sorted(categorias[i] for i in das_persoas[p.id])),
          "categorias": sorted(das_persoas[p.id]), "nif": p.nif or "",
-         "telefono": p.telefono or "", "activa": "si" if p.activa else "non"}
+         "telefono": p.telefono or "", "activa": _("si") if p.activa else _("non")}
         for p in persoas if _e_contacto(p)
     ]
 
@@ -170,24 +200,29 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         persoa: Persoa = atopada
         accions: list[tuple[str, str, Callable[[], None]]] | None = None
         if pode_editar and "editar" in accions_fn:
-            accions = [("Editar", "edit", lambda: accions_fn["editar"](persoa))]
+            accions = [(_("Editar"), "edit", lambda: accions_fn["editar"](persoa))]
             if e_admin and "xuntar" in accions_fn:
                 accions.append(
-                    ("Xuntar con outra", "merge", lambda: accions_fn["xuntar"](persoa))
+                    (_("Xuntar con outra"), "merge", lambda: accions_fn["xuntar"](persoa))
                 )
         abrir_ficha_persoa(horta_id, pid, accions=accions)
 
     if equipo:
-        ui.label(f"Traballo ao ano: {horas:g} horas = {horas / HORAS_UTA:.2f} UTA").classes(
-            "texto-suave")
+        ui.label(
+            _("Traballo ao ano: {horas:g} horas = {uta:.2f} UTA").format(
+                horas=horas, uta=horas / HORAS_UTA
+            )
+        ).classes("texto-suave")
         taboa = ui.table(
             columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-                ("nome", "Nome"), ("funcions", "Funcións"), ("ropo", "Carné ROPO ata"),
-                ("acceso", "Acceso á app"), ("activa", "Activa"))],
+                ("nome", _("Nome")), ("funcions", _("Funcións")), ("ropo", _("Carné ROPO ata")),
+                ("acceso", _("Acceso á app")), ("activa", _("Activa")))],
             rows=filas_equipo, row_key="id",
             selection="single" if pode_editar else None,
         ).classes("w-full taboa so-ordenador").props(
-            f'flat bordered no-data-label="Aínda non hai ninguén no equipo" {TEXTOS_TABOA}')
+            f'flat bordered no-data-label="{_("Aínda non hai ninguén no equipo")}" '
+            f"{TEXTOS_TABOA}"
+        )
 
         @ui.refreshable
         def debuxar_tarxetas_equipo() -> None:
@@ -200,20 +235,22 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         debuxar_tarxetas_equipo()
     else:
         with ui.row().classes("w-full items-center gap-2"):
-            filtro = ui.select({0: "Todas as categorías", **categorias}, value=0,
-                               label="Categoría").classes("w-64")
+            filtro = ui.select({0: _("Todas as categorías"), **categorias}, value=0,
+                               label=_("Categoría")).classes("w-64")
             if pode_editar:
-                ui.button("Categorías", icon="label",
+                ui.button(_("Categorías"), icon="label",
                           on_click=lambda: _dialogo_categorias(horta_id)).props("flat")
         taboa = ui.table(
             columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-                ("nome", "Nome"), ("papeis", "Categorías"), ("nif", "NIF"),
-                ("telefono", "Teléfono"), ("activa", "Activa"))],
+                ("nome", _("Nome")), ("papeis", _("Categorías")), ("nif", _("NIF")),
+                ("telefono", _("Teléfono")), ("activa", _("Activa")))],
             rows=filas_contactos, row_key="id",
             selection="single" if pode_editar else None,
         ).classes("w-full taboa so-ordenador").props(
-            'flat bordered no-data-label="Aínda non hai clientela, empresas provedoras nin outros '
-            f'contactos" {TEXTOS_TABOA}')
+            'flat bordered no-data-label="'
+            f'{_("Aínda non hai clientela, empresas provedoras nin outros contactos")}" '
+            f"{TEXTOS_TABOA}"
+        )
 
         @ui.refreshable
         def debuxar_tarxetas_contactos() -> None:
@@ -238,63 +275,72 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(36rem, 94vw)"):
-        titulo = ui.label("Nova persoa").classes("text-h6")
-        tipo_persoa = ui.radio(TIPOS_PERSOA, value="persoa").props("inline")
-        nome = ui.input("Nome ou razón social").classes("w-full")
-        apelidos = ui.input("Apelidos").classes("w-full")
+        titulo = ui.label(_("Nova persoa")).classes("text-h6")
+        tipo_persoa = ui.radio(
+            {k: _(v) for k, v in TIPOS_PERSOA.items()}, value="persoa"
+        ).props("inline")
+        nome = ui.input(_("Nome ou razón social")).classes("w-full")
+        apelidos = ui.input(_("Apelidos")).classes("w-full")
         apelidos.bind_visibility_from(tipo_persoa, "value", value="persoa")
-        nif = ui.input("NIF").classes("w-full")
-        papeis = ui.select(PAPEIS_EQUIPO if equipo else categorias,
-                           label="Que fai (pode ser varias cousas)" if equipo else "Categorías",
-                           multiple=True,
-                           value=[]).classes("w-full").props("use-chips")
-        with ui.expansion("Contacto e enderezo").classes("w-full"):
+        nif = ui.input(_("NIF")).classes("w-full")
+        papeis = ui.select(
+            {k: _(v) for k, v in PAPEIS_EQUIPO.items()} if equipo else categorias,
+            label=_("Que fai (pode ser varias cousas)") if equipo else _("Categorías"),
+            multiple=True,
+            value=[],
+        ).classes("w-full").props("use-chips")
+        with ui.expansion(_("Contacto e enderezo")).classes("w-full"):
             contacto: dict[str, Any] = {
-                campo: (ui.select(concellos(), label=etiqueta, with_input=True,
+                campo: (ui.select(concellos(), label=_(etiqueta), with_input=True,
                                   clearable=True).classes("w-full")
                         if campo == "concello_codigo" else
-                        ui.input(etiqueta).classes("w-full"))
+                        ui.input(_(etiqueta)).classes("w-full"))
                 for campo, etiqueta in _CONTACTO
             }
-        with ui.expansion("Rexistros (REGA, NIMA, ROPVEG...)").classes("w-full"):
-            rexistros = {campo: ui.input(etiqueta).classes("w-full")
+        with ui.expansion(_("Rexistros (REGA, NIMA, ROPVEG...)")).classes("w-full"):
+            rexistros = {campo: ui.input(_(etiqueta)).classes("w-full")
                          for campo, etiqueta in _REXISTROS}
         with ui.column().classes("w-full gap-0") as bloque_ropo:
-            ropo = ui.input("Nº ROPO").classes("w-full")
-            tipo = ui.select({t.value: TIPOS_CARNE[t.value] for t in TipoCarne},
-                             label="Tipo de carné", clearable=True).classes("w-full")
-            caducidade = campo_data("Caducidade do carné")
-            regfer = ui.input("Nº REGFER").classes("w-full")
-        with ui.expansion("Traballo (para o plan de empresa)").classes("w-full") as bloque_traballo:
-            vinculo = ui.select({v: ETIQUETAS_VINCULO[v] for v in VINCULOS},
-                                label="Vínculo coa explotación",
+            ropo = ui.input(_("Nº ROPO")).classes("w-full")
+            tipo = ui.select({t.value: _(TIPOS_CARNE[t.value]) for t in TipoCarne},
+                             label=_("Tipo de carné"), clearable=True).classes("w-full")
+            caducidade = campo_data(_("Caducidade do carné"))
+            regfer = ui.input(_("Nº REGFER")).classes("w-full")
+        with ui.expansion(
+            _("Traballo (para o plan de empresa)")
+        ).classes("w-full") as bloque_traballo:
+            vinculo = ui.select({v: _(ETIQUETAS_VINCULO[v]) for v in VINCULOS},
+                                label=_("Vínculo coa explotación"),
                                 clearable=True).classes("w-full")
-            horas_ano = ui.input("Horas ao ano").classes("w-full")
-            custo_hora = ui.input("Custo da hora (€)").classes("w-full")
-            formacion = ui.input("Formación agraria").classes("w-full")
-        with ui.expansion("Colectivo (opcional, para axudas ao emprego)").classes(
-                "w-full") as bloque_colectivo:
-            xenero = ui.select(list(XENEROS), label="Xénero", clearable=True).classes("w-full")
-            nacemento = campo_data("Data de nacemento")
-            discapacidade = ui.checkbox("Persoa con discapacidade")
-        activa = ui.checkbox("Activa", value=True)
+            horas_ano = ui.input(_("Horas ao ano")).classes("w-full")
+            custo_hora = ui.input(_("Custo da hora (€)")).classes("w-full")
+            formacion = ui.input(_("Formación agraria")).classes("w-full")
+        with ui.expansion(
+            _("Colectivo (opcional, para axudas ao emprego)")
+        ).classes("w-full") as bloque_colectivo:
+            xenero = ui.select(
+                {x: _(x) for x in XENEROS}, label=_("Xénero"), clearable=True
+            ).classes("w-full")
+            nacemento = campo_data(_("Data de nacemento"))
+            discapacidade = ui.checkbox(_("Persoa con discapacidade"))
+        activa = ui.checkbox(_("Activa"), value=True)
         # Acceso á app (deseño global §2bis): por convite, sen escribir correos de contas
         with ui.column().classes("w-full gap-1") as bloque_acceso:
-            ui.label("Acceso á app").classes("text-subtitle2 q-mt-sm")
+            ui.label(_("Acceso á app")).classes("text-subtitle2 q-mt-sm")
             estado_acceso = ui.label("").classes("text-caption texto-suave")
-            acceso = ui.select({k: v for k, v in _ACCESOS.items() if k}, value="editor",
-                               label="Permiso").classes("w-full")
+            acceso = ui.select({k: _(v) for k, v in _ACCESOS.items() if k}, value="editor",
+                               label=_("Permiso")).classes("w-full")
             with ui.column().classes("w-full gap-1") as bloque_inspeccion:
                 motivo_convite = ui.select(
-                    {"": "Ningún", "inspeccion": "Inspección",
-                     "auditoria": "Auditoría", "certificacion": "Certificación"},
-                    value="", label="Motivo").classes("w-full")
-                acceso_ata_convite = campo_data("Acceso ata")
+                    {k: _(v) for k, v in _MOTIVOS_CONVITE.items()},
+                    value="", label=_("Motivo"),
+                ).classes("w-full")
+                acceso_ata_convite = campo_data(_("Acceso ata"))
             with ui.row():
-                boton_convite = ui.button("Crear convite", icon="link").props("outline")
-                boton_quitar = ui.button("Quitar acceso", icon="block").props(
+                boton_convite = ui.button(_("Crear convite"), icon="link").props("outline")
+                boton_quitar = ui.button(_("Quitar acceso"), icon="block").props(
                     "flat color=negative")
-            ligazon = ui.input("Ligazón para mandarlle (vale 7 días)").props(
+            ligazon = ui.input(_("Ligazón para mandarlle (vale 7 días)")).props(
                 "readonly").classes("w-full")
 
         def actualizar_inspeccion() -> None:
@@ -306,12 +352,14 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             persoa_id = editando["id"]
             ligada = persoa_id is not None and persoa_id in contas
             if persoa_id is None:
-                estado_acceso.text = "Garda primeiro a persoa para darlle acceso"
+                estado_acceso.text = _("Garda primeiro a persoa para darlle acceso")
             elif ligada:
-                estado_acceso.text = f"Entra coa conta {contas[persoa_id]}"
+                estado_acceso.text = _("Entra coa conta {conta}").format(conta=contas[persoa_id])
             else:
-                estado_acceso.text = ("Non ten acceso. Escolle o permiso e crea un convite: "
-                                      "unha ligazón para mandarlle")
+                estado_acceso.text = _(
+                    "Non ten acceso. Escolle o permiso e crea un convite: "
+                    "unha ligazón para mandarlle"
+                )
             acceso.set_visibility(persoa_id is not None)
             actualizar_inspeccion()
             boton_convite.set_visibility(persoa_id is not None and not ligada)
@@ -336,7 +384,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 base = str(ui.context.client.request.base_url).rstrip("/")
                 ligazon.value = f"{base}/convite/{creado[0]}"
                 ligazon.set_visibility(True)
-                ui.notify("Copia a ligazón e mándalla (WhatsApp, correo…)", type="positive")
+                ui.notify(_("Copia a ligazón e mándalla (WhatsApp, correo…)"), type="positive")
 
         def quitar() -> None:
             with get_session() as session:
@@ -366,7 +414,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
 
         def gardar(confirmado: bool = False) -> None:
             if not nome.value:
-                ui.notify("O nome é obrigatorio", type="negative")
+                ui.notify(_("O nome é obrigatorio"), type="negative")
                 return
             if not confirmado:
                 with get_session() as session:
@@ -374,16 +422,22 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                                         nif.value, contacto["email"].value, editando["id"])
                 if iguais:
                     with ui.dialog() as aviso, ui.card():
-                        ui.label("Xa hai alguén igual: " + ", ".join(
-                            f"{p.nome} {p.apelidos or ''}".strip() for p in iguais)
-                            + ". Se é a mesma persoa, edita esa ou xúntaas.")
+                        persoas_iguais = ", ".join(
+                            f"{p.nome} {p.apelidos or ''}".strip() for p in iguais
+                        )
+                        ui.label(
+                            _(
+                                "Xa hai alguén igual: {persoas}. "
+                                "Se é a mesma persoa, edita esa ou xúntaas."
+                            ).format(persoas=persoas_iguais)
+                        )
                         with ui.row():
                             def igual() -> None:
                                 aviso.close()
                                 gardar(True)
 
-                            ui.button("Gardar igual", on_click=igual)
-                            ui.button("Cancelar", on_click=aviso.close).props("flat")
+                            ui.button(_("Gardar igual"), on_click=igual)
+                            ui.button(_("Cancelar"), on_click=aviso.close).props("flat")
                     aviso.open()
                     return
             datos: dict[str, Any] = dict(
@@ -434,8 +488,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=lambda: gardar())
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=lambda: gardar())
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     textos = (nome, apelidos, nif, *(v for c, v in contacto.items() if c != "concello_codigo"),
               *rexistros.values(), ropo, caducidade, regfer, horas_ano, custo_hora, formacion,
@@ -446,7 +500,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
 
     def abrir_nova() -> None:
         editando["id"] = None
-        titulo.text = "Nova persoa ou entidade"
+        titulo.text = _("Nova persoa ou entidade")
         for campo in textos:
             campo.value = ""
         contacto["concello_codigo"].value = None
@@ -464,7 +518,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
 
     def escollida() -> Persoa | None:
         if not taboa.selected:
-            ui.notify("Selecciona unha persoa na táboa", type="warning")
+            ui.notify(_("Selecciona unha persoa na táboa"), type="warning")
             return None
         return next(x for x in persoas if x.id == taboa.selected[0]["id"])
 
@@ -478,10 +532,14 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
         outras = {p.id: f"{p.nome} {p.apelidos or ''}".strip() for p in persoas
                   if p.id != queda.id}
         with ui.dialog().props("persistent") as ventá, ui.card().style("width: min(30rem, 94vw)"):
-            ui.label(f"Xuntar con {queda.nome}").classes("text-h6")
-            ui.label("Todo o da outra (traballos, compras, vendas, papeis, conta) pasa a "
-                     f"{queda.nome}, e a outra bórrase.").classes("text-caption")
-            sae = ui.select(outras, label="A outra (a repetida)", with_input=True).classes(
+            ui.label(_("Xuntar con {nome}").format(nome=queda.nome)).classes("text-h6")
+            ui.label(
+                _(
+                    "Todo o da outra (traballos, compras, vendas, papeis, conta) pasa a "
+                    "{nome}, e a outra bórrase."
+                ).format(nome=queda.nome)
+            ).classes("text-caption")
+            sae = ui.select(outras, label=_("A outra (a repetida)"), with_input=True).classes(
                 "w-full")
 
             def confirmar() -> None:
@@ -495,8 +553,8 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
                     ui.navigate.reload()
 
             with ui.row():
-                ui.button("Xuntar", icon="merge", on_click=confirmar)
-                ui.button("Cancelar", on_click=ventá.close).props("flat")
+                ui.button(_("Xuntar"), icon="merge", on_click=confirmar)
+                ui.button(_("Cancelar"), on_click=ventá.close).props("flat")
         ventá.open()
 
     def xuntar() -> None:
@@ -509,7 +567,7 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
 
     def editar_persoa(p: Persoa) -> None:
         editando["id"] = p.id
-        titulo.text = "Editar persoa ou entidade"
+        titulo.text = _("Editar persoa ou entidade")
         tipo_persoa.value = p.tipo
         nome.value = p.nome
         apelidos.value = p.apelidos or ""
@@ -554,22 +612,25 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
     accions_fn["editar"] = editar_persoa
 
     with ui.row():
-        ui.button("Nova persoa no equipo" if equipo else "Novo contacto", icon="person_add",
-                  on_click=abrir_nova)
-        ui.button("Editar", icon="edit", on_click=abrir_edicion).props("outline").classes(
+        ui.button(
+            _("Nova persoa no equipo") if equipo else _("Novo contacto"),
+            icon="person_add",
+            on_click=abrir_nova,
+        )
+        ui.button(_("Editar"), icon="edit", on_click=abrir_edicion).props("outline").classes(
             "so-ordenador"
         )
-        ui.button("Ficha", icon="description", on_click=abrir_ficha).props("outline").classes(
+        ui.button(_("Ficha"), icon="description", on_click=abrir_ficha).props("outline").classes(
             "so-ordenador"
         )
         if e_admin:
-            ui.button("Xuntar con outra", icon="merge", on_click=xuntar).props("outline").classes(
-                "so-ordenador"
-            )
+            ui.button(
+                _("Xuntar con outra"), icon="merge", on_click=xuntar
+            ).props("outline").classes("so-ordenador")
 
     if equipo and e_admin and accesos_rexistrados:
         with ui.column().classes("w-full q-mt-lg gap-2"):
-            ui.label("Accesos de inspección e auditoría").classes(
+            ui.label(_("Accesos de inspección e auditoría")).classes(
                 "text-subtitle1 text-weight-bold"
             )
             filas_accesos = [
@@ -583,9 +644,9 @@ def seccion_equipo(horta_id: int, pode_editar: bool, e_admin: bool,
             ]
             ui.table(
                 columns=[
-                    {"name": "data_hora", "label": "Data e hora", "field": "data_hora"},
-                    {"name": "conta", "label": "Conta", "field": "conta"},
-                    {"name": "seccion", "label": "Sección", "field": "seccion"},
+                    {"name": "data_hora", "label": _("Data e hora"), "field": "data_hora"},
+                    {"name": "conta", "label": _("Conta"), "field": "conta"},
+                    {"name": "seccion", "label": _("Sección"), "field": "seccion"},
                 ],
                 rows=filas_accesos,
                 row_key="id",
@@ -600,10 +661,10 @@ def _dialogo_categorias(horta_id: int) -> None:
         actor = usuario_actual(session)
         cats = listar_categorias(session, actor, horta_id) if actor else []
     with ui.dialog().props("persistent") as ventá, ui.card().style("width: min(30rem, 94vw)"):
-        ui.label("Categorías dos contactos").classes("text-h6")
+        ui.label(_("Categorías dos contactos")).classes("text-h6")
         nomes = {c.id: ui.input(value=c.nome).classes("w-full") for c in cats}
-        borrar = {c.id: ui.checkbox("Borrar") for c in cats if c.papel is None}
-        nova = ui.input("Nova categoría (p.ex. Vendedores)").classes("w-full")
+        borrar = {c.id: ui.checkbox(_("Borrar")) for c in cats if c.papel is None}
+        nova = ui.input(_("Nova categoría (p.ex. Vendedores)")).classes("w-full")
 
         def gardar() -> None:
             with get_session() as session:
@@ -625,6 +686,6 @@ def _dialogo_categorias(horta_id: int) -> None:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=ventá.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=ventá.close).props("flat")
     ventá.open()

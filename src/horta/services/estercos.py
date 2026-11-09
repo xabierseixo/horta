@@ -12,6 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.esterco import MovementoEsterco
 from horta.models.horta import Horta, RolHorta
 from horta.models.persoa import Persoa
@@ -30,9 +31,9 @@ TIPOS_MOVEMENTO = {"cesion", "recepcion"}
 UNIDADES = {"t", "m3"}
 
 ORIXES_COMPOSICION: dict[str, str] = {
-    "analise": "Análise de laboratorio",
-    "programa": "Programa de cálculo recoñecido",
-    "condutivimetro": "Condutivímetro (purín)",
+    "analise": N_("Análise de laboratorio"),
+    "programa": N_("Programa de cálculo recoñecido"),
+    "condutivimetro": N_("Condutivímetro (purín)"),
 }
 
 CAMPOS_EDITABLES_MOVEMENTO = frozenset({
@@ -352,7 +353,7 @@ class ResumoEsterco:
     kg_n_cedido: float = 0.0
     kg_n_recibido: float = 0.0
     aviso_m3: bool = False
-    nota_m3: str = "Para o cálculo do N con unidade en m³, considérase 1 t = 1 m³."
+    nota_m3: str = N_("Para o cálculo do N con unidade en m³, considérase 1 t = 1 m³.")
 
     @property
     def totais_cedidos(self) -> TotaisDict:

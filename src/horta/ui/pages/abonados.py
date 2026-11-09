@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.abonado import Abonado, Fertilizante
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
@@ -72,7 +73,7 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
             "id": a.id,
             "data": f"{a.data_inicio:%d/%m/%Y}",
             "cultivo": ", ".join(cultivos.get(le.cultivo_id, "") for le in a.leiras),
-            "abono": abonos.get(a.fertilizante_id or 0, "abonado en verde"),
+            "abono": abonos.get(a.fertilizante_id or 0, _("abonado en verde")),
             "dose": f"{a.dose:g} {unidades.get(a.unidade or '', '')}" if a.dose else "",
             "nutrientes": _nutrientes(nutrientes_do_abonado(session, a)),
         } for a in abonados]
@@ -82,22 +83,35 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
         for nome, feito, preciso in zip(("N", "P₂O₅", "K₂O"), balance.aplicado,
                                         balance.necesidade):
             if feito or preciso:
-                partes.append(f"{nome} {feito:g}" + (f" de {preciso:g}" if preciso else ""))
-        aviso = (f" (sen contar {balance.sen_calcular}: falta a densidade)"
-                 if balance.sen_calcular else "")
-        ui.label(f"{cultivos[cultivo_id]}: {' · '.join(partes) or 'nada'} kg/ha{aviso}").classes(
-            "text-body2")
+                if preciso:
+                    partes.append(
+                        _("{nome} {feito:g} de {preciso:g}").format(
+                            nome=nome, feito=feito, preciso=preciso
+                        )
+                    )
+                else:
+                    partes.append(f"{nome} {feito:g}")
+        aviso = (
+            _(" (sen contar {sen_calcular}: falta a densidade)").format(
+                sen_calcular=balance.sen_calcular
+            )
+            if balance.sen_calcular
+            else ""
+        )
+        ui.label(
+            f"{cultivos[cultivo_id]}: {' · '.join(partes) or _('nada')} kg/ha{aviso}"
+        ).classes("text-body2")
     ui.link(
-        "Cesións e recepcións de esterco",
+        _("Cesións e recepcións de esterco"),
         url_seccion(horta_id, "estercos"),
     ).classes("q-mb-sm inline-block")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("cultivo", "Cultivo"), ("abono", "Abono"), ("dose", "Dose"),
-            ("nutrientes", "Achega"))],
+            ("data", _("Data")), ("cultivo", _("Cultivo")), ("abono", _("Abono")),
+            ("dose", _("Dose")), ("nutrientes", _("Achega")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai abonados" {TEXTOS_TABOA}')
+        f'flat bordered no-data-label="{_("Aínda non hai abonados")}" {TEXTOS_TABOA}')
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
     tarxetas_da_taboa(taboa, "data", ["abono", "cultivo"], accions_tarxeta)
@@ -108,17 +122,17 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un abonado na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un abonado na táboa"), type="warning")
             return
         with get_session() as session:
             a = session.get(Abonado, taboa.selected[0]["id"])
             if a is not None:
-                _ = a.boas_practicas
+                _x = a.boas_practicas
                 abrir(a)
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un abonado na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un abonado na táboa"), type="warning")
             return
         abonado_id = taboa.selected[0]["id"]
 
@@ -134,16 +148,16 @@ def seccion_abonados(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa este abonado? Non se borra: consérvase no histórico.", confirmar)
+            _("Dar de baixa este abonado? Non se borra: consérvase no histórico."), confirmar)
 
-    accions_tarxeta += [("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar abonado", icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Apuntar abonado"), icon="add", on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
@@ -152,7 +166,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda _: None
+            return lambda _x: None
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {c.id: f"{nome_cultivo(c)} — {parcelas[c.parcela_id]}"
                     for c in listar_cultivos(session, actor, horta_id)}
@@ -181,45 +195,46 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
     novo_abono = dialogo_novo_abono(horta_id, abono_creado)
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(40rem, 94vw)"):
-        titulo = ui.label("Apuntar abonado").classes("text-h6")
+        titulo = ui.label(_("Apuntar abonado")).classes("text-h6")
         if not tipos or not practicas:
-            ui.label(AVISO_SEN_CATALOGOS).classes("text-warning text-caption")
-        cultivo = ui.select(cultivos, label="Leiras (unha ou varias)", with_input=True,
+            ui.label(_(AVISO_SEN_CATALOGOS)).classes("text-warning text-caption")
+        cultivo = ui.select(cultivos, label=_("Leiras (unha ou varias)"), with_input=True,
                             multiple=True, value=[]).classes("w-full").props("use-chips")
-        data_inicio = campo_data("Data", date.today().isoformat())
+        data_inicio = campo_data(_("Data"), date.today().isoformat())
         tempo = EtiquetaTempo(horta_id, "abonado")
-        aplicador = ui.select(persoas, label="Quen o botou (persoa ou empresa de servizos)",
+        aplicador = ui.select(persoas, label=_("Quen o botou (persoa ou empresa de servizos)"),
                               clearable=True).classes("w-full")
-        superficie = CampoSuperficie("Superficie abonada (baleiro = a do cultivo; só cunha leira)")
+        superficie = CampoSuperficie(
+            _("Superficie abonada (baleiro = a do cultivo; só cunha leira)"))
         cultivo.on_value_change(
             lambda: superficie.set_visibility(len(cultivo.value or []) == 1))
         for campo in (cultivo, data_inicio):
             campo.on_value_change(lambda: tempo.actualizar(data_inicio.value, cultivo.value))
         with ui.row().classes("w-full no-wrap items-center"):
-            abono = ui.select(abonos, label="Abono", with_input=True).classes("col")
+            abono = ui.select(abonos, label=_("Abono"), with_input=True).classes("col")
             ui.button(icon="add", on_click=novo_abono.open).props(
-                'flat round aria-label="Novo abono"')
+                f'flat round aria-label="{_("Novo abono")}"')
         with ui.row().classes("w-full no-wrap"):
-            dose = ui.input("Dose").classes("col")
-            unidade = ui.select(unidades, value="17", label="Unidade").classes("col")
+            dose = ui.input(_("Dose")).classes("col")
+            unidade = ui.select(unidades, value="17", label=_("Unidade")).classes("col")
         achega = ui.label().classes("text-caption")
-        tipo = ui.select(tipos, label="Tipo de abonado").classes("w-full")
-        metodo = ui.select(metodos, label="Como se botou").classes("w-full")
-        boas = ui.select(practicas, multiple=True, label="Boas prácticas").classes(
+        tipo = ui.select(tipos, label=_("Tipo de abonado")).classes("w-full")
+        metodo = ui.select(metodos, label=_("Como se botou")).classes("w-full")
+        boas = ui.select(practicas, multiple=True, label=_("Boas prácticas")).classes(
             "w-full").props("use-chips")
-        with ui.expansion("Máis datos").classes("w-full"):
-            data_fin = campo_data("Data de fin (se durou máis dun día)")
-            horas = ui.input("Horas de traballo").classes("w-full")
-            xestion = ui.checkbox("Xestión sostible dos insumos")
-            lodos = ui.checkbox("Leva documento de aplicación de lodos de depuradora")
-            ui.label("Garda a copia do documento que che dá quen aplica os lodos: unha foto "
-                     "no traballo (icona da cámara no Diario). Consérvase 3 anos."
+        with ui.expansion(_("Máis datos")).classes("w-full"):
+            data_fin = campo_data(_("Data de fin (se durou máis dun día)"))
+            horas = ui.input(_("Horas de traballo")).classes("w-full")
+            xestion = ui.checkbox(_("Xestión sostible dos insumos"))
+            lodos = ui.checkbox(_("Leva documento de aplicación de lodos de depuradora"))
+            ui.label(_("Garda a copia do documento que che dá quen aplica os lodos: unha foto "
+                       "no traballo (icona da cámara no Diario). Consérvase 3 anos.")
                      ).classes("texto-suave text-caption").bind_visibility_from(lodos, "value")
             # A compra do abono: alí van o provedor e o albará
-            compra = ui.select({}, label="De que compra (opcional)", clearable=True).classes(
+            compra = ui.select({}, label=_("De que compra (opcional)"), clearable=True).classes(
                 "w-full")
-            maquina = ui.select(maquinas, label="Máquina", clearable=True).classes("w-full")
-            notas = ui.textarea("Notas").classes("w-full")
+            maquina = ui.select(maquinas, label=_("Máquina"), clearable=True).classes("w-full")
+            notas = ui.textarea(_("Notas")).classes("w-full")
 
         def cambiar_compras() -> None:
             produto = produtos_abono.get(abono.value or 0)
@@ -238,14 +253,14 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                 npk = nutrientes_kg_ha(fertilizante, valor, unidade.value) if fertilizante \
                     else None
             achega.text = ("= " + _nutrientes(npk)) if npk else \
-                "Non se pode calcular a achega (falta a densidade do líquido)"
+                _("Non se pode calcular a achega (falta a densidade do líquido)")
 
         for campo in (abono, dose, unidade):
             campo.on_value_change(calcular)
 
         def gardar() -> None:
             if not cultivo.value:
-                ui.notify("Escolle as leiras", type="warning")
+                ui.notify(_("Escolle as leiras"), type="warning")
                 return
             with get_session() as session:
                 actor_actual = usuario_actual(session)
@@ -256,7 +271,7 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                 def accion() -> None:
                     inicio = parsear_data(data_inicio.value)
                     if inicio is None:
-                        raise OperacionNonPermitidaError("Indica a data")
+                        raise OperacionNonPermitidaError(_("Indica a data"))
                     datos = DatosAbonado(
                         leiras=leiras_escollidas(cultivo.value, superficie.ha),
                         data_inicio=inicio, data_fin=parsear_data(data_fin.value),
@@ -279,13 +294,13 @@ def dialogo_abonado(horta_id: int) -> Callable[[Abonado | None], None]:
                 recargar_apuntado("abonado", data_inicio.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(a: Abonado | None, tarefa: Tarefa | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = a.id if a else None
-        titulo.text = "Editar abonado" if a else "Apuntar abonado"
+        titulo.text = _("Editar abonado") if a else _("Apuntar abonado")
         cultivo.value = ([le.cultivo_id for le in a.leiras] if a else
                          [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])
         data_inicio.value = (a.data_inicio if a else date.today()).isoformat()

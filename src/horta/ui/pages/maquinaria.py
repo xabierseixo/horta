@@ -5,6 +5,7 @@ from collections.abc import Callable
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.maquina import Maquina
 from horta.services.catalogos import valores_vixentes
 from horta.services.maquinaria import (
@@ -52,12 +53,14 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
     ]
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("alias", "Nome"), ("marca", "Marca e modelo"), ("ident", "ROMA / REGANIP / ID"),
-            ("inspeccion", "Última inspección"), ("aviso", "Inspección (RD 1702/2011)"),
-            ("propia", "Propia"), ("activa", "Activa"))],
+            ("alias", _("Nome")), ("marca", _("Marca e modelo")),
+            ("ident", _("ROMA / REGANIP / ID")),
+            ("inspeccion", _("Última inspección")),
+            ("aviso", _("Inspección (RD 1702/2011)")),
+            ("propia", _("Propia")), ("activa", _("Activa")))],
         rows=filas, row_key="id", selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai máquinas rexistradas" {TEXTOS_TABOA}'
+        f'flat bordered no-data-label="{_("Aínda non hai máquinas rexistradas")}" {TEXTOS_TABOA}'
     )
 
     abrir_fn: list[Callable[[Maquina | None], None]] = []
@@ -92,28 +95,32 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
     editando: dict[str, int | None] = {"id": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().classes("w-96"):
-        titulo = ui.label("Nova máquina").classes("text-h6")
-        activa = ui.checkbox("Activa (desmárcaa se xa non está na explotación)", value=True)
-        alias = ui.input("Nome")
-        tipo_une = ui.select(tipos_une, label="Tipo de máquina (UNE)", with_input=True,
+        titulo = ui.label(_("Nova máquina")).classes("text-h6")
+        activa = ui.checkbox(
+            _("Activa (desmárcaa se xa non está na explotación)"), value=True
+        )
+        alias = ui.input(_("Nome"))
+        tipo_une = ui.select(tipos_une, label=_("Tipo de máquina (UNE)"), with_input=True,
                              clearable=True)
-        marca = ui.input("Marca e modelo")
-        tipo_id = ui.select({"roma": "Nº ROMA", "reganip": "Nº REGANIP",
-                             "outro": "Equipo non inscribible"}, value="roma",
-                            label="Identificador")
-        ident = ui.input("Número / identificador")
-        propia = ui.checkbox("Propia", value=True)
-        potencia = ui.input("Potencia")
-        unidade_potencia = ui.select(unidades_potencia, label="Unidade da potencia",
+        marca = ui.input(_("Marca e modelo"))
+        tipo_id = ui.select(
+            {"roma": _("Nº ROMA"), "reganip": _("Nº REGANIP"),
+             "outro": _("Equipo non inscribible")},
+            value="roma", label=_("Identificador")
+        )
+        ident = ui.input(_("Número / identificador"))
+        propia = ui.checkbox(_("Propia"), value=True)
+        potencia = ui.input(_("Potencia"))
+        unidade_potencia = ui.select(unidades_potencia, label=_("Unidade da potencia"),
                                      clearable=True)
-        tipo_enerxia = ui.select(enerxias, label="Tipo de enerxía", clearable=True)
-        custo_hora = ui.input("Custo da hora (€)")
-        inspeccion = campo_data("Data última inspección")
-        adquisicion = campo_data("Data de adquisición")
+        tipo_enerxia = ui.select(enerxias, label=_("Tipo de enerxía"), clearable=True)
+        custo_hora = ui.input(_("Custo da hora (€)"))
+        inspeccion = campo_data(_("Data última inspección"))
+        adquisicion = campo_data(_("Data de adquisición"))
 
         def gardar() -> None:
             if not alias.value:
-                ui.notify("O nome é obrigatorio", type="negative")
+                ui.notify(_("O nome é obrigatorio"), type="negative")
                 return
             campo = {"roma": "num_roma", "reganip": "num_reganip",
                      "outro": "id_equipo_non_inscribible"}[tipo_id.value]
@@ -145,12 +152,12 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(m: Maquina | None) -> None:
         editando["id"] = m.id if m else None
-        titulo.text = "Editar máquina" if m else "Nova máquina"
+        titulo.text = _("Editar máquina") if m else _("Nova máquina")
         alias.value, marca.value = (m.alias, m.marca_modelo or "") if m else ("", "")
         tipo_une.value = m.tipo_une if m else None
         tipo_id.value = ("reganip" if m and m.num_reganip else
@@ -171,19 +178,21 @@ def seccion_maquinaria(horta_id: int, pode_editar: bool) -> None:
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro unha máquina na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha máquina na táboa"), type="warning")
             return
         abrir(next(m for m in maquinas if m.id == taboa.selected[0]["id"]))
 
     with ui.row():
-        ui.button("Nova máquina", icon="agriculture", on_click=lambda: abrir(None))
-        ui.button("Editar", icon="edit", on_click=editar).props("outline").classes("so-ordenador")
+        ui.button(_("Nova máquina"), icon="agriculture", on_click=lambda: abrir(None))
+        ui.button(_("Editar"), icon="edit", on_click=editar).props("outline").classes(
+            "so-ordenador"
+        )
         ui.button(
-            "Ficha",
+            _("Ficha"),
             icon="description",
             on_click=lambda: (
                 abrir_ficha_maquina(horta_id, taboa.selected[0]["id"], pode_editar)
                 if taboa.selected
-                else ui.notify("Escolle primeiro unha máquina na táboa", type="warning")
+                else ui.notify(_("Escolle primeiro unha máquina na táboa"), type="warning")
             ),
         ).props("outline").classes("so-ordenador")

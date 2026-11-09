@@ -5,10 +5,12 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
+from horta.idiomas import N_
+
 _MES_SINODICO = 29.530588853
 _LUA_NOVA = datetime(2000, 1, 6, 18, 14, tzinfo=timezone.utc)
-_FASES = ("Lúa nova", "Lúa crecente", "Cuarto crecente", "Lúa crecente", "Lúa chea",
-          "Lúa minguante", "Cuarto minguante", "Lúa minguante")
+_FASES = (N_("Lúa nova"), N_("Lúa crecente"), N_("Cuarto crecente"), N_("Lúa crecente"),
+          N_("Lúa chea"), N_("Lúa minguante"), N_("Cuarto minguante"), N_("Lúa minguante"))
 
 
 def fase_lua(dia: date) -> str:

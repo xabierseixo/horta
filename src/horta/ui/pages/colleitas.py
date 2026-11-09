@@ -8,6 +8,7 @@ from datetime import date
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import _
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.tarefa import Tarefa
@@ -88,17 +89,17 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
                         f"{nomes_cultivo[cultivo_id]}: {formatar_enteiro(kg_ha)} kg/ha"
                     ).classes("text-body2")
                     ui.button(
-                        "Estimación",
+                        _("Estimación"),
                         on_click=lambda cid=cultivo_id: abrir_estimacion(cid),
                     ).props("flat dense")
     taboa = ui.table(
         columns=[{"name": k, "label": etiqueta, "field": k} for k, etiqueta in (
-            ("data", "Data"), ("cultivo", "Cultivo"), ("cantidade", "Cantidade"),
-            ("lote", "Lote"), ("queda", "Queda"), ("destino", "Destino"))],
+            ("data", _("Data")), ("cultivo", _("Cultivo")), ("cantidade", _("Cantidade")),
+            ("lote", _("Lote")), ("queda", _("Queda")), ("destino", _("Destino")))],
         rows=filas, row_key="id",
         selection="single" if pode_editar else None,
     ).classes("w-full taboa so-ordenador").props(
-        f'flat bordered no-data-label="Aínda non hai colleitas" {TEXTOS_TABOA}'
+        f'flat bordered no-data-label="{_("Aínda non hai colleitas")}" {TEXTOS_TABOA}'
     )
 
     accions_tarxeta: list[tuple[str, str, Callable[[], None]]] = []
@@ -113,20 +114,20 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
 
     def vender() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro un rexistro na táboa", type="warning")
+            ui.notify(_("Escolle primeiro un rexistro na táboa"), type="warning")
             return
         c_escollida = next(x for x in colleitas if x.id == taboa.selected[0]["id"])
         abrir_saida(None, None, c_escollida.lote_id, "venda")
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona unha colleita na táboa", type="warning")
+            ui.notify(_("Selecciona unha colleita na táboa"), type="warning")
             return
         abrir(next(x for x in colleitas if x.id == taboa.selected[0]["id"]))
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Selecciona unha colleita na táboa", type="warning")
+            ui.notify(_("Selecciona unha colleita na táboa"), type="warning")
             return
         colleita_id = taboa.selected[0]["id"]
 
@@ -143,19 +144,19 @@ def seccion_colleitas(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa esta colleita? Non se borra: consérvase no histórico.", confirmar
+            _("Dar de baixa esta colleita? Non se borra: consérvase no histórico."), confirmar
         )
 
-    accions_tarxeta += [("Vender", "sell", vender),
-                        ("Editar", "edit", editar),
-                        ("Dar de baixa", "archive", dar_de_baixa)]
+    accions_tarxeta += [(_("Vender"), "sell", vender),
+                        (_("Editar"), "edit", editar),
+                        (_("Dar de baixa"), "archive", dar_de_baixa)]
 
     with ui.row():
-        ui.button("Apuntar colleita", icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Apuntar colleita"), icon="add", on_click=lambda: abrir(None))
         with ui.row().classes("so-ordenador"):
-            ui.button("Vender", icon="sell", on_click=vender).props("outline")
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Vender"), icon="sell", on_click=vender).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
@@ -164,7 +165,7 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda _: None
+            return lambda _x: None
         nomes_cultivo = {c.id: nome_cultivo(c)
                          for c in listar_cultivos(session, actor, horta_id)}
         destinos = {v.codigo: texto_catalogo(v.catalogo, v.codigo, v.descricion)
@@ -176,15 +177,15 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
     with ui.dialog().props("persistent") as dialogo, ui.card().style("width: min(32rem, 94vw)"):
-        titulo = ui.label("Apuntar colleita").classes("text-h6")
+        titulo = ui.label(_("Apuntar colleita")).classes("text-h6")
         # Varias leiras dunha vez: unha colleita por leira, coa súa cantidade e no mesmo lote
-        cultivo = ui.select(nomes_cultivo, label="Leiras (unha ou varias)", with_input=True,
+        cultivo = ui.select(nomes_cultivo, label=_("Leiras (unha ou varias)"), with_input=True,
                             multiple=True, value=[]).classes("w-full").props("use-chips")
-        data = campo_data("Data", date.today().isoformat())
-        persoa = ui.select(persoas, label="Quen o fixo").classes("w-full")
+        data = campo_data(_("Data"), date.today().isoformat())
+        persoa = ui.select(persoas, label=_("Quen o fixo")).classes("w-full")
         with ui.row().classes("w-full no-wrap gap-2"):
-            cantidade = ui.input("Cantidade").classes("col-grow")
-            unidade = ui.select(list(UNIDADES_COLLEITA), value="kg", label="Unidade").classes(
+            cantidade = ui.input(_("Cantidade")).classes("col-grow")
+            unidade = ui.select(list(UNIDADES_COLLEITA), value="kg", label=_("Unidade")).classes(
                 "w-28")
         cantidades: dict[int, ui.input] = {}
 
@@ -192,25 +193,29 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
         def cantidades_por_leira() -> None:
             cantidades.clear()
             if len(cultivo.value or []) > 1:
-                ui.label("Canto se colleu en cada leira").classes("text-caption")
+                ui.label(_("Canto se colleu en cada leira")).classes("text-caption")
                 for cultivo_id in cultivo.value:
                     cantidades[cultivo_id] = ui.input(nomes_cultivo.get(cultivo_id, "")).classes(
                         "w-full")
 
         cantidades_por_leira()
-        lote = ui.input("Lote (un que xa exista do mesmo cultivo súmase a el)").classes("w-full")
-        superficie = CampoSuperficie("Superficie colleitada (baleiro = a do cultivo)")
-        data_fin = campo_data("Data de fin (se durou máis dun día)")
-        horas = ui.input("Horas de traballo").classes("w-full")
-        destino = ui.select(destinos, label="Finalidade (só viño ou procesado industrial)",
-                            clearable=True).classes("w-full")
-        destino_restos = ui.select(restos, label="Que se fai cos restos", clearable=True).classes(
-            "w-full")
-        sementes = ui.checkbox("Obtéñense sementes para sementar")
-        plantas = ui.checkbox("Obtéñense plantas ou plantóns")
-        sen_colleita = ui.checkbox("Sen colleita por razóns ambientais")
-        restos_solo = ui.checkbox("Os restos quedan no chan")
-        notas = ui.textarea("Notas").classes("w-full")
+        lote = ui.input(_("Lote (un que xa exista do mesmo cultivo súmase a el)")).classes("w-full")
+        superficie = CampoSuperficie(_("Superficie colleitada (baleiro = a do cultivo)"))
+        data_fin = campo_data(_("Data de fin (se durou máis dun día)"))
+        horas = ui.input(_("Horas de traballo")).classes("w-full")
+        destino = ui.select(
+            destinos,
+            label=_("Finalidade (só viño ou procesado industrial)"),
+            clearable=True,
+        ).classes("w-full")
+        destino_restos = ui.select(
+            restos, label=_("Que se fai cos restos"), clearable=True
+        ).classes("w-full")
+        sementes = ui.checkbox(_("Obtéñense sementes para sementar"))
+        plantas = ui.checkbox(_("Obtéñense plantas ou plantóns"))
+        sen_colleita = ui.checkbox(_("Sen colleita por razóns ambientais"))
+        restos_solo = ui.checkbox(_("Os restos quedan no chan"))
+        notas = ui.textarea(_("Notas")).classes("w-full")
 
         def propor() -> None:
             varias = len(cultivo.value or []) > 1
@@ -244,10 +249,10 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
 
         def gardar() -> None:
             if not cultivo.value:
-                ui.notify("Escolle as leiras", type="negative")
+                ui.notify(_("Escolle as leiras"), type="negative")
                 return
             if editando["id"] is not None and len(cultivo.value) > 1:
-                ui.notify("Unha colleita apuntada é dunha leira: para máis, apunta outra",
+                ui.notify(_("Unha colleita apuntada é dunha leira: para máis, apunta outra"),
                           type="negative")
                 return
             with get_session() as session:
@@ -293,13 +298,13 @@ def dialogo_colleita(horta_id: int) -> Callable[[Colleita | None], None]:
                 recargar_apuntado("colleita", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(c: Colleita | None, tarefa: Tarefa | None = None) -> None:
         editando["tarefa"] = tarefa.id if tarefa else None
         editando["id"] = c.id if c else None
-        titulo.text = "Editar colleita" if c else "Apuntar colleita"
+        titulo.text = _("Editar colleita") if c else _("Apuntar colleita")
         cultivo.value = ([c.cultivo_id] if c else
                          [tarefa.cultivo_id] if tarefa and tarefa.cultivo_id else [])
         data.value = (c.data if c else date.today()).isoformat()
@@ -332,7 +337,7 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
 
     with ui.dialog() as dialogo, ui.card().style("width: min(38rem, 94vw)"):
         with ui.row().classes("w-full items-center justify-between"):
-            titulo = ui.label("Estimación da colleita").classes("text-h6")
+            titulo = ui.label(_("Estimación da colleita")).classes("text-h6")
             ui.button(icon="close", on_click=dialogo.close).props("flat round dense")
 
         @ui.refreshable
@@ -352,10 +357,10 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
                 resumo = resumo_estimacion(session, actor, cid)
                 estimacions = listar_estimacions(session, actor, cid)
 
-            titulo.text = f"Estimación da colleita — {nome}"
+            titulo.text = _("Estimación da colleita — {nome}").format(nome=nome)
 
             with ui.card().classes("w-full p-3 bg-slate-50 border"):
-                ui.label("Resumo").classes("text-subtitle2 font-bold")
+                ui.label(_("Resumo")).classes("text-subtitle2 font-bold")
                 with ui.row().classes("w-full gap-4 text-body2"):
                     obj_txt = (
                         f"{formatar_enteiro(resumo.obxectivo_kg_ha)} kg/ha"
@@ -383,24 +388,24 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
                         else "—"
                     )
                     with ui.column().classes("gap-0"):
-                        ui.label("Obxectivo").classes("text-caption text-grey-7")
+                        ui.label(_("Obxectivo")).classes("text-caption text-grey-7")
                         ui.label(obj_txt).classes("font-semibold")
                     with ui.column().classes("gap-0"):
-                        ui.label("Estimado").classes("text-caption text-grey-7")
+                        ui.label(_("Estimado")).classes("text-caption text-grey-7")
                         ui.label(est_txt).classes("font-semibold")
                     with ui.column().classes("gap-0"):
-                        ui.label("Total estimado").classes("text-caption text-grey-7")
+                        ui.label(_("Total estimado")).classes("text-caption text-grey-7")
                         ui.label(tot_txt).classes("font-semibold")
                     with ui.column().classes("gap-0"):
-                        ui.label("Colleitado").classes("text-caption text-grey-7")
+                        ui.label(_("Colleitado")).classes("text-caption text-grey-7")
                         ui.label(col_txt).classes("font-semibold")
                     with ui.column().classes("gap-0"):
-                        ui.label("% colleitada").classes("text-caption text-grey-7")
+                        ui.label(_("% colleitada")).classes("text-caption text-grey-7")
                         ui.label(pct_txt).classes("font-semibold")
 
-            ui.label("Estimacións").classes("text-subtitle2 font-bold")
+            ui.label(_("Estimacións")).classes("text-subtitle2 font-bold")
             if not estimacions:
-                ui.label("Aínda non hai estimacións.").classes("text-body2 text-grey-7")
+                ui.label(_("Aínda non hai estimacións.")).classes("text-body2 text-grey-7")
             else:
                 with ui.column().classes("w-full gap-2"):
                     for e in estimacions:
@@ -410,7 +415,9 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
                                     with ui.row().classes("items-center gap-2"):
                                         ui.label(f"{e.data:%d/%m/%Y}").classes("font-bold")
                                         met_nome = (
-                                            "Mostraxe" if e.metodo == "mostraxe" else "Directa"
+                                            _("Mostraxe")
+                                            if e.metodo == "mostraxe"
+                                            else _("Directa")
                                         )
                                         ui.label(met_nome).classes("text-caption text-grey-7")
                                         ui.label(
@@ -421,7 +428,8 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
                                         u_txt = formatar_decimal(e.unidades_planta)
                                         w_txt = formatar_decimal(e.peso_unidade_g)
                                         ui.label(
-                                            f"{p_txt} pl/ha × {u_txt} pezas/pl × {w_txt} g"
+                                            _("{plantas} pl/ha × {unidades} pezas/pl × {peso} g")
+                                            .format(plantas=p_txt, unidades=u_txt, peso=w_txt)
                                         ).classes("text-caption text-grey-7")
                                     if e.notas:
                                         ui.label(e.notas).classes("text-caption text-grey-8")
@@ -440,7 +448,7 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
                                                 contido_dialogo.refresh()
 
                                         confirmar_eliminacion(
-                                            "Borrar esta estimación?", confirmar
+                                            _("Borrar esta estimación?"), confirmar
                                         )
 
                                     ui.button(
@@ -449,24 +457,24 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
 
             if pode_editar:
                 ui.separator()
-                ui.label("Nova estimación").classes("text-subtitle2 font-bold")
-                data_in = campo_data("Data", date.today().isoformat())
+                ui.label(_("Nova estimación")).classes("text-subtitle2 font-bold")
+                data_in = campo_data(_("Data"), date.today().isoformat())
                 metodo_in = ui.select(
-                    {"mostraxe": "Mostraxe no campo", "directa": "Directa"},
+                    {"mostraxe": _("Mostraxe no campo"), "directa": _("Directa")},
                     value="mostraxe",
-                    label="Método",
+                    label=_("Método"),
                 ).classes("w-full")
 
                 mostraxe_col = ui.column().classes("w-full gap-2")
                 with mostraxe_col:
                     ui.label(
-                        "Conta as plantas por hectárea, os froitos ou pezas por planta "
-                        "nunhas cantas plantas e o peso medio dunha peza"
+                        _("Conta as plantas por hectárea, os froitos ou pezas por planta "
+                          "nunhas cantas plantas e o peso medio dunha peza")
                     ).classes("text-caption text-grey-7")
                     with ui.row().classes("w-full gap-2"):
-                        plantas_in = ui.input("Plantas/ha").classes("col-grow")
-                        unidades_in = ui.input("Pezas/planta").classes("col-grow")
-                        peso_in = ui.input("Peso medio peza (g)").classes("col-grow")
+                        plantas_in = ui.input(_("Plantas/ha")).classes("col-grow")
+                        unidades_in = ui.input(_("Pezas/planta")).classes("col-grow")
+                        peso_in = ui.input(_("Peso medio peza (g)")).classes("col-grow")
                     calc_lbl = ui.label("").classes("text-sm font-semibold text-primary")
 
                     def calcular_mostraxe() -> None:
@@ -476,7 +484,9 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
                             w = parsear_decimal(peso_in.value)
                             if p and u and w and p > 0 and u > 0 and w > 0:
                                 kg = kg_ha_por_mostraxe(p, u, w)
-                                calc_lbl.text = f"Cálculo: {formatar_enteiro(kg)} kg/ha"
+                                calc_lbl.text = _("Cálculo: {kg} kg/ha").format(
+                                    kg=formatar_enteiro(kg)
+                                )
                             else:
                                 calc_lbl.text = ""
                         except Exception:
@@ -488,7 +498,7 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
 
                 directa_col = ui.column().classes("w-full gap-2")
                 with directa_col:
-                    kg_ha_in = ui.input("Estimación (kg/ha)").classes("w-full")
+                    kg_ha_in = ui.input(_("Estimación (kg/ha)")).classes("w-full")
 
                 directa_col.set_visibility(False)
 
@@ -499,7 +509,7 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
 
                 metodo_in.on_value_change(alternar_metodo)
 
-                notas_in = ui.textarea("Notas").classes("w-full")
+                notas_in = ui.textarea(_("Notas")).classes("w-full")
 
                 def gardar_nova() -> None:
                     cid = cultivo_actual["id"]
@@ -536,7 +546,7 @@ def dialogo_estimacion(horta_id: int, pode_editar: bool) -> Callable[[int], None
                         contido_dialogo.refresh()
 
                 with ui.row():
-                    ui.button("Gardar estimación", icon="check", on_click=gardar_nova)
+                    ui.button(_("Gardar estimación"), icon="check", on_click=gardar_nova)
 
         contido_dialogo()
 

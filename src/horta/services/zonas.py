@@ -8,6 +8,7 @@ import math
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.parcela import Parcela
@@ -23,12 +24,12 @@ _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 _RAIO = 6371008.8
 TIPOS_ZONA: dict[str, str] = {
     # A superficie dun cultivo dentro do recinto (DGC, RD 1054/2022 art. 2.1.d)
-    "cultivo": "Zona de cultivo",
-    "bancal": "Bancal",
-    "sector": "Sector",
-    "invernadoiro": "Invernadoiro ou túnel",
-    "camino": "Camiño ou paso",
-    "outra": "Outra",
+    "cultivo": N_("Zona de cultivo"),
+    "bancal": N_("Bancal"),
+    "sector": N_("Sector"),
+    "invernadoiro": N_("Invernadoiro ou túnel"),
+    "camino": N_("Camiño ou paso"),
+    "outra": N_("Outra"),
 }
 Punto = tuple[float, float]
 

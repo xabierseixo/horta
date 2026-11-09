@@ -9,6 +9,7 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _
 from horta.models.observacion import LimiarPraga, ObservacionPraga
 from horta.models.parcela import Parcela
 from horta.models.tarefa import Tarefa
@@ -51,9 +52,9 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 from horta.ui.taboas import TEXTOS_TABOA
 
 OPCIONS_TIPO_PROBLEMA: dict[str, str] = {
-    "praga": "Praga",
-    "enfermidade": "Enfermidade",
-    "mala_herba": "Mala herba",
+    "praga": N_("Praga"),
+    "enfermidade": N_("Enfermidade"),
+    "mala_herba": N_("Mala herba"),
 }
 
 
@@ -63,9 +64,11 @@ def texto_conto_ou_nivel(
     nivel: str | None = None,
 ) -> str:
     """Texto descritivo do conto ou nivel observado para a táboa e as tarxetas."""
-    nivel_str = NIVEIS.get(nivel, nivel) if nivel else ""
+    rotulo_nivel = NIVEIS.get(nivel, nivel) if nivel else ""
+    nivel_str = _(rotulo_nivel) if rotulo_nivel else ""
     if conto is not None:
-        u_str = UNIDADES_CONTO.get(unidade, unidade).lower() if unidade else ""
+        u_rotulo = UNIDADES_CONTO.get(unidade, unidade) if unidade else ""
+        u_str = _(u_rotulo).lower() if u_rotulo else ""
         txt = f"{conto:g} {u_str}".strip() if u_str else f"{conto:g}"
         if nivel_str:
             txt = f"{txt} ({nivel_str})"
@@ -87,7 +90,7 @@ def texto_limiar(limiar: LimiarPraga | float | None) -> str:
 
 def texto_supera(e_supera: bool) -> str:
     """Indica 'Si' cando a observación supera o limiar ou baleiro no caso contrario."""
-    return "Si" if e_supera else ""
+    return _("Si") if e_supera else ""
 
 
 LIGAZON_GUIAS_MAPA = (
@@ -95,7 +98,7 @@ LIGAZON_GUIAS_MAPA = (
     "productos-fitosanitarios/guias-gestion-plagas"
 )
 
-HINT_FONTE_LIMIAR = (
+HINT_FONTE_LIMIAR = N_(
     "Por exemplo, a guía de xestión integrada de pragas do MAPA para este cultivo"
 )
 
@@ -106,7 +109,7 @@ def texto_cultivo_limiar(
 ) -> str:
     """Nome do cultivo asociado ao limiar ou 'Xeral' se aplica a todos."""
     if cultivo_siex_codigo is None:
-        return "Xeral (todos os cultivos)"
+        return _("Xeral (todos os cultivos)")
     if cultivos_horta:
         coincidentes = [
             nome_cultivo(c)
@@ -115,7 +118,7 @@ def texto_cultivo_limiar(
         ]
         if coincidentes:
             return ", ".join(dict.fromkeys(coincidentes))
-    return f"Cultivo SIEX {cultivo_siex_codigo}"
+    return _("Cultivo SIEX {codigo}").format(codigo=cultivo_siex_codigo)
 
 
 def opcions_grafica_evolucion(
@@ -178,7 +181,7 @@ def opcions_grafica_evolucion(
         if valor_limiar is not None:
             serie["markLine"] = {
                 "lineStyle": {"type": "dashed"},
-                "data": [{"yAxis": valor_limiar, "name": "Limiar"}],
+                "data": [{"yAxis": valor_limiar, "name": _("Limiar")}],
             }
 
         series.append(serie)
@@ -188,7 +191,7 @@ def opcions_grafica_evolucion(
         "legend": {"top": 0},
         "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
         "xAxis": {"type": "category", "data": datas_str},
-        "yAxis": {"type": "value", "name": "Conto"},
+        "yAxis": {"type": "value", "name": _("Conto")},
         "series": series,
     }
 
@@ -242,7 +245,7 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
                     "data": f"{obs.data:%d/%m/%Y}",
                     "cultivo": cultivos.get(obs.cultivo_id, ""),
                     "problema": prob_txt,
-                    "metodo": METODOS.get(obs.metodo, obs.metodo),
+                    "metodo": _(METODOS.get(obs.metodo, obs.metodo)),
                     "conto": texto_conto_ou_nivel(obs.conto, obs.unidade_conto, obs.nivel),
                     "limiar": texto_limiar(limiar),
                     "supera": texto_supera(supera),
@@ -250,7 +253,7 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
             )
 
     with ui.column().classes("tarxeta w-full gap-1 q-mb-md"):
-        ui.label("Avisos de pragas e enfermidades").classes(
+        ui.label(_("Avisos de pragas e enfermidades")).classes(
             "text-subtitle1 text-weight-bold"
         )
         if avisos:
@@ -265,27 +268,27 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
                     ui.icon("warning").classes("text-negative")
                     ui.label(f"{c_nome} · {p_nome}: {a.texto}").classes("text-negative")
         else:
-            ui.label("Ningunha praga supera o limiar nas dúas últimas semanas").classes(
+            ui.label(_("Ningunha praga supera o limiar nas dúas últimas semanas")).classes(
                 "texto-suave"
             )
 
     with ui.row().classes("w-full items-center justify-between q-mb-sm"):
-        opcions_filtro = {0: "Todos os cultivos", **cultivos}
+        opcions_filtro = {0: _("Todos os cultivos"), **cultivos}
         filtro_cultivo = ui.select(
-            opcions_filtro, value=0, label="Filtrar por cultivo"
+            opcions_filtro, value=0, label=_("Filtrar por cultivo")
         ).classes("w-64")
-        ui.link("Visitas técnicas", url_seccion(horta_id, "visitas"))
+        ui.link(_("Visitas técnicas"), url_seccion(horta_id, "visitas"))
 
     columnas = [
-        {"name": "data", "label": "Data", "field": "data"},
-        {"name": "cultivo", "label": "Cultivo", "field": "cultivo"},
-        {"name": "problema", "label": "Problema", "field": "problema"},
-        {"name": "metodo", "label": "Método", "field": "metodo"},
-        {"name": "conto", "label": "Conto ou nivel", "field": "conto"},
-        {"name": "limiar", "label": "Limiar", "field": "limiar"},
+        {"name": "data", "label": _("Data"), "field": "data"},
+        {"name": "cultivo", "label": _("Cultivo"), "field": "cultivo"},
+        {"name": "problema", "label": _("Problema"), "field": "problema"},
+        {"name": "metodo", "label": _("Método"), "field": "metodo"},
+        {"name": "conto", "label": _("Conto ou nivel"), "field": "conto"},
+        {"name": "limiar", "label": _("Limiar"), "field": "limiar"},
         {
             "name": "supera",
-            "label": "Supera",
+            "label": _("Supera"),
             "field": "supera",
             "classes": "text-negative text-weight-bold",
         },
@@ -299,7 +302,9 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
             selection="single" if pode_editar else None,
         )
         .classes("w-full taboa so-ordenador")
-        .props(f'flat bordered no-data-label="Aínda non hai observacións" {TEXTOS_TABOA}')
+        .props(
+            f'flat bordered no-data-label="{_("Aínda non hai observacións")}" {TEXTOS_TABOA}'
+        )
     )
 
     taboa.add_slot(
@@ -358,9 +363,11 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
         if opcions:
             with ui.column().classes("tarxeta w-full gap-1 q-pa-md q-my-md"):
                 titulo = (
-                    f"Evolución do conto — {cultivos.get(c_filtrado, '')}"
+                    _("Evolución do conto — {cultivo}").format(
+                        cultivo=cultivos.get(c_filtrado, "")
+                    )
                     if c_filtrado
-                    else "Evolución do conto por problema"
+                    else _("Evolución do conto por problema")
                 )
                 ui.label(titulo).classes("text-subtitle1 text-weight-bold")
                 ui.echart(opcions).classes("w-full").style("height: 320px")
@@ -385,14 +392,14 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
 
     if not pode_editar:
         with ui.row().classes("gap-2 items-center"):
-            ui.button("Limiares", icon="tune", on_click=abrir_limiares).props("outline")
+            ui.button(_("Limiares"), icon="tune", on_click=abrir_limiares).props("outline")
         return
 
     abrir = dialogo_observacion(horta_id)
 
     def editar() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro unha observación na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha observación na táboa"), type="warning")
             return
         obs_id = taboa.selected[0]["id"]
         with get_session() as session:
@@ -402,14 +409,14 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
 
     def fotos() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro unha observación na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha observación na táboa"), type="warning")
             return
         obs_id = taboa.selected[0]["id"]
-        abrir_fotos(horta_id, "observacion", obs_id, "Observación de pragas", pode_editar)
+        abrir_fotos(horta_id, "observacion", obs_id, _("Observación de pragas"), pode_editar)
 
     def dar_de_baixa() -> None:
         if not taboa.selected:
-            ui.notify("Escolle primeiro unha observación na táboa", type="warning")
+            ui.notify(_("Escolle primeiro unha observación na táboa"), type="warning")
             return
         obs_id = taboa.selected[0]["id"]
 
@@ -427,23 +434,23 @@ def seccion_observacions(horta_id: int, pode_editar: bool) -> None:
                 ui.navigate.reload()
 
         confirmar_eliminacion(
-            "Dar de baixa esta observación? Non se borra: consérvase no histórico.",
+            _("Dar de baixa esta observación? Non se borra: consérvase no histórico."),
             confirmar,
         )
 
     accions_tarxeta += [
-        ("Editar", "edit", editar),
-        ("Fotos", "photo_camera", fotos),
-        ("Dar de baixa", "archive", dar_de_baixa),
+        (_("Editar"), "edit", editar),
+        (_("Fotos"), "photo_camera", fotos),
+        (_("Dar de baixa"), "archive", dar_de_baixa),
     ]
 
     with ui.row().classes("gap-2 items-center"):
-        ui.button("Nova observación", icon="add", on_click=lambda: abrir(None))
-        ui.button("Limiares", icon="tune", on_click=abrir_limiares).props("outline")
+        ui.button(_("Nova observación"), icon="add", on_click=lambda: abrir(None))
+        ui.button(_("Limiares"), icon="tune", on_click=abrir_limiares).props("outline")
         with ui.row().classes("so-ordenador gap-2"):
-            ui.button("Editar", icon="edit", on_click=editar).props("outline")
-            ui.button("Fotos", icon="photo_camera", on_click=fotos).props("outline")
-            ui.button("Dar de baixa", icon="archive", on_click=dar_de_baixa).props("outline")
+            ui.button(_("Editar"), icon="edit", on_click=editar).props("outline")
+            ui.button(_("Fotos"), icon="photo_camera", on_click=fotos).props("outline")
+            ui.button(_("Dar de baixa"), icon="archive", on_click=dar_de_baixa).props("outline")
 
 
 def dialogo_observacion(horta_id: int) -> Callable[..., None]:
@@ -452,7 +459,7 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
         actor = usuario_actual(session)
         if actor is None:
             pechar_sesion()
-            return lambda *_: None
+            return lambda *_x: None
         cultivos_horta = listar_cultivos(session, actor, horta_id)
         parcelas = {p.id: p.nome for p in session.query(Parcela).filter_by(horta_id=horta_id)}
         cultivos = {
@@ -487,26 +494,40 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
         ui.dialog().props("persistent") as dialogo,
         ui.card().style("width: min(36rem, 94vw)"),
     ):
-        titulo = ui.label("Nova observación").classes("text-h6")
-        cultivo = ui.select(cultivos, label="Cultivo", with_input=True).classes("w-full")
-        data = campo_data("Data", date.today().isoformat())
+        titulo = ui.label(_("Nova observación")).classes("text-h6")
+        cultivo = ui.select(cultivos, label=_("Cultivo"), with_input=True).classes("w-full")
+        data = campo_data(_("Data"), date.today().isoformat())
         with ui.row().classes("w-full no-wrap gap-2"):
             tipo_problema = ui.select(
-                OPCIONS_TIPO_PROBLEMA, value="praga", label="Tipo de problema"
+                {k: _(v) for k, v in OPCIONS_TIPO_PROBLEMA.items()},
+                value="praga",
+                label=_("Tipo de problema"),
             ).classes("w-44")
-            problema = ui.select({}, label="Problema", with_input=True).classes("grow")
-        metodo = ui.select(METODOS, value="trampa", label="Método").classes("w-full")
-        with ui.row().classes("w-full no-wrap gap-2"):
-            conto = ui.input("Conto").classes("col")
-            unidade = ui.select(
-                UNIDADES_CONTO, label="Unidade de conto", clearable=True
-            ).classes("col")
-        nivel = ui.select(NIVEIS, label="Nivel", clearable=True).classes("w-full")
-        estado_fenoloxico = ui.select(
-            estados_fenoloxicos, label="Estado fenolóxico", clearable=True
+            problema = ui.select({}, label=_("Problema"), with_input=True).classes("grow")
+        metodo = ui.select(
+            {k: _(v) for k, v in METODOS.items()},
+            value="trampa",
+            label=_("Método"),
         ).classes("w-full")
-        persoa = ui.select(persoas, label="Quen o observou").classes("w-full")
-        notas = ui.textarea("Notas").classes("w-full")
+        with ui.row().classes("w-full no-wrap gap-2"):
+            conto = ui.input(_("Conto")).classes("col")
+            unidade = ui.select(
+                {k: _(v) for k, v in UNIDADES_CONTO.items()},
+                label=_("Unidade de conto"),
+                clearable=True,
+            ).classes("col")
+        nivel = ui.select(
+            {k: _(v) for k, v in NIVEIS.items()},
+            label=_("Nivel"),
+            clearable=True,
+        ).classes("w-full")
+        estado_fenoloxico = ui.select(
+            estados_fenoloxicos,
+            label=_("Estado fenolóxico"),
+            clearable=True,
+        ).classes("w-full")
+        persoa = ui.select(persoas, label=_("Quen o observou")).classes("w-full")
+        notas = ui.textarea(_("Notas")).classes("w-full")
 
         def actualizar_problemas(codigo_escollido: str | None = None) -> None:
             t = tipo_problema.value or "praga"
@@ -526,28 +547,28 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
 
         def gardar() -> None:
             if not cultivo.value:
-                ui.notify("Escolle un cultivo", type="warning")
+                ui.notify(_("Escolle un cultivo"), type="warning")
                 return
             inicio = parsear_data(data.value)
             if inicio is None:
-                ui.notify("Indica a data", type="warning")
+                ui.notify(_("Indica a data"), type="warning")
                 return
             if not tipo_problema.value or not problema.value:
-                ui.notify("Escolle o problema", type="warning")
+                ui.notify(_("Escolle o problema"), type="warning")
                 return
             if not metodo.value:
-                ui.notify("Escolle o método", type="warning")
+                ui.notify(_("Escolle o método"), type="warning")
                 return
             c_val = parsear_decimal(conto.value)
             n_val = nivel.value if nivel.value else None
             if c_val is None and not n_val:
-                ui.notify("Indica o conto ou o nivel da observación", type="warning")
+                ui.notify(_("Indica o conto ou o nivel da observación"), type="warning")
                 return
             if c_val is not None and not unidade.value:
-                ui.notify("Indica a unidade de conto", type="warning")
+                ui.notify(_("Indica a unidade de conto"), type="warning")
                 return
             if not persoa.value:
-                ui.notify("Indica quen observou", type="warning")
+                ui.notify(_("Indica quen observou"), type="warning")
                 return
 
             with get_session() as session:
@@ -604,8 +625,8 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
                 recargar_apuntado("observacion", data.value)
 
         with ui.row():
-            ui.button("Gardar", icon="check", on_click=gardar)
-            ui.button("Cancelar", on_click=dialogo.close).props("flat")
+            ui.button(_("Gardar"), icon="check", on_click=gardar)
+            ui.button(_("Cancelar"), on_click=dialogo.close).props("flat")
 
     def abrir(
         obs: ObservacionPraga | None = None,
@@ -617,7 +638,7 @@ def dialogo_observacion(horta_id: int) -> Callable[..., None]:
         editando["visita_id"] = (
             visita_id if visita_id is not None else (obs.visita_id if obs else None)
         )
-        titulo.text = "Editar observación" if obs else "Nova observación"
+        titulo.text = _("Editar observación") if obs else _("Nova observación")
         cultivo.value = (
             obs.cultivo_id
             if obs
@@ -681,7 +702,7 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
         ui.dialog().props("persistent") as dialogo,
         ui.card().style("width: min(56rem, 95vw); max-height: 90vh").classes("overflow-y-auto"),
     ):
-        ui.label("Limiares de intervención (GIP)").classes("text-h6")
+        ui.label(_("Limiares de intervención (GIP)")).classes("text-h6")
 
         @ui.refreshable
         def debuxar_taboa_limiares() -> None:
@@ -693,6 +714,13 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
 
             filas_limiares = []
             for lim in limiares:
+                u_rotulo = (
+                    UNIDADES_CONTO.get(lim.unidade_conto, lim.unidade_conto)
+                    if lim.unidade_conto
+                    else ""
+                )
+                u_txt = _(u_rotulo).lower() if u_rotulo else ""
+                lim_txt = f"{lim.valor:g} {u_txt}".strip() if u_txt else f"{lim.valor:g}"
                 filas_limiares.append(
                     {
                         "id": lim.id,
@@ -701,24 +729,29 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
                             opcions_problemas.get(lim.problema_tipo, {}).get(lim.problema_codigo)
                             or lim.problema_codigo
                         ),
-                        "metodo": METODOS.get(lim.metodo, lim.metodo),
-                        "limiar": f"{lim.valor:g} {lim.unidade_conto}",
+                        "metodo": _(METODOS.get(lim.metodo, lim.metodo)),
+                        "limiar": lim_txt,
                         "fonte": lim.fonte,
                     }
                 )
 
             columnas_limiares = [
-                {"name": "cultivo", "label": "Cultivo", "field": "cultivo", "align": "left"},
-                {"name": "problema", "label": "Problema", "field": "problema", "align": "left"},
-                {"name": "metodo", "label": "Método", "field": "metodo", "align": "left"},
-                {"name": "limiar", "label": "Limiar", "field": "limiar", "align": "left"},
-                {"name": "fonte", "label": "Fonte", "field": "fonte", "align": "left"},
+                {"name": "cultivo", "label": _("Cultivo"), "field": "cultivo", "align": "left"},
+                {"name": "problema", "label": _("Problema"), "field": "problema", "align": "left"},
+                {"name": "metodo", "label": _("Método"), "field": "metodo", "align": "left"},
+                {"name": "limiar", "label": _("Limiar"), "field": "limiar", "align": "left"},
+                {"name": "fonte", "label": _("Fonte"), "field": "fonte", "align": "left"},
             ]
             if pode_editar:
                 columnas_limiares.append(
                     {"name": "accions", "label": "", "field": "accions", "align": "right"}
                 )
 
+            props_taboa = (
+                f'flat bordered dense '
+                f'no-data-label="{_("Aínda non hai limiares configurados")}" '
+                f'{TEXTOS_TABOA}'
+            )
             taboa_lim = (
                 ui.table(
                     columns=columnas_limiares,
@@ -726,10 +759,7 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
                     row_key="id",
                 )
                 .classes("w-full taboa q-my-sm")
-                .props(
-                    f'flat bordered dense no-data-label="Aínda non hai limiares configurados" '
-                    f"{TEXTOS_TABOA}"
-                )
+                .props(props_taboa)
             )
             if pode_editar:
 
@@ -743,13 +773,15 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
                                     s, lambda: dar_de_baixa_limiar(s, act, lim_obx)
                                 )
                                 if ok:
-                                    ui.notify("Limiar eliminado", type="positive")
+                                    ui.notify(_("Limiar eliminado"), type="positive")
                                     debuxar_taboa_limiares.refresh()
                                     ui.navigate.reload()
 
                     confirmar_eliminacion(
-                        "Dar de baixa este limiar de intervención? Non se borra: "
-                        "consérvase no histórico.",
+                        _(
+                            "Dar de baixa este limiar de intervención? Non se borra: "
+                            "consérvase no histórico."
+                        ),
                         confirmar,
                     )
 
@@ -767,33 +799,41 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
         debuxar_taboa_limiares()
 
         if pode_editar:
-            ui.label("Engadir ou actualizar limiar").classes(
+            ui.label(_("Engadir ou actualizar limiar")).classes(
                 "text-subtitle1 text-weight-bold q-mt-md"
             )
             cultivo_sel = ui.select(
                 opcions_cultivo,
-                label="Cultivo (opcional: baleiro para xeral)",
+                label=_("Cultivo (opcional: baleiro para xeral)"),
                 clearable=True,
                 with_input=True,
             ).classes("w-full")
 
             with ui.row().classes("w-full no-wrap gap-2"):
                 tipo_prob = ui.select(
-                    OPCIONS_TIPO_PROBLEMA, value="praga", label="Tipo de problema"
+                    {k: _(v) for k, v in OPCIONS_TIPO_PROBLEMA.items()},
+                    value="praga",
+                    label=_("Tipo de problema"),
                 ).classes("w-44")
-                prob_sel = ui.select({}, label="Problema", with_input=True).classes("grow")
+                prob_sel = ui.select({}, label=_("Problema"), with_input=True).classes("grow")
 
             with ui.row().classes("w-full no-wrap gap-2"):
-                metodo_sel = ui.select(METODOS, value="trampa", label="Método").classes("col")
-                unidade_sel = ui.select(
-                    UNIDADES_CONTO, value="capturas por trampa", label="Unidade de conto"
+                metodo_sel = ui.select(
+                    {k: _(v) for k, v in METODOS.items()},
+                    value="trampa",
+                    label=_("Método"),
                 ).classes("col")
-                valor_input = ui.input("Valor").classes("w-28")
+                unidade_sel = ui.select(
+                    {k: _(v) for k, v in UNIDADES_CONTO.items()},
+                    value="capturas por trampa",
+                    label=_("Unidade de conto"),
+                ).classes("col")
+                valor_input = ui.input(_("Valor")).classes("w-28")
 
             fonte_input = (
-                ui.input("Fonte")
+                ui.input(_("Fonte"))
                 .classes("w-full")
-                .props(f'hint="{HINT_FONTE_LIMIAR}" persistent-hint')
+                .props(f'hint="{_(HINT_FONTE_LIMIAR)}" persistent-hint')
             )
 
             def actualizar_problemas_limiar() -> None:
@@ -818,20 +858,20 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
 
             def gardar() -> None:
                 if not tipo_prob.value or not prob_sel.value:
-                    ui.notify("Escolle o problema", type="warning")
+                    ui.notify(_("Escolle o problema"), type="warning")
                     return
                 if not metodo_sel.value:
-                    ui.notify("Escolle o método", type="warning")
+                    ui.notify(_("Escolle o método"), type="warning")
                     return
                 if not unidade_sel.value:
-                    ui.notify("Escolle a unidade de conto", type="warning")
+                    ui.notify(_("Escolle a unidade de conto"), type="warning")
                     return
                 v_num = parsear_decimal(valor_input.value)
                 if v_num is None or v_num < 0:
-                    ui.notify("Indica un valor numérico non negativo", type="warning")
+                    ui.notify(_("Indica un valor numérico non negativo"), type="warning")
                     return
                 if not fonte_input.value or not fonte_input.value.strip():
-                    ui.notify("A fonte é obrigatoria", type="warning")
+                    ui.notify(_("A fonte é obrigatoria"), type="warning")
                     return
 
                 with get_session() as s:
@@ -857,22 +897,22 @@ def dialogo_limiares(horta_id: int, pode_editar: bool = True) -> Callable[[], No
                         ),
                     )
                 if ok:
-                    ui.notify("Limiar gardado con éxito", type="positive")
+                    ui.notify(_("Limiar gardado con éxito"), type="positive")
                     valor_input.value = ""
                     fonte_input.value = ""
                     debuxar_taboa_limiares.refresh()
                     ui.navigate.reload()
 
             with ui.row().classes("q-mt-sm"):
-                ui.button("Gardar limiar", icon="check", on_click=gardar)
+                ui.button(_("Gardar limiar"), icon="check", on_click=gardar)
 
         with ui.row().classes("w-full items-center justify-between q-mt-md"):
             ui.link(
-                "Guías de xestión integrada de pragas do MAPA",
+                _("Guías de xestión integrada de pragas do MAPA"),
                 LIGAZON_GUIAS_MAPA,
                 new_tab=True,
             ).classes("text-caption")
-            ui.button("Pechar", on_click=dialogo.close).props("flat")
+            ui.button(_("Pechar"), on_click=dialogo.close).props("flat")
 
     def abrir() -> None:
         debuxar_taboa_limiares.refresh()

@@ -10,6 +10,7 @@ from functools import partial
 from nicegui import ui
 
 from horta.db import Base, get_session
+from horta.idiomas import N_, _
 from horta.models.abonado import Abonado
 from horta.models.analise import Analise
 from horta.models.coidado_animal import CoidadoAnimal
@@ -127,7 +128,7 @@ class Formularios:
             with self._contedor:
                 if tipo == "tarefa":
                     abrir_tarefa = dialogo_nova_tarefa(self.horta_id)
-                    self._abrir[tipo] = lambda _: abrir_tarefa()
+                    self._abrir[tipo] = lambda _x: abrir_tarefa()
                 elif tipo == "tarefa_feita":
                     self._abrir[tipo] = dialogo_tarefa_feita(self.horta_id)
                 else:
@@ -153,8 +154,8 @@ class Formularios:
                 self.facer(tarefa)
 
             with ui.row():
-                ui.button("Facela agora", icon="check", on_click=facela)
-                ui.button("Editar a tarefa", icon="edit", on_click=lambda: ui.navigate.to(
+                ui.button(_("Facela agora"), icon="check", on_click=facela)
+                ui.button(_("Editar a tarefa"), icon="edit", on_click=lambda: ui.navigate.to(
                     url_seccion(self.horta_id, "tarefas"))).props("flat")
         dialogo.open()
 
@@ -185,7 +186,7 @@ def boton_apuntar_traballo(formularios: Formularios) -> None:
     def botons(tipos: list[str]) -> None:
         with ui.grid().classes("w-full grid-cols-2 sm:grid-cols-3 gap-2"):
             for tipo in tipos:
-                texto = "Tarefa por facer" if tipo == "tarefa" else TIPOS[tipo]
+                texto = _("Tarefa por facer") if tipo == "tarefa" else _(TIPOS[tipo])
 
                 def escollido(tipo: str = tipo) -> None:
                     escoller.close()
@@ -195,24 +196,24 @@ def boton_apuntar_traballo(formularios: Formularios) -> None:
                     "outline stack").classes("w-full")
 
     with ui.dialog() as escoller, ui.card().style("width: min(34rem, 94vw)"):
-        ui.label("Que fixeches?").classes("text-h6")
+        ui.label(_("Que fixeches?")).classes("text-h6")
         botons(principais)
-        with ui.expansion("Outros traballos").classes("w-full"):
+        with ui.expansion(_("Outros traballos")).classes("w-full"):
             botons(outros)
-        ui.button("Cancelar", on_click=escoller.close).props("flat")
-    ui.button("Apuntar traballo", icon="add", on_click=escoller.open)
+        ui.button(_("Cancelar"), on_click=escoller.close).props("flat")
+    ui.button(_("Apuntar traballo"), icon="add", on_click=escoller.open)
     with ui.page_sticky(position="bottom-right", x_offset=16, y_offset=16).classes("lt-md"):
         ui.button(icon="add", on_click=escoller.open).props(
-            'fab color=primary aria-label="Apuntar traballo"')
+            f'fab color=primary aria-label="{_("Apuntar traballo")}"')
 
 
 # Estado no CUE da Xunta (services.envio_cue.estado_cue)
-_CUE = {"aceptado": "no CUE", "enviado": "enviado ao CUE", "erro": "erro no CUE",
-        "pechado": "pechado no CUE"}
+_CUE = {"aceptado": N_("no CUE"), "enviado": N_("enviado ao CUE"), "erro": N_("erro no CUE"),
+        "pechado": N_("pechado no CUE")}
 
 
 def _data(t: Traballo) -> str:
-    return f"{t.data:%d/%m/%Y}" if t.data else "sen data"
+    return f"{t.data:%d/%m/%Y}" if t.data else _("sen data")
 
 
 def tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
@@ -220,8 +221,12 @@ def tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
     with ui.row().classes("tarxeta w-full items-center no-wrap gap-3 cursor-pointer q-pa-sm").on(
             "click", ao_premer):
         ui.icon(ICONAS[t.tipo]).classes("text-h5 text-primary")
+        nome_tipo = _(TIPOS[t.tipo]) if t.tipo in TIPOS else t.tipo
+        texto_titulo = (
+            _("{tipo}: {que}").format(tipo=nome_tipo, que=t.que) if t.que else nome_tipo
+        )
         with ui.column().classes("gap-0 col"):
-            ui.label(TIPOS[t.tipo] + (f": {t.que}" if t.que else "")).classes(
+            ui.label(texto_titulo).classes(
                 "text-weight-bold")
             quen = ", ".join(nomes.get(p, "") for p in t.persoas)
             if t.onde or quen:
@@ -230,12 +235,11 @@ def tarxeta(t: Traballo, ao_premer: Callable[[], None], nomes: dict[int, str],
         with ui.column().classes("items-end gap-0"):
             ui.label(_data(t)).classes("text-caption")
             if t.atrasado:
-                ui.label("atrasada").classes("etiqueta-aviso")
+                ui.label(_("atrasada")).classes("etiqueta-aviso")
             if cue is not None:
-                ui.label(_CUE[cue]).classes("etiqueta-aviso" if cue in ("erro", "pechado")
+                ui.label(_(_CUE[cue])).classes("etiqueta-aviso" if cue in ("erro", "pechado")
                                             else "texto-suave text-caption")
-        boton_fotos(horta_id, t.tipo, t.id, TIPOS[t.tipo] + (f": {t.que}" if t.que else ""),
-                    pode_editar, fotos)
+        boton_fotos(horta_id, t.tipo, t.id, texto_titulo, pode_editar, fotos)
 
 
 def seccion_diario(horta_id: int, pode_editar: bool) -> None:
@@ -256,24 +260,27 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
 
     hoxe = date.today()
     # Pregados, para que no móbil se vexa o primeiro traballo sen baixar (X6)
-    with ui.expansion("Filtrar", icon="filter_list").classes("w-full q-mb-md").props(
+    with ui.expansion(_("Filtrar"), icon="filter_list").classes("w-full q-mb-md").props(
             "dense"), ui.row().classes("w-full items-end gap-2 wrap"):
-        tipo = ui.select({"": "Todos os traballos", **TIPOS}, value="", label="Tipo").classes(
-            "w-56")
-        parcela = ui.select({0: "Todas", **parcelas}, value=0, label="Parcela").classes("w-48")
-        quen = ui.select({0: "Todas", **persoas}, value=0, label="Quen").classes("w-48")
-        estado = ui.select({"": "Feitos e por facer", "por_facer": "Por facer",
-                            "feito": "Feitos"}, value="", label="Estado").classes("w-48")
+        opcions_tipo = {"": _("Todos os traballos"), **{k: _(v) for k, v in TIPOS.items()}}
+        tipo = ui.select(opcions_tipo, value="", label=_("Tipo")).classes("w-56")
+        parcela = ui.select(
+            {0: _("Todas"), **parcelas}, value=0, label=_("Parcela")
+        ).classes("w-48")
+        quen = ui.select({0: _("Todas"), **persoas}, value=0, label=_("Quen")).classes("w-48")
+        estado = ui.select({"": _("Feitos e por facer"), "por_facer": _("Por facer"),
+                            "feito": _("Feitos")}, value="", label=_("Estado")).classes("w-48")
         # A campaña do caderno e do CUE é o ano natural
-        desde = campo_data("Desde", hoxe.replace(month=1, day=1).isoformat()
+        desde = campo_data(_("Desde"), hoxe.replace(month=1, day=1).isoformat()
                            ).classes(remove="w-full", add="w-40")
-        ata = campo_data("Ata", hoxe.isoformat()).classes(remove="w-full", add="w-40")
+        ata = campo_data(_("Ata"), hoxe.isoformat()).classes(remove="w-full", add="w-40")
 
     @ui.refreshable
     def lista() -> None:
         if tipo.value and SECCION_DO_TIPO[tipo.value] != "diario":
-            ui.link(f"Ver a táboa de «{TIPOS[tipo.value]}» con todos os seus datos",
-                    url_seccion(horta_id, SECCION_DO_TIPO[tipo.value]))
+            ui.link(_("Ver a táboa de «{tipo}» con todos os seus datos").format(
+                tipo=_(TIPOS[tipo.value])
+            ), url_seccion(horta_id, SECCION_DO_TIPO[tipo.value]))
         with get_session() as session:
             actor_actual = usuario_actual(session)
             if actor_actual is None:
@@ -293,10 +300,10 @@ def seccion_diario(horta_id: int, pode_editar: bool) -> None:
             and (not estado.value or t.feito == (estado.value == "feito"))
         ]
         if not traballos:
-            ui.label("Non hai traballos con estes filtros.").classes("texto-suave")
+            ui.label(_("Non hai traballos con estes filtros.")).classes("texto-suave")
         por_facer = [t for t in traballos if not t.feito]
         feitos = [t for t in traballos if t.feito]
-        for titulo, grupo in (("Por facer", por_facer), ("Feito", feitos)):
+        for titulo, grupo in ((_("Por facer"), por_facer), (_("Feito"), feitos)):
             if not grupo:
                 continue
             ui.label(titulo).classes("text-subtitle1 text-weight-bold q-mt-md")

@@ -868,9 +868,9 @@ def faltas_memoria(plan: PlanEmpresa) -> list[str]:
         if all(not (getattr(plan, c, None) or "").strip() for c in campos):
             faltas.append(titulo)
     if not plan.actividades:
-        faltas.append("Calendario de 12 meses")
+        faltas.append(N_("Calendario de 12 meses"))
     if not plan.obxectivos:
-        faltas.append("Obxectivos e indicadores")
+        faltas.append(N_("Obxectivos e indicadores"))
     return faltas
 
 

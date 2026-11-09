@@ -9,6 +9,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.abonado import Abonado, Fertilizante
 from horta.models.coidado_animal import CoidadoAnimal
 from horta.models.cultivo import Cultivo
@@ -29,13 +30,13 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 TIPOS_PRODUTO: dict[str, str] = {
-    "fitosanitario": "Fitosanitario",
-    "abono": "Abono",
-    "semente": "Semente ou planta",
-    "medicamento": "Medicamento veterinario",
-    "penso": "Penso",
-    "enerxia": "Enerxía (gasóleo, luz...)",
-    "outro": "Outro",
+    "fitosanitario": N_("Fitosanitario"),
+    "abono": N_("Abono"),
+    "semente": N_("Semente ou planta"),
+    "medicamento": N_("Medicamento veterinario"),
+    "penso": N_("Penso"),
+    "enerxia": N_("Enerxía (gasóleo, luz...)"),
+    "outro": N_("Outro"),
 }
 UNIDADES_PRODUTO = ("kg", "litros", "unidades", "kWh")
 UNIDADES_ENTRADA = ("kg", "t", "litros", "unidades", "ducias", "kWh")
