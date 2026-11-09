@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import csv
+import json
 import secrets
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+from dateutil.parser import parse as parse_date
 from sqlalchemy.orm import Session
 
 from horta.models.cultivo import Cultivo
@@ -547,3 +550,210 @@ def avisos_sensores(
             avisos.append(f"{s.nome}: sen datos desde {data_fmt}")
 
     return avisos
+
+
+def _interpretar_momento_csv(texto: str) -> datetime:
+    """Interpreta un momento en formato ISO ou en formato galego DD/MM/AAAA HH:MM."""
+    t = texto.strip()
+    if not t:
+        raise ValueError("O momento non pode estar baleiro")
+    try:
+        return datetime.fromisoformat(t)
+    except ValueError:
+        pass
+
+    formatos = (
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y",
+        "%d-%m-%Y %H:%M:%S",
+        "%d-%m-%Y %H:%M",
+        "%d-%m-%Y",
+    )
+    for fmt in formatos:
+        try:
+            return datetime.strptime(t, fmt)
+        except ValueError:
+            continue
+
+    try:
+        return parse_date(t, dayfirst=True)
+    except Exception:
+        pass
+
+    raise ValueError(f"Formato de data e hora non recoñecido: '{t}'")
+
+
+def _interpretar_valor_csv(texto: str) -> float:
+    """Interpreta un valor numérico admitindo coma decimal."""
+    t = texto.strip().replace(" ", "").replace(",", ".")
+    if not t:
+        raise ValueError("O valor non pode estar baleiro")
+    return float(t)
+
+
+def importar_csv(
+    session: Session,
+    actor: Usuario,
+    sensor_id: int,
+    contido: bytes,
+) -> int:
+    """Importa lecturas dun CSV para un sensor (tarefa 183b).
+
+    Columnas 'momento;valor' ou 'momento,valor', con cabeceira opcional.
+    O momento pode ser ISO ou 'DD/MM/AAAA HH:MM'; o valor admite coma decimal.
+    Só para roles ADMIN e EDITOR da explotación. Usa rexistrar_lecturas.
+    Se unha fila está mal, devolve erro co número da liña.
+    """
+    sensor = session.get(Sensor, sensor_id)
+    if sensor is None:
+        raise OperacionNonPermitidaError("O sensor non existe")
+
+    comprobar_rol_horta(session, sensor.horta_id, actor, {RolHorta.ADMIN, RolHorta.EDITOR})
+
+    if not contido or not contido.strip():
+        return 0
+
+    try:
+        texto = contido.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            texto = contido.decode("latin-1")
+        except UnicodeDecodeError as err:
+            raise OperacionNonPermitidaError(
+                f"Non se puido decodificar o ficheiro CSV: {err}"
+            )
+
+    linas = texto.splitlines()
+    if not linas:
+        return 0
+
+    ref_agora = datetime.now(timezone.utc)
+
+    lecturas_a_gardar: list[tuple[datetime, float]] = []
+    primeira_fila_feita = False
+
+    for num_lina, lina_raw in enumerate(linas, start=1):
+        lina = lina_raw.strip()
+        if not lina:
+            continue
+
+        delim = ";" if ";" in lina else ","
+        lector = csv.reader([lina], delimiter=delim)
+        try:
+            campos = next(lector)
+        except Exception as err:
+            raise OperacionNonPermitidaError(
+                f"Erro na liña {num_lina}: formato CSV non válido ({err})"
+            )
+
+        if len(campos) == 3 and not campos[2].strip():
+            campos = campos[:2]
+        elif (
+            len(campos) == 3
+            and campos[1].strip().lstrip("-+").isdigit()
+            and campos[2].strip().isdigit()
+        ):
+            campos = [campos[0], f"{campos[1].strip()}.{campos[2].strip()}"]
+
+        if len(campos) != 2:
+            raise OperacionNonPermitidaError(
+                f"Erro na liña {num_lina}: espéranse 2 columnas (momento e valor)"
+            )
+
+        col_momento = campos[0].strip()
+        col_valor = campos[1].strip()
+
+        if not primeira_fila_feita:
+            primeira_fila_feita = True
+            m_baixa = col_momento.lower()
+            v_baixa = col_valor.lower()
+            if (
+                m_baixa in {"momento", "data", "timestamp", "datetime", "data_hora", "data/hora"}
+                or v_baixa in {"valor", "value", "lectura"}
+            ):
+                continue
+
+        try:
+            momento = _interpretar_momento_csv(col_momento)
+        except Exception:
+            raise OperacionNonPermitidaError(
+                f"Erro na liña {num_lina}: data e hora non válidas '{col_momento}'"
+            )
+
+        try:
+            valor = _interpretar_valor_csv(col_valor)
+        except Exception:
+            raise OperacionNonPermitidaError(
+                f"Erro na liña {num_lina}: valor non numérico '{col_valor}'"
+            )
+
+        _comprobar_lectura(sensor, momento, valor, ref_agora, f"Erro na liña {num_lina}")
+        lecturas_a_gardar.append((momento, valor))
+
+    return rexistrar_lecturas(session, sensor, lecturas_a_gardar)
+
+
+
+def _comprobar_lectura(
+    sensor: Sensor, momento: datetime, valor: float, ref_agora: datetime, onde: str
+) -> None:
+    """Momento non futuro (máis de 10 minutos) e valor dentro do rango do tipo."""
+    if _harmonizar_datetime(momento, ref_agora) > ref_agora + timedelta(minutes=10):
+        raise OperacionNonPermitidaError(
+            f"{onde}: o momento non pode estar máis de 10 minutos no futuro")
+    tipo_info = TIPOS_SENSOR.get(sensor.tipo)
+    if tipo_info is None:
+        return
+    if tipo_info.minimo is not None and valor < tipo_info.minimo:
+        raise OperacionNonPermitidaError(
+            f"{onde}: valor {valor} fóra de rango para {sensor.tipo} (mínimo: {tipo_info.minimo})")
+    if tipo_info.maximo is not None and valor > tipo_info.maximo:
+        raise OperacionNonPermitidaError(
+            f"{onde}: valor {valor} fóra de rango para {sensor.tipo} (máximo: {tipo_info.maximo})")
+
+
+def importar_json(session: Session, actor: Usuario, sensor_id: int, contido: bytes) -> int:
+    """Importa lecturas dun JSON: unha lista de {"momento": ..., "valor": ...}.
+
+    O momento e o valor admiten os mesmos formatos ca no CSV. Só ADMIN e EDITOR.
+    """
+    sensor = session.get(Sensor, sensor_id)
+    if sensor is None:
+        raise OperacionNonPermitidaError("O sensor non existe")
+    comprobar_rol_horta(session, sensor.horta_id, actor, {RolHorta.ADMIN, RolHorta.EDITOR})
+    try:
+        datos = json.loads(contido.decode("utf-8-sig"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as err:
+        raise OperacionNonPermitidaError(f"O ficheiro non é un JSON válido ({err})") from err
+    if isinstance(datos, dict) and isinstance(datos.get("lecturas"), list):
+        datos = datos["lecturas"]
+    if not isinstance(datos, list):
+        raise OperacionNonPermitidaError(
+            'O JSON ten que ser unha lista de lecturas: [{"momento": ..., "valor": ...}]')
+    ref_agora = datetime.now(timezone.utc)
+    lecturas_a_gardar: list[tuple[datetime, float]] = []
+    for num, elemento in enumerate(datos, start=1):
+        onde = f"Erro na lectura {num}"
+        if not isinstance(elemento, dict) or "momento" not in elemento or "valor" not in elemento:
+            raise OperacionNonPermitidaError(f"{onde}: faltan «momento» ou «valor»")
+        try:
+            momento = _interpretar_momento_csv(str(elemento["momento"]))
+        except Exception as err:
+            raise OperacionNonPermitidaError(f"{onde}: data e hora non válidas") from err
+        try:
+            valor = _interpretar_valor_csv(str(elemento["valor"]))
+        except Exception as err:
+            raise OperacionNonPermitidaError(f"{onde}: valor non numérico") from err
+        _comprobar_lectura(sensor, momento, valor, ref_agora, onde)
+        lecturas_a_gardar.append((momento, valor))
+    return rexistrar_lecturas(session, sensor, lecturas_a_gardar)
+
+
+def importar_ficheiro(
+    session: Session, actor: Usuario, sensor_id: int, nome: str, contido: bytes
+) -> int:
+    """Importa un CSV ou un JSON segundo a extensión do ficheiro."""
+    if nome.lower().endswith(".json"):
+        return importar_json(session, actor, sensor_id, contido)
+    return importar_csv(session, actor, sensor_id, contido)

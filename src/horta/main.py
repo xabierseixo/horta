@@ -159,8 +159,10 @@ def ver_tesela(capa: str, z: int, x: int, y: int) -> Response:
 
 
 from horta.api.campo import router as campo_router  # noqa: E402
+from horta.api.sensores import router as sensores_router  # noqa: E402
 
 app.include_router(campo_router)
+app.include_router(sensores_router)
 
 _CAMPO_DIR = Path(__file__).parent / "campo"
 app.mount("/campo", StaticFiles(directory=_CAMPO_DIR, html=True), name="campo")
