@@ -36,6 +36,7 @@ from horta.services.parcelas import (
 )
 from horta.services.persoas import nome_completo, titular_da_horta
 from horta.services.recomendacions import recomendacions_pendentes
+from horta.services.sensores import avisos_sensores
 from horta.services.tarefas import (
     actualizar_tarefa,
     contar_tarefas_pendentes,
@@ -174,6 +175,7 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
             avisos_de_pragas.append(f"{nome_c} · {praga}: {a_praga.texto}")
         docs_aviso = documentos_con_aviso(session, actor, horta_id)
         avisos_cert = avisos_certificacions(session, actor, horta_id)
+        avisos_sen = avisos_sensores(session, actor, horta_id)
         recs_pendentes = len(recomendacions_pendentes(session, actor, horta_id))
         visitas_proximas = proximas_visitas(session, actor, horta_id)
         horta_nome = horta.nome
@@ -348,6 +350,11 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
                 ui.icon("warning").classes("text-warning")
                 ui.label(aviso_cert)
                 ui.link("Certificacións", url_seccion(horta_id, "certificacions"))
+        for aviso_sensor in avisos_sen:
+            with ui.row().classes("items-center gap-2 q-mt-sm"):
+                ui.icon("warning").classes("text-warning")
+                ui.label(aviso_sensor)
+                ui.link("Sensores", url_seccion(horta_id, "sensores"))
         if recs_pendentes:
             with ui.row().classes("items-center gap-2 q-mt-sm"):
                 ui.icon("warning").classes("text-warning")

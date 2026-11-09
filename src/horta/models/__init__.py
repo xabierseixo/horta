@@ -66,6 +66,7 @@ from horta.models.producion_animal import ProducionAnimal
 from horta.models.produto import EntradaProduto, Produto
 from horta.models.recomendacion import Recomendacion
 from horta.models.rega import Rega, RegaBoaPractica, RegaCultivo
+from horta.models.sensor import LecturaDiaria, LecturaSensor, Sensor
 from horta.models.tarefa import Tarefa
 from horta.models.tempo import EstacionMeteo, TempoDia
 from horta.models.tratamento_fito import (
@@ -180,4 +181,7 @@ __all__ = [
     "ObservacionPraga",
     "VisitaCampo",
     "RexistroAcceso",
+    "Sensor",
+    "LecturaSensor",
+    "LecturaDiaria",
 ]
