@@ -44,6 +44,7 @@ def login_page() -> None:
                 app.storage.user["usuario_id"] = usuario.id
                 app.storage.user["usuario_nome"] = usuario.nome
                 app.storage.user["usuario_rol"] = usuario.rol.value
+                app.storage.user["idioma"] = usuario.idioma or "gl"
             ui.navigate.to("/")
 
         email_input.on("keydown.enter", tentar_login)

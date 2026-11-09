@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import idiomas_disponibles
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.auth import hash_password, normalizar_email
 from horta.services.errors import OperacionNonPermitidaError, PermisoDenegadoError
@@ -82,3 +83,13 @@ def activar_usuario(session: Session, actor: Usuario, usuario: Usuario) -> Usuar
 def listar_usuarios(session: Session, actor: Usuario) -> list[Usuario]:
     _esixir_admin(actor)
     return list(session.query(Usuario).order_by(Usuario.nome).all())
+
+
+def cambiar_idioma(session: Session, actor: Usuario, codigo: str) -> None:
+    """Cambia o idioma preferido do propio usuario."""
+    if codigo not in idiomas_disponibles():
+        raise OperacionNonPermitidaError("Ese idioma non está dispoñible")
+    actor.idioma = codigo
+    session.add(actor)
+    session.commit()
+

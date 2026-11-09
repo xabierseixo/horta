@@ -7,9 +7,10 @@ from datetime import datetime
 from typing import Any
 
 import segno
-from nicegui import ui
+from nicegui import app, ui
 
 from horta.db import get_session
+from horta.idiomas import IDIOMA_BASE, idiomas_disponibles
 from horta.models.dispositivo import Dispositivo
 from horta.models.usuario import RolGlobal, Usuario
 from horta.services.dispositivos import (
@@ -18,6 +19,7 @@ from horta.services.dispositivos import (
     revogar_dispositivo,
 )
 from horta.services.legal import borrar_minha_conta, exportar_meus_datos
+from horta.services.usuarios import cambiar_idioma
 from horta.ui.accions import executar_accion
 from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.nav import cabeceira_paxina
@@ -54,6 +56,7 @@ def conta_page() -> None:
         actor_id = actor.id
         nome = actor.nome
         email = actor.email
+        actor_idioma = actor.idioma or IDIOMA_BASE
         e_admin_global = actor.rol == RolGlobal.ADMIN
         data_politica = (
             f"Política aceptada o {actor.politica_aceptada_en:%d/%m/%Y}"
@@ -247,6 +250,39 @@ def conta_page() -> None:
                 icon="delete",
                 on_click=abrir_dialogo_borrar,
             ).props("color=negative")
+
+    with ui.card().classes("w-full max-w-xl q-pa-md gap-3 q-mt-md"):
+        ui.label("Idioma").classes("text-subtitle1 text-weight-bold")
+        opcions = idiomas_disponibles()
+        idioma_seleccionado = actor_idioma if actor_idioma in opcions else IDIOMA_BASE
+
+        def ao_cambiar_idioma(e: Any) -> None:
+            novo_codigo = e.value
+            if not novo_codigo or novo_codigo == actor_idioma:
+                return
+            with get_session() as s:
+                actor_db = s.get(Usuario, actor_id)
+                if actor_db is None:
+                    pechar_sesion()
+                    return
+                feito = executar_accion(
+                    s, lambda: cambiar_idioma(s, actor_db, novo_codigo)
+                )
+            if feito:
+                app.storage.user["idioma"] = novo_codigo
+                ui.navigate.reload()
+
+        ui.select(
+            options=opcions,
+            value=idioma_seleccionado,
+            label="Idioma da aplicación",
+            on_change=ao_cambiar_idioma,
+        ).classes("w-full")
+
+        if len(opcions) <= 1:
+            ui.label(
+                "Polo momento só hai galego. Pódense engadir máis idiomas sen cambiar a app."
+            ).classes("texto-suave")
 
     with ui.card().classes("w-full max-w-xl q-pa-md gap-3 q-mt-md"):
         ui.label("App do campo (sen cobertura)").classes("text-subtitle1 text-weight-bold")

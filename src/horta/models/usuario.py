@@ -28,3 +28,4 @@ class Usuario(Base):
     )
     politica_version: Mapped[str | None] = mapped_column(String(20), default=None)
     politica_aceptada_en: Mapped[datetime | None] = mapped_column(DateTime, default=None)
+    idioma: Mapped[str] = mapped_column(String(10), default="gl")
