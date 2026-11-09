@@ -48,6 +48,7 @@ SECCIONS: tuple[Seccion, ...] = (
     Seccion("mapa", "Mapa das terras", "public", "Produción"),
     Seccion("cultivos", "Cultivos", "spa", "Produción"),
     Seccion("animais", "Animais", "pets", "Produción"),
+    Seccion("sensores", "Sensores", "sensors", "Produción"),
     Seccion("equipo", "Equipo", "groups", "Xestión"),
     Seccion("contactos", "Contactos", "contacts", "Xestión"),
     Seccion("maquinaria", "Maquinaria", "agriculture", "Xestión"),

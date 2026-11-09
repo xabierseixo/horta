@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 
 from nicegui import ui
 
@@ -27,6 +27,7 @@ from horta.services.regas import (
     litros_estimados,
     ultimo_sistema_rega,
 )
+from horta.services.sensores import consumo_periodo, listar_sensores
 from horta.services.textos_catalogo import texto_catalogo
 from horta.ui.accions import executar_accion, recargar_apuntado
 from horta.ui.campos import campo_data
@@ -35,6 +36,7 @@ from horta.ui.confirmacion import confirmar_eliminacion
 from horta.ui.facer_tarefa import rematar_tarefa
 from horta.ui.leiras import leiras_escollidas
 from horta.ui.lista_tarxetas import tarxetas_da_taboa
+from horta.ui.necesidades_rega import buscar_humidade_chan, texto_humidade_chan
 from horta.ui.numeros import formatar_decimal, parsear_data, parsear_decimal
 from horta.ui.quen import proposta_quen
 from horta.ui.sesion import pechar_sesion, usuario_actual
@@ -63,6 +65,11 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
                         for v in valores_vixentes(session, "unidade_medida")}
         unidades = {c: unidades_cat.get(c, c) for c in UNIDADES_AUGA}
         necesidades = necesidades_horta(session, actor, horta_id)
+        humidades_cultivos = {}
+        for c_id, c_obj in cultivos_por_id.items():
+            h_info = buscar_humidade_chan(session, actor, c_id, c_obj.parcela_id)
+            if h_info:
+                humidades_cultivos[c_id] = h_info
 
     with ui.column().classes("tarxeta w-full gap-1 q-mb-md"):
         ui.label("Necesidades de rega (últimos 7 días)").classes(
@@ -73,7 +80,9 @@ def seccion_regas(horta_id: int, pode_editar: bool) -> None:
             for n in precisan_auga:
                 nome_leira = cultivos.get(n.cultivo_id, "")
                 falta = formatar_decimal(round(n.falta_mm, 1))
-                ui.label(f"{nome_leira}: faltan uns {falta} l/m²")
+                h_info = humidades_cultivos.get(n.cultivo_id)
+                txt_h = f" · {texto_humidade_chan(h_info[0], h_info[1])}" if h_info else ""
+                ui.label(f"{nome_leira}: faltan uns {falta} l/m²{txt_h}")
         else:
             ui.label("Os cultivos de regadío teñen auga dabondo estes días")
 
@@ -181,6 +190,10 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
                      if "rega" in (v.categoria or "")}
         persoas = {p.id: p.nome for p in listar_quen(session, actor, horta_id)}
         maquinas = {m.id: m.alias for m in listar_maquinas(session, actor, horta_id)}
+        contadores = [
+            s for s in listar_sensores(session, actor, horta_id, so_activos=True)
+            if s.tipo == "contador_auga"
+        ]
 
     editando: dict[str, int | None] = {"id": None, "tarefa": None}
 
@@ -225,8 +238,40 @@ def dialogo_rega(horta_id: int) -> Callable[[Rega | None], None]:
         with ui.row().classes("w-full no-wrap items-center"):
             cantidade = ui.input("Auga").classes("col")
             unidade = ui.select(unidades, value="4", label="Unidade").classes("col")
-        ui.button("Non sei os litros", icon="calculate", on_click=calculadora.open).props(
-            "flat dense")
+        with ui.row().classes("gap-2 items-center"):
+            ui.button("Non sei os litros", icon="calculate", on_click=calculadora.open).props(
+                "flat dense")
+            if contadores:
+                def coller_do_contador() -> None:
+                    inicio = parsear_data(data_inicio.value)
+                    if inicio is None:
+                        ui.notify("Indica a data de inicio", type="warning")
+                        return
+                    fin = parsear_data(data_fin.value) or inicio
+                    dt_desde = datetime(inicio.year, inicio.month, inicio.day, 0, 0, 0)
+                    dt_ata = datetime(fin.year, fin.month, fin.day, 23, 59, 59)
+                    with get_session() as s:
+                        act = usuario_actual(s)
+                        if act is None:
+                            pechar_sesion()
+                            return
+                        consumo = consumo_periodo(
+                            s, act, contadores[0].id, dt_desde, dt_ata
+                        )
+                    if consumo is None:
+                        ui.notify(
+                            "Non hai lecturas do contador nese período",
+                            type="warning",
+                        )
+                        return
+                    cantidade.value = f"{consumo:g}"
+                    unidade.value = "3"
+
+                ui.button(
+                    "Coller do contador",
+                    icon="sensors",
+                    on_click=coller_do_contador,
+                ).props("flat dense")
         with ui.expansion("Máis datos").classes("w-full"):
             data_fin = campo_data("Data de fin (se durou máis dun día)")
             horas = ui.input("Horas de traballo").classes("w-full")

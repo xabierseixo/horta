@@ -2,11 +2,60 @@
 
 from __future__ import annotations
 
+from sqlalchemy.orm import Session
+
+from horta.models.cultivo import Cultivo
+from horta.models.sensor import Sensor
+from horta.models.usuario import Usuario
 from horta.services.necesidades_rega import NecesidadeRega
+from horta.services.sensores import ultima_lectura
 from horta.ui.numeros import formatar_decimal
 
 
-def texto_necesidade(n: NecesidadeRega) -> str:
+def texto_humidade_chan(nome_sensor: str, valor: float) -> str:
+    """Texto para a lectura actual de humidade do chan dun sensor."""
+    return f"Humidade do chan agora: {valor:g} % (sensor {nome_sensor})"
+
+
+def buscar_humidade_chan(
+    session: Session,
+    actor: Usuario,
+    cultivo_id: int,
+    parcela_id: int | None = None,
+) -> tuple[str, float] | None:
+    """Busca o sensor humidade_chan do cultivo ou da súa parcela e a súa última lectura."""
+    sensor = (
+        session.query(Sensor)
+        .filter_by(cultivo_id=cultivo_id, tipo="humidade_chan", activo=True)
+        .first()
+    )
+    if sensor is None:
+        p_id = parcela_id
+        if p_id is None:
+            c = session.get(Cultivo, cultivo_id)
+            if c is not None:
+                p_id = c.parcela_id
+        if p_id is not None:
+            sensor = (
+                session.query(Sensor)
+                .filter_by(parcela_id=p_id, tipo="humidade_chan", activo=True)
+                .first()
+            )
+    if sensor is None:
+        return None
+
+    ult = ultima_lectura(session, actor, sensor.id)
+    if ult is None:
+        return None
+    _, valor = ult
+    return (sensor.nome, valor)
+
+
+def texto_necesidade(
+    n: NecesidadeRega,
+    humidade_chan: float | tuple[str, float] | None = None,
+    nome_sensor: str | None = None,
+) -> str:
     """Devolve a explicación en texto das necesidades de rega calculadas para un cultivo."""
     if n.estado == "ok":
         falta = formatar_decimal(round(n.falta_mm, 1))
@@ -28,17 +77,29 @@ def texto_necesidade(n: NecesidadeRega) -> str:
             )
         elif n.aproximado:
             texto += " · cálculo aproximado"
-        return texto
+    elif n.estado == "secano":
+        texto = "Cultivo de secano"
+    elif n.estado == "sen_coeficiente":
+        texto = "Non hai coeficiente oficial para este cultivo"
+    elif n.estado == "sen_estacion":
+        texto = "Nin a parcela nin a explotación teñen estación de MeteoGalicia"
+    elif n.estado == "sen_data_inicio":
+        texto = "Falta a data de sementeira ou plantación"
+    elif n.estado == "sen_datos":
+        texto = "A estación non ten datos de temperatura nin evapotranspiración destes días"
+    else:
+        texto = ""
 
-    if n.estado == "secano":
-        return "Cultivo de secano"
-    if n.estado == "sen_coeficiente":
-        return "Non hai coeficiente oficial para este cultivo"
-    if n.estado == "sen_estacion":
-        return "Nin a parcela nin a explotación teñen estación de MeteoGalicia"
-    if n.estado == "sen_data_inicio":
-        return "Falta a data de sementeira ou plantación"
-    if n.estado == "sen_datos":
-        return "A estación non ten datos de temperatura nin evapotranspiración destes días"
+    if humidade_chan is not None:
+        if isinstance(humidade_chan, tuple):
+            s_nome, s_val = humidade_chan
+        else:
+            s_nome = nome_sensor or ""
+            s_val = humidade_chan
+        txt_h = texto_humidade_chan(s_nome, s_val)
+        if texto:
+            texto = f"{texto} · {txt_h}"
+        else:
+            texto = txt_h
 
-    return ""
+    return texto

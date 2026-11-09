@@ -99,6 +99,7 @@ from horta.ui.pages.recomendacions import (
     texto_aviso_recomendacions,
 )
 from horta.ui.pages.regas import seccion_regas
+from horta.ui.pages.sensores import seccion_sensores
 from horta.ui.pages.terras import seccion_terras
 from horta.ui.pages.tratamentos import seccion_tratamentos_fito
 from horta.ui.pages.tratamentos_instalacion import seccion_tratamentos_instalacion
@@ -455,6 +456,8 @@ def horta_detalle_page(horta_id: int, seccion: str) -> None:
         _seccion_tarefas(horta_id, tarefas, parcelas, cultivos, pode_editar)
     elif seccion == "animais":
         seccion_animais(horta_id, pode_editar)
+    elif seccion == "sensores":
+        seccion_sensores(horta_id, pode_editar, e_horta_admin)
     elif seccion == "movementos":
         seccion_movementos(horta_id, pode_editar)
     elif seccion == "producion":
