@@ -263,7 +263,7 @@ def test_avisos_limite_e_sen_datos(session):
     # Lectura sen datos desde hai máis de 24 h
     t_futuro_25h = t2 + timedelta(hours=25)
     avisos_sen_datos = avisos_sensores(session, ana, horta.id, agora=t_futuro_25h)
-    assert any("sen datos desde 08/11 12:00" in a for a in avisos_sen_datos)
+    assert any("sen datos desde 08/11 13:00" in a for a in avisos_sen_datos)
 
     # Dentro das 24 h non sae o aviso de sen datos
     t_futuro_5h = t2 + timedelta(hours=5)

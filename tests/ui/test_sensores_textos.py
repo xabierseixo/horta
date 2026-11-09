@@ -110,12 +110,13 @@ def test_texto_ultima_lectura():
     assert texto_ultima_lectura(None) == "—"
 
     momento = datetime(2026, 11, 9, 10, 30)
-    assert texto_ultima_lectura((momento, 23.5), "°C") == "23.5 °C (09/11 10:30)"
-    assert texto_ultima_lectura((momento, 40.0), "%") == "40 % (09/11 10:30)"
-    assert texto_ultima_lectura((momento, 12.0), "") == "12 (09/11 10:30)"
+    # Gárdase en UTC; amósase en hora de Galiza (novembro: UTC+1)
+    assert texto_ultima_lectura((momento, 23.5), "°C") == "23.5 °C (09/11 11:30)"
+    assert texto_ultima_lectura((momento, 40.0), "%") == "40 % (09/11 11:30)"
+    assert texto_ultima_lectura((momento, 12.0), "") == "12 (09/11 11:30)"
 
     sensor = _crear_sensor_proba(unidade="mm")
-    assert texto_ultima_lectura(sensor, (momento, 5.2)) == "5.2 mm (09/11 10:30)"
+    assert texto_ultima_lectura(sensor, (momento, 5.2)) == "5.2 mm (09/11 11:30)"
 
 
 def test_texto_localizacion():
@@ -160,7 +161,7 @@ def test_opcions_grafica_sensor():
 
     opcions = opcions_grafica_sensor(sensor, lecturas)
     assert opcions is not None
-    assert opcions["xAxis"]["data"] == ["09/11 08:00", "09/11 09:00"]
+    assert opcions["xAxis"]["data"] == ["09/11 09:00", "09/11 10:00"]
     assert opcions["yAxis"]["name"] == "°C"
     assert len(opcions["series"]) == 1
 

@@ -8,6 +8,7 @@ import secrets
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from dateutil.parser import parse as parse_date
 from sqlalchemy.orm import Session
@@ -80,6 +81,16 @@ def _comprobar_recursos_horta(
         instalacion = session.get(Instalacion, instalacion_id)
         if instalacion is None or instalacion.horta_id != horta_id:
             raise OperacionNonPermitidaError("A instalación non pertence a esta explotación")
+
+
+ZONA_GALIZA = ZoneInfo("Europe/Madrid")
+
+
+def hora_local(momento: datetime) -> datetime:
+    """Hora de Galiza (sen zona) dun momento gardado en UTC sen zona."""
+    if momento.tzinfo is None:
+        momento = momento.replace(tzinfo=timezone.utc)
+    return momento.astimezone(ZONA_GALIZA).replace(tzinfo=None)
 
 
 def _harmonizar_datetime(dt: datetime, ref: datetime) -> datetime:
@@ -546,7 +557,7 @@ def avisos_sensores(
 
         m_cmp = _harmonizar_datetime(ult.momento, ref_agora)
         if ref_agora - m_cmp > timedelta(hours=24):
-            data_fmt = ult.momento.strftime("%d/%m %H:%M")
+            data_fmt = hora_local(ult.momento).strftime("%d/%m %H:%M")
             avisos.append(f"{s.nome}: sen datos desde {data_fmt}")
 
     return avisos

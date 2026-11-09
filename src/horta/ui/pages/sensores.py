@@ -20,6 +20,7 @@ from horta.services.sensores import (
     baixa_sensor,
     consumo_periodo,
     crear_sensor,
+    hora_local,
     importar_ficheiro,
     lecturas,
     listar_sensores,
@@ -85,7 +86,7 @@ def texto_ultima_lectura(
         return "—"
     momento, valor = lectura
     u_str = f" {u}".rstrip() if u else ""
-    hora_str = momento.strftime("%d/%m %H:%M")
+    hora_str = hora_local(momento).strftime("%d/%m %H:%M")
     return f"{valor:g}{u_str} ({hora_str})"
 
 
@@ -119,7 +120,7 @@ def opcions_grafica_sensor(
     if not lecturas:
         return None
 
-    datas_str = [m.strftime("%d/%m %H:%M") for m, _ in lecturas]
+    datas_str = [hora_local(m).strftime("%d/%m %H:%M") for m, _ in lecturas]
     valores = [float(v) for _, v in lecturas]
 
     serie: dict[str, Any] = {
@@ -162,7 +163,9 @@ def _exemplo_curl(url_completa: str, clave: str) -> str:
     )
 
 
-def dialogo_clave_sensor() -> Callable[[str, str], None]:
+def dialogo_clave_sensor(
+    ao_pechar: Callable[[], None] | None = None,
+) -> Callable[[str, str], None]:
     """Diálogo que amosa a clave do sensor unha soa vez, con URL e curl de exemplo."""
     with (
         ui.dialog().props("persistent") as dialog,
@@ -215,7 +218,12 @@ def dialogo_clave_sensor() -> Callable[[str, str], None]:
                 icon="terminal",
                 on_click=copiar_curl,
             ).props("flat dense")
-            ui.button("Entendido / Pechar", on_click=dialog.close).props("flat")
+            def pechar() -> None:
+                dialog.close()
+                if ao_pechar:
+                    ao_pechar()
+
+            ui.button("Entendido / Pechar", on_click=pechar).props("flat")
 
     def abrir(nome_sensor: str, clave: str) -> None:
         titulo.text = f"Clave para «{nome_sensor}»"
@@ -401,9 +409,10 @@ def dialogo_sensor(
             if ok:
                 dialog.close()
                 if res_novo and on_clave_xerada:
+                    # A lista refréscase ao pechar o diálogo da clave, que só se ve agora
                     s_novo, c_nova = res_novo[0]
                     on_clave_xerada(s_novo.nome, c_nova)
-                if on_gardado:
+                elif on_gardado:
                     on_gardado()
 
         with ui.row().classes("w-full items-center justify-between q-mt-md"):
@@ -668,7 +677,7 @@ def seccion_sensores(horta_id: int, pode_editar: bool, e_horta_admin: bool = Fal
                 }
             )
 
-    abrir_clave = dialogo_clave_sensor()
+    abrir_clave = dialogo_clave_sensor(ao_pechar=lambda: ui.navigate.reload())
     abrir_axuda = dialogo_axuda_sensores()
 
     abrir_ficha: Callable[[Sensor], None]
