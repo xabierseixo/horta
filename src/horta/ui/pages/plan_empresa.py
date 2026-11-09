@@ -10,6 +10,7 @@ from typing import Any
 from nicegui import ui
 
 from horta.db import get_session
+from horta.idiomas import N_, _, ngettext
 from horta.models.persoa import Persoa
 from horta.models.plan_empresa import (
     PlanActividade,
@@ -36,7 +37,6 @@ from horta.services.plan_empresa import (
     Revision,
     actualizar_plan,
     ano_de_referencia,
-    anos_texto,
     avisos_plan,
     comparar_recan,
     conta,
@@ -76,8 +76,8 @@ from horta.ui.numeros import parsear_decimal
 from horta.ui.sesion import pechar_sesion, usuario_actual
 
 MESES_TESOURARIA = [
-    "Xan", "Feb", "Mar", "Abr", "Mai", "Xuñ",
-    "Xul", "Ago", "Set", "Out", "Nov", "Dec",
+    N_("Xan"), N_("Feb"), N_("Mar"), N_("Abr"), N_("Mai"), N_("Xuñ"),
+    N_("Xul"), N_("Ago"), N_("Set"), N_("Out"), N_("Nov"), N_("Dec"),
 ]
 
 
@@ -114,7 +114,9 @@ def texto_tir(tir: float | None) -> str:
 
 def texto_payback(payback: int | None) -> str:
     """Pay-back en «N anos» ou «—»."""
-    return anos_texto(payback)
+    if payback is None:
+        return "—"
+    return ngettext("{n} ano", "{n} anos", payback).format(n=payback)
 
 
 def texto_valor_unidade(valor: float | None, unidade: str) -> str:
@@ -130,50 +132,73 @@ def texto_comparacion(c: Comparacion) -> str:
     """Liña de comparación coa media galega."""
     plan_txt = texto_valor_unidade(c.plan, c.unidade)
     media_txt = texto_valor_unidade(c.media, c.unidade)
-    return f"{c.indicador}: o teu plan {plan_txt} · media galega {media_txt}"
+    return _("{indicador}: o teu plan {plan} · media galega {media}").format(
+        indicador=_(c.indicador), plan=plan_txt, media=media_txt
+    )
 
 
 def nota_comparacion(c: Comparacion) -> str | None:
     """Nota explicativa da comparación ou aviso se falta superficie ou UTA."""
     if c.plan is None and c.indicador == "Produción por hectárea":
-        return "Pon a superficie das parcelas para comparar"
+        return _("Pon a superficie das parcelas para comparar")
     if c.plan is None and c.indicador in ("Produción por UTA", "Resultado por UTA"):
-        return "Pon as UTA mantidas ou creadas (Datos) para comparar"
-    return c.nota
+        return _("Pon as UTA mantidas ou creadas (Datos) para comparar")
+    return _(c.nota) if c.nota else None
 
 
 def texto_venda(v: PlanVenda) -> str:
     """Texto para a liña dunha venda prevista en detalle."""
-    canle = CANLES.get(v.canle, v.canle)
-    importe, _ = vendas_do_ano(v, 1)
+    canle = _(CANLES.get(v.canle, v.canle))
+    importe, _custo = vendas_do_ano(v, 1)
     partes = [
-        f"{v.produto} · {canle}: {_n(v.cantidade)} {v.unidade} a {_n(v.prezo)} € "
-        f"(ano 1: {_e(importe)})"
+        _("{produto} · {canle}: {cantidade} {unidade} a {prezo} € (ano 1: {importe})").format(
+            produto=v.produto,
+            canle=canle,
+            cantidade=_n(v.cantidade),
+            unidade=v.unidade,
+            prezo=_n(v.prezo),
+            importe=_e(importe),
+        )
     ]
     if v.custo_unitario is not None:
-        partes.append(f"custo {_n(v.custo_unitario)} €/{v.unidade}")
+        partes.append(
+            _("custo {custo} €/{unidade}").format(custo=_n(v.custo_unitario), unidade=v.unidade)
+        )
     cq = v.crece_cantidade_pct or 0
     cp = v.crece_prezo_pct or 0
     if cq != 0 or cp != 0:
         if cq != 0 and cp != 0:
-            x = f"{_n(cq)}" if cq == cp else f"{_n(cq)} cantidade, {_n(cp)} prezo"
+            x = (
+                f"{_n(cq)}"
+                if cq == cp
+                else _("{cantidade} cantidade, {prezo} prezo").format(
+                    cantidade=_n(cq), prezo=_n(cp)
+                )
+            )
         elif cq != 0:
             x = f"{_n(cq)}"
         else:
             x = f"{_n(cp)}"
-        partes.append(f"crece {x} %/ano")
+        partes.append(_("crece {x} %/ano").format(x=x))
     meses = meses_de(v.meses)
     if meses != list(range(1, 13)):
-        partes.append(f"meses {', '.join(str(m) for m in meses)}")
+        partes.append(_("meses {meses}").format(meses=", ".join(str(m) for m in meses)))
     return " · ".join(partes)
 
 
 def texto_marxe(m: MarxeVenda) -> str:
     """Texto para a liña da marxe por venda no ano 1."""
+    canle = _(CANLES.get(m.canle, m.canle))
     pct = f"{_n(m.marxe_pct)} %" if m.marxe_pct is not None else "—"
-    return (
-        f"{m.produto} · {m.canle}: vende {_e(m.importe)}, custa {_e(m.custo)}, "
-        f"deixa {_e(m.marxe)} ({pct})"
+    return _(
+        "{produto} · {canle}: vende {importe}, custa {custo}, deixa {marxe} ({pct})"
+    ).format(
+        produto=m.produto,
+        canle=canle,
+        importe=_e(m.importe),
+        custo=_e(m.custo),
+        marxe=_e(m.marxe),
+        pct=pct,
     )
 
 
@@ -183,20 +208,22 @@ def opcions_tesouraria(meses: list[MesTesouraria]) -> dict[str, Any]:
         "tooltip": {"trigger": "axis"},
         "legend": {"top": 0},
         "grid": {"left": 50, "right": 50, "top": 40, "bottom": 30},
-        "xAxis": {"type": "category", "data": MESES_TESOURARIA},
+        "xAxis": {"type": "category", "data": [_(m) for m in MESES_TESOURARIA]},
         "yAxis": {"type": "value"},
         "series": [
-            {"name": "Cobros", "type": "bar", "data": [m.cobros for m in meses]},
-            {"name": "Pagos", "type": "bar", "data": [m.pagos for m in meses]},
-            {"name": "Saldo acumulado", "type": "line", "data": [m.saldo for m in meses]},
+            {"name": _("Cobros"), "type": "bar", "data": [m.cobros for m in meses]},
+            {"name": _("Pagos"), "type": "bar", "data": [m.pagos for m in meses]},
+            {"name": _("Saldo acumulado"), "type": "line", "data": [m.saldo for m in meses]},
         ],
     }
 
 
 def texto_actividade(a: PlanActividade) -> str:
     """Texto para a liña dunha actividade do calendario."""
-    rango = f"Mes {a.mes_inicio}" if a.mes_inicio == a.mes_fin else (
-        f"Mes {a.mes_inicio}–{a.mes_fin}"
+    rango = (
+        _("Mes {mes}").format(mes=a.mes_inicio)
+        if a.mes_inicio == a.mes_fin
+        else _("Mes {inicio}–{fin}").format(inicio=a.mes_inicio, fin=a.mes_fin)
     )
     responsable = getattr(a, "responsable", None)
     resp = f" · {responsable}" if responsable else ""
@@ -205,13 +232,15 @@ def texto_actividade(a: PlanActividade) -> str:
 
 def texto_obxectivo(o: PlanObxectivo) -> str:
     """Texto para a liña dun obxectivo co seu indicador."""
-    res = f"{o.obxectivo} — mídese con {o.indicador}"
+    res = _("{obxectivo} — mídese con {indicador}").format(
+        obxectivo=o.obxectivo, indicador=o.indicador
+    )
     meta = getattr(o, "meta", None)
     if meta:
-        res += f" · meta: {meta}"
+        res += _(" · meta: {meta}").format(meta=meta)
     prazo = getattr(o, "prazo", None)
     if prazo:
-        res += f" · prazo: {prazo}"
+        res += _(" · prazo: {prazo}").format(prazo=prazo)
     return res
 
 
@@ -229,7 +258,7 @@ def _accion(funcion: Any) -> None:
 
 def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
     if not pode_editar:
-        ui.label("Só quen pode editar a explotación ve o plan de empresa.").classes(
+        ui.label(_("Só quen pode editar a explotación ve o plan de empresa.")).classes(
             "texto-suave")
         return
     with get_session() as session:
@@ -250,36 +279,53 @@ def seccion_plan_empresa(horta_id: int, pode_editar: bool) -> None:
                  session.query(Persoa).filter_by(horta_id=horta_id)}
 
     with ui.row().classes("items-end gap-2"):
-        titulo = ui.input("Título do novo plan").classes("w-64")
-        ano1 = ui.input("Ano 1", value=str(date.today().year + 1)).classes("w-24")
-        ui.button("Novo plan", icon="add", on_click=lambda: _accion(
+        titulo = ui.input(_("Título do novo plan")).classes("w-64")
+        ano1 = ui.input(_("Ano 1"), value=str(date.today().year + 1)).classes("w-24")
+        ui.button(_("Novo plan"), icon="add", on_click=lambda: _accion(
             lambda s, a: crear_plan(s, a, horta_id, titulo.value or "",
                                     int(parsear_decimal(ano1.value) or date.today().year))))
-    referencia = "ao ano pasado" if ano_real < date.today().year else (
-        f"ao que levas de {ano_real}")
-    ui.label(f"Os 5 anos propóñense iguais {referencia} en Contas; cámbiaos na conta."
-             ).classes("texto-suave text-caption")
+    referencia = (
+        _("ao ano pasado")
+        if ano_real < date.today().year
+        else _("ao que levas de {ano}").format(ano=ano_real)
+    )
+    ui.label(
+        _("Os 5 anos propóñense iguais {referencia} en Contas; cámbiaos na conta.").format(
+            referencia=referencia
+        )
+    ).classes("texto-suave text-caption")
 
     for plan in plans:
-        with ui.expansion(f"{plan.titulo} · ano 1: {plan.ano_inicio}", icon="business_center"
-                          ).classes("w-full tarxeta q-mt-md"):
+        with ui.expansion(
+            _("{titulo} · ano 1: {ano}").format(titulo=plan.titulo, ano=plan.ano_inicio),
+            icon="business_center",
+        ).classes("w-full tarxeta q-mt-md"):
             _plan(plan, segue[plan.id], faltas[plan.id], docs[plan.id],
                   {p.id: nome_completo(p) for p in provedores}, nomes,
                   revs[plan.id], comps[plan.id])
 
-    with ui.expansion(f"Métricas da explotación en {ano_real}", icon="insights").classes(
-            "w-full tarxeta q-mt-md"):
-        for nome, valores, unidade in (("Rendemento", met.rendemento, " kg/ha"),
-                                       ("Prezo medio de venda", met.prezo_medio, " €"),
-                                       ("Refugo", met.refugo_pct, " %")):
+    with ui.expansion(
+        _("Métricas da explotación en {ano}").format(ano=ano_real), icon="insights"
+    ).classes("w-full tarxeta q-mt-md"):
+        for nome, valores, unidade in ((_("Rendemento"), met.rendemento, " kg/ha"),
+                                       (_("Prezo medio de venda"), met.prezo_medio, " €"),
+                                       (_("Refugo"), met.refugo_pct, " %")):
             ui.label(nome).classes("text-weight-bold")
             if not valores:
-                ui.label("Sen datos").classes("texto-suave")
+                ui.label(_("Sen datos")).classes("texto-suave")
             for clave, valor in valores.items():
                 ui.label(f"{clave}: {valor:g}{unidade}")
-        ui.label(f"Horas de traballo: {met.horas:g} ({met.uta:g} UTA)")
-        ui.label("Punto morto (vendas para cubrir custos): "
-                 + (_e(met.punto_morto) if met.punto_morto is not None else "sen datos"))
+        ui.label(
+            _("Horas de traballo: {horas:g} ({uta:g} UTA)").format(
+                horas=met.horas, uta=met.uta
+            )
+        )
+        punto_morto_txt = (
+            _e(met.punto_morto) if met.punto_morto is not None else _("sen datos")
+        )
+        ui.label(
+            _("Punto morto (vendas para cubrir custos): {pm}").format(pm=punto_morto_txt)
+        )
 
 
 def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Documento],
@@ -287,76 +333,96 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
           rev: Revision | None = None, comps: list[Comparacion] | None = None) -> None:
     ind = indicadores(plan)
     if faltas:
-        ui.label("Para presentalo falta: " + "; ".join(faltas) + ".").classes(
-            "etiqueta-aviso")
+        ui.label(
+            _("Para presentalo falta: {faltas}.").format(
+                faltas="; ".join(_(f) for f in faltas)
+            )
+        ).classes("etiqueta-aviso")
     for aviso in avisos_plan(plan):
-        ui.label(aviso).classes("etiqueta-aviso")
+        ui.label(_(aviso)).classes("etiqueta-aviso")
     with ui.row().classes("gap-6"):
-        ui.label(f"Investimento: {_e(ind.investimento)} (con IVE {_e(ind.investimento_con_iva)})")
-        ui.label(f"VAN: {_e(ind.van)}")
-        ui.label(f"TIR: {texto_tir(ind.tir)}")
-        ui.label(f"Pay-back: {texto_payback(ind.payback)}")
+        ui.label(
+            _("Investimento: {inv} (con IVE {con_iva})").format(
+                inv=_e(ind.investimento), con_iva=_e(ind.investimento_con_iva)
+            )
+        )
+        ui.label(_("VAN: {van}").format(van=_e(ind.van)))
+        ui.label(_("TIR: {tir}").format(tir=texto_tir(ind.tir)))
+        ui.label(_("Pay-back: {pb}").format(pb=texto_payback(ind.payback)))
 
-    ui.label("Como vai o plan").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Como vai o plan")).classes("text-subtitle1 text-weight-bold q-mt-md")
     for s in semaforo(plan):
         with ui.row().classes("items-center gap-2"):
             ui.icon("circle", color=cor_do_sinal(s.cor))
-            ui.label(f"{s.nome}: {s.texto}")
+            ui.label(f"{_(s.nome)}: {_(s.texto)}")
 
-    with ui.expansion("Que se pode afirmar e que falta probar").classes("w-full"):
+    with ui.expansion(_("Que se pode afirmar e que falta probar")).classes("w-full"):
         if rev and rev.afirmable:
-            ui.label("Pódese afirmar").classes("text-weight-bold")
+            ui.label(_("Pódese afirmar")).classes("text-weight-bold")
             for texto in rev.afirmable:
                 with ui.row().classes("items-center gap-2"):
                     ui.icon("check", color="positive")
-                    ui.label(texto)
+                    ui.label(_(texto))
         if rev and rev.falta_probar:
-            ui.label("Falta probar").classes("text-weight-bold")
+            ui.label(_("Falta probar")).classes("text-weight-bold")
             for texto in rev.falta_probar:
                 with ui.row().classes("items-center gap-2"):
                     ui.icon("help_outline", color="warning")
-                    ui.label(texto)
+                    ui.label(_(texto))
 
-    ui.label("Datos (Anexo III)").classes("text-subtitle1 text-weight-bold q-mt-md")
-    tipoloxia = ui.select({k: t.texto for k, t in TIPOLOXIAS.items()}, label="Tipoloxía",
-                          value=plan.tipoloxia, clearable=True).classes("w-full")
+    ui.label(_("Datos (Anexo III)")).classes("text-subtitle1 text-weight-bold q-mt-md")
+    tipoloxia = ui.select(
+        {k: _(t.texto) for k, t in TIPOLOXIAS.items()},
+        label=_("Tipoloxía"),
+        value=plan.tipoloxia,
+        clearable=True,
+    ).classes("w-full")
     if plan.tipoloxia in TIPOLOXIAS:
-        ui.label(f"Axuda: {TIPOLOXIAS[plan.tipoloxia].axuda}").classes(
-            "texto-suave text-caption")
+        ui.label(
+            _("Axuda: {axuda}").format(axuda=_(TIPOLOXIAS[plan.tipoloxia].axuda))
+        ).classes("texto-suave text-caption")
     with ui.row().classes("gap-2"):
-        proxecto = {c: ui.input(e, value=str(getattr(plan, c) or "")).classes("w-40")
-                    for c, e in (("expediente", "Nº de expediente"),
-                                 ("anualidade", "Anualidade"), ("submedida", "Submedida"),
-                                 ("gdr", "Grupo (GDR)"))}
-    ui.label("O expediente, a anualidade e a submedida dáos o GDR.").classes(
-        "texto-suave text-caption")
+        proxecto = {
+            c: ui.input(_(e), value=str(getattr(plan, c) or "")).classes("w-40")
+            for c, e in (
+                ("expediente", "Nº de expediente"),
+                ("anualidade", "Anualidade"),
+                ("submedida", "Submedida"),
+                ("gdr", "Grupo (GDR)"),
+            )
+        }
+    ui.label(_("O expediente, a anualidade e a submedida dáos o GDR.")).classes(
+        "texto-suave text-caption"
+    )
     with ui.row().classes("items-end gap-2"):
-        nova = ui.checkbox("Empresa nova", value=plan.empresa_nova)
-        cnae = ui.input("CNAE", value=plan.cnae or "").classes("w-32")
-        participada = ui.checkbox("Participa ou está participada nun 25 % ou máis",
+        nova = ui.checkbox(_("Empresa nova"), value=plan.empresa_nova)
+        cnae = ui.input(_("CNAE"), value=plan.cnae or "").classes("w-32")
+        participada = ui.checkbox(_("Participa ou está participada nun 25 % ou máis"),
                                   value=plan.participada)
     with ui.row().classes("gap-2"):
-        empresa = {c: ui.input(e, value="" if getattr(plan, c) is None
+        empresa = {c: ui.input(_(e), value="" if getattr(plan, c) is None
                                else f"{getattr(plan, c):g}").classes("w-36")
                    for c, e in (("traballadores", "Nº de persoas traballadoras"),
                                 ("facturacion", "Facturación (€)"), ("balance", "Balance (€)"))}
-    recuperable = ui.checkbox("O IVE é recuperable (se non o é, o investimento conta con IVE)",
+    recuperable = ui.checkbox(
+        _("O IVE é recuperable (se non o é, o investimento conta con IVE)"),
                       value=plan.iva_recuperable)
-    textos = {c: ui.textarea(e, value=getattr(plan, c) or "").classes("w-full")
+    textos = {c: ui.textarea(_(e), value=getattr(plan, c) or "").classes("w-full")
               for c, e in (("descricion", "1. Descrición, obxectivos e finalidade"),
                            ("proceso", "2. Proceso e medios humanos e materiais"),
                            ("formacion", "4. Formación do promotor"))}
     with ui.row().classes("gap-2"):
-        utas = {c: ui.input(e, value=f"{getattr(plan, c):g}").classes("w-28")
+        utas = {c: ui.input(_(e), value=f"{getattr(plan, c):g}").classes("w-28")
                 for c, e in (("uta_mantidas", "UTA mantidas"), ("uta_creadas", "UTA creadas"),
                              ("uta_mulleres", "…mulleres"), ("uta_mozas", "…mozas"),
                              ("uta_maiores", "…maiores"),
                              ("uta_discapacidade", "…discapacidade"),
                              ("uta_outros", "…outros"))}
-    taxa = ui.input("Taxa para o VAN (p.ex. 0,03)", value=f"{plan.taxa_desconto:g}").classes(
-        "w-48")
-    ui.label("Declaracións do Anexo VI-B").classes("text-weight-medium")
-    declaracions = {c: ui.checkbox(e, value=getattr(plan, c))
+    taxa = ui.input(
+        _("Taxa para o VAN (p.ex. 0,03)"), value=f"{plan.taxa_desconto:g}"
+    ).classes("w-48")
+    ui.label(_("Declaracións do Anexo VI-B")).classes("text-weight-medium")
+    declaracions = {c: ui.checkbox(_(e), value=getattr(plan, c))
                     for c, e in (
                         ("ofertas_autenticas", "As ofertas son auténticas"),
                         ("sen_vinculo_promotor",
@@ -364,7 +430,7 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
                         ("sen_vinculo_entre_provedores",
                          "As empresas provedoras de cada gasto non están vinculadas entre elas"),
                     )}
-    ui.button("Gardar os datos", icon="check", on_click=lambda: _accion(
+    ui.button(_("Gardar os datos"), icon="check", on_click=lambda: _accion(
         lambda s, a: actualizar_plan(
             s, a, s.get(PlanEmpresa, plan.id), empresa_nova=nova.value,
             cnae=cnae.value or None, tipoloxia=tipoloxia.value or None,
@@ -378,10 +444,12 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             **{c: parsear_decimal(u.value) or 0 for c, u in utas.items()},
             taxa_desconto=parsear_decimal(taxa.value) or 0))).props("outline")
 
-    ui.label("Vendas en detalle").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(_("Vendas en detalle")).classes("text-subtitle1 text-weight-bold q-mt-md")
     ui.label(
-        "Se engades as vendas por produto e canle, a conta calcula con elas as vendas de cada "
-        "ano (e os custos variables, se pos o custo por unidade)."
+        _(
+            "Se engades as vendas por produto e canle, a conta calcula con elas as vendas de cada "
+            "ano (e os custos variables, se pos o custo por unidade)."
+        )
     ).classes("texto-suave text-caption")
 
     for v in plan.vendas_detalle:
@@ -397,21 +465,25 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             ).props("flat dense round size=sm color=negative")
 
     with ui.row().classes("items-end gap-2"):
-        v_produto = ui.input("Produto").classes("w-40")
-        v_unidade = ui.input("Unidade", value="kg").classes("w-20")
-        v_canle = ui.select(CANLES, label="Canle", value="explotacion").classes("w-48")
-        v_cantidade = ui.input("Cantidade (ano 1)").classes("w-32")
-        v_prezo = ui.input("Prezo €/unidade").classes("w-28")
-        v_custo = ui.input("Custo €/unidade").classes("w-28")
-        v_crece_cant = ui.input("Crece cantidade %/ano").classes("w-36")
-        v_crece_prezo = ui.input("Crece prezo %/ano").classes("w-32")
+        v_produto = ui.input(_("Produto")).classes("w-40")
+        v_unidade = ui.input(_("Unidade"), value="kg").classes("w-20")
+        v_canle = ui.select(
+            {k: _(v) for k, v in CANLES.items()},
+            label=_("Canle"),
+            value="explotacion",
+        ).classes("w-48")
+        v_cantidade = ui.input(_("Cantidade (ano 1)")).classes("w-32")
+        v_prezo = ui.input(_("Prezo €/unidade")).classes("w-28")
+        v_custo = ui.input(_("Custo €/unidade")).classes("w-28")
+        v_crece_cant = ui.input(_("Crece cantidade %/ano")).classes("w-36")
+        v_crece_prezo = ui.input(_("Crece prezo %/ano")).classes("w-32")
         v_meses = ui.select(
             {m: str(m) for m in range(1, 13)},
-            label="Meses de venda",
+            label=_("Meses de venda"),
             multiple=True,
         ).classes("w-40")
         ui.button(
-            "Engadir",
+            _("Engadir"),
             icon="add",
             on_click=lambda: _accion(
                 lambda s, a: engadir_venda(
@@ -450,14 +522,20 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             if ok:
                 n = resultado["n"]
                 if n > 0:
-                    ui.notify(f"Engadíronse {n} vendas")
+                    ui.notify(
+                        ngettext(
+                            "Engadiuse {n} venda",
+                            "Engadíronse {n} vendas",
+                            n,
+                        ).format(n=n)
+                    )
                     ui.navigate.reload()
                 else:
-                    ui.notify("Non hai vendas con importe ese ano")
+                    ui.notify(_("Non hai vendas con importe ese ano"))
 
-        ui.button("Propoñer desde as vendas reais", on_click=propor_vendas).props("outline")
+        ui.button(_("Propoñer desde as vendas reais"), on_click=propor_vendas).props("outline")
     else:
-        ui.label("Marxe por produto e canle (ano 1)").classes("text-weight-bold q-mt-sm")
+        ui.label(_("Marxe por produto e canle (ano 1)")).classes("text-weight-bold q-mt-sm")
         for m in marxes_por_venda(plan):
             ui.label(texto_marxe(m))
 

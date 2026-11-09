@@ -9,6 +9,7 @@ from typing import Any
 from openpyxl import Workbook
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.abonado import Fertilizante
 from horta.models.certificacion import Certificacion, PuntoAutoavaliacion
 from horta.models.cultivo import Cultivo
@@ -30,14 +31,14 @@ _ROLES_ESCRITURA = {RolHorta.ADMIN, RolHorta.EDITOR}
 _ROLES_LECTURA = {RolHorta.ADMIN, RolHorta.EDITOR, RolHorta.LECTOR}
 
 ESQUEMAS: dict[str, str] = {
-    "ecoloxica": "Agricultura e gandaría ecolóxica (CRAEGA)",
-    "dop_igp": "Denominación de orixe ou IGP",
-    "producion_integrada": "Produción integrada",
-    "globalgap": "GlobalG.A.P.",
-    "qs": "QS",
-    "leaf": "LEAF Marque",
-    "demeter": "Demeter (biodinámica)",
-    "outro": "Outro selo",
+    "ecoloxica": N_("Agricultura e gandaría ecolóxica (CRAEGA)"),
+    "dop_igp": N_("Denominación de orixe ou IGP"),
+    "producion_integrada": N_("Produción integrada"),
+    "globalgap": N_("GlobalG.A.P."),
+    "qs": N_("QS"),
+    "leaf": N_("LEAF Marque"),
+    "demeter": N_("Demeter (biodinámica)"),
+    "outro": N_("Outro selo"),
 }
 
 RESULTADOS: tuple[str, ...] = ("cumpre", "non_cumpre", "non_aplica")

@@ -17,6 +17,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import Horta, RolHorta
@@ -46,12 +47,12 @@ _ROLES = {RolHorta.ADMIN, RolHorta.EDITOR}
 ANOS = 5
 # Anexo V, tal como está no DOG
 PARTIDAS: dict[str, str] = {
-    "1": "1. Adquisición de terreos ou inmobles",
-    "2": "2. Obra civil e instalacións",
-    "3": "3. Maquinaria e equipamento",
-    "4": "4. Estudos, proxectos e honorarios",
-    "5": "5. Gastos de constitución",
-    "6": "6. Outros",
+    "1": N_("1. Adquisición de terreos ou inmobles"),
+    "2": N_("2. Obra civil e instalacións"),
+    "3": N_("3. Maquinaria e equipamento"),
+    "4": N_("4. Estudos, proxectos e honorarios"),
+    "5": N_("5. Gastos de constitución"),
+    "6": N_("6. Outros"),
 }
 
 
@@ -65,26 +66,42 @@ class Tipoloxia:
 # Arts. 11–15 da convocatoria
 TIPOLOXIAS: dict[str, Tipoloxia] = {
     "primaria_enerxia": Tipoloxia(
-        "Art. 11.1 · Explotación agraria: eficiencia enerxética ou renovables", "15–50 %"),
+        N_("Art. 11.1 · Explotación agraria: eficiencia enerxética ou renovables"),
+        N_("15–50 %"),
+    ),
     "primaria_complementaria": Tipoloxia(
-        "Art. 11.2 · Actividade agraria complementaria dunha principal non agraria",
-        "15–50 %", 30000),
-    "primaria_terras": Tipoloxia("Art. 11.3 · Mobilización ou recuperación de terras",
-                                 "15–50 %"),
+        N_("Art. 11.2 · Actividade agraria complementaria dunha principal non agraria"),
+        N_("15–50 %"),
+        30000,
+    ),
+    "primaria_terras": Tipoloxia(
+        N_("Art. 11.3 · Mobilización ou recuperación de terras"),
+        N_("15–50 %"),
+    ),
     "transformacion": Tipoloxia(
-        "Art. 12 · Transformación e comercialización de produtos agrarios", "15–50 %", 60000),
-    "forestal": Tipoloxia("Art. 13 · Transformación de produtos forestais",
-                          "15–40 %, ata 200.000 € de axuda"),
-    "non_agraria": Tipoloxia("Art. 14 · Actividades non agrarias",
-                             "15–50 %, ata 200.000 € de axuda"),
-    "bono": Tipoloxia("Art. 15 · Bono Activa Rural", "ata 18.000 € a tanto global"),
+        N_("Art. 12 · Transformación e comercialización de produtos agrarios"),
+        N_("15–50 %"),
+        60000,
+    ),
+    "forestal": Tipoloxia(
+        N_("Art. 13 · Transformación de produtos forestais"),
+        N_("15–40 %, ata 200.000 € de axuda"),
+    ),
+    "non_agraria": Tipoloxia(
+        N_("Art. 14 · Actividades non agrarias"),
+        N_("15–50 %, ata 200.000 € de axuda"),
+    ),
+    "bono": Tipoloxia(
+        N_("Art. 15 · Bono Activa Rural"),
+        N_("ata 18.000 € a tanto global"),
+    ),
 }
 FONTES: dict[str, str] = {
-    "capital": "Capital social",
-    "propios": "Recursos propios",
-    "prestamo": "Créditos ou préstamos",
-    "subvencion": "Subvencións",
-    "outros": "Outros",
+    "capital": N_("Capital social"),
+    "propios": N_("Recursos propios"),
+    "prestamo": N_("Créditos ou préstamos"),
+    "subvencion": N_("Subvencións"),
+    "outros": N_("Outros"),
 }
 CAMPOS_PLAN = frozenset({
     "titulo", "ano_inicio", "empresa_nova", "cnae", "descricion", "proceso", "formacion",
@@ -99,31 +116,31 @@ CAMPOS_PLAN = frozenset({
 
 # Apartados e campos da memoria complementaria (art. 18.1.p)
 SECCIONS_MEMORIA: dict[str, tuple[str, ...]] = {
-    "Punto de partida e organización": ("situacion_partida", "metodoloxia", "organizacion"),
-    "DAFO": ("dafo_debilidades", "dafo_ameazas", "dafo_fortalezas", "dafo_oportunidades"),
-    "Mercado": ("mercado", "clientela", "competencia"),
-    "Márketing": ("mk_produto", "mk_prezo", "mk_canles", "mk_comunicacion", "argumentos"),
-    "Riscos e permisos": ("riscos", "permisos"),
+    N_("Punto de partida e organización"): ("situacion_partida", "metodoloxia", "organizacion"),
+    N_("DAFO"): ("dafo_debilidades", "dafo_ameazas", "dafo_fortalezas", "dafo_oportunidades"),
+    N_("Mercado"): ("mercado", "clientela", "competencia"),
+    N_("Márketing"): ("mk_produto", "mk_prezo", "mk_canles", "mk_comunicacion", "argumentos"),
+    N_("Riscos e permisos"): ("riscos", "permisos"),
 }
 
 ETIQUETAS_MEMORIA: dict[str, str] = {
-    "situacion_partida": "situación de partida",
-    "metodoloxia": "metodoloxía de traballo",
-    "organizacion": "organización e persoas",
-    "dafo_debilidades": "debilidades",
-    "dafo_ameazas": "ameazas",
-    "dafo_fortalezas": "fortalezas",
-    "dafo_oportunidades": "oportunidades",
-    "mercado": "mercado: tamaño e tendencia",
-    "clientela": "clientela",
-    "competencia": "competencia",
-    "mk_produto": "produto ou servizo",
-    "mk_prezo": "prezo",
-    "mk_canles": "canles de venda e distribución",
-    "mk_comunicacion": "comunicación e promoción",
-    "argumentos": "argumentos de venda",
-    "riscos": "riscos e como se reducen",
-    "permisos": "permisos e rexistros necesarios",
+    "situacion_partida": N_("situación de partida"),
+    "metodoloxia": N_("metodoloxía de traballo"),
+    "organizacion": N_("organización e persoas"),
+    "dafo_debilidades": N_("debilidades"),
+    "dafo_ameazas": N_("ameazas"),
+    "dafo_fortalezas": N_("fortalezas"),
+    "dafo_oportunidades": N_("oportunidades"),
+    "mercado": N_("mercado: tamaño e tendencia"),
+    "clientela": N_("clientela"),
+    "competencia": N_("competencia"),
+    "mk_produto": N_("produto ou servizo"),
+    "mk_prezo": N_("prezo"),
+    "mk_canles": N_("canles de venda e distribución"),
+    "mk_comunicacion": N_("comunicación e promoción"),
+    "argumentos": N_("argumentos de venda"),
+    "riscos": N_("riscos e como se reducen"),
+    "permisos": N_("permisos e rexistros necesarios"),
 }
 
 

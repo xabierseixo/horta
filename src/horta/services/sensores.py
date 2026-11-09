@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 from dateutil.parser import parse as parse_date
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
 from horta.models.instalacion import Instalacion
@@ -43,16 +44,16 @@ class TipoSensor:
 
 
 TIPOS_SENSOR: dict[str, TipoSensor] = {
-    "humidade_chan": TipoSensor("Humidade do chan", "%", 0.0, 100.0),
-    "temperatura_chan": TipoSensor("Temperatura do chan", "°C", -30.0, 70.0),
-    "temperatura_aire": TipoSensor("Temperatura do aire", "°C", -40.0, 60.0),
-    "humidade_aire": TipoSensor("Humidade do aire", "%", 0.0, 100.0),
-    "choiva": TipoSensor("Choiva", "mm", 0.0, 500.0),
-    "mollado_folla": TipoSensor("Mollado de folla", "%", 0.0, 100.0),
-    "contador_auga": TipoSensor("Contador de auga", "m³", 0.0, 10_000_000.0, acumulado=True),
-    "nivel": TipoSensor("Nivel de depósito ou fosa", "%", 0.0, 100.0),
-    "temperatura_camara": TipoSensor("Temperatura de cámara ou almacén", "°C", -40.0, 60.0),
-    "outro": TipoSensor("Outro", "", None, None),
+    "humidade_chan": TipoSensor(N_("Humidade do chan"), "%", 0.0, 100.0),
+    "temperatura_chan": TipoSensor(N_("Temperatura do chan"), "°C", -30.0, 70.0),
+    "temperatura_aire": TipoSensor(N_("Temperatura do aire"), "°C", -40.0, 60.0),
+    "humidade_aire": TipoSensor(N_("Humidade do aire"), "%", 0.0, 100.0),
+    "choiva": TipoSensor(N_("Choiva"), "mm", 0.0, 500.0),
+    "mollado_folla": TipoSensor(N_("Mollado de folla"), "%", 0.0, 100.0),
+    "contador_auga": TipoSensor(N_("Contador de auga"), "m³", 0.0, 10_000_000.0, acumulado=True),
+    "nivel": TipoSensor(N_("Nivel de depósito ou fosa"), "%", 0.0, 100.0),
+    "temperatura_camara": TipoSensor(N_("Temperatura de cámara ou almacén"), "°C", -40.0, 60.0),
+    "outro": TipoSensor(N_("Outro"), "", None, None),
 }
 
 

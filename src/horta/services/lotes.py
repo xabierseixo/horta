@@ -14,6 +14,7 @@ from datetime import date
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from horta.idiomas import N_
 from horta.models.colleita import Colleita
 from horta.models.cultivo import Cultivo
 from horta.models.horta import RolHorta
@@ -48,11 +49,11 @@ TIPOS_SAIDA: dict[str, str] = {
 # Decreto 125/2014 art. 4 (venda directa) e venda a almacén ou cooperativa (CUE 3: colleita
 # comercializada)
 CANLES: dict[str, str] = {
-    "explotacion": "Na explotación",
-    "mercado": "Nun mercado",
-    "domicilio": "A domicilio",
-    "tenda": "A unha tenda",
-    "almacen": "A un almacén ou cooperativa",
+    "explotacion": N_("Na explotación"),
+    "mercado": N_("Nun mercado"),
+    "domicilio": N_("A domicilio"),
+    "tenda": N_("A unha tenda"),
+    "almacen": N_("A un almacén ou cooperativa"),
 }
 CANLES_DIRECTAS = ("explotacion", "mercado", "domicilio", "tenda")
 # Decreto 125/2014 anexo II: nome, máximo ao ano ao aire libre e en invernadoiro, unidade
