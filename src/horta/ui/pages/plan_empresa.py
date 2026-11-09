@@ -12,16 +12,20 @@ from nicegui import ui
 from horta.db import get_session
 from horta.models.persoa import Persoa
 from horta.models.plan_empresa import (
+    PlanActividade,
     PlanEmpresa,
     PlanFinanciamento,
     PlanInvestimento,
+    PlanObxectivo,
     PlanOferta,
 )
 from horta.services.errors import OperacionNonPermitidaError
 from horta.services.persoas import con_papel, nome_completo
 from horta.services.plan_empresa import (
+    ETIQUETAS_MEMORIA,
     FONTES,
     PARTIDAS,
+    SECCIONS_MEMORIA,
     TIPOLOXIAS,
     Documento,
     actualizar_plan,
@@ -30,9 +34,12 @@ from horta.services.plan_empresa import (
     conta,
     crear_plan,
     documentos_plan,
+    engadir_actividade,
     engadir_financiamento,
     engadir_investimento,
+    engadir_obxectivo,
     engadir_oferta,
+    faltas_memoria,
     faltas_plan,
     gardar_anos,
     indicadores,
@@ -41,6 +48,7 @@ from horta.services.plan_empresa import (
     quitar,
     seguimento,
     xerar_anexos,
+    xerar_memoria,
 )
 from horta.ui.accions import executar_accion
 from horta.ui.formato_descarga import descargar_informe, selector_formato
@@ -50,6 +58,28 @@ from horta.ui.sesion import pechar_sesion, usuario_actual
 
 def _e(valor: float) -> str:
     return f"{valor:,.2f} €".replace(",", " ").replace(".", ",")
+
+
+def texto_actividade(a: PlanActividade) -> str:
+    """Texto para a liña dunha actividade do calendario."""
+    rango = f"Mes {a.mes_inicio}" if a.mes_inicio == a.mes_fin else (
+        f"Mes {a.mes_inicio}–{a.mes_fin}"
+    )
+    responsable = getattr(a, "responsable", None)
+    resp = f" · {responsable}" if responsable else ""
+    return f"{rango}: {a.actividade}{resp}"
+
+
+def texto_obxectivo(o: PlanObxectivo) -> str:
+    """Texto para a liña dun obxectivo co seu indicador."""
+    res = f"{o.obxectivo} — mídese con {o.indicador}"
+    meta = getattr(o, "meta", None)
+    if meta:
+        res += f" · meta: {meta}"
+    prazo = getattr(o, "prazo", None)
+    if prazo:
+        res += f" · prazo: {prazo}"
+    return res
 
 
 def _accion(funcion: Any) -> None:
@@ -158,10 +188,7 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
     textos = {c: ui.textarea(e, value=getattr(plan, c) or "").classes("w-full")
               for c, e in (("descricion", "1. Descrición, obxectivos e finalidade"),
                            ("proceso", "2. Proceso e medios humanos e materiais"),
-                           ("formacion", "4. Formación do promotor"),
-                           ("situacion_partida", "Memoria: situación de partida"),
-                           ("metodoloxia", "Memoria: metodoloxía de traballo"),
-                           ("mercado", "Memoria: mercado e clientela"))}
+                           ("formacion", "4. Formación do promotor"))}
     with ui.row().classes("gap-2"):
         utas = {c: ui.input(e, value=f"{getattr(plan, c):g}").classes("w-28")
                 for c, e in (("uta_mantidas", "UTA mantidas"), ("uta_creadas", "UTA creadas"),
@@ -274,6 +301,92 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             ui.label(f"{doc.letra}) {doc.texto}" + ("" if doc.da_app else " · achégao ti")
                      ).classes("text-body2")
 
+    ui.label("Memoria complementaria").classes("text-subtitle1 text-weight-bold q-mt-md")
+    ui.label(
+        "AGADER admítea como documentación complementaria (art. 18.1.p). "
+        "Serve tamén para o banco ou para o GDR."
+    ).classes("texto-suave text-caption")
+
+    faltas_m = faltas_memoria(plan)
+    if faltas_m:
+        ui.label("Na memoria falta: " + "; ".join(faltas_m) + ".").classes("etiqueta-aviso")
+
+    campos_lista = {
+        "dafo_debilidades",
+        "dafo_ameazas",
+        "dafo_fortalezas",
+        "dafo_oportunidades",
+        "argumentos",
+        "riscos",
+        "permisos",
+    }
+    entradas_memoria: dict[str, ui.textarea] = {}
+    for seccion, campos in SECCIONS_MEMORIA.items():
+        with ui.expansion(seccion).classes("w-full"):
+            if seccion == "DAFO":
+                with ui.grid(columns=2).classes("w-full"):
+                    for c in campos:
+                        ta = ui.textarea(
+                            ETIQUETAS_MEMORIA[c].capitalize(),
+                            value=getattr(plan, c) or "",
+                        ).classes("w-full").props("autogrow")
+                        if c in campos_lista:
+                            ta.props('hint="Un punto por liña"')
+                        entradas_memoria[c] = ta
+            else:
+                for c in campos:
+                    ta = ui.textarea(
+                        ETIQUETAS_MEMORIA[c].capitalize(),
+                        value=getattr(plan, c) or "",
+                    ).classes("w-full").props("autogrow")
+                    if c in campos_lista:
+                        ta.props('hint="Un punto por liña"')
+                    entradas_memoria[c] = ta
+
+    ui.button("Gardar a memoria", icon="check", on_click=lambda: _accion(
+        lambda s, a: actualizar_plan(
+            s, a, s.get(PlanEmpresa, plan.id),
+            **{c: t.value or None for c, t in entradas_memoria.items()}))).props("outline")
+
+    with ui.expansion("Calendario de 12 meses").classes("w-full"):
+        for act in plan.actividades:
+            with ui.row().classes("items-center gap-2"):
+                ui.label(texto_actividade(act))
+                ui.button(icon="delete", on_click=lambda act=act: _accion(
+                    lambda s, a: quitar(s, a, s.get(PlanEmpresa, plan.id),
+                                        s.get(PlanActividade, act.id)))).props(
+                    "flat dense round size=sm color=negative")
+        with ui.row().classes("items-end gap-2"):
+            meses = list(range(1, 13))
+            mes_inicio = ui.select(meses, label="Desde o mes", value=1).classes("w-28")
+            mes_fin = ui.select(meses, label="Ata o mes", value=12).classes("w-28")
+            act_txt = ui.input("Actividade").classes("w-48")
+            resp_txt = ui.input("Responsable").classes("w-36")
+            ui.button("Engadir", icon="add", on_click=lambda: _accion(
+                lambda s, a: engadir_actividade(
+                    s, a, s.get(PlanEmpresa, plan.id),
+                    int(mes_inicio.value or 0), int(mes_fin.value or 0),
+                    act_txt.value or "", resp_txt.value or None))).props("outline")
+
+    with ui.expansion("Obxectivos e indicadores").classes("w-full"):
+        for obx in plan.obxectivos:
+            with ui.row().classes("items-center gap-2"):
+                ui.label(texto_obxectivo(obx))
+                ui.button(icon="delete", on_click=lambda obx=obx: _accion(
+                    lambda s, a: quitar(s, a, s.get(PlanEmpresa, plan.id),
+                                        s.get(PlanObxectivo, obx.id)))).props(
+                    "flat dense round size=sm color=negative")
+        with ui.row().classes("items-end gap-2"):
+            obx_txt = ui.input("Obxectivo").classes("w-48")
+            ind_txt = ui.input("Como se mide").classes("w-48")
+            meta_txt = ui.input("Meta").classes("w-32")
+            prazo_txt = ui.input("Prazo").classes("w-28")
+            ui.button("Engadir", icon="add", on_click=lambda: _accion(
+                lambda s, a: engadir_obxectivo(
+                    s, a, s.get(PlanEmpresa, plan.id),
+                    obx_txt.value or "", ind_txt.value or "",
+                    meta_txt.value or None, prazo_txt.value or None))).props("outline")
+
     if segue:
         ui.label("Seguimento: previsto e real").classes("text-subtitle1 text-weight-bold q-mt-md")
         for s in segue:
@@ -301,8 +414,29 @@ def _plan(plan: PlanEmpresa, segue: list, faltas: list[str], docs: list[Document
             "plan",
         )
 
-    ui.button("Descargar Anexo III e V", icon="download", on_click=descargar).classes(
-        "q-mt-md")
+    def descargar_memoria() -> None:
+        with get_session() as session:
+            actor = usuario_actual(session)
+            if actor is None:
+                pechar_sesion()
+                return
+            try:
+                datos = xerar_memoria(session, actor, plan.id)
+            except OperacionNonPermitidaError as erro:
+                ui.notify(str(erro), type="negative")
+                return
+        descargar_informe(
+            datos,
+            formato.value or "xlsx",
+            f"plan-memoria-{plan.id}",
+            "Memoria do plan de empresa",
+            "memoria",
+        )
+
+    with ui.row().classes("items-center gap-2 q-mt-md"):
+        ui.button("Descargar Anexo III e V", icon="download", on_click=descargar)
+        ui.button("Descargar a memoria", icon="download", on_click=descargar_memoria).props(
+            "outline")
 
 
 def _ofertas(plan: PlanEmpresa, investimento: PlanInvestimento, provedores: dict[int, str],
