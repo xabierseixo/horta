@@ -1,0 +1,12 @@
+{"listaDiaConcellos": [
+ {"dia": 0, "listaAvisosConcellos": []},
+ {"dia": 1, "listaAvisosConcellos": [
+  {"idconcello": 15078, "idNivel": 1, "nomeConcello": "Santiago de Compostela",
+   "dataAviso": "2026-10-29T09:00:00", "dataIni": "2026-10-30T06:00:00",
+   "dataFin": "2026-10-30T18:00:00", "idTipoAlerta": 8,
+   "tipoalerta_gl": "Refacho máximo de vento", "tipoalerta_es": "Racha máxima de viento"},
+  {"idconcello": 15078, "idNivel": 0, "nomeConcello": "Santiago de Compostela",
+   "dataAviso": "2026-10-29T09:00:00", "dataIni": "2026-10-30T00:00:00",
+   "dataFin": "2026-10-30T23:59:00", "idTipoAlerta": 3,
+   "tipoalerta_gl": "Precipitación 1 hora", "tipoalerta_es": "Precipitación 1 hora"}]}
+]}

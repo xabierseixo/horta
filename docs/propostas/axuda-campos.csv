@@ -1,0 +1,110 @@
+pantalla;campo;axuda
+parcelas;Nome;Un nome para recoñecer a parcela, por exemplo O Agro de Abaixo.
+parcelas;Superficie;A superficie da parcela. Podes escribila en metros cadrados ou en hectáreas.
+parcelas;Uso ou aproveitamento;O uso que ten a parcela no SIGPAC, por exemplo terra arable ou pasto.
+parcelas;Referencia catastral;A referencia do Catastro da parcela. Está no recibo do IBI ou na sede do Catastro.
+parcelas;Tenencia, alta e baixa;Non é un campo: título dun apartado do formulario.
+parcelas;NIF do arrendador ou cedente;O NIF da persoa dona da terra se a levas en arrendamento ou cedida.
+parcelas;Pequena superficie;?
+parcelas;Data de alta;O día en que a parcela pasou a formar parte da explotación.
+parcelas;Data de baixa;O día en que a parcela deixou de formar parte da explotación.
+parcelas;Localización e notas;Non é un campo: título dun apartado do formulario.
+parcelas;Latitude;A latitude da parcela. Podes copiala dun mapa no móbil.
+parcelas;Lonxitude;A lonxitude da parcela. Podes copiala dun mapa no móbil.
+parcelas;Notas;Calquera cousa que queiras lembrar desta parcela.
+parcelas;Aínda non hai parcelas;Non é un campo: texto que sae cando a táboa está baleira.
+parcelas;Secano ou regadío;Se a parcela se rega ou se só recibe a auga da chuvia.
+parcelas;Orixe da auga de rega;De onde vén a auga coa que regas: pozo, río, chuvia recollida...
+parcelas;Réxime de tenencia;Se a terra é túa, arrendada, en parcería, comunal...
+parcelas;Causa da baixa;Por que a parcela deixa a explotación: venda, fin do arrendamento...
+cultivos;Variedade (se non está na lista);Escribe a variedade se non aparece na lista oficial.
+cultivos;Superficie;A superficie que ocupa este cultivo. Non pode ser maior ca da parcela.
+cultivos;Data de sementeira ou plantación;O día en que sementaches ou plantaches.
+cultivos;Colleita prevista;Cando contas empezar a colleitar.
+cultivos;Data de fin (cando remata);O día en que remata o cultivo e queda libre a terra.
+cultivos;Inicio da conversión a ecolóxico;O día en que empezaches a pasar este cultivo a ecolóxico.
+cultivos;Produción integrada;Marca se o cultivo segue as normas de produción integrada.
+cultivos;Sementeira ou plantación (caderno);Non é un campo: título dun apartado do formulario.
+cultivos;Data de fin da sementeira/plantación;Se a sementeira ou plantación durou varios días, o último día.
+cultivos;Semente usada (kg);Cantos quilos de semente empregaches en total.
+cultivos;Dose de sementeira (kg/ha);Cantos quilos de semente botas por hectárea.
+cultivos;Plantas por hectárea;Cantas plantas hai por hectárea.
+cultivos;Sementeira directa;Marca se sementaches sen arar antes a terra.
+cultivos;A semente ou planta vén tratada;Marca se a semente ou a planta xa viña tratada con algún produto.
+cultivos;A semente ou planta comprouse;Marca se a semente ou a planta foi comprada e non é da túa casa.
+cultivos;Data de compra;O día en que compraches a semente ou a planta.
+cultivos;Orixe da semente ou planta;De onde vén a semente ou a planta: comprada, da propia casa, dun banco de sementes...
+cultivos;Provedor;A tenda ou o viveiro onde compraches a semente ou a planta.
+cultivos;Lote da semente ou planta;O número de lote que vén na bolsa ou na etiqueta da semente ou planta.
+cultivos;Pasaporte fitosanitario;O número do pasaporte fitosanitario da etiqueta da planta, se o ten.
+cultivos;Nº ROPVEG do provedor;O número de rexistro ROPVEG do viveiro ou provedor. Vén na etiqueta ou na factura.
+cultivos;Árbores e viña;Non é un campo: título dun apartado do formulario.
+cultivos;Número de árbores;Cantas árbores ou cepas hai no cultivo.
+cultivos;Marco de plantación (p.ex. 4x4);A distancia entre filas e entre árbores, en metros. Por exemplo 4x4.
+cultivos;Ano de plantación;O ano en que se plantaron as árbores ou a viña.
+cultivos;Castiñeiros;Cantos castiñeiros hai.
+cultivos;Abeleiras;Cantas abeleiras hai.
+cultivos;Nogueiras;Cantas nogueiras hai.
+cultivos;Amendoeiras;Cantas amendoeiras hai.
+cultivos;Outras árbores de froitos de casca;Cantas árbores doutros froitos de casca hai.
+cultivos;Cogomelos;Non é un campo: título dun apartado do formulario.
+cultivos;Unidades produtivas (sacos, bandexas...);Cantas unidades de cultivo tes: sacos, bandexas, botellas...
+cultivos;Ciclos ao ano;Cantas veces ao ano se completa o cultivo.
+cultivos;Duración de cada ciclo (días);Cantos días dura cada ciclo, desde que se sementa ata a colleita.
+cultivos;Plan de abonado;Marca se tes un plan de abonado escrito para este cultivo.
+cultivos;Colleita esperada (kg/ha);Cantos quilos por hectárea esperas colleitar.
+cultivos;Baixa e notas;Non é un campo: título dun apartado do formulario.
+cultivos;Notas;Calquera cousa que queiras lembrar deste cultivo.
+cultivos;Aínda non hai cultivos;Non é un campo: texto que sae cando a táboa está baleira.
+cultivos;Parcela;A parcela onde está o cultivo.
+cultivos;Cultivo (lista oficial);O cultivo segundo a lista oficial. Podes buscalo polo seu nome en galego.
+cultivos;Variedade oficial;A variedade segundo a lista oficial, se aparece nela.
+cultivos;Sistema de cultivo;Como se cultiva: ao aire libre, en invernadoiro, con acolchado...
+cultivos;Secano ou regadío;Se o cultivo se rega ou se só recibe a auga da chuvia.
+cultivos;Destino;Para que é a colleita: consumo en fresco, para animais, semente...
+cultivos;Ecolóxico;Se o cultivo está certificado como ecolóxico ou en conversión.
+cultivos;Cobertura do chan (cultivos permanentes);O que cobre o chan entre as árbores: nada, herba sementada, herba espontánea...
+cultivos;Procedencia;De onde vén a semente ou a planta: comprada, da propia casa, dun banco de sementes...
+cultivos;Cultivo anterior;O cultivo que había antes nesta terra. Serve para levar a rotación.
+cultivos;Causa da baixa;Por que o cultivo se deu de baixa antes de tempo.
+colleitas;Data;O día da colleita.
+colleitas;Cantidade;Canto colleitaches, na unidade que escollas.
+colleitas;Lote;Un código para identificar esta colleita. A app propón un, pero podes cambialo.
+colleitas;Nº de albarán ou factura (opcional);O número do albará ou da factura de venda, se o tes.
+colleitas;"Superficie colleitada (ha; baleiro = a do cultivo)";A superficie que colleitaches. Déixao baleiro se é toda a do cultivo.
+colleitas;Data de fin (se durou máis dun día);Se a colleita durou varios días, o último día.
+colleitas;Obtéñense sementes para sementar;Marca se gardas parte da colleita para sementar.
+colleitas;Obtéñense plantas ou plantóns;Marca se da colleita sacas plantas ou plantóns.
+colleitas;Sen colleita por razóns ambientais;Marca se non colleitaches por razóns ambientais.
+colleitas;Os restos quedan no chan;Marca se os restos do cultivo quedan na terra.
+colleitas;Notas;Calquera cousa que queiras lembrar desta colleita.
+colleitas;Aínda non hai colleitas;Non é un campo: texto que sae cando a táboa está baleira.
+colleitas;Cultivo;O cultivo do que é esta colleita.
+colleitas;Unidade;A unidade da cantidade: quilos, toneladas, unidades...
+colleitas;Finalidade (só viño ou procesado industrial);Só para viño ou para produtos que van á industria: a onde vai a colleita.
+colleitas;Que se fai cos restos;Que fas cos restos do cultivo: enterralos, compostalos, dalos aos animais...
+equipo;Nome;O nome da persoa.
+equipo;Apelidos;Os apelidos da persoa.
+equipo;NIF;O NIF ou NIE da persoa.
+equipo;Teléfono;Un teléfono de contacto.
+equipo;Email de contacto;Un email de contacto. Non ten que ser o da súa conta na app.
+equipo;Titular;Marca se esta persoa é titular da explotación.
+equipo;Traballador;Marca se esta persoa traballa na explotación.
+equipo;Aplica fitosanitarios;Marca se esta persoa aplica produtos fitosanitarios.
+equipo;Asesor;Marca se esta persoa é asesora en xestión de pragas.
+equipo;Nº ROPO;O número de inscrición no ROPO. Vén no carné de aplicador ou de asesor.
+equipo;Caducidade do carné;O día en que caduca o carné de fitosanitarios.
+equipo;Nº REGFER;O número de inscrición no rexistro de fertilizantes, se o ten.
+equipo;Traballo (para o plan de empresa);Non é un campo: título dun apartado do formulario.
+equipo;Horas ao ano;Cantas horas ao ano traballa na explotación.
+equipo;Formación agraria;A formación agraria que ten esta persoa.
+equipo;Colectivo (opcional, para axudas ao emprego);Non é un campo: título dun apartado do formulario.
+equipo;Data de nacemento;O día de nacemento da persoa.
+equipo;Persoa con discapacidade;Marca se a persoa ten recoñecida unha discapacidade.
+equipo;Activa;Desmarca se a persoa xa non está na explotación.
+equipo;Email da súa conta na app;O email coa que entra na app, se ten conta.
+equipo;Aínda non hai ninguén no equipo;Non é un campo: texto que sae cando a táboa está baleira.
+equipo;Tipo de carné;O tipo de carné de fitosanitarios: básico, cualificado, fumigador...
+equipo;Vínculo coa explotación;A relación coa explotación: titular, familiar, persoa contratada...
+equipo;Xénero;O xénero da persoa. Pídese para algunhas axudas.
+equipo;Permiso;O que pode facer na app esta persoa: ver, editar ou administrar.

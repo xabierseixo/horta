@@ -1,0 +1,94 @@
+codigo;nome_oficial;nome_latin
+92;ROMANESCU;Brassica oleracea var. botrytis 'Romanesco'
+121;BONIATO;Ipomoea batatas
+153;MELÓN;Cucumis melo
+154;BRÓCOLI;Brassica oleracea var. italica
+156;SANDÍA;Citrullus vulgaris
+158;APIO;Apium graveolens L. var. dulce
+159;COLIRRÁBANO;Brassica oleracea L. var. gongylodes L.
+160;COLIFLOR;Brassica oleracea L. var. botrytis L.
+164;ALCACHOFA;Cynara cardunculus
+167;CEBOLLETA;Allium fistulosum
+168;CHALOTA;Allium cepa L. var. aggregatum G. Don
+171;CHIRIVÍA;Pastinaca sativa
+173;COL ROJA O LOMBARDA;Brassica oleracea convar. capitata var. rubra
+174;COL MILÁN O SAVOY;Brassica oleracea var. sabauda
+176;COL DE BRUSELAS;Brassica oleracea L. var. gemmifera Zenker
+177;ENDIVIA;Cichorium intybus L. var. foliosum Hegi
+182;GUINDILLA;Capsicum annuum 'Cayenne'
+184;CARDO;Cynara cardunculus grupo Cardos
+186;CALABAZA DEL PEREGRINO;Lagenaria siceraria
+187;BORRAJA;Borago officinalis
+189;ESCAROLA;Cichorium endivia var. latifolium Lam.
+190;RÁBANO;Raphanus sativus
+191;BERRO DE AGUA;Nasturtium officinale
+193;HUERTA;
+252;CILANTRO;Coriandrum sativum
+269;PERIFOLLO;Anthriscus cerefolium
+304;COL CHINA;Brassica rapa L. subsp. pekinensis (Lour.) Hanelt
+401;CEBOLLINO;Allium schoenoprasum
+417;CANÓNIGO;Valerianella locusta
+418;ACEDERA;Rumex acetosa
+419;BERRO HORTELANO;Lepidium sativum
+420;RUIBARBO;Rheum rhabarbarum
+421;VERDOLAGA;Portulaca oleracea
+422;KIWANO;Cucumis metulifer
+423;TOMATILLO;Physalis ixocarpa
+424;ALCACHOFA CHINA;Stachys affinis
+425;GALANGA MENOR;Alpinia officinarum
+426;PEREJIL TUBEROSO;Petroselinum crispum var. tuberosum
+427;RÁBANO PICANTE;Armoracia rusticana
+429;COLLEJA;Silene vulgaris
+445;COL CRESPA;Brassica oleracea convar. acephala
+463;CHOISUM;Brassica rapa subsp. chinensis
+464;BRÓCOLI CHINO;Brassica oleracea var. alboglabra
+465;BATATA ACUÁTICA;Ipomoea aquatica
+466;CEBOLLINO CHINO;Allium tuberosum
+468;ESPINACA DE MALABAR;Basella alba
+469;LUFFA;Luffa acutangula (L.) Roxb.
+471;CALABAZA AMARGA;Momordica charantia
+472;PEPINO CULEBRA;Cucumis flexuosus
+473;CALABAZA CHINA;Benincasa hispida
+475;RÁBANO SILVESTRE;Raphanus raphanistrum
+478;COLINABO;Brassica napus subsp. napobrassica
+497;APIO-RÁBANO;Apium graveolens L. var. rapaceum (Mill.) Gaud.
+498;BROCCOLINI;Brassica oleracea var. italica x Brassica oleracea var. alboglabra
+502;CALABAZA MOSCADA;Cucurbita moschata
+503;NABO SILVESTRE;Brassica rapa var. campestris
+505;PORTAINJERTOS DE CALABAZA;Cucurbita maxima x Cucurbita moschata
+563;BERENJENA ETÍOPE;Solanum aethiopicum L.
+564;HÍBRIDOS DE SOLANUM LYCOPERSICUM Y CHESMANIAE;Solanum lycopersicum L. x Solanum cheesmaniae (L. Ridley) Fosberg
+565;HÍBRIDOS DE SOLANUM LYCOPERSICUM Y PERUVIANUM;Solanum lycopersicum L. x Solanum peruvianum (L.) Mill
+566;HÍBRIDOS DE SOLANUM LYCOPERSICUM Y PIMPINELLIFOLIUM;Solanum lycopersicum x Solanum pimpinellifolium
+567;HÍBRIDOS DE SOLANUM LYCOPERSICUM Y HABROCHAITES;solanum lycopersicum L. x Solanum habrochaites S. Knapp & D.M. Spooner
+568;BERENJENA CIMARRONA;Solanum torvum Sw.
+569;HÍBRIDOS DE SOLANUM MELONGENA Y TORVUM;Solanum melongena x Solanum torvum Sw.
+570;HÍBRIDOS DE SOLANUM MELONGENA Y AETHIOPICUM;Solanum melongena L. x Solanum aethiopicum L.
+571;TOMATE DE GALÁPAGOS;Solanum cheesmaniae (L. Ridley) Fosberg
+572;TOMATE CIMARRÓN;Solanum peruvianum L.
+573;TOMATE PELUDO;Solanum habrochaites
+574;TOMATE SILVESTRE;Solanum pimpinellifolium L.
+581;COL DE JERSEY;Brassica oleracea L. var. palmifolia DC.
+582;HÍBRIDOS DE CUCUMIS MELO;Cucumis melo L. subsp. melo var. flexuosus (L.) Naudin x Cucumis melo L. subsp. melo
+583;CALABAZA DE CABELLO DE ÁNGEL;Cucurbita ficifolia Bouché
+584;RABANITO;Raphanus sativus L. var. sativus
+612;HÍBRIDOS DE FRAGARIA IINUMAE Y VESCA;Fragaria iinumae Makino x F. vesca L.
+614;ACELGA BRAVA;Beta vulgaris (L.) Arcangeli subsp. maritima
+869;CHAYOTE;Sechium edule (Jacq.) Sw.
+916;KALE;Brassica oleracea convar. acephala var. sabellica
+925;ALFICOZ;Cucumis melo var. flexuosus
+926;BATATA;Ipomoea batatas
+927;OKRA;Abelmoschus esculentus
+928;PHYSALIS;Physalis spp.
+929;RÚCULA;Eruca vesicaria subsp. sativa
+933;ÑAME;Dioscorea spp.
+938;FRESÓN;Fragaria x ananassa Duchesne ex Rozie (grupo fresón)
+952;COL PICUDA;Brassica oleracea var. capitata f. conica
+961;AJO PUERRO;Allium kurrat Schweinfurth
+963;CALABAZA SERPIENTE;Trichosanthes cucumerina L. var. anguina (L.) Haines
+987;ESPONJA VEGETAL;Luffa cylindrica M.J. Roem.
+1029;HÍBRIDOS DE FRAGARIA X ANANASSA Y VESCA;Fragaria × vescana Rud. Bauer & A. Bauer
+1030;FRESA IINUMAE;Fragaria iinumae Makino
+1031;FRESA ALMIZCLADA;Fragaria moschata Weston
+1032;FRESA SILVESTRE;Fragaria vesca L.
+1121;ENDIBIA BELGA;Cichorium intybus L. (Witloof Chicory Group)

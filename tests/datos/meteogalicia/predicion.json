@@ -1,0 +1,74 @@
+{
+ "predConcello": {
+  "idConcello": 15078,
+  "listaPredDiaConcello": [
+   {
+    "ceo": {
+     "manha": 104,
+     "noite": 202,
+     "tarde": 102
+    },
+    "ceoDia": 102,
+    "dataPredicion": "2026-10-29T00:00:00",
+    "nivelAviso": null,
+    "pchoiva": {
+     "manha": 5,
+     "noite": 5,
+     "tarde": 5
+    },
+    "tMax": 20,
+    "tMin": 10,
+    "tmaxFranxa": {
+     "manha": 17,
+     "noite": 15,
+     "tarde": 20
+    },
+    "tminFranxa": {
+     "manha": 13,
+     "noite": 11,
+     "tarde": 15
+    },
+    "uvMax": 3,
+    "vento": {
+     "manha": 306,
+     "noite": 302,
+     "tarde": 306
+    }
+   },
+   {
+    "ceo": {
+     "manha": 102,
+     "noite": 203,
+     "tarde": 102
+    },
+    "ceoDia": 102,
+    "dataPredicion": "2026-10-30T00:00:00",
+    "nivelAviso": null,
+    "pchoiva": {
+     "manha": 5,
+     "noite": 5,
+     "tarde": 5
+    },
+    "tMax": 21,
+    "tMin": 8,
+    "tmaxFranxa": {
+     "manha": 19,
+     "noite": 15,
+     "tarde": 21
+    },
+    "tminFranxa": {
+     "manha": 8,
+     "noite": 11,
+     "tarde": 16
+    },
+    "uvMax": 3,
+    "vento": {
+     "manha": 299,
+     "noite": 302,
+     "tarde": 299
+    }
+   }
+  ],
+  "nome": "Santiago de Compostela"
+ }
+}

@@ -1,0 +1,86 @@
+"""Importa o catálogo oficial de produtos fertilizantes (DETALLE_MATERIAL_FERT.xlsx do FEGA)."""
+
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+from sqlalchemy.orm import Session
+
+from horta.models.fertilizante import FertilizanteSiex
+from horta.services.catalogos_importar import (
+    InformeImportacion,
+    _codigo,
+    _comprobar_columnas,
+    _ler_xlsx,
+    _nova_version,
+    _rematar,
+    _texto,
+    _xa_importado,
+)
+
+
+def _numero(valor: Any) -> float:
+    texto = _texto(valor)
+    return float(texto.replace(",", ".")) if texto else 0.0
+
+
+def importar_fertilizantes(
+    session: Session, ruta: Path, hoxe: date | None = None, aplicar: bool = True
+) -> InformeImportacion:
+    hoxe = hoxe or date.today()
+    if _xa_importado(session, "fertilizante", ruta):
+        return InformeImportacion(catalogo="fertilizante", xa_importado=True)
+    cabeceira, filas = _ler_xlsx(ruta)
+    _comprobar_columnas(ruta, cabeceira, ["C_FERTILIZANTE", "Código SIEX", "D_FERTILIZANTE_2",
+                                          "N_% TOTAL", "P2O5 % total", "K2O % total"])
+    informe = InformeImportacion(catalogo="fertilizante")
+    version = _nova_version(session, "fertilizante", ruta, len(filas))
+    if version is None:
+        informe.xa_importado = True
+        return informe
+    existentes = {f.codigo: f for f in session.query(FertilizanteSiex)}
+    informe.existentes = len(existentes)
+    vistos: set[int] = set()
+    for fila in filas:
+        codigo = int(_codigo(fila["C_FERTILIZANTE"]))
+        vistos.add(codigo)
+        densidade = _numero(fila.get("Densidad (g/cm3)"))
+        datos = {
+            "material": _codigo(fila["Código SIEX"]),
+            "clase": _texto(fila.get("D_CLASIFICA_NIVEL1")),
+            "subclase": _texto(fila.get("D_CLASIFICA_NIVEL2")),
+            "nome": _texto(fila.get("D_FERTILIZANTE_2")) or "",
+            "fabricante": _texto(fila.get("Fabricante")),
+            "n_pct": _numero(fila.get("N_% TOTAL")),
+            "p2o5_pct": _numero(fila.get("P2O5 % total")),
+            "k2o_pct": _numero(fila.get("K2O % total")),
+            "n_organico_pct": _numero(
+                fila.get("N orgánico % (en fertilizantes orgánico-minerales)")),
+            "n_ureico_pct": _numero(fila.get("N % ureico")),
+            "n_nitrico_pct": _numero(fila.get("N % nítrico")),
+            "n_amoniacal_pct": _numero(fila.get("N % amoniacal")),
+            "p2o5_soluble_pct": _numero(fila.get("P2O5 % soluble en agua")),
+            "liquido": _texto(fila.get("Estado de agregación")) == "Líquido",
+            "densidade": densidade or None,
+            "inhibidor_nitrificacion":
+                _texto(fila.get("¿Inhibidor de la nitrificación? Si/No")) == "SI",
+            "inhibidor_ureasa": _texto(fila.get("¿Inhibidor de la ureasa? Si/No")) == "SI",
+            "data_baixa": None,
+        }
+        actual = existentes.get(codigo)
+        if actual is None:
+            session.add(FertilizanteSiex(codigo=codigo, version_id=version.id, **datos))
+            informe.altas += 1
+        elif any(getattr(actual, k) != v for k, v in datos.items()):
+            for k, v in datos.items():
+                setattr(actual, k, v)
+            actual.version_id = version.id
+            informe.cambios += 1
+    for codigo, fertilizante in existentes.items():
+        if codigo not in vistos and fertilizante.data_baixa is None:
+            fertilizante.data_baixa = hoxe
+            informe.baixas += 1
+    _rematar(session, aplicar)
+    return informe

@@ -1,0 +1,30 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# SQLite database
+horta.db
+
+# Editor swap/backup files
+*.swp
+*.swo
+*~
+
+# NiceGUI runtime directory
+.nicegui/
+
+# Espazo de traballo de Subagent-Driven Development (efémero, non versionado)
+.superpowers/
+
+# Rexistros da app
+logs/
+
+# Rexistros das execucións do modelo local
+memory-bank/tarefas/logs/
