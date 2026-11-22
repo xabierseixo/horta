@@ -1,0 +1,40 @@
+# Loop Prevention Rules
+
+* If you run the same tool or command more than 2 times with identical parameters and receive the same or similar results, STOP immediately.
+* Do not repeat file reads or listings if you already have the data in your chat history.
+* If a task is failing repeatedly, do not keep trying the exact same fix. Stop, analyze why it fails, report the error to the user, and ask for guidance.
+* Never repeat an identical tool call immediately after it fails or returns the same result. Change the approach or stop and explain the blocker.
+* If Cline reports repeated identical tool calls or consecutive tool errors, do not retry the rejected call. Use a different available tool or continue without that tool.
+* After two unsuccessful attempts at the same operation, stop retrying that operation unless a concrete change makes another attempt worthwhile.
+
+# Tool Use and Research
+
+* Before calling a tool, check whether its result is already available in the conversation or in a previously read file.
+* After successfully fetching a URL, use the returned content. Do not fetch the same URL again with identical parameters.
+* If web retrieval fails or repeats a result, switch to another relevant source, inspect local project files, or continue with verified existing knowledge.
+* Do not abandon the user's overall task because one tool or information source fails.
+* Use web research when it helps answer the task. These rules limit repeated calls, not legitimate research.
+* If a tool is unavailable or rejected, never invent its name, parameters, or result. Use only tools actually available to the agent.
+* Do not claim that a file was read, a change was saved, or a test passed unless the result confirms it.
+
+# Persistent Task Context
+
+* At the start of each new task, read `memory-bank/activeContext.md` for context and verify its statements against the current repository.
+* Do not modify `memory-bank/activeContext.md` nor `docs/estado-e-evolucion.md`: Claude Code maintains them. Record what you did only in the **Resultado** section of the task file.
+* Treat the repository and verified command output as the source of truth.
+* Touch only the files listed in the task. Changes to any other file are discarded automatically.
+
+# Task Execution
+
+* Work on the user's requested objective. Do not replace it with a narrower task merely because a tool fails.
+* Break substantial work into clear steps and complete the current step before moving to unrelated work.
+* For research that will inform code changes, distinguish verified current behavior from proposed changes.
+* Before modifying models, database schemas, or migrations, explain the proposed changes when the user has requested review before implementation.
+* At the end of a substantial task, report what changed, what was verified, and what remains unresolved.
+
+# Coordinación con Claude Code
+
+* Neste repositorio traballa tamén Claude Code. Segue o protocolo de `AGENTS.md` en cada tarefa.
+* Segue as convencións de código de `CLAUDE.md` (son comúns aos dous axentes).
+* O estado do proxecto e o plan de evolución están en `docs/estado-e-evolucion.md`. Lelo antes de propoñer cambios de deseño.
+* Ao rematar: pasar ruff, mypy e pytest e facer commit co rodapé `Axente: ornith-88` (ou `Axente: qwen-66`). Non deixar traballo sen commit.
